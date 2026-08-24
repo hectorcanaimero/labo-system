@@ -1,0 +1,39 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "resolveJsonModule": true,
+    "allowJs": false,
+    "checkJs": false,
+    "declaration": true,
+    "declarationMap": true,
+    "sourceMap": true,
+    "outDir": "./dist",
+    "rootDir": "./src",
+    "strict": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noImplicitReturns": true,
+    "noFallthroughCasesInSwitch": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "isolatedModules": true,
+    "verbatimModuleSyntax": true,
+    "paths": {
+      "@labo/lib": ["./packages/lib"],
+      "@labo/lib/*": ["./packages/lib/*"],
+      "@labo/ui": ["./packages/ui"],
+      "@labo/ui/*": ["./packages/ui/*"],
+      "@labo/convex": ["./packages/convex"],
+      "@labo/convex/*": ["./packages/convex/*"],
+      "@labo/pdf": ["./packages/pdf"],
+      "@labo/pdf/*": ["./packages/pdf/*"],
+      "@labo/web": ["./apps/web"],
+      "@labo/web/*": ["./apps/web/*"]
+    }
+  },
+  "exclude": ["node_modules", "dist", ".next"]
+}

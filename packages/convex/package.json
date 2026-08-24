@@ -1,0 +1,22 @@
+{
+  "name": "@labo/convex",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "build": "convex build",
+    "dev": "convex dev",
+    "lint": "eslint . --ext .ts,.tsx --no-error-on-unmatched-pattern",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@convex-dev/auth": "^0.0.95",
+    "@labo/lib": "workspace:*",
+    "convex": "^1.45.0",
+    "convex-helpers": "^0.1.123"
+  },
+  "devDependencies": {
+    "@types/node": "^22.20.1",
+    "eslint": "^8.57.0"
+  }
+}

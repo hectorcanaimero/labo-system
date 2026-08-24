@@ -1,0 +1,33 @@
+# ============================================================================
+# Override de endurecimiento — InsForge en VPS (F0.0.T1 / ADR-11)
+#
+# Se aplica SOBRE el compose base del repo InsForge:
+#   docker compose -f deploy/docker-compose/docker-compose.yml \
+#                  -f docker-compose.override.yml up -d
+#
+# Requiere Docker Compose v2.24+ (usa los tags !override / !reset).
+# En versiones anteriores no existen esos tags: editar el compose base y
+# cambiar los mapeos de puertos a mano (mismo resultado).
+#
+# Objetivo: que solo `insforge` (7130) sea alcanzable, vía loopback, detrás
+# del reverse proxy / Cloudflare. El compose base publica Postgres (5432),
+# PostgREST (5430) y Deno (7133) en 0.0.0.0 — innecesario y riesgoso.
+# ============================================================================
+
+services:
+  insforge:
+    restart: unless-stopped
+    ports: !override
+      - "127.0.0.1:${APP_PORT:-7130}:7130"
+
+  postgres:
+    # La DB se consume dentro de la red de compose o por túnel SSH.
+    ports: !override []
+
+  postgrest:
+    # La API REST la sirve `insforge` como proxy; acceso directo no hace falta.
+    ports: !override []
+
+  deno:
+    # Runtime de edge functions: solo lo invoca `insforge` internamente.
+    ports: !override []

@@ -1,0 +1,59 @@
+# Orquestación local — decidido por el owner: NO versionar
+# (ojo: un clone fresco necesita restaurar scripts/task-*.sh para que orch corra)
+orchestrator/
+scripts/
+
+# orch backups automáticos del atomizer
+tasks.json.bak-*
+
+# Secretos: config MCP con admin key de InsForge (usar .mcp.json.example)
+.mcp.json
+
+# Editor / OS
+.DS_Store
+*.swp
+.idea/
+.vscode/
+
+# Python (in case you also have Python here)
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+.pytest_cache/
+*.egg-info/
+
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Turborepo
+.turbo/
+
+# Build outputs
+dist/
+build/
+*.tsbuildinfo
+
+# Next.js
+.next/
+out/
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Env files
+.env
+.env.local
+.env.*.local
+
+# Convex
+.convex/
+
+# Testing
+coverage/

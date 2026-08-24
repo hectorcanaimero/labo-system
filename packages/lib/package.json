@@ -1,0 +1,21 @@
+{
+  "name": "@labo/lib",
+  "version": "0.0.0",
+  "private": true,
+  "exports": {
+    "./*": "./*"
+  },
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "lint": "eslint . --ext .ts,.tsx --no-error-on-unmatched-pattern",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "zod": "^3.25.76"
+  },
+  "devDependencies": {
+    "eslint": "^8.57.0"
+  }
+}

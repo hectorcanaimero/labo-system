@@ -1,0 +1,54 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "rootDir": "../..",
+    "noEmit": true,
+    "jsx": "preserve",
+    "plugins": [
+      {
+        "name": "next"
+      }
+    ],
+    "paths": {
+      "@/*": [
+        "./*"
+      ],
+      "@labo/lib": [
+        "../../packages/lib/src"
+      ],
+      "@labo/lib/*": [
+        "../../packages/lib/src/*"
+      ],
+      "@labo/ui": [
+        "../../packages/ui"
+      ],
+      "@labo/ui/*": [
+        "../../packages/ui/*"
+      ],
+      "@labo/convex": [
+        "../../packages/convex/src"
+      ],
+      "@labo/convex/*": [
+        "../../packages/convex/src/*"
+      ],
+      "@labo/pdf": [
+        "../../packages/pdf/src"
+      ],
+      "@labo/pdf/*": [
+        "../../packages/pdf/src/*"
+      ]
+    },
+    "incremental": true
+  },
+  "include": [
+    "next-env.d.ts",
+    "**/*.ts",
+    "**/*.tsx",
+    ".next/types/**/*.ts"
+  ],
+  "exclude": [
+    "node_modules",
+    ".next",
+    "dist"
+  ]
+}

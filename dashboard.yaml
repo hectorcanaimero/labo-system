@@ -1,0 +1,112 @@
+# Dashboard UX defaults. Applied when a request omits the corresponding
+# query param, so URL bookmarks always win.
+#
+# Ship these defaults with the package; a project can override by dropping
+# `<project_root>/dashboard.yaml` — same schema.
+
+# ---------------------------------------------------------------------------
+# Docs panel (F0.1.T7)
+#
+# SPIKE RESULT: orch 0.6.1 dashboard.yaml does NOT support a native
+# `docs:` / `links:` / `panels:` section. The dashboard UI is a compiled
+# React SPA (orchestrator/spa/) with no template-override mechanism.
+# The only override path is `frontend/dist/` which REPLACES the entire
+# SPA — that would break kanban/tunnel, so it's descartado.
+#
+# DECISION: fallback to `docs/index.html` (static hub page with links to
+# PRD, ARCH, and architecture diagrams). The `docs:` section below is a
+# forward-compatible convention: when orch adds native docs-panel support,
+# this data will render automatically. Today it serves as documentation
+# for the team and can be consumed by custom tooling.
+#
+# Access: `open docs/index.html` or serve via any static file server.
+# ---------------------------------------------------------------------------
+docs:
+  index: docs/index.html
+  links:
+    - label: "PRD"
+      path: docs/prd/001-labsystem-v1.md
+      type: markdown
+    - label: "ARCH"
+      path: docs/arch/001-labsystem-arch.md
+      type: markdown
+    - label: "System Architecture"
+      path: docs/arch/diagrams/001-labsystem.diagrams.html
+      type: diagram
+    - label: "ERD"
+      path: docs/arch/diagrams/001-labsystem-erd.diagrams.html
+      type: diagram
+    - label: "BCV Cron"
+      path: docs/arch/diagrams/001-labsystem-bcv-cron.diagrams.html
+      type: diagram
+    - label: "F5 PDF Generation"
+      path: docs/arch/diagrams/001-labsystem-f5-pdf.diagrams.html
+      type: diagram
+    - label: "F6 Convert"
+      path: docs/arch/diagrams/001-labsystem-f6-convert.diagrams.html
+      type: diagram
+    - label: "Export"
+      path: docs/arch/diagrams/001-labsystem-export.diagrams.html
+      type: diagram
+
+kanban:
+  wip_default: null         # integer or null. null = no WIP badge unless ?wip=N.
+  sort_default: null        # "impact" | null (default = phase asc + id asc).
+  group_default: null       # "phase" | null.
+  refresh_interval_s: 10    # HTMX polling cadence for the board.
+
+# Tunnel manager (Sprint E-5). See docs/DASHBOARD-PROFILES.md for the full
+# guide, security caveats, and CLI examples. Default is disabled — flip
+# `enabled: true` to expose `/api/tunnel/*` (three-gate: config → operator
+# profile → loopback host). Requires `autossh` on PATH (macOS: `brew install
+# autossh`; Debian/Ubuntu: `sudo apt install autossh`).
+# tunnel:
+#   enabled: true
+#   provider: bore         # v1 allowlist: autossh, bore.
+#   command: bore          # MUST equal the provider's pinned binary.
+  # `args` forwarded verbatim to the subprocess. The default below fronts
+  # Pinggy's free tier on port 443 → localhost:7420.
+  # args:
+  #   - "-M"
+  #   - "0"
+  #   - "-o"
+  #   - "StrictHostKeyChecking=no"
+  #   - "-o"
+  #   - "ServerAliveInterval=30"
+  #   - "-o"
+  #   - "ExitOnForwardFailure=yes"
+  #   - "-p"
+  #   - "443"
+  #   - "-R"
+  #   - "0:localhost:7420"
+  #   - "bore.pub"
+  # auto_start: false         # true = self-probe + spawn on dashboard boot.
+  # startup_probe_timeout_s: 3   # 1..30 — self-probe timeout for auto_start.
+  # url_parse_timeout_s: 30      # 5..300 — how long we wait for the URL line.
+
+  # ------------------------------------------------------------------
+  # Alternative: bore (https://github.com/ekzhang/bore)
+  # No signup, no interstitial page. TCP raw (URL is http://, not https).
+  # bore.pub is a free public server; assigns a random port on connect.
+  # Install: `cargo install bore-cli` OR download a release binary from
+  #   https://github.com/ekzhang/bore/releases
+  #
+  # NOTE: bore has no supervisor-style reconnect loop — if the tunnel
+  # drops the process exits and the manager transitions to error. Restart
+  # via /api/tunnel/start (or `orch dashboard`) when that happens.
+  #
+  # To switch, replace the block above with:
+  #
+tunnel:
+  enabled: true
+  provider: bore
+  command: bore
+  args:
+    - "local"
+    - "7420"
+    - "--to"
+    - "bore.pub"
+  auto_start: false
+  startup_probe_timeout_s: 3
+  url_parse_timeout_s: 30
+  # ------------------------------------------------------------------

@@ -1,0 +1,1816 @@
+{
+  "meta": {
+    "project": "labo-system",
+    "generatedAt": "2026-08-23",
+    "note": "Skeleton created by `orch init`. Add tasks by editing this file directly OR by writing specs under specs/ and running `orch atomize --file specs/YOUR-SPEC.md --apply`.",
+    "default_premium_model": "opencode/gemini-3.1-pro",
+    "default_standard_model": "opencode/deepseek-v4-pro",
+    "default_cheap_model": "opencode-go/kimi-k2.6"
+  },
+  "tasks": [
+    {
+      "id": "F0.9.T1",
+      "phase": 0,
+      "title": "[S1] Scraper BCV sin Puppeteer",
+      "description": "",
+      "model": "opencode/deepseek-v4-pro",
+      "reason": "Spike scraper BCV — DeepSeek V4 Pro para análisis profundo.",
+      "status": "done",
+      "dependencies": [],
+      "estimateHours": 16.0,
+      "files": [],
+      "specRef": "f0-spikes.md#F0.9.T1",
+      "comments": []
+    },
+    {
+      "id": "F0.9.T2",
+      "phase": 0,
+      "title": "[S2] Migración WP → Convex",
+      "description": "",
+      "model": "opencode/gemini-3.1-pro",
+      "reason": "Spike migración WP→Convex — Gemini 3.1 Pro para razonamiento sobre esquemas y volumen.",
+      "status": "done",
+      "dependencies": [],
+      "estimateHours": 24.0,
+      "files": [],
+      "specRef": "f0-spikes.md#F0.9.T2",
+      "comments": []
+    },
+    {
+      "id": "F0.9.T3",
+      "phase": 0,
+      "title": "[S3] @react-pdf server-side runtime",
+      "description": "",
+      "model": "opencode/deepseek-v4-pro",
+      "reason": "Spike @react-pdf server-side — GPT-5.6 Codex fuerte en ecosistema JS/bundlers.",
+      "status": "done",
+      "dependencies": [],
+      "estimateHours": 16.0,
+      "files": [
+        "apps/web/package.json",
+        "pnpm-lock.yaml",
+        "apps/web/app/api/pdf/route.ts",
+        "packages/pdf/package.json",
+        "packages/pdf/src/convexServerClient.ts",
+        "docs/spikes/S3-react-pdf-benchmark.md"
+      ],
+      "specRef": "f0-spikes.md#F0.9.T3",
+      "comments": []
+    },
+    {
+      "id": "F0.9.T4",
+      "phase": 0,
+      "title": "[S4] Reestructuración grupos de exámenes",
+      "description": "",
+      "model": "opencode/deepseek-v4-pro",
+      "reason": "Spike reestructuración de grupos — DeepSeek V4 Pro para análisis profundo.",
+      "status": "done",
+      "dependencies": [],
+      "estimateHours": 8.0,
+      "files": [],
+      "specRef": "f0-spikes.md#F0.9.T4",
+      "comments": []
+    },
+    {
+      "id": "F0.9.T5",
+      "phase": 0,
+      "title": "[S5] Convex Auth prod-ready vs Clerk",
+      "description": "",
+      "model": "opencode/gemini-3.1-pro",
+      "reason": "Spike auth — Gemini 3.1 Pro para evaluar trade-offs Convex Auth vs Clerk.",
+      "status": "done",
+      "dependencies": [],
+      "estimateHours": 16.0,
+      "files": [],
+      "specRef": "f0-spikes.md#F0.9.T5",
+      "comments": []
+    },
+    {
+      "id": "F0.9.T6",
+      "phase": 0,
+      "title": "[S6] Exportación CSV/XLSX",
+      "description": "",
+      "model": "opencode/deepseek-v4-pro",
+      "reason": "Spike export CSV/XLSX — GPT-5.6 Codex para librerías de export en TS.",
+      "status": "todo",
+      "dependencies": [],
+      "estimateHours": 8.0,
+      "files": [],
+      "specRef": "f0-spikes.md#F0.9.T6",
+      "comments": []
+    },
+    {
+      "id": "F0.9.T7",
+      "phase": 0,
+      "title": "[S7] Formato / redondeo Bs",
+      "description": "",
+      "model": "opencode/deepseek-v4-pro",
+      "reason": "Spike formato/redondeo Bs — DeepSeek V4 Pro para precisión aritmética monetaria.",
+      "status": "todo",
+      "dependencies": [],
+      "estimateHours": 8.0,
+      "files": [],
+      "specRef": "f0-spikes.md#F0.9.T7",
+      "comments": []
+    },
+    {
+      "id": "F0.9.T8",
+      "phase": 0,
+      "title": "[S8] Diseño multi-tenant (Fase 2)",
+      "description": "",
+      "model": "opencode/gemini-3.1-pro",
+      "reason": "Spike diseño multi-tenant — Gemini 3.1 Pro para diseño arquitectónico.",
+      "status": "done",
+      "dependencies": [],
+      "estimateHours": 8.0,
+      "files": [],
+      "specRef": "f0-spikes.md#F0.9.T8",
+      "comments": []
+    },
+    {
+      "id": "F0.1.T1",
+      "phase": 0,
+      "title": "Inicializar monorepo pnpm + turborepo",
+      "description": "**Objetivo**\n\nCrear la estructura base del monorepo con `pnpm workspaces` + `turborepo`, siguiendo la topología de 5 packages fijada en ARCH ADR-08.\n\n**Contexto**\n\nARCH ADR-08 fija: `apps/web`, `packages/convex`, `packages/ui`, `packages/lib`, `packages/pdf`. Frontera estricta vía ESLint `no-restricted-paths`.\n\n**Alcance**\n\nSí hace:\n- `package.json` root con `packageManager: pnpm@X.Y.Z`.\n- `pnpm-workspace.yaml` con `apps/*` y `packages/*`.\n- `turbo.json` con pipelines `build`, `dev`, `lint`, `typecheck`, `test`.\n- Directorios vacíos con `package.json` mínimo para cada workspace.\n- `tsconfig.base.json` compartido con paths.\n- `.gitignore`, `.nvmrc`, `.node-version`.\n- README de root con comandos base (`pnpm dev`, `pnpm build`).\n\nNo hace:\n- Instalar dependencias reales de cada package (eso viene en tasks siguientes).\n- Configurar ESLint boundaries (T04).\n\n**Criterios de aceptación**\n\n- [ ] `pnpm install` corre sin errores en repo limpio.\n- [ ] `pnpm turbo run typecheck` corre (aunque no haya código aún).\n- [ ] Estructura de carpetas coincide con ARCH §10.\n- [ ] `tsconfig.base.json` extiende correctamente en cada workspace.\n\n**Notas técnicas**\n\nNode 20 LTS. pnpm 9.x. Turbo 2.x.",
+      "model": "opencode/deepseek-v4-pro",
+      "reason": "Fundación monorepo pnpm/turborepo/tsconfig — Kimi K2.7 code-focused para tooling.",
+      "status": "done",
+      "dependencies": [],
+      "estimateHours": 2.0,
+      "files": [
+        "pnpm-workspace.yaml",
+        "turbo.json",
+        "tsconfig.base.json",
+        "package.json",
+        "apps/web/package.json",
+        "packages/convex/package.json",
+        "packages/ui/package.json",
+        "packages/lib/package.json",
+        "packages/pdf/package.json",
+        ".gitignore"
+      ],
+      "specRef": "f0.md#F0.1.T1",
+      "comments": []
+    },
+    {
+      "id": "F0.1.T2",
+      "phase": 0,
+      "title": "Bootstrap apps/web (Next.js 14 App Router)",
+      "description": "**Objetivo**\n\nInicializar `apps/web` como app Next.js 14 App Router con TypeScript, Tailwind, shadcn/ui base.\n\n**Contexto**\n\nPRD §5 fija Next.js 14 App Router + shadcn/ui + Tailwind. ARCH §10 fija estructura de rutas `(app)` / `(auth)`.\n\n**Alcance**\n\nSí hace:\n- `create-next-app` (o manual) con App Router, TS, Tailwind.\n- Configurar `tailwind.config.ts` con preset compartido futuro.\n- Inicializar shadcn/ui con `npx shadcn init`.\n- Layout root `apps/web/app/layout.tsx` con proveedores base.\n- Placeholders `apps/web/app/(auth)/login/page.tsx` y `apps/web/app/(app)/dashboard/page.tsx` (contenido stub).\n- Configurar `next.config.mjs` con transpilePackages de workspaces.\n\nNo hace:\n- Auth real (F0.auth).\n- Cualquier feature de negocio.\n\n**Criterios de aceptación**\n\n- [ ] `pnpm --filter web dev` levanta Next.js sin errores.\n- [ ] Ruta `/dashboard` responde con placeholder.\n- [ ] Ruta `/login` responde con placeholder.\n- [ ] Tailwind funcional (verificado con clase `text-red-500` en placeholder).\n- [ ] Componente shadcn `Button` importable y renderiza.\n\n**Notas técnicas**\n\nApp Router route groups `(app)` y `(auth)` sin afectar URL.",
+      "model": "opencode/deepseek-v4-pro",
+      "reason": "UI bootstrap Next.js apps/web — GLM 5.2 fuerte en frontend.",
+      "status": "done",
+      "dependencies": [
+        "F0.1.T1"
+      ],
+      "estimateHours": 4.0,
+      "files": [
+        "apps/web/next.config.mjs",
+        "apps/web/tailwind.config.ts",
+        "apps/web/postcss.config.js",
+        "apps/web/tsconfig.json",
+        "apps/web/app/layout.tsx",
+        "apps/web/app/(auth)/login/page.tsx",
+        "apps/web/app/(app)/dashboard/page.tsx",
+        "apps/web/app/globals.css",
+        "apps/web/components.json"
+      ],
+      "specRef": "f0.md#F0.1.T2",
+      "comments": []
+    },
+    {
+      "id": "F0.1.T3",
+      "phase": 0,
+      "title": "Inicializar Convex + schema completo",
+      "description": "**Objetivo**\n\nInstalar Convex en `packages/convex`, definir `schema.ts` con las 11 tablas del ARCH §6, y conectar dev deployment.\n\n**Contexto**\n\nARCH §6 detalla el schema completo con tipos Convex `v.*`, constraints, indexes. ADR-04 (snapshots), ADR-05 (paciente XOR nombre libre), ADR-06 (cédula normalizada).\n\n**Alcance**\n\nSí hace:\n- `pnpm --filter convex add convex convex-helpers`.\n- `packages/convex/convex.json` con paths.\n- `packages/convex/schema.ts` con las 11 tablas: `laboratorio_config`, `pacientes`, `examenes_titulos`, `examenes`, `paquetes`, `paquetes_examenes`, `resultados`, `resultados_examenes`, `presupuestos`, `presupuestos_examenes`, `usuarios`, `tasa_cambio_bcv`, `audit_log`, `_migration_map` (14 tablas totales contando join + auxiliar).\n- Todos los indexes documentados en ARCH §6.\n- `npx convex dev` corre y crea deployment.\n- Documentar `NEXT_PUBLIC_CONVEX_URL` y `CONVEX_DEPLOY_KEY` en `.env.example`.\n\nNo hace:\n- Queries/mutations reales (packages posteriores).\n- Auth (F0.auth).\n- Seeds (post-migración).\n\n**Criterios de aceptación**\n\n- [ ] `npx convex dev` conecta OK con deployment dev.\n- [ ] `packages/convex/_generated/` se regenera automáticamente.\n- [ ] Todas las tablas del ARCH §6 declaradas con tipos exactos.\n- [ ] Todos los indexes declarados (`by_cedula`, `by_search_nombre`, `by_titulo`, `by_paciente`, `by_estado`, `by_fecha`, `by_email`, `by_wp`, etc.).\n- [ ] `.env.example` documenta variables Convex.\n\n**Notas técnicas**\n\n- Índice único de `cedula`: Convex no tiene \"unique\" declarativo; se aplica vía check en la mutation (ver F2.pacientes.T02).\n- `_migration_map` tiene índice `by_wp (wp_table, wp_id)` para idempotencia (ver F1.migracion).\n- Tablas de Convex Auth (`authAccounts`, `authSessions`) se agregan cuando se instale Convex Auth (F0.auth).",
+      "model": "opencode/deepseek-v4-pro",
+      "reason": "Backend Convex schema completo — Kimi K2.7 code-focused.",
+      "status": "done",
+      "dependencies": [
+        "F0.1.T1"
+      ],
+      "estimateHours": 6.0,
+      "files": [
+        "packages/convex/convex.json",
+        "packages/convex/schema.ts",
+        "packages/convex/package.json",
+        "packages/convex/tsconfig.json",
+        ".env.example"
+      ],
+      "specRef": "f0.md#F0.1.T3",
+      "comments": []
+    },
+    {
+      "id": "F0.1.T4",
+      "phase": 0,
+      "title": "ESLint boundaries + Prettier + tsconfig paths",
+      "description": "**Objetivo**\n\nConfigurar ESLint con `eslint-plugin-import` y `no-restricted-paths` para enforce boundaries de ADR-08. Prettier compartido.\n\n**Contexto**\n\nARCH ADR-08: reglas de import por package. `packages/lib` es leaf (no importa de nadie); `apps/web` importa de todos; `packages/pdf`/`packages/ui`/`packages/convex` sólo importan de `packages/lib`.\n\n**Alcance**\n\nSí hace:\n- Instalar ESLint 8 + `eslint-plugin-import` + `@typescript-eslint/parser`.\n- `.eslintrc.cjs` root con `no-restricted-paths` implementando las reglas de ADR-08.\n- Prettier config `.prettierrc` compartida.\n- `.eslintignore`, `.prettierignore`.\n- Configurar `tsconfig.base.json` con `paths` alias por workspace.\n- Verificar con un import inválido de prueba (que falle build/lint).\n\nNo hace:\n- Reglas de estilo más allá de default (`recommended` + `plugin:@typescript-eslint/recommended`).\n- Import de reglas custom del equipo (no aplica en este proyecto).\n\n**Criterios de aceptación**\n\n- [ ] `pnpm turbo run lint` pasa en repo limpio.\n- [ ] Test negativo: import de `apps/web` desde `packages/lib` genera error de lint.\n- [ ] Test negativo: import de `packages/convex` desde `packages/lib` genera error de lint.\n- [ ] Prettier ejecuta y no rompe archivos existentes.\n\n**Notas técnicas**\n\n`no-restricted-paths` requiere paths absolutos desde root; probar con un ejemplo real antes de commit.",
+      "model": "opencode/deepseek-v4-pro",
+      "reason": "Config ESLint/Prettier — Kimi K2.6 económico para tooling.",
+      "status": "done",
+      "dependencies": [
+        "F0.1.T1",
+        "F0.1.T2",
+        "F0.1.T3"
+      ],
+      "estimateHours": 3.0,
+      "files": [
+        ".eslintrc.cjs",
+        ".eslintignore",
+        ".prettierrc",
+        ".prettierignore",
+        "tsconfig.base.json"
+      ],
+      "specRef": "f0.md#F0.1.T4",
+      "comments": []
+    },
+    {
+      "id": "F0.1.T5",
+      "phase": 0,
+      "title": "CI GitHub Actions (lint + typecheck + test)",
+      "description": "**Objetivo**\n\nPipeline de CI mínimo que corre en cada PR: install → lint → typecheck → test.\n\n**Contexto**\n\nPRD §8 exige entregable estable Sem 1-3; CI previene regresiones desde el día 1.\n\n**Alcance**\n\nSí hace:\n- `.github/workflows/ci.yml` con jobs: `lint`, `typecheck`, `test`, `build` (matrix Node 20).\n- Cache de `pnpm store` para acelerar.\n- `pnpm turbo run <cmd>` como comando de cada job.\n- Badge de CI en README.\n\nNo hace:\n- Deploy a Vercel (Vercel se conecta directo al repo).\n- Deploy a Convex prod (manual desde CLI).\n- E2E Playwright (fase posterior).\n\n**Criterios de aceptación**\n\n- [ ] PR de prueba dispara CI y todos los jobs pasan.\n- [ ] Cache pnpm reduce install a < 30s en runs consecutivos.\n- [ ] Badge visible en README.\n\n**Notas técnicas**\n\nTurbo remote cache (Vercel) es opcional en v1 — dejar TODO comentado.",
+      "model": "opencode/deepseek-v4-pro",
+      "reason": "CI GitHub Actions — Qwen 3.7 Plus suficiente para workflow YAML.",
+      "status": "done",
+      "dependencies": [
+        "F0.1.T1",
+        "F0.1.T4"
+      ],
+      "estimateHours": 2.0,
+      "files": [
+        ".github/workflows/ci.yml",
+        "README.md"
+      ],
+      "specRef": "f0.md#F0.1.T5",
+      "comments": []
+    },
+    {
+      "id": "F0.1.T6",
+      "phase": 0,
+      "title": "Layout base apps/web (nav, theme, providers)",
+      "description": "**Objetivo**\n\nLayout compartido `apps/web/app/(app)/layout.tsx` con navegación lateral, header con user, tema, y ConvexProvider wrapper.\n\n**Contexto**\n\nARCH §3: rutas bajo `(app)` (protegidas) usan un layout con nav. `(auth)` no.\n\n**Alcance**\n\nSí hace:\n- `apps/web/app/(app)/layout.tsx` con sidebar + header.\n- Sidebar con links a los 8 módulos (Dashboard, Pacientes, Exámenes, Paquetes, Resultados, Presupuestos, Config, Usuarios).\n- Header con usuario logueado (placeholder — real en F0.auth.T*).\n- `ConvexProvider` de `convex/react` envolviendo la app.\n- Componentes `<Sidebar>`, `<Header>` en `packages/ui/nav/` reutilizables.\n- Tema light (sin dark mode en v1, aunque shadcn lo soporta).\n- Layout responsive hasta tablet 768px (PRD §4 NFR usabilidad).\n\nNo hace:\n- Auth guard real (F0.auth.T*).\n- Role guard (F0.auth.T*).\n- Rutas de negocio (fases posteriores).\n\n**Criterios de aceptación**\n\n- [ ] `/dashboard` muestra sidebar con 8 items + header.\n- [ ] Sidebar colapsable a hamburguesa en < 768px.\n- [ ] `ConvexProvider` envuelve toda la app; error clara si falta env var.\n- [ ] Placeholder user en header (nombre + botón logout stub).\n\n**Notas técnicas**\n\nUsar shadcn `Sidebar` (block) como base. `ConvexProvider` desde `convex/react`.",
+      "model": "opencode/deepseek-v4-pro",
+      "reason": "UI layout base nav/theme/providers — GLM 5.2 fuerte en frontend.",
+      "status": "done",
+      "dependencies": [
+        "F0.1.T2",
+        "F0.1.T3"
+      ],
+      "estimateHours": 6.0,
+      "files": [
+        "apps/web/app/(app)/layout.tsx",
+        "apps/web/components/providers.tsx",
+        "packages/ui/nav/Sidebar.tsx",
+        "packages/ui/nav/Header.tsx",
+        "packages/ui/nav/index.ts"
+      ],
+      "specRef": "f0.md#F0.1.T6",
+      "comments": []
+    },
+    {
+      "id": "F0.1.T7",
+      "phase": 0,
+      "title": "Exponer PRD + ARCH + diagramas en orch dashboard",
+      "description": "**Objetivo**\n\nHacer que el PRD, el ARCH y los 6 diagramas HTML de arquitectura sean discoverables y navegables desde el orch dashboard (localhost:7420) con 1 click, sin que el equipo tenga que buscar paths bajo `docs/`.\n\n**Contexto**\n\nF2 (ARCH) del pipeline `orch-plan` ya genera:",
+      "model": "opencode/deepseek-v4-pro",
+      "reason": "Exponer PRD/ARCH en dashboard orch — GLM 5.1 tarea utilitaria barata.",
+      "status": "done",
+      "dependencies": [
+        "F0.1.T1"
+      ],
+      "estimateHours": 2.0,
+      "files": [
+        "dashboard.yaml",
+        "docs/index.html",
+        "Posibles archivos de template override del orch dashboard (a determinar en el spike — TBD según lo que ofrezca orch)."
+      ],
+      "specRef": "f0.md#F0.1.T7",
+      "comments": []
+    },
+    {
+      "id": "F0.2.T1",
+      "phase": 0,
+      "title": "Instalar Convex Auth con Password provider",
+      "description": "**Objetivo**\n\nWiring inicial de Convex Auth con provider Password, configuración de sesión 8h, integración con Next.js App Router.\n\n**Contexto**\n\nARCH ADR-03. S5 confirma que Convex Auth cubre el caso. Sesión duración 8h (config `session.durationMs`).\n\n**Alcance**\n\nSí hace:\n- Instalar `@convex-dev/auth`.\n- `packages/convex/auth.ts` con provider `Password`, `session.durationMs: 8 * 60 * 60 * 1000`.\n- `packages/convex/auth.config.ts` con providers registrados.\n- Schema Convex: agregar tablas de Convex Auth (`authAccounts`, `authSessions`, `authRateLimits` — auto declaradas por `authTables`).\n- `apps/web/app/providers.tsx` con `ConvexAuthNextjsProvider`.\n- Env vars documentadas.\n\nNo hace:\n- UI de login (T02).\n- Rol/RBAC (T04).\n- Password reset (T06).\n- Invitaciones (T07).\n\n**Criterios de aceptación**\n\n- [ ] `npx convex dev` regenera types incluyendo `api.auth.*`.\n- [ ] Auth tables presentes en Convex dashboard.\n- [ ] `useAuthActions()` disponible en cliente.\n- [ ] Session cookie httpOnly + secure + sameSite=lax verificada en devtools.\n\n**Notas técnicas**\n\n`@convex-dev/auth` exporta `authTables` helper; se hace spread en el schema.",
+      "model": "opencode/deepseek-v4-pro",
+      "reason": "Backend Convex Convex Auth Password provider — Kimi K2.7 code-focused.",
+      "status": "done",
+      "dependencies": [
+        "F0.1.T3"
+      ],
+      "estimateHours": 4.0,
+      "files": [
+        "packages/convex/auth.ts",
+        "packages/convex/auth.config.ts",
+        "packages/convex/schema.ts",
+        "apps/web/app/providers.tsx",
+        ".env.example"
+      ],
+      "specRef": "f0.md#F0.2.T1",
+      "comments": []
+    },
+    {
+      "id": "F0.2.T2",
+      "phase": 0,
+      "title": "UI login (email + password)",
+      "description": "**Objetivo**\n\nPágina `/login` con form email + password conectado a Convex Auth `signIn`.\n\n**Contexto**\n\nPRD §4 F9. Ruta `apps/web/app/(auth)/login/page.tsx` (existente stub de F0.setup.T02).\n\n**Alcance**\n\nSí hace:\n- Form shadcn con email + password + botón \"Entrar\".\n- Validación cliente (email format, password no vacío).\n- `useAuthActions().signIn(\"password\", { email, password, flow: \"signIn\" })`.\n- Redirección a `/dashboard` post-login exitoso.\n- Manejo de error: credenciales inválidas → toast rojo.\n- Loading state en botón.\n\nNo hace:\n- Signup público (Admin crea usuarios vía invitación — T07).\n- \"Recordarme\" (usar duración de sesión fija).\n- OAuth (fuera de v1).\n\n**Criterios de aceptación**\n\n- [ ] Login con credenciales válidas redirige a `/dashboard`.\n- [ ] Login con credenciales inválidas muestra error visible.\n- [ ] Botón deshabilitado durante request.\n- [ ] Enter en input dispara submit.\n\n**Notas técnicas**\n\n`use client` en form. Server component en `page.tsx`.",
+      "model": "opencode/deepseek-v4-pro",
+      "reason": "UI login shadcn — GLM 5.2 fuerte en frontend.",
+      "status": "done",
+      "dependencies": [
+        "F0.2.T1"
+      ],
+      "estimateHours": 3.0,
+      "files": [
+        "apps/web/app/(auth)/login/page.tsx",
+        "apps/web/app/(auth)/login/LoginForm.tsx",
+        "apps/web/app/(auth)/layout.tsx"
+      ],
+      "specRef": "f0.md#F0.2.T2",
+      "comments": []
+    },
+    {
+      "id": "F0.2.T3",
+      "phase": 0,
+      "title": "Middleware Next.js (auth guard + role guard)",
+      "description": "**Objetivo**\n\n`middleware.ts` que protege `/((app))` con guard de sesión y `/config` + `/examenes` con guard de rol Admin.\n\n**Contexto**\n\nARCH ADR-03 y §7.2. Middleware es coarse-grained; fine-grained se hace en mutations con `requireRole`.\n\n**Alcance**\n\nSí hace:\n- `apps/web/middleware.ts` usando `@convex-dev/auth/nextjs/server`.\n- Redirige a `/login` si no hay sesión y ruta bajo `(app)`.\n- Bloquea acceso a `/config/*` y `/examenes/*` si `role !== \"admin\"` (redirect a `/dashboard` con toast \"sin permisos\").\n- Redirige a `/dashboard` si usuario autenticado accede a `/login`.\n- Config `matcher` correcto (excluye `/api/pdf/*` que valida internamente).\n\nNo hace:\n- Validar rol dentro de cada mutation (eso hace F0.auth.T04 `requireRole`).\n\n**Criterios de aceptación**\n\n- [ ] Sin sesión, acceso a `/dashboard` redirige a `/login`.\n- [ ] Con sesión Operador, acceso a `/config` redirige a `/dashboard`.\n- [ ] Con sesión Operador, acceso a `/examenes` redirige a `/dashboard`.\n- [ ] Con sesión Admin, acceso a `/config` funciona.\n- [ ] Con sesión activa, acceso a `/login` redirige a `/dashboard`.\n\n**Notas técnicas**\n\nEl rol se lee de la tabla `usuarios` — el middleware debe llamar una query de Convex server-side (`fetchQuery`) o usar un claim en el token. Definir en implementación cuál es más limpio.",
+      "model": "opencode/deepseek-v4-pro",
+      "reason": "Middleware Next.js auth/role guard — GLM 5.2 capa web.",
+      "status": "done",
+      "dependencies": [
+        "F0.2.T1",
+        "F0.2.T4"
+      ],
+      "estimateHours": 3.0,
+      "files": [
+        "apps/web/middleware.ts"
+      ],
+      "specRef": "f0.md#F0.2.T3",
+      "comments": []
+    },
+    {
+      "id": "F0.2.T4",
+      "phase": 0,
+      "title": "Tabla `usuarios` + helper `requireRole`",
+      "description": "**Objetivo**\n\nTabla `usuarios` (perfil de dominio con `role`) sincronizada con Convex Auth. Helper `requireRole(ctx, \"admin\" | \"operador\")` que valida en queries/mutations.\n\n**Contexto**\n\nARCH §6 (tabla `usuarios`), ARCH §7.2 (RBAC).\n\n**Alcance**\n\nSí hace:\n- Trigger/hook post-signup que crea/actualiza fila en `usuarios` con `role` default `\"operador\"`.\n- Helper `packages/convex/helpers/auth.ts`:\n  - `getCurrentUser(ctx)`: retorna `{ _id, email, role }` o lanza `UNAUTHENTICATED`.\n  - `requireRole(ctx, role)`: valida y lanza `UNAUTHORIZED` si no matchea.\n- Query `usuarios.me()` para el frontend (header user).\n- Query `usuarios.list()` (Admin only) para gestión.\n- Mutation `usuarios.updateRole({ userId, role })` (Admin only).\n\nNo hace:\n- UI de gestión de usuarios (fuera de scope v1 — se manejará desde Convex dashboard o script one-shot).\n- Invitaciones (T07).\n\n**Criterios de aceptación**\n\n- [ ] Al crear usuario, aparece fila en `usuarios` con role default.\n- [ ] Query `usuarios.me()` retorna user actual con `role`.\n- [ ] `requireRole(ctx, \"admin\")` lanza error si user es operador.\n- [ ] Index `by_email` funcional.\n\n**Notas técnicas**\n\nConvex Auth expone `afterUserCreatedOrUpdated` hook (o equivalente según versión). Usar para poblar `usuarios`.",
+      "model": "opencode/deepseek-v4-pro",
+      "reason": "Backend Convex tabla usuarios + requireRole — Kimi K2.7 code-focused.",
+      "status": "done",
+      "dependencies": [
+        "F0.2.T1"
+      ],
+      "estimateHours": 4.0,
+      "files": [
+        "packages/convex/usuarios.ts",
+        "packages/convex/helpers/auth.ts",
+        "packages/convex/auth.ts"
+      ],
+      "specRef": "f0.md#F0.2.T4",
+      "comments": []
+    },
+    {
+      "id": "F0.2.T5",
+      "phase": 0,
+      "title": "Audit log de auth (login, logout, fail)",
+      "description": "**Objetivo**\n\nRegistrar eventos de auth en la tabla `audit_log` (ARCH §6, §7.3).\n\n**Contexto**\n\nPRD §4 NFR seguridad; ARCH observabilidad.\n\n**Alcance**\n\nSí hace:\n- Hook post-signin exitoso → insert `audit_log` con `accion: \"auth.login\"`, `usuario_id`, `metadata: { ip?, user_agent? }`.\n- Hook post-signout → `auth.logout`.\n- Registro de fallos de login → `auth.login_failed` con `metadata: { email_intent }`.\n- Rate limit lógico: si un email tiene > 5 `login_failed` en 15min, bloquear con error genérico (\"credenciales inválidas\").\n\nNo hace:\n- Dashboard de audit log (fase posterior).\n- Alertas por email en abusos.\n\n**Criterios de aceptación**\n\n- [ ] Login exitoso genera fila `audit_log`.\n- [ ] Login fallido genera fila `audit_log`.\n- [ ] 6to intento fallido en 15min es bloqueado.\n- [ ] Bloqueo se resetea después de 15min.\n\n**Notas técnicas**\n\nRate limit se puede implementar con la tabla `authRateLimits` de Convex Auth (built-in) o con `login_attempts` custom. Preferir built-in si está disponible.",
+      "model": "opencode/deepseek-v4-pro",
+      "reason": "Backend Convex audit log de auth — Kimi K2.7 code-focused.",
+      "status": "done",
+      "dependencies": [
+        "F0.2.T1",
+        "F0.2.T4"
+      ],
+      "estimateHours": 3.0,
+      "files": [
+        "packages/convex/auth.ts",
+        "packages/convex/audit.ts"
+      ],
+      "specRef": "f0.md#F0.2.T5",
+      "comments": []
+    },
+    {
+      "id": "F1.1.T1",
+      "phase": 1,
+      "title": "Query + mutation base `laboratorio_config`",
+      "description": "**Objetivo**\n\nQuery `config.get()` (singleton) y mutation `config.update()` (Admin only) que persisten los campos escalares (nombre, dirección, teléfono, email, RIF, mensaje pie PDF).\n\n**Contexto**\n\n`laboratorio_config` es singleton — un solo documento en la tabla.\n\n**Alcance**\n\nSí hace:\n- `packages/convex/config.ts`:\n  - `get`: retorna el único doc o `null`.\n  - `update`: acepta partial `{ nombre, direccion, telefono?, email?, rif?, pdf_pie_pagina? }`.\n- Validación: `nombre` requerido y no vacío al guardar (schema Zod compartido en `packages/lib/schemas/config.ts`).\n- Validación RIF formato `J-XXXXXXXX-X` (regex, opcional).\n- `requireRole(ctx, \"admin\")` en mutation.\n- Registro en `audit_log` (accion `\"config.update\"`).\n- Actualiza `updated_at` + `updated_by`.\n\nNo hace:\n- Upload de assets (T02).\n- Tasa BCV manual (T03).\n- UI (T04).\n\n**Criterios de aceptación**\n\n- [ ] `config.get()` retorna doc o null (primer arranque).\n- [ ] `config.update({ nombre: \"\" })` rechaza con error `NOMBRE_REQUERIDO`.\n- [ ] `config.update({ rif: \"abc\" })` rechaza con `RIF_INVALIDO`.\n- [ ] Operador rechazado con `UNAUTHORIZED`.\n- [ ] audit_log registra el evento.\n- [ ] Si no existe doc, `update` crea; si existe, actualiza (upsert).\n\n**Notas técnicas**\n\nSingleton pattern: query `db.query(\"laboratorio_config\").unique()` o `.first()`. Mutation hace upsert.",
+      "model": "opencode/deepseek-v4-pro",
+      "reason": "Backend Convex query/mutation laboratorio_config — Kimi K2.7 code-focused.",
+      "status": "done",
+      "dependencies": [
+        "F0.1.T3",
+        "F0.2.T4"
+      ],
+      "estimateHours": 3.0,
+      "files": [
+        "packages/convex/config.ts",
+        "packages/lib/schemas/config.ts",
+        "packages/convex/helpers/auth.ts"
+      ],
+      "specRef": "f1.md#F1.1.T1",
+      "comments": []
+    },
+    {
+      "id": "F1.1.T4",
+      "phase": 1,
+      "title": "UI `/config` (form Admin)",
+      "description": "**Objetivo**\n\nPágina `/config` con form completo: nombre, dirección, contacto, RIF, upload de assets con preview, tasa BCV manual override, mensaje pie PDF.\n\n**Contexto**\n\nPRD §4 F2; ARCH §3 componente F2.\n\n**Alcance**\n\nSí hace:\n- `apps/web/app/(app)/config/page.tsx` (Server component con preload).\n- `apps/web/app/(app)/config/ConfigForm.tsx` (Client component con `useMutation`).\n- Secciones: Identidad, Contacto, Assets (logo/firma/sello con preview), Tasa BCV manual, PDF pie de página.\n- Validaciones cliente (RHF + zodResolver reusando `packages/lib/schemas/config.ts`).\n- Loading + success/error toasts.\n- Preview de assets tras upload.\n- Panel \"Invitar usuario\" si F0.auth.T07 está implementado.\n\nNo hace:\n- Multi-tenant (S8).\n- Edición de tabla `usuarios` completa (fuera de scope v1).\n\n**Criterios de aceptación**\n\n- [ ] Admin puede editar todos los campos y guardar.\n- [ ] Operador que llega vía URL directa es redirigido (middleware F0.auth.T03).\n- [ ] Upload de logo muestra preview inmediato.\n- [ ] Nombre vacío bloquea guardar con error visible.\n- [ ] Tasa manual actualiza la última tasa (verificado en presupuestos post-implementación).\n- [ ] Mensaje toast en éxito/error.\n\n**Notas técnicas**\n\nUsar `react-hook-form` + `@hookform/resolvers/zod`. Preview de imágenes con `<img src={url}>` de la URL firmada.",
+      "model": "opencode/deepseek-v4-pro",
+      "reason": "UI /config form Admin — GLM 5.2 fuerte en frontend.",
+      "status": "todo",
+      "dependencies": [
+        "F0.1.T6",
+        "F0.2.T3",
+        "F1.1.T1",
+        "F1.1.T2",
+        "F1.1.T3"
+      ],
+      "estimateHours": 8.0,
+      "files": [
+        "apps/web/app/(app)/config/page.tsx",
+        "apps/web/app/(app)/config/ConfigForm.tsx",
+        "apps/web/app/(app)/config/AssetUploader.tsx",
+        "apps/web/app/(app)/config/InviteUserDialog.tsx"
+      ],
+      "specRef": "f1.md#F1.1.T4",
+      "comments": []
+    },
+    {
+      "id": "F1.2.T3",
+      "phase": 1,
+      "title": "Búsqueda con highlight en UI (utility)",
+      "description": "**Objetivo**\n\nUtilidad de highlight de término en resultado de búsqueda (usada en catálogo, y reusable en pacientes/resultados/presupuestos).\n\n**Contexto**\n\nPRD §4 F4 pide highlight del término. Es utility, no vive en Convex.\n\n**Alcance**\n\nSí hace:\n- `packages/lib/highlight.ts` con `highlight(text: string, term: string): { parts: Array<{ text, match: boolean }> }`.\n- Componente `packages/ui/text/HighlightedText.tsx` que renderiza con `<mark>`.\n- Tests unitarios (case-insensitive, múltiples matches, término vacío).\n\nNo hace:\n- Fuzzy search (v1 es prefix match del backend + highlight cliente sobre el resultado).\n\n**Criterios de aceptación**\n\n- [ ] `highlight(\"Hemograma\", \"hemo\")` retorna partes correctas.\n- [ ] Highlight case-insensitive.\n- [ ] Term vacío retorna texto sin cambios.\n- [ ] Múltiples ocurrencias resaltan todas.\n\n**Notas técnicas**\n\nSanitizar el término para evitar regex injection (`escapeRegex`).",
+      "model": "opencode/deepseek-v4-pro",
+      "reason": "Utility highlight + tests — Qwen 3.7 Plus tarea pequeña.",
+      "status": "done",
+      "dependencies": [
+        "F0.1.T1"
+      ],
+      "estimateHours": 2.0,
+      "files": [
+        "packages/lib/highlight.ts",
+        "packages/ui/text/HighlightedText.tsx",
+        "packages/lib/highlight.test.ts"
+      ],
+      "specRef": "f1.md#F1.2.T3",
+      "comments": []
+    },
+    {
+      "id": "F1.2.T5",
+      "phase": 1,
+      "title": "UI CRUD `/examenes` (list + form modal + search)",
+      "description": "**Objetivo**\n\nPágina `/examenes` con navegación por títulos (accordion o tabs), CRUD de títulos y exámenes, búsqueda con highlight, botón \"Importar Excel\".\n\n**Contexto**\n\nPRD §4 F4; ARCH §3 F4.\n\n**Alcance**\n\nSí hace:\n- `apps/web/app/(app)/examenes/page.tsx` (Server component preload).\n- Componente `TitulosNavigator` (accordion de títulos con exámenes hijos).\n- Modal `ExamenFormDialog` (create/edit).\n- Modal `TituloFormDialog` (create/edit).\n- Input de búsqueda debounced 300ms usando `HighlightedText`.\n- Botón \"Importar Excel\" → link a `/examenes/import`.\n- Botón \"Nuevo Título\" y \"Nuevo Examen\" (Admin only).\n- Empty states.\n\nNo hace:\n- Drag-and-drop de reordenamiento (v1 usa botón \"Subir/Bajar\" simple; dnd real en F2.paquetes ya cubre el componente).\n- Vista de paquetes desde acá.\n\n**Criterios de aceptación**\n\n- [ ] Lista títulos con exámenes hijos.\n- [ ] Crear título abre modal, guarda, refresca lista.\n- [ ] Crear examen dentro de un título OK.\n- [ ] Editar examen precio funciona.\n- [ ] Búsqueda \"hemo\" resalta términos en resultados.\n- [ ] Botón \"Importar\" navega a wizard.\n- [ ] Operador rechazado (middleware) — pero si accede vía deep link, redirect a dashboard.\n\n**Notas técnicas**\n\n`useQuery` con `titulos.list()` y `examenes.listByTitulo({ titulo_id })` por título expandido (lazy).",
+      "model": "opencode/deepseek-v4-pro",
+      "reason": "UI CRUD /examenes shadcn — GLM 5.2 fuerte en frontend.",
+      "status": "todo",
+      "dependencies": [
+        "F0.1.T6",
+        "F0.2.T3",
+        "F1.2.T1",
+        "F1.2.T2",
+        "F1.2.T3"
+      ],
+      "estimateHours": 8.0,
+      "files": [
+        "apps/web/app/(app)/examenes/page.tsx",
+        "apps/web/app/(app)/examenes/TitulosNavigator.tsx",
+        "apps/web/app/(app)/examenes/ExamenFormDialog.tsx",
+        "apps/web/app/(app)/examenes/TituloFormDialog.tsx"
+      ],
+      "specRef": "f1.md#F1.2.T5",
+      "comments": []
+    },
+    {
+      "id": "F1.3.T1",
+      "phase": 1,
+      "title": "Setup script `scripts/migrate-wp/`",
+      "description": "**Objetivo**\n\nEstructura base del script Node standalone: package.json, tsconfig, entry point, config (env vars), logger, CLI args.\n\n**Contexto**\n\nARCH ADR-10. Script fuera del monorepo build de turbo (o package aislado). Corre con `pnpm --filter migrate-wp run migrate -- --dry-run`.\n\n**Alcance**\n\nSí hace:\n- `scripts/migrate-wp/package.json` con deps `mysql2`, `convex/browser` (o `ConvexHttpClient`), `zod`, `pino`, `commander`.\n- `tsconfig.json` propio.\n- Entry `index.ts` con CLI (`--dry-run`, `--only <entity>`, `--limit <n>`, `--verbose`).\n- Config via env: `WP_MYSQL_URL`, `CONVEX_URL`, `CONVEX_DEPLOY_KEY_MIGRATION`.\n- Logger estructurado (pino).\n- README del script con instrucciones de ejecución.\n\nNo hace:\n- Ningún mapper aún (T02+).\n\n**Criterios de aceptación**\n\n- [ ] `pnpm --filter migrate-wp run migrate -- --help` muestra CLI.\n- [ ] Sin env vars: falla con error claro.\n- [ ] Logger imprime JSON estructurado o pretty en dev.\n\n**Notas técnicas**\n\n`ConvexHttpClient` de `convex/browser` con `setAuth(deployKey)`. No usar el cliente React.",
+      "model": "opencode/deepseek-v4-pro",
+      "reason": "Setup base scripts/migrate-wp — GLM 5.1 scaffolding barato.",
+      "status": "done",
+      "dependencies": [
+        "F0.1.T1"
+      ],
+      "estimateHours": 3.0,
+      "files": [
+        "scripts/migrate-wp/package.json",
+        "scripts/migrate-wp/tsconfig.json",
+        "scripts/migrate-wp/index.ts",
+        "scripts/migrate-wp/config.ts",
+        "scripts/migrate-wp/logger.ts",
+        "scripts/migrate-wp/README.md"
+      ],
+      "specRef": "f1.md#F1.3.T1",
+      "comments": []
+    },
+    {
+      "id": "F1.3.T2",
+      "phase": 1,
+      "title": "Normalización de cédulas + detección de duplicados",
+      "description": "**Objetivo**\n\nFunción `normalizeCedula` (usada también por F2.pacientes) + detector de duplicados en el dataset origen con reporte pre-migración.\n\n**Contexto**\n\nARCH ADR-06. S2 documenta los formatos reales. Reporte de conflictos DEBE resolverse manualmente antes del cutover.\n\n**Alcance**\n\nSí hace:\n- `packages/lib/cedula.ts`:\n  - `normalizeCedula(raw: string): string` → `V-12345678` o `E-12345678`.\n  - Retorna `null` (o lanza `InvalidCedulaError`) si no matchea.\n- `scripts/migrate-wp/normalize.ts`:\n  - Lee todos los `rv_pacientes`, normaliza cada cédula, agrupa por cédula normalizada.\n  - Reporta duplicados (misma cédula, diferentes WP IDs) → CSV output.\n- Tests unitarios en `packages/lib` (20+ casos edge de S2).\n\nNo hace:\n- Resolución automática de duplicados (siempre manual).\n\n**Criterios de aceptación**\n\n- [ ] `normalizeCedula(\"V- 33.338.896\")` → `\"V-33338896\"`.\n- [ ] `normalizeCedula(\"v21197865\")` → `\"V-21197865\"`.\n- [ ] `normalizeCedula(\"XX-123\")` → error/null.\n- [ ] Script genera `conflicts-cedulas.csv` con duplicados detectados.\n- [ ] Casos raros de S2 tienen tests.",
+      "model": "opencode/deepseek-v4-pro",
+      "reason": "Normalización de cédulas migración WP — Qwen 3.7 Max para parsing/ETL.",
+      "status": "done",
+      "dependencies": [
+        "F1.3.T1"
+      ],
+      "estimateHours": 4.0,
+      "files": [
+        "packages/lib/cedula.ts",
+        "packages/lib/cedula.test.ts",
+        "scripts/migrate-wp/normalize.ts"
+      ],
+      "specRef": "f1.md#F1.3.T2",
+      "comments": []
+    },
+    {
+      "id": "F2.1.T1",
+      "phase": 2,
+      "title": "Schema validations + `normalizeCedula` reuse",
+      "description": "**Objetivo**\n\nSchemas Zod de pacientes y wiring con `normalizeCedula` en `packages/lib` (creado en F1.migracion.T02).\n\n**Contexto**\n\n`normalizeCedula` puede ser creada en F1.migracion.T02 o aquí — coordinar. Este task asume que existe.\n\n**Alcance**\n\nSí hace:\n- `packages/lib/schemas/paciente.ts` con schemas `pacienteCreate`, `pacienteUpdate`, `pacienteSearch`.\n- Zod `.transform` que aplica `normalizeCedula` al parse.\n- Sexo enum `[\"M\", \"F\", \"O\"]`.\n- Fecha nacimiento como `z.date()` transformada a `number` (timestamp).\n- Tests unitarios de las validaciones.\n\nNo hace:\n- Mutations (T02).\n- UI (T05).\n\n**Criterios de aceptación**\n\n- [ ] Schema rechaza `nombre` vacío.\n- [ ] Schema rechaza `cedula` sin prefijo V/E.\n- [ ] Schema transforma cédula \"raw\" a normalizada.\n- [ ] Fecha nacimiento futura rechaza.",
+      "model": "opencode/deepseek-v4-pro",
+      "reason": "Schema Zod paciente + validaciones — Kimi K2.6 económico.",
+      "status": "todo",
+      "dependencies": [
+        "F0.1.T1",
+        "F1.3.T2"
+      ],
+      "estimateHours": 3.0,
+      "files": [
+        "packages/lib/schemas/paciente.ts",
+        "packages/lib/schemas/paciente.test.ts"
+      ],
+      "specRef": "f2.md#F2.1.T1",
+      "comments": []
+    },
+    {
+      "id": "F2.1.T5",
+      "phase": 2,
+      "title": "UI `/pacientes` (list + search + form + ficha)",
+      "description": "**Objetivo**\n\nPágina `/pacientes` con lista paginada, búsqueda en tiempo real, botón \"Nuevo\", modal form. Página `/pacientes/[id]` con ficha e historial.\n\n**Contexto**\n\nPRD §4 F3; ARCH §3 F3.\n\n**Alcance**\n\nSí hace:\n- `apps/web/app/(app)/pacientes/page.tsx`:\n  - Server component preload de primer page.\n  - Client component `PacientesList` con `useQuery(list)` + input de búsqueda debounced.\n  - Botón \"Nuevo Paciente\" → modal.\n- `apps/web/app/(app)/pacientes/[id]/page.tsx`:\n  - Ficha con datos + tabs \"Resultados\" y \"Presupuestos\".\n  - Botón \"Editar\".\n- Modal `PacienteFormDialog` (create/edit) con RHF + zod.\n- Confirmación de delete/deactivate.\n- Empty state (\"Sin pacientes\").\n\n**Criterios de aceptación**\n\n- [ ] Lista muestra pacientes paginados.\n- [ ] Búsqueda en tiempo real (debounce 300ms) filtra la lista.\n- [ ] Crear paciente OK; error de cédula duplicada visible.\n- [ ] Ficha muestra edad + tabs.\n- [ ] Editar y guardar funciona.\n- [ ] Delete/deactivate con confirmación.",
+      "model": "opencode/deepseek-v4-pro",
+      "reason": "UI /pacientes list + search + ficha — GLM 5.2 fuerte en frontend.",
+      "status": "todo",
+      "dependencies": [
+        "F0.1.T6",
+        "F0.2.T3",
+        "F2.1.T2",
+        "F2.1.T3",
+        "F2.1.T4"
+      ],
+      "estimateHours": 10.0,
+      "files": [
+        "apps/web/app/(app)/pacientes/page.tsx",
+        "apps/web/app/(app)/pacientes/PacientesList.tsx",
+        "apps/web/app/(app)/pacientes/PacienteFormDialog.tsx",
+        "apps/web/app/(app)/pacientes/[id]/page.tsx",
+        "apps/web/app/(app)/pacientes/[id]/FichaTabs.tsx"
+      ],
+      "specRef": "f2.md#F2.1.T5",
+      "comments": []
+    },
+    {
+      "id": "F2.2.T2",
+      "phase": 2,
+      "title": "UI `/paquetes` con dnd-kit split-view",
+      "description": "**Objetivo**\n\nConstructor de paquetes con dos columnas: catálogo (source) y paquete actual (target), con drag-and-drop bidireccional y reorder interno.\n\n**Contexto**\n\nPRD §4 F7 (dnd-kit). ARCH §3 F7 (`packages/ui/dnd/`).\n\n**Alcance**\n\nSí hace:\n- `apps/web/app/(app)/paquetes/page.tsx` — lista de paquetes con card por paquete.\n- `apps/web/app/(app)/paquetes/[id]/page.tsx` — vista/edición.\n- Componente `PaqueteBuilder` (client, `'use client'`):\n  - Split view: izquierda catálogo con búsqueda (reuse F1.catalogo.T03), derecha lista del paquete.\n  - Dnd-kit: `DndContext`, `SortableContext`, `useDraggable`, `useDroppable`.\n  - Drag desde catálogo a paquete = agregar.\n  - Drag dentro del paquete = reorder.\n  - Drag fuera del paquete = quitar (o botón \"quitar\" por row).\n  - Botón \"Guardar\" ejecuta `setExamenes`.\n- Modal create de paquete (nombre + descripción).\n- Admin gestiona; Operador ve read-only.\n\nNo hace:\n- Múltiples paquetes editables al mismo tiempo.\n\n**Criterios de aceptación**\n\n- [ ] Crear paquete abre editor vacío.\n- [ ] Drag de examen desde catálogo lo agrega al paquete.\n- [ ] Reorder interno del paquete funciona.\n- [ ] Quitar examen del paquete funciona.\n- [ ] Guardar persiste la lista con orden.\n- [ ] Búsqueda del catálogo filtra en vivo con highlight.\n- [ ] Operador ve read-only (o UI oculta acciones de edit).\n\n**Notas técnicas**\n\n`dnd-kit`: `@dnd-kit/core`, `@dnd-kit/sortable`, `@dnd-kit/utilities`. Necesita `'use client'`. Testeado en Next 14 App Router (ARCH §9 confirma).",
+      "model": "opencode/deepseek-v4-pro",
+      "reason": "UI /paquetes dnd-kit split-view — GLM 5.2 fuerte en interacciones UI.",
+      "status": "todo",
+      "dependencies": [
+        "F0.1.T6",
+        "F0.2.T3",
+        "F1.2.T2",
+        "F1.2.T3",
+        "F2.2.T1"
+      ],
+      "estimateHours": 12.0,
+      "files": [
+        "apps/web/app/(app)/paquetes/page.tsx",
+        "apps/web/app/(app)/paquetes/[id]/page.tsx",
+        "apps/web/app/(app)/paquetes/PaqueteBuilder.tsx",
+        "packages/ui/dnd/SortableList.tsx",
+        "packages/ui/dnd/DraggableItem.tsx"
+      ],
+      "specRef": "f2.md#F2.2.T2",
+      "comments": []
+    },
+    {
+      "id": "F2.2.T3",
+      "phase": 2,
+      "title": "Selector \"Cargar Paquete\" reusable",
+      "description": "**Objetivo**\n\nComponente `<CargarPaqueteButton onLoad={(examenes) => ...}>` que abre un modal con lista de paquetes y al seleccionar retorna los exámenes.\n\n**Contexto**\n\nReusable en F2.resultados y F2.presupuestos (PRD \"cargar paquete con un clic\").\n\n**Alcance**\n\nSí hace:\n- Componente en `packages/ui/paquetes/CargarPaqueteButton.tsx`.\n- Modal con `useQuery(paquetes.list)`.\n- Click en paquete → `useQuery(paquetes.getExamenes)` → llama `onLoad`.\n- Loading state, empty state.\n\n**Criterios de aceptación**\n\n- [ ] Modal muestra paquetes con nombre y count.\n- [ ] Click en paquete emite los exámenes.\n- [ ] Empty state si no hay paquetes.\n- [ ] Cierra modal post-selección.",
+      "model": "opencode/deepseek-v4-pro",
+      "reason": "UI selector CargarPaquete reusable — GLM 5.2 fuerte en frontend.",
+      "status": "todo",
+      "dependencies": [
+        "F2.2.T1"
+      ],
+      "estimateHours": 3.0,
+      "files": [
+        "packages/ui/paquetes/CargarPaqueteButton.tsx"
+      ],
+      "specRef": "f2.md#F2.2.T3",
+      "comments": []
+    },
+    {
+      "id": "F2.3.T1",
+      "phase": 2,
+      "title": "Schema Zod + audit",
+      "description": "**Objetivo**\n\nSchemas de validación para `resultadoCreate`, `resultadoUpdate`, `lineaResultado`.\n\n**Alcance**\n\n- `packages/lib/schemas/resultado.ts` con Zod schemas.\n- Validación `fecha_muestra` no futura.\n- Validación `examenes` array no vacío al crear.\n- Enum `estado` = `[\"Pendiente\", \"Completado\"]`.\n\n**Criterios de aceptación**\n\n- [ ] Schemas validan bien casos happy y edge.\n- [ ] Test unitarios.",
+      "model": "opencode/deepseek-v4-pro",
+      "reason": "Schema Zod resultado + tests — Qwen 3.7 Plus tarea utilitaria.",
+      "status": "todo",
+      "dependencies": [
+        "F0.1.T1"
+      ],
+      "estimateHours": 2.0,
+      "files": [
+        "packages/lib/schemas/resultado.ts",
+        "packages/lib/schemas/resultado.test.ts"
+      ],
+      "specRef": "f2.md#F2.3.T1",
+      "comments": []
+    },
+    {
+      "id": "F2.3.T4",
+      "phase": 2,
+      "title": "Template PDF `<ResultadoPDF />`",
+      "description": "**Objetivo**\n\nComponente React del PDF de resultado con `@react-pdf/renderer`: encabezado con logo/nombre, datos paciente, tabla exámenes, firma + sello, pie de página.\n\n**Contexto**\n\nARCH §3 (`packages/pdf/ResultadoPDF.tsx`, `packages/pdf/components/*`), S3 confirmado runtime.\n\n**Alcance**\n\nSí hace:\n- `packages/pdf/ResultadoPDF.tsx` — layout completo.\n- Componentes reutilizables en `packages/pdf/components/`:\n  - `<PDFHeader logo={...} nombre={...} rif={...} direccion={...} />`\n  - `<PacienteInfo paciente={...} edad={...} fecha={...} />`\n  - `<ExamenesTable rows={...} />`\n  - `<PDFFooter firma={...} sello={...} pieDePagina={...} />`\n- Estilos con `StyleSheet.create`.\n- Fuentes default (custom sólo si S3 lo requiere).\n- Manejo de assets con URL firmada (viene de `getForPDF`).\n\nNo hace:\n- Route handler (T05).\n- Streaming (T05).\n\n**Criterios de aceptación**\n\n- [ ] Renderiza en `renderToStream` sin errores.\n- [ ] Layout coincide con mockup (o brief del cliente).\n- [ ] Logo/firma/sello se cargan y renderizan.\n- [ ] Tabla exámenes escala con muchas filas (page break OK).\n- [ ] Nombre del laboratorio siempre visible.",
+      "model": "opencode/deepseek-v4-pro",
+      "reason": "PDF server-side complejo (@react-pdf) — GPT-5.6 Codex para runtime y layout react-pdf.",
+      "status": "todo",
+      "dependencies": [
+        "F2.3.T2"
+      ],
+      "estimateHours": 10.0,
+      "files": [
+        "packages/pdf/ResultadoPDF.tsx",
+        "packages/pdf/components/PDFHeader.tsx",
+        "packages/pdf/components/PacienteInfo.tsx",
+        "packages/pdf/components/ExamenesTable.tsx",
+        "packages/pdf/components/PDFFooter.tsx"
+      ],
+      "specRef": "f2.md#F2.3.T4",
+      "comments": []
+    },
+    {
+      "id": "F2.3.T6",
+      "phase": 2,
+      "title": "UI `/resultados` (list + create + edit + fichas)",
+      "description": "**Objetivo**\n\nPágina `/resultados` con lista + búsqueda + filtros; `/resultados/nuevo` con form; `/resultados/[id]` con detalle + botón \"Descargar PDF\".\n\n**Contexto**\n\nPRD §4 F5; ARCH §3 F5, §4.1 (sequence).\n\n**Alcance**\n\nSí hace:\n- `apps/web/app/(app)/resultados/page.tsx` — lista con filtros (paciente, fecha, estado).\n- `apps/web/app/(app)/resultados/nuevo/page.tsx` — form completo con:\n  - Autocomplete paciente (reuse F2.pacientes.T03 `<PacienteAutocomplete>`).\n  - Botón \"Cargar Paquete\" (reuse F2.paquetes.T03).\n  - Botón \"Agregar Examen\" (autocomplete de catálogo).\n  - Tabla de líneas editable (examen, valor, observación).\n  - Fechas muestra/resultado, médico, observaciones generales.\n  - Botón guardar (Pendiente si falta fecha resultado; Completado si tiene).\n- `apps/web/app/(app)/resultados/[id]/page.tsx` — detalle read-only + botón \"Editar\" + \"Descargar PDF\" (`window.open('/api/pdf/resultado/[id]')`).\n- Modo edición.\n- Empty/error states.\n\n**Criterios de aceptación**\n\n- [ ] Crear resultado con paciente + 3 exámenes OK; navega a detalle.\n- [ ] \"Cargar Paquete\" agrega todos los exámenes del paquete.\n- [ ] Botón PDF abre PDF en nueva pestaña.\n- [ ] Búsqueda funciona en < 300ms.\n- [ ] Filtros por fecha/estado funcionan.\n- [ ] Delete Admin only visible/oculto según role.",
+      "model": "opencode/deepseek-v4-pro",
+      "reason": "UI /resultados list + form + fichas — GLM 5.2 fuerte en frontend.",
+      "status": "todo",
+      "dependencies": [
+        "F0.1.T6",
+        "F0.2.T3",
+        "F2.1.T3",
+        "F2.2.T3",
+        "F2.3.T2",
+        "F2.3.T5"
+      ],
+      "estimateHours": 12.0,
+      "files": [
+        "apps/web/app/(app)/resultados/page.tsx",
+        "apps/web/app/(app)/resultados/ResultadosList.tsx",
+        "apps/web/app/(app)/resultados/nuevo/page.tsx",
+        "apps/web/app/(app)/resultados/nuevo/ResultadoForm.tsx",
+        "apps/web/app/(app)/resultados/[id]/page.tsx",
+        "apps/web/app/(app)/resultados/[id]/ResultadoDetalle.tsx"
+      ],
+      "specRef": "f2.md#F2.3.T6",
+      "comments": []
+    },
+    {
+      "id": "F2.4.T1",
+      "phase": 2,
+      "title": "Utilidades de dinero + `packages/lib/bs-format.ts`",
+      "description": "**Objetivo**\n\nImplementar `formatBs`, `formatUsd`, `roundBs`, `calcularTotales` con las reglas de S7.\n\n**Contexto**\n\nS7 documenta reglas exactas (decimales, redondeo, separadores).\n\n**Alcance**\n\nSí hace:\n- `packages/lib/bs-format.ts`:\n  - `formatBs(amount: number): string`.\n  - `formatUsd(amount: number): string`.\n  - `roundBs(amount: number): number`.\n  - `roundUsd(amount: number): number`.\n  - `calcularTotales({ subtotal, descuentoPct, gananciaPct, tasa }): { totalUsd, totalBs }`.\n- Suite de tests exhaustiva (mínimo 20 casos edge de S7).\n\n**Criterios de aceptación**\n\n- [ ] Reglas S7 respetadas en 100% de tests.\n- [ ] `calcularTotales` matchea fórmula PRD: `Total USD = subtotal × (1 - desc%) × (1 + gan%)`, `Total Bs = round(Total USD × tasa)`.\n- [ ] Edge cases: 0.005, 0.015, negativos, descuento 100%.",
+      "model": "opencode/deepseek-v4-pro",
+      "reason": "Utilidades dinero bs-format/calcular-totales — Kimi K2.7 code-focused para lógica precisa.",
+      "status": "todo",
+      "dependencies": [
+        "F0.1.T1"
+      ],
+      "estimateHours": 5.0,
+      "files": [
+        "packages/lib/bs-format.ts",
+        "packages/lib/bs-format.test.ts",
+        "packages/lib/calcular-totales.ts",
+        "packages/lib/calcular-totales.test.ts"
+      ],
+      "specRef": "f2.md#F2.4.T1",
+      "comments": []
+    },
+    {
+      "id": "F2.4.T4",
+      "phase": 2,
+      "title": "Template PDF `<PresupuestoPDF />`",
+      "description": "**Objetivo**\n\nComponente PDF con doble moneda (USD + Bs), sin mostrar ganancia interna.\n\n**Contexto**\n\nARCH §3, PRD §4 F6 (bullet \"PDF con doble moneda sin ganancia\").\n\n**Alcance**\n\nSí hace:\n- `packages/pdf/PresupuestoPDF.tsx`:\n  - Header reusable (F2.resultados.T04).\n  - Datos paciente (real o nombre libre).\n  - Tabla exámenes con precio USD y precio Bs (según tasa del presupuesto).\n  - Subtotal, descuento, Total USD, Total Bs.\n  - **NO muestra ganancia %**.\n  - Footer con firma + sello + pie.\n- Formato con `formatBs`/`formatUsd`.\n\n**Criterios de aceptación**\n\n- [ ] Renderiza sin errores.\n- [ ] Ganancia % NO visible en PDF (test explícito).\n- [ ] Formato Bs sigue reglas S7.\n- [ ] Paciente libre vs paciente real ambos renderizan.",
+      "model": "opencode/deepseek-v4-pro",
+      "reason": "Template PresupuestoPDF como componente React — GLM 5.2 siguiendo patrón de ResultadoPDF.",
+      "status": "todo",
+      "dependencies": [
+        "F2.3.T4",
+        "F2.4.T1",
+        "F2.4.T2"
+      ],
+      "estimateHours": 6.0,
+      "files": [
+        "packages/pdf/PresupuestoPDF.tsx"
+      ],
+      "specRef": "f2.md#F2.4.T4",
+      "comments": []
+    },
+    {
+      "id": "F2.4.T5",
+      "phase": 2,
+      "title": "Route Handler `/api/pdf/presupuesto/[id]`",
+      "description": "**Objetivo**\n\nEndpoint Next.js igual a resultados pero para presupuestos.\n\n**Alcance**\n\n- `apps/web/app/api/pdf/presupuesto/[id]/route.ts`.\n- Mismo patrón que F2.resultados.T05 (helper + guards + streaming).\n\n**Criterios de aceptación**\n\n- [ ] Request válido devuelve PDF.\n- [ ] Errores 401/403/404 correctos.\n- [ ] p95 warm < 3s.",
+      "model": "opencode/deepseek-v4-pro",
+      "reason": "Route Handler PDF presupuesto — Kimi K2.7 code-focused.",
+      "status": "todo",
+      "dependencies": [
+        "F2.4.T2",
+        "F2.4.T4",
+        "F2.3.T5"
+      ],
+      "estimateHours": 3.0,
+      "files": [
+        "apps/web/app/api/pdf/presupuesto/[id]/route.ts"
+      ],
+      "specRef": "f2.md#F2.4.T5",
+      "comments": []
+    },
+    {
+      "id": "F2.4.T6",
+      "phase": 2,
+      "title": "UI `/presupuestos` (list + form + detalle + convertir)",
+      "description": "**Objetivo**\n\nPágina con lista + filtros; form nuevo con doble moneda live; detalle con botones \"Aprobar\", \"Convertir a Resultado\", \"Descargar PDF\".\n\n**Contexto**\n\nPRD §4 F6 completo; ARCH §4.2 sequence.\n\n**Alcance**\n\nSí hace:\n- `apps/web/app/(app)/presupuestos/page.tsx` — lista con filtros.\n- `apps/web/app/(app)/presupuestos/nuevo/page.tsx` — form:\n  - Toggle \"Paciente registrado\" vs \"Nombre libre\".\n  - `<PacienteAutocomplete>` o `<input>` según toggle.\n  - \"Cargar Paquete\" (F2.paquetes.T03).\n  - Agregar exámenes uno a uno.\n  - Descuento %, Ganancia % (visible sólo en UI, no en PDF).\n  - Tasa Bs pre-rellenada con `tasa.getLatest()` + badge \"stale\" si >24h.\n  - Cálculo LIVE de subtotal, Total USD, Total Bs mientras el usuario edita.\n- `apps/web/app/(app)/presupuestos/[id]/page.tsx` — detalle:\n  - Botones según estado: Borrador → \"Aprobar\", Aprobado → \"Convertir a Resultado\", \"Descargar PDF\" siempre.\n  - Modal confirmar convertir → si nombre libre → mensaje \"primero crear ficha\" con link a form pacientes con datos precargados.\n- Edición sólo en Borrador.\n\n**Criterios de aceptación**\n\n- [ ] Cálculo live actualiza al cambiar cualquier campo.\n- [ ] Aprobar cambia estado y bloquea edición.\n- [ ] Convertir con paciente real → navega a nuevo resultado precargado.\n- [ ] Convertir con nombre libre → muestra bloqueo con acción \"crear ficha\".\n- [ ] Tasa BCV se pre-rellena; badge \"stale\" visible si >24h.\n- [ ] PDF descarga OK.",
+      "model": "opencode/deepseek-v4-pro",
+      "reason": "UI /presupuestos list + form + detalle — GLM 5.2 fuerte en frontend.",
+      "status": "todo",
+      "dependencies": [
+        "F0.1.T6",
+        "F0.2.T3",
+        "F2.1.T3",
+        "F2.2.T3",
+        "F2.4.T1",
+        "F2.4.T2",
+        "F2.4.T3",
+        "F2.4.T5",
+        "F2.3.T3"
+      ],
+      "estimateHours": 14.0,
+      "files": [
+        "apps/web/app/(app)/presupuestos/page.tsx",
+        "apps/web/app/(app)/presupuestos/PresupuestosList.tsx",
+        "apps/web/app/(app)/presupuestos/nuevo/page.tsx",
+        "apps/web/app/(app)/presupuestos/nuevo/PresupuestoForm.tsx",
+        "apps/web/app/(app)/presupuestos/[id]/page.tsx",
+        "apps/web/app/(app)/presupuestos/[id]/PresupuestoDetalle.tsx"
+      ],
+      "specRef": "f2.md#F2.4.T6",
+      "comments": []
+    },
+    {
+      "id": "F3.2.T7",
+      "phase": 3,
+      "title": "Componente `<ExportButton>` reusable",
+      "description": "**Objetivo**\n\nBotón \"Exportar\" en cada lista (pacientes, presupuestos, resultados) que llama la action correspondiente y descarga el CSV.\n\n**Alcance**\n\nSí hace:\n- `packages/ui/exports/ExportButton.tsx`:\n  - Props: `actionName: string`, `filters?`.\n  - `useAction(...)` → recibe storageId → `useMutation(getSignedUrl)` → `window.open`.\n  - Loading state.\n- Integrado en `/pacientes`, `/presupuestos`, `/resultados` (páginas existentes de F2).\n\n**Criterios de aceptación**\n\n- [ ] Click descarga CSV con filtros aplicados.\n- [ ] Loading visible.\n- [ ] Error toast si falla.\n\n**Notas técnicas**\n\nFeature flag `NEXT_PUBLIC_FEATURE_EXPORTACION` para poder deshabilitar si el SPIKE S6 tarda.",
+      "model": "opencode/deepseek-v4-pro",
+      "reason": "UI componente ExportButton reusable — GLM 5.2 fuerte en frontend.",
+      "status": "todo",
+      "dependencies": [
+        "F3.2.T2",
+        "F3.2.T3",
+        "F3.2.T4",
+        "F3.2.T5"
+      ],
+      "estimateHours": 3.0,
+      "files": [
+        "packages/ui/exports/ExportButton.tsx",
+        "apps/web/app/(app)/pacientes/PacientesList.tsx",
+        "apps/web/app/(app)/presupuestos/PresupuestosList.tsx",
+        "apps/web/app/(app)/resultados/ResultadosList.tsx"
+      ],
+      "specRef": "f3.md#F3.2.T7",
+      "comments": []
+    },
+    {
+      "id": "F4.1.T1",
+      "phase": 4,
+      "title": "Empty states + loading skeletons en todas las listas",
+      "description": "**Objetivo**\n\nCada lista y ficha tiene empty state ilustrado y loading skeleton (no spinner genérico).\n\n**Alcance**\n\nSí hace:\n- Empty states en: pacientes, resultados, presupuestos, paquetes, exámenes, dashboard, config.\n- Skeletons para: cards KPI, tablas, formularios.\n- Componente reusable `packages/ui/feedback/EmptyState.tsx` y `packages/ui/feedback/Skeleton.tsx`.\n- Copy con voz del producto (español VE, calidez).\n\n**Criterios de aceptación**\n\n- [ ] Cada lista muestra empty state en dataset vacío.\n- [ ] Loading skeleton visible en carga inicial.\n- [ ] Sin spinners genéricos.",
+      "model": "opencode/deepseek-v4-pro",
+      "reason": "UI empty states + skeletons — GLM 5.2 fuerte en frontend.",
+      "status": "todo",
+      "dependencies": [],
+      "estimateHours": 6.0,
+      "files": [
+        "packages/ui/feedback/EmptyState.tsx",
+        "packages/ui/feedback/Skeleton.tsx",
+        "Integraciones en cada página de F1/F2/F3."
+      ],
+      "specRef": "f4.md#F4.1.T1",
+      "comments": []
+    },
+    {
+      "id": "F4.1.T5",
+      "phase": 4,
+      "title": "Tests E2E Playwright de flujos críticos",
+      "description": "**Objetivo**\n\nSuite Playwright cubriendo flujos que si fallan bloquean operación: login, crear paciente, crear resultado + PDF, crear presupuesto + convertir, exportar CSV.\n\n**Alcance**\n\nSí hace:\n- `apps/web/e2e/` con Playwright config.\n- Test `auth.spec.ts` (login OK, login fail).\n- Test `paciente.spec.ts` (crear + buscar).\n- Test `resultado.spec.ts` (crear + descargar PDF).\n- Test `presupuesto.spec.ts` (crear + aprobar + convertir a resultado).\n- Test `export.spec.ts` (exportar presupuestos).\n- Fixtures seed data.\n- CI job E2E (separado, con headless Chrome).\n\n**Criterios de aceptación**\n\n- [ ] 5 tests pasan en local + CI.\n- [ ] Tiempo total < 5min.\n- [ ] Screenshot on failure.",
+      "model": "opencode/deepseek-v4-pro",
+      "reason": "Tests E2E Playwright de flujos críticos — Kimi K2.7 code-focused.",
+      "status": "todo",
+      "dependencies": [],
+      "estimateHours": 10.0,
+      "files": [
+        "apps/web/e2e/*.spec.ts",
+        "apps/web/playwright.config.ts",
+        ".github/workflows/e2e.yml"
+      ],
+      "specRef": "f4.md#F4.1.T5",
+      "comments": []
+    },
+    {
+      "id": "F4.2.T1",
+      "phase": 4,
+      "title": "Dry-run completo migración contra copia MySQL prod",
+      "description": "**Objetivo**\n\nEjecutar `migrate-wp --dry-run --verify` contra dump/copia de MySQL prod para reportar lo que va a migrar sin escribir.\n\n**Contexto**\n\nDepende de F1.migracion.T08 (`--verify` implementado). Reunión con Admin post-run para revisar reporte.\n\n**Alcance**\n\nSí hace:\n- Obtener dump MySQL prod (o snapshot readonly con timestamp T0).\n- Correr `pnpm --filter migrate-wp run migrate -- --dry-run --verify` contra el dump.\n- Generar reporte JSON + tabla humana con: counts esperados, conflictos detectados, warnings.\n- Sesión con Admin (Rosa) para revisar y aprobar/ajustar `resolutions/pacientes.json`.\n- Timeline documentado del run (cuánto tarda).\n\nNo hace:\n- Escritura real (dry-run).\n\n**Criterios de aceptación**\n\n- [ ] Reporte con counts exactos (204+ pacientes, 250+ exámenes, etc.).\n- [ ] Cero conflictos no resueltos.\n- [ ] Admin firma la aprobación por escrito (comentario en tracker).\n- [ ] Timeline < 60min conocido.",
+      "model": "opencode/deepseek-v4-pro",
+      "reason": "Dry-run migración contra copia MySQL prod — Qwen 3.7 Max para parsing/ETL.",
+      "status": "todo",
+      "dependencies": [
+        "F1.3.T8",
+        "F4.1.T3"
+      ],
+      "estimateHours": 6.0,
+      "files": [
+        "docs/migration/dry-run-<fecha>.md",
+        "scripts/migrate-wp/resolutions/pacientes.json"
+      ],
+      "specRef": "f4.md#F4.2.T1",
+      "comments": []
+    },
+    {
+      "id": "F4.2.T3",
+      "phase": 4,
+      "title": "Smoke tests post-cutover (checklist manual + Playwright)",
+      "description": "**Objetivo**\n\nChecklist manual + subset Playwright que valida los 10 flujos críticos con datos reales migrados.\n\n**Alcance**\n\nSí hace:\n- Checklist en `docs/migration/SMOKE-TESTS.md`:\n  1. Login Admin y Operador.\n  2. Dashboard carga con KPIs reales.\n  3. Buscar 3 pacientes conocidos (por cédula, nombre).\n  4. Abrir ficha de paciente con historial migrado.\n  5. Crear resultado nuevo (paciente + exámenes).\n  6. Descargar PDF de resultado migrado (verificar snapshots).\n  7. Crear presupuesto (nombre libre + real).\n  8. Convertir presupuesto a resultado.\n  9. Exportar CSV de presupuestos.\n  10. Verificar tasa BCV automática funciona (o manual override).\n- Ejecutar suite Playwright de F4.hardening.T05 contra prod (con user de test).\n- Reporte de smoke firmado por Admin.\n\n**Criterios de aceptación**\n\n- [ ] 10/10 items checklist manual pasan.\n- [ ] Playwright E2E pasa contra prod.\n- [ ] Admin firma go-live.",
+      "model": "opencode/deepseek-v4-pro",
+      "reason": "Smoke tests post-cutover migración — Qwen 3.7 Max para parsing/ETL.",
+      "status": "todo",
+      "dependencies": [
+        "F4.2.T2",
+        "F4.1.T5"
+      ],
+      "estimateHours": 4.0,
+      "files": [
+        "docs/migration/SMOKE-TESTS.md"
+      ],
+      "specRef": "f4.md#F4.2.T3",
+      "comments": []
+    },
+    {
+      "id": "F0.0.T1",
+      "phase": 0,
+      "title": "Deploy InsForge en VPS",
+      "description": "",
+      "model": "opencode/deepseek-v4-pro",
+      "reason": "Task de infraestructura estándar — deepseek cubre deploy guiado por docs oficiales.",
+      "status": "todo",
+      "dependencies": [],
+      "estimateHours": 4.0,
+      "files": [
+        ".env.example",
+        "docs/deploy/insforge-vps.md",
+        "docker-compose.override.yml"
+      ],
+      "specRef": "f0.md#F0.0.T1",
+      "comments": []
+    },
+    {
+      "id": "F0.1.T8",
+      "phase": 0,
+      "title": "`packages/db`: esquema PostgreSQL + cliente + migraciones",
+      "description": "",
+      "model": "opencode/deepseek-v4-pro",
+      "reason": "Task de implementación estándar — deepseek traduce el schema documentado en ADR-11.",
+      "status": "backlog",
+      "dependencies": [
+        "F0.0.T1"
+      ],
+      "estimateHours": 6.0,
+      "files": [
+        "packages/db/schema.sql",
+        "packages/db/migrations/0001_init.sql",
+        "packages/db/client.ts",
+        "packages/db/package.json",
+        ".eslintrc.cjs"
+      ],
+      "specRef": "f0.md#F0.1.T8",
+      "comments": []
+    },
+    {
+      "id": "F0.2.T6",
+      "phase": 0,
+      "title": "Password reset con InsForge Auth (endpoint + email + form)",
+      "description": "- **Objetivo**\n\nFlujo de recuperación de contraseña: request → email con código/link → form nuevo password, usando las primitivas **built-in** de InsForge Auth.\n\n- **Contexto**\n\nInsForge Auth trae password reset nativo (`resetPasswordMethod`: `code` de 6 dígitos o `link` mágico) + envío vía InsForge Messaging (SMTP gestionado o propio). Lo que S5 detectó como gap de Convex Auth acá viene resuelto por la plataforma; este task es wiring + UX.\n\n- **Alcance**\n\nSí hace:\n- Configurar `resetPasswordMethod` en InsForge Auth (elegir `link` para UX) y SMTP en Messaging (dev: SMTP stub o consola).\n- Página `/forgot-password` con form email → llama endpoint REST de reset de InsForge.\n- Página `/reset-password?token=...` con form nuevo password → completa el flujo con el token.\n- Anti-enumeración: verificar que la API responde genérico si el email no existe (comportamiento nativo — testear).\n- Rate limiting de requests de reset (nativo de InsForge Auth — verificar configuración).\n- Audit log propio: fila en `audit_log` (`auth.password_reset_requested`, `auth.password_reset_completed`) desde un Route Handler server-side que orquesta.\n- TTL y single-use del token: comportamiento nativo — documentar en el PR.\n\nNo hace:\n- Tabla custom `password_reset_tokens` (eliminada del diseño por ADR-11).\n- MFA/2FA.\n\n- **Criterios de aceptación**\n  - [ ] Request de reset con email válido envía email (o loguea en dev).\n  - [ ] Token expirado rechaza reset.\n  - [ ] Token ya usado rechaza reset.\n  - [ ] Nuevo password permite login.\n  - [ ] Email inexistente no revela información (responde OK igual).\n  - [ ] audit_log registra request + completion.",
+      "model": "opencode/deepseek-v4-pro",
+      "reason": "Wiring sobre primitivas nativas — deepseek con docs de InsForge alcanza.",
+      "status": "backlog",
+      "dependencies": [
+        "F0.0.T1",
+        "F0.2.T8"
+      ],
+      "estimateHours": 4.0,
+      "files": [
+        "apps/web/app/(auth)/forgot-password/page.tsx",
+        "apps/web/app/(auth)/forgot-password/ForgotForm.tsx",
+        "apps/web/app/(auth)/reset-password/page.tsx",
+        "apps/web/app/(auth)/reset-password/ResetForm.tsx",
+        "apps/web/app/api/auth/reset/route.ts",
+        "packages/lib/server/auth.ts"
+      ],
+      "specRef": "f0.md#F0.2.T6",
+      "comments": []
+    },
+    {
+      "id": "F0.2.T7",
+      "phase": 0,
+      "title": "Invitación de usuarios (Admin only)",
+      "description": "- **Objetivo**\n\nAdmin puede invitar nuevos usuarios (Admin u Operador) por email con token; el invitado elige su password.\n\n- **Contexto**\n\nInsForge no tiene flujo de invitaciones: se mantiene el diseño custom de tokens, pero el alta del usuario se hace contra InsForge Auth (creación admin-side) y el email viaja por InsForge Messaging. La creación pública está deshabilitada; sólo por invitación.\n\n- **Alcance**\n\nSí hace:\n- Tabla `user_invitations` en `packages/db` (`email`, `role`, `token_hash`, `invited_by`, `expires_at`, `accepted`) — incluida en migración F0.1.T8.\n- Route Handler `POST /api/usuarios/invite` (Admin only) → genera token → envía email vía InsForge Messaging SDK.\n- Página `/accept-invite?token=...` con form (password + confirm).\n- Route Handler `POST /api/usuarios/accept-invite`: valida token, crea usuario en InsForge Auth (admin create user o signup con verificación), inserta fila `usuarios` con `auth_user_id` y role, marca invite aceptado — todo en una transacción Postgres para la parte de dominio.\n- UI mínima en `/config` (o `/usuarios`) con lista de pendientes + botón \"Invitar\".\n- TTL invite: 7 días.\n\nNo hace:\n- Gestión avanzada (revocar, re-invitar, cambiar rol post-alta) — se maneja desde el dashboard de InsForge v1 si es necesario.\n\n- **Criterios de aceptación**\n  - [ ] Admin puede invitar; Operador no ve el botón.\n  - [ ] Email de invitación se envía (o loguea en dev).\n  - [ ] Aceptar invite crea user con rol correcto y fila `usuarios` vinculada por `auth_user_id`.\n  - [ ] Token expirado rechaza.\n\n- **Notas técnicas**\n\nReusar helper de email de T06 (Messaging SDK). La UI de invitación puede vivir dentro de F1.config para no crear un módulo `/usuarios` separado en v1.",
+      "model": "opencode/deepseek-v4-pro",
+      "reason": "Task de implementación estándar — deepseek cubre CRUD + integración Messaging.",
+      "status": "backlog",
+      "dependencies": [
+        "F0.1.T8",
+        "F0.2.T6"
+      ],
+      "estimateHours": 6.0,
+      "files": [
+        "packages/db/migrations/0002_user_invitations.sql",
+        "packages/db/repos/usuarios.ts",
+        "apps/web/app/api/usuarios/invite/route.ts",
+        "apps/web/app/api/usuarios/accept-invite/route.ts",
+        "apps/web/app/(auth)/accept-invite/page.tsx",
+        "apps/web/app/(app)/config/InviteUserDialog.tsx"
+      ],
+      "specRef": "f0.md#F0.2.T7",
+      "comments": []
+    },
+    {
+      "id": "F0.2.T8",
+      "phase": 0,
+      "title": "Portar auth a InsForge: login, sesión, middleware y RBAC",
+      "description": "- **Objetivo**\n\nReimplementar sobre InsForge Auth la funcionalidad que hoy quedó ejecutada bajo Convex Auth (historial F0.2.T1–T5): login email+password, sesión 8h, middleware con auth guard + role guard, tabla `usuarios` sincronizada y audit log de auth.\n\n- **Contexto**\n\nADR-11. InsForge Auth maneja credenciales/sesiones JWT (access token + refresh cookie httpOnly); los roles siguen siendo de dominio en nuestra tabla `usuarios`.\n\n- **Alcance**\n\nSí hace:\n- `apps/web/app/providers.tsx`: reemplazar `ConvexAuthNextjsProvider` por el provider/auth client de InsForge (`@insforge/sdk`).\n- LoginForm (`/login`): signIn password contra InsForge; redirección a `/dashboard`; error visible con credenciales inválidas; loading state.\n- Sesión 8h: configurar expiración de access/refresh token en InsForge Auth config.\n- `packages/lib/server/auth.ts`:\n  - `getCurrentUser()`: lee sesión InsForge server-side → `{ userId, email, role }` o lanza `UNAUTHENTICATED`.\n  - `requireRole(role)`: valida contra fila `usuarios` y lanza `UNAUTHORIZED`.\n- Tabla `usuarios`: columna `auth_user_id uuid UNIQUE` + sync post-login/post-alta (crea fila con role default `operador` si no existe).\n- `apps/web/middleware.ts`: protege `(app)` (redirect a `/login` sin sesión), bloquea `/config/*` + `/examenes/*` a no-admin, redirect `/login` → `/dashboard` si hay sesión; matcher excluye `/api/pdf/*` y `/api/cron/*`.\n- Audit de auth en `audit_log`: login exitoso, logout, fallo (`metadata.email_intent`); rate limit lógico >5 fallos/15min por email (query propia o nativo InsForge — preferir nativo si cubre).\n- Query `usuarios.me()` (endpoint `/api/me`) para el header.\n\nNo hace:\n- Password reset (T06) ni invitaciones (T07).\n- UI de gestión de usuarios completa.\n\n- **Criterios de aceptación**\n  - [ ] Login válido entra a `/dashboard`; inválido muestra toast rojo.\n  - [ ] Cookie/session InsForge verificable en devtools (httpOnly refresh).\n  - [ ] Sin sesión, `/dashboard` redirige a `/login`.\n  - [ ] Operador no accede a `/config` ni `/examenes` (middleware + `requireRole`).\n  - [ ] Al crear usuario existe fila `usuarios` con role default e `auth_user_id`.\n  - [ ] Login exitoso/fallido genera filas en `audit_log`; 6to fallo en 15min bloquea.",
+      "model": "opencode/deepseek-v4-pro",
+      "reason": "Porteo integral de auth — deepseek con docs InsForge + código existente como referencia.",
+      "status": "backlog",
+      "dependencies": [
+        "F0.0.T1",
+        "F0.1.T8"
+      ],
+      "estimateHours": 8.0,
+      "files": [
+        "apps/web/app/providers.tsx",
+        "apps/web/middleware.ts",
+        "packages/lib/server/auth.ts",
+        "packages/db/repos/usuarios.ts",
+        "apps/web/app/api/me/route.ts",
+        "apps/web/app/(auth)/login/LoginForm.tsx"
+      ],
+      "specRef": "f0.md#F0.2.T8",
+      "comments": []
+    },
+    {
+      "id": "F1.1.T2",
+      "phase": 1,
+      "title": "Upload de assets (logo, firma, sello) a InsForge Storage",
+      "description": "**Objetivo**\n\nFlujo que permite Admin subir 3 imágenes (logo, firma, sello) al bucket `assets` de InsForge Storage y guardar los object keys en `laboratorio_config`.\n\n**Contexto**\n\nARCH ADR-01 (storage), ADR-02 (PDFs leen assets vía URL firmada), ADR-11 (InsForge Storage S3-compatible con upload/download strategy). Assets: PNG/JPG ≤ 2 MB (PRD §7 dependencias).\n\n**Alcance**\n\nSí hace:\n- Route Handler `POST /api/config/assets/upload` (Admin only): pide a InsForge la *upload strategy* (URL presignada cuando el backend usa S3) y la retorna junto con el object key generado (`assets/{tipo}/{uuid}.{ext}`).\n- Cliente hace `PUT` a la URL presignada y luego confirma; el Route Handler `POST /api/config/assets/confirm` valida MIME image/* y tamaño ≤ 2 MB server-side antes de persistir.\n- Handler `POST /api/config/assets/set` que actualiza el campo correspondiente (`logo_object_key`, `firma_object_key`, `sello_object_key`) en `laboratorio_config`.\n- Al reemplazar asset: borrar el objeto anterior de storage (Delete Object de InsForge).\n- Handler `GET /api/config/assets/url?type=` retorna URL firmada vía *download strategy* (TTL ~1h).\n\nNo hace:\n- Recorte/redimensionado.\n- Preview (UI en T04).\n\n**Criterios de aceptación**\n\n- [ ] Upload de PNG 500KB funciona; el objeto queda en bucket `assets`.\n- [ ] Upload de archivo > 2 MB rechaza cliente + rechaza confirm (defense in depth).\n- [ ] Upload de PDF (mime incorrecto) rechaza.\n- [ ] `GET /api/config/assets/url` retorna URL válida por 1h.\n- [ ] Reemplazar logo borra el archivo anterior.\n- [ ] Operador rechazado.\n\n**Notas técnicas**\n\nInsForge retorna la estrategia (presigned o direct) según configuración `S3_USE_PRESIGNED_URLS`; el flujo del cliente debe leerla de la respuesta, no asumirla. Helper compartido en `packages/lib/storage.ts`.",
+      "model": "opencode/deepseek-v4-pro",
+      "reason": "Task de implementación estándar — deepseek cubre integración REST/SDK documentada.",
+      "status": "backlog",
+      "dependencies": [
+        "F0.0.T1",
+        "F1.1.T5"
+      ],
+      "estimateHours": 4.0,
+      "files": [
+        "packages/db/repos/config.ts",
+        "packages/lib/storage.ts",
+        "apps/web/app/api/config/assets/upload/route.ts",
+        "apps/web/app/api/config/assets/confirm/route.ts",
+        "apps/web/app/api/config/assets/set/route.ts",
+        "apps/web/app/api/config/assets/url/route.ts"
+      ],
+      "specRef": "f1.md#F1.1.T2",
+      "comments": []
+    },
+    {
+      "id": "F1.1.T3",
+      "phase": 1,
+      "title": "Default de tasa BCV manual",
+      "description": "**Objetivo**\n\nCampo global \"última tasa BCV usada\" en Config Empresa que sirve como default para pre-rellenar presupuestos (fallback si el cron BCV no está disponible aún).\n\n**Contexto**\n\nPRD §4 F2 (bullet \"campo global de última tasa BCV\"). F3.bcv agrega la tasa automática; este task sólo hace el manual.\n\n**Alcance**\n\nSí hace:\n- Reutilizar handler `POST /api/tasa/manual` `{ tasa, motivo }` (definido en F2.presupuestos porque también se usa allí) — este task NO lo implementa, sólo agrega el input en UI de `/config`.\n- Función `tasaRepo.getLatest()` en `packages/db/repos/tasa.ts` retorna el último registro de `tasa_cambio_bcv` con flag `stale`.\n- Task marca como dependencia: T04 puede usar estas funciones/handlers.\n\nNo hace:\n- Scraper BCV (F3.bcv).\n- UI presupuestos (F2.presupuestos).\n\n**Criterios de aceptación**\n\n- [ ] `tasaRepo.getLatest()` funciona (retorna null si tabla vacía).\n- [ ] Reserva el uso del handler manual para T04.\n\n**Notas técnicas**\n\n`tasa.setManual` completo se implementa en F2.presupuestos.T03. Este task sólo asegura que `getLatest` está listo para T04.",
+      "model": "opencode/deepseek-v4-pro",
+      "reason": "Task pequeña / config — deepseek alcanza.",
+      "status": "backlog",
+      "dependencies": [
+        "F0.1.T8"
+      ],
+      "estimateHours": 2.0,
+      "files": [
+        "packages/db/repos/tasa.ts"
+      ],
+      "specRef": "f1.md#F1.1.T3",
+      "comments": []
+    },
+    {
+      "id": "F1.1.T5",
+      "phase": 1,
+      "title": "Port de config a Postgres: get/update singleton + audit",
+      "description": "**Objetivo**\n\nReimplementar sobre `packages/db` la funcionalidad ejecutada bajo Convex en F1.1.T1 (historial): lectura del singleton `laboratorio_config` y update Admin-only con validaciones Zod y audit log.\n\n**Contexto**\n\nADR-11. Mismo alcance funcional que F1.1.T1, implementado con repos SQL + Route Handlers.\n\n**Alcance**\n\nSí hace:\n- `packages/db/repos/config.ts`:\n  - `get()`: retorna la fila singleton o `null` (primer arranque).\n  - `update(partial)`: upsert atómico (`INSERT ... ON CONFLICT DO UPDATE`) de `{ nombre, direccion, telefono?, email?, rif?, pdf_pie_pagina? }`; actualiza `updated_at` + `updated_by`.\n- Validación Zod compartida en `packages/lib/schemas/config.ts`: `nombre` requerido no vacío (`NOMBRE_REQUERIDO`); RIF opcional regex `J-XXXXXXXX-X` (`RIF_INVALIDO`).\n- Route Handlers `GET /api/config` y `PUT /api/config` con `requireRole(\"admin\")` para el PUT (`UNAUTHORIZED` si operador).\n- Registro en `audit_log` (`accion \"config.update\"`).\n- Schema DDL del singleton incluido en migración F0.1.T8.\n\nNo hace:\n- Upload de assets (T02).\n- Tasa BCV manual (T03).\n- UI (T04).\n\n**Criterios de aceptación**\n\n- [ ] `get()` retorna fila o null (primer arranque).\n- [ ] `update({ nombre: \"\" })` rechaza con `NOMBRE_REQUERIDO`.\n- [ ] `update({ rif: \"abc\" })` rechaza con `RIF_INVALIDO`.\n- [ ] Operador rechazado con `UNAUTHORIZED`.\n- [ ] audit_log registra el evento.\n- [ ] Si no existe fila, update crea; si existe, actualiza (upsert idempotente).\n\n**Notas técnicas**\n\nSingleton pattern: PK fija (`id boolean PRIMARY KEY DEFAULT true CHECK (id)`) o `ON CONFLICT` sobre columna dedicada — elegir en implementación y documentar.",
+      "model": "opencode/deepseek-v4-pro",
+      "reason": "Porteo directo de CRUD — deepseek alcanza.",
+      "status": "backlog",
+      "dependencies": [
+        "F0.1.T8",
+        "F0.2.T8"
+      ],
+      "estimateHours": 3.0,
+      "files": [
+        "packages/db/repos/config.ts",
+        "packages/lib/schemas/config.ts",
+        "apps/web/app/api/config/route.ts"
+      ],
+      "specRef": "f1.md#F1.1.T5",
+      "comments": []
+    },
+    {
+      "id": "F1.2.T1",
+      "phase": 1,
+      "title": "CRUD `examenes_titulos` (grupos)",
+      "description": "**Objetivo**\n\nFunciones de repositorio + Route Handlers para crear/listar/renombrar/borrar títulos (grupos) del catálogo.\n\n**Contexto**\n\nTabla `examenes_titulos` (ARCH §6) en Postgres — mutable, sin IDs hardcoded. Borrar título requiere que no tenga exámenes hijos. ADR-11: uniqueness por constraint declarativo.\n\n**Alcance**\n\nSí hace:\n- `packages/db/repos/examenes.ts`:\n  - `titulosList()`: retorna todos los títulos ordenados por `orden`.\n  - `titulosCreate({ nombre, orden })`: valida nombre único (`UNIQUE (nombre)` → mapear 23505 a `TITULO_DUPLICADO`).\n  - `titulosUpdate({ id, nombre?, orden? })`.\n  - `titulosDelete({ id })`: rechaza si tiene exámenes hijos activos (`TITULO_TIENE_EXAMENES`).\n  - `titulosReorder(orderedIds)`: para dnd de reordenamiento (UPDATE batch en una transacción).\n- Route Handlers bajo `/api/examenes/titulos/*` con `requireRole(\"admin\")` en las mutaciones.\n- audit_log de cambios.\n\nNo hace:\n- UI (T05).\n- Import Excel (T04).\n\n**Criterios de aceptación**\n\n- [ ] Crear título único funciona.\n- [ ] Crear título duplicado (mismo `nombre`) rechaza `TITULO_DUPLICADO`.\n- [ ] Borrar título con exámenes rechaza `TITULO_TIENE_EXAMENES`.\n- [ ] Reorder actualiza `orden` de todos los IDs pasados.\n- [ ] Operador rechazado.\n\n**Notas técnicas**\n\nEl check de \"tiene exámenes hijos\" puede ser query previa o FK RESTRICT con error mapping; preferir query explícita para mensaje accionable.",
+      "model": "opencode/deepseek-v4-pro",
+      "reason": "Task de implementación estándar — deepseek cubre CRUD SQL + handlers.",
+      "status": "backlog",
+      "dependencies": [
+        "F0.1.T8",
+        "F0.2.T8"
+      ],
+      "estimateHours": 4.0,
+      "files": [
+        "packages/db/repos/examenes.ts",
+        "apps/web/app/api/examenes/titulos/route.ts",
+        "apps/web/app/api/examenes/titulos/[id]/route.ts"
+      ],
+      "specRef": "f1.md#F1.2.T1",
+      "comments": []
+    },
+    {
+      "id": "F1.2.T2",
+      "phase": 1,
+      "title": "CRUD `examenes`",
+      "description": "**Objetivo**\n\nRepositorio + handlers para crear/listar/editar/soft-delete de exámenes dentro de un título.\n\n**Contexto**\n\nTabla `examenes` con `titulo_id`, `UNIQUE (titulo_id, nombre)` declarativo, `precio_usd numeric`, `unidad?`, `valores_referencia?`, `activo`.\n\n**Alcance**\n\nSí hace:\n- `examenesListByTitulo({ titulo_id })`.\n- `examenesSearch({ term })`: prefix search en `nombre` (`ILIKE term || '%'`), top 10.\n- `examenesGetById({ id })`.\n- `examenesCreate({ titulo_id, nombre, precio_usd, unidad?, valores_referencia? })`: `TITULO_ID` válido; duplicado por constraint → `EXAMEN_DUPLICADO_EN_TITULO`.\n- `examenesUpdate({ id, ... })`.\n- `examenesDeactivate({ id })`: soft-delete (`activo: false`).\n- `examenesActivate({ id })`.\n- `requireRole(\"admin\")` en mutaciones.\n- Route Handlers bajo `/api/examenes/*`.\n\nNo hace:\n- Borrado hard (nunca — snapshots dependen del FK).\n- UI (T05).\n\n**Criterios de aceptación**\n\n- [ ] Crear examen con nombre único en título OK.\n- [ ] Crear examen con nombre repetido en mismo título rechaza `EXAMEN_DUPLICADO_EN_TITULO` (constraint UNIQUE).\n- [ ] Mismo nombre en OTRO título es válido.\n- [ ] Editar precio no afecta snapshots existentes (verificado con test).\n- [ ] Soft-delete oculta de listados default.\n- [ ] Búsqueda retorna top 10 por prefix.\n\n**Notas técnicas**\n\nPrefix search: `ILIKE` con índice B-tree sobre `lower(nombre)` alcanza para 250+ exámenes; pg_trgm queda como upgrade documentado si se quiere substring search.",
+      "model": "opencode/deepseek-v4-pro",
+      "reason": "Task de implementación estándar — deepseek cubre CRUD SQL + handlers.",
+      "status": "backlog",
+      "dependencies": [
+        "F1.2.T1"
+      ],
+      "estimateHours": 5.0,
+      "files": [
+        "packages/db/repos/examenes.ts",
+        "apps/web/app/api/examenes/route.ts",
+        "apps/web/app/api/examenes/[id]/route.ts"
+      ],
+      "specRef": "f1.md#F1.2.T2",
+      "comments": []
+    },
+    {
+      "id": "F1.2.T4",
+      "phase": 1,
+      "title": "Importación Excel (SheetJS) con reporte",
+      "description": "**Objetivo**\n\nRoute Handler que recibe un archivo XLSX (multipart) y crea/actualiza títulos+exámenes en batch dentro de una transacción, con reporte de creados / actualizados / duplicados / errores.\n\n**Contexto**\n\nPRD §4 F4 (bullet importación masiva). Debe ser Admin. Volumen 250+ exámenes. ADR-11: la ingesta directa en Route Handler Node reemplaza al Convex action — y gana atomicidad ACID.\n\n**Alcance**\n\nSí hace:\n- `packages/lib/xlsx-import.ts`: parser server-side de XLSX a rows `{ titulo, nombre, precio_usd, unidad?, valores_referencia? }`.\n- Route Handler `POST /api/examenes/import` (Admin only, multipart ≤ 10 MB):\n  - Parsea con SheetJS (`xlsx`).\n  - Por cada row: crea título si no existe; crea o actualiza examen (upsert por `titulo_id + nombre`, `ON CONFLICT DO UPDATE`).\n  - Todo el batch en UNA transacción Postgres; filas inválidas se reportan y se aplican las válidas (o rollback total según flag `--all-or-nothing`; default: reportar y continuar).\n  - Retorna reporte `{ titulos_creados, examenes_creados, examenes_actualizados, duplicados_ignorados, errores: [{ row, msg }] }`.\n- UI: página `/examenes/import` con drag-drop + tabla de reporte post-import.\n- Template XLSX de ejemplo disponible para descarga (`/public/plantilla-import.xlsx`).\n\nNo hace:\n- CSV import (v1 es sólo XLSX).\n- Migración WP (F1.migracion).\n\n**Criterios de aceptación**\n\n- [ ] Upload XLSX válido inserta títulos y exámenes.\n- [ ] Reporte muestra counts correctos.\n- [ ] Fila con `titulo` vacío se reporta como error, no rompe todo.\n- [ ] Reimport idempotente (mismo archivo dos veces no duplica).\n- [ ] Operador rechazado.\n- [ ] Archivo > 10 MB rechaza.\n\n**Notas técnicas**\n\nSheetJS `xlsx` tiene CVEs conocidas (ver ARCH §9). Pin versión, usar sólo server-side.",
+      "model": "opencode/deepseek-v4-pro",
+      "reason": "Task de implementación estándar — deepseek cubre parser + handler + UI wiring.",
+      "status": "backlog",
+      "dependencies": [
+        "F1.2.T1",
+        "F1.2.T2"
+      ],
+      "estimateHours": 10.0,
+      "files": [
+        "packages/lib/xlsx-import.ts",
+        "apps/web/app/api/examenes/import/route.ts",
+        "packages/db/repos/examenes.ts",
+        "apps/web/app/(app)/examenes/import/page.tsx",
+        "apps/web/app/(app)/examenes/import/ImportWizard.tsx",
+        "apps/web/public/plantilla-import.xlsx"
+      ],
+      "specRef": "f1.md#F1.2.T4",
+      "comments": []
+    },
+    {
+      "id": "F1.3.T3",
+      "phase": 1,
+      "title": "Mappers `rv_titulos` + `rv_examenes` → Postgres",
+      "description": "**Objetivo**\n\nMapper que migra grupos y exámenes del plugin al schema PostgreSQL, respetando la lista final de S4.\n\n**Contexto**\n\n`examenes_titulos` y `examenes` (ARCH §6). Precio en USD ya en origen (verificar en S2). ADR-11: INSERT batch directo a Postgres (sin mutations intermediarias).\n\n**Alcance**\n\nSí hace:\n- Actualizar `scripts/migrate-wp/package.json`: quitar `convex/browser`, agregar `postgres` (postgres.js) — el setup de F1.3.T1 fue hecho en era Convex.\n- `scripts/migrate-wp/mappers/titulos.ts`: lee `rv_titulos`, mapea a `examenes_titulos`, escribe con multi-row INSERT (batch de 500) vía el mismo cliente postgres.js del monorepo.\n- `scripts/migrate-wp/mappers/examenes.ts`: mismo patrón para `rv_examenes`, resolviendo `titulo_id` via `migration_map`.\n- Upserts idempotentes: `ON CONFLICT DO NOTHING` + registro previo en `migration_map`; si `migration_map` ya tiene `(wp_table, wp_id)`, se salta.\n- Dry-run: sólo cuenta y reporta, no escribe.\n- Transacción por lote: todo-o-nada por chunk de 500.\n\nNo hace:\n- Reasignación de grupos post-S4 (usar los mismos IDs mapeados en S4).\n\n**Criterios de aceptación**\n\n- [ ] Dry-run reporta N títulos y M exámenes a migrar.\n- [ ] Ejecución real crea todos los títulos y exámenes.\n- [ ] Re-ejecución: 0 inserts nuevos (idempotencia via `migration_map`).\n- [ ] Precios preservados con precisión (`numeric`, sin drift float).\n\n**Notas técnicas**\n\nCon Postgres desaparecen las \"internal mutations\" de Convex: el script escribe directo con SQL. La tabla destino es `migration_map (wp_table, wp_id, target_table, target_id, migrated_at)` con UNIQUE (wp_table, wp_id).",
+      "model": "opencode/deepseek-v4-pro",
+      "reason": "Task de implementación estándar — deepseek cubre ETL script SQL.",
+      "status": "backlog",
+      "dependencies": [
+        "F1.3.T1",
+        "F1.3.T2",
+        "F1.2.T1",
+        "F1.2.T2"
+      ],
+      "estimateHours": 5.0,
+      "files": [
+        "scripts/migrate-wp/mappers/titulos.ts",
+        "scripts/migrate-wp/mappers/examenes.ts"
+      ],
+      "specRef": "f1.md#F1.3.T3",
+      "comments": []
+    },
+    {
+      "id": "F1.3.T4",
+      "phase": 1,
+      "title": "Mapper `rv_pacientes` con cédulas normalizadas",
+      "description": "**Objetivo**\n\nMapper de pacientes con normalización de cédula, resolución de duplicados post-conflict-report, y snapshot a `migration_map`.\n\n**Contexto**\n\nDepende de que los conflictos de F1.3.T2 ya estén resueltos (manualmente o con reglas explícitas). ADR-11: `UNIQUE (cedula)` declarativo en Postgres reemplaza el check manual.\n\n**Alcance**\n\nSí hace:\n- `scripts/migrate-wp/mappers/pacientes.ts`:\n  - Lee `rv_pacientes`, normaliza cédula.\n  - Si cédula duplicada y no hay resolución declarada → falla con error accionable.\n  - Si duplicado con \"merge rule\" declarada (archivo `resolutions/pacientes.json`) → aplica.\n  - Inserta pacientes con multi-row INSERT; colisiones con UNIQUE cedula tratadas según `migration_map` (skip idempotente).\n  - Popula `migration_map`.\n- Reporte: N insertados, M skipped (idempotencia), K errores.\n\nNo hace:\n- UI de resolución de conflictos (manual via JSON).\n\n**Criterios de aceptación**\n\n- [ ] Dry-run cuenta correctamente.\n- [ ] Ejecución real inserta pacientes con cédulas normalizadas.\n- [ ] Duplicado sin resolución → error visible con `wp_id` para debug.\n- [ ] Duplicado con resolución declarada → aplica correctamente.\n- [ ] 204+ pacientes de origen quedan migrados.\n\n**Notas técnicas**\n\nEl UNIQUE declarativo es red de seguridad: el mapper NUNCA debe depender de él para deduplicar (usa migration_map); si lo pisa, es bug y el error 23505 debe ser ruidoso.",
+      "model": "opencode/deepseek-v4-pro",
+      "reason": "Task de implementación estándar — deepseek cubre ETL + manejo de conflictos.",
+      "status": "backlog",
+      "dependencies": [
+        "F1.3.T2",
+        "F1.3.T3"
+      ],
+      "estimateHours": 4.0,
+      "files": [
+        "scripts/migrate-wp/mappers/pacientes.ts",
+        "scripts/migrate-wp/resolutions/pacientes.json"
+      ],
+      "specRef": "f1.md#F1.3.T4",
+      "comments": []
+    },
+    {
+      "id": "F1.3.T5",
+      "phase": 1,
+      "title": "Mapper `rv_paquetes` + join `paquetes_examenes`",
+      "description": "**Objetivo**\n\nMapper de paquetes y su join con exámenes.\n\n**Contexto**\n\n9 paquetes existentes.\n\n**Alcance**\n\nSí hace:\n- Mapper `paquetes.ts` que lee `rv_paquetes` y `rv_paquetes_examenes` (join en WP).\n- Resuelve `examen_id` via `migration_map`.\n- Inserta paquete + filas de join con PK compuesta `(paquete_id, examen_id)`; idempotencia via `migration_map`.\n- Preserva `orden` si existe en WP; si no, orden secuencial.\n\n**Criterios de aceptación**\n\n- [ ] 9 paquetes migrados.\n- [ ] Cada paquete tiene la lista correcta de exámenes (validado vs origen).\n- [ ] Reejecutable idempotente.",
+      "model": "opencode/deepseek-v4-pro",
+      "reason": "Task de implementación estándar — deepseek alcanza.",
+      "status": "backlog",
+      "dependencies": [
+        "F1.3.T3"
+      ],
+      "estimateHours": 3.0,
+      "files": [
+        "scripts/migrate-wp/mappers/paquetes.ts"
+      ],
+      "specRef": "f1.md#F1.3.T5",
+      "comments": []
+    },
+    {
+      "id": "F1.3.T6",
+      "phase": 1,
+      "title": "Mapper `rv_resultados` + detalle con snapshots",
+      "description": "**Objetivo**\n\nMapper de resultados y su detalle, snapshotenado nombre y precio de cada examen (del origen — NO del catálogo actual).\n\n**Contexto**\n\nARCH ADR-04. 652 resultados. Los snapshots preservan datos históricos. Ventaja ADR-11: header + líneas insertan en UNA transacción Postgres.\n\n**Alcance**\n\nSí hace:\n- `scripts/migrate-wp/mappers/resultados.ts` que:\n  - Lee `rv_resultados` (header) y `rv_resultados_detalle` (líneas).\n  - Resuelve `paciente_id` y `examen_id` via `migration_map`.\n  - Snapshot `nombre_snap` y `precio_snap` desde columnas WP (o desde tabla exámenes en el momento — según S2 defina).\n  - Determina `estado` (Pendiente / Completado) desde flag WP.\n  - Por cada resultado: transacción con INSERT header + N líneas detalle.\n- Preserva `created_at` original (timestamp WP → timestamptz).\n\nNo hace:\n- Regenerar PDFs (los originales del WP se conservan como backup fuera del sistema).\n\n**Criterios de aceptación**\n\n- [ ] 652 resultados migrados.\n- [ ] Cada línea tiene snapshot correcto.\n- [ ] Verify: query `resultados_examenes` para 5 resultados random matchea el origen fila a fila.\n- [ ] Idempotencia.",
+      "model": "opencode/deepseek-v4-pro",
+      "reason": "Task de implementación estándar — deepseek cubre ETL transaccional.",
+      "status": "backlog",
+      "dependencies": [
+        "F1.3.T3",
+        "F1.3.T4"
+      ],
+      "estimateHours": 7.0,
+      "files": [
+        "scripts/migrate-wp/mappers/resultados.ts"
+      ],
+      "specRef": "f1.md#F1.3.T6",
+      "comments": []
+    },
+    {
+      "id": "F1.3.T7",
+      "phase": 1,
+      "title": "Mapper `rv_presupuestos` + detalle + snapshots",
+      "description": "**Objetivo**\n\nMapper de presupuestos y su detalle, con snapshot y decisión `paciente_id` vs `paciente_nombre_libre`.\n\n**Contexto**\n\n545 presupuestos. ARCH ADR-05. El XOR ahora es CHECK declarativo en Postgres.\n\n**Alcance**\n\nSí hace:\n- `scripts/migrate-wp/mappers/presupuestos.ts` que:\n  - Lee `rv_presupuestos` y `rv_presupuestos_detalle`.\n  - Si `paciente_id` (WP) existe → resuelve UUID via `migration_map`.\n  - Si en WP el presupuesto tiene sólo un nombre suelto sin FK → poblar `paciente_nombre_libre`.\n  - Preserva `descuento_pct`, `ganancia_pct`, `tasa_bs`, `total_usd`, `total_bs`, `estado`.\n  - Snapshots en detalle; transacción header + líneas.\n\n**Criterios de aceptación**\n\n- [ ] 545 presupuestos migrados.\n- [ ] Distinción `paciente_id` vs `nombre_libre` respetada (CHECK XOR no dispara).\n- [ ] Totales USD/Bs preservados con precisión (`numeric`).\n- [ ] Estados correctos.\n- [ ] Idempotencia.",
+      "model": "opencode/deepseek-v4-pro",
+      "reason": "Task de implementación estándar — deepseek cubre ETL transaccional.",
+      "status": "backlog",
+      "dependencies": [
+        "F1.3.T3",
+        "F1.3.T4"
+      ],
+      "estimateHours": 7.0,
+      "files": [
+        "scripts/migrate-wp/mappers/presupuestos.ts"
+      ],
+      "specRef": "f1.md#F1.3.T7",
+      "comments": []
+    },
+    {
+      "id": "F1.3.T8",
+      "phase": 1,
+      "title": "Reporte final + verify + rollback playbook",
+      "description": "**Objetivo**\n\nComando `--verify` que compara counts + spot-check de 5 registros random por entidad contra el origen, y documenta el procedimiento de rollback.\n\n**Contexto**\n\nPRD §8 (rollback), §9 (success — 100% migrados). El verify consulta Postgres destino con SQL directo.\n\n**Alcance**\n\nSí hace:\n- CLI flag `--verify` que:\n  - Cuenta registros en Postgres por entidad (SQL COUNT).\n  - Compara vs count WP.\n  - Selecciona 5 IDs random por entidad, spot-check campo a campo (JOIN con migration_map).\n  - Reporte final JSON + tabla en consola.\n- Documento `scripts/migrate-wp/ROLLBACK.md` con procedimiento paso a paso (restaurar dump MySQL, cómo dejar WP en read-only, cómo re-exportar desde Postgres si post-cutover hay que rollback).\n- Comando `--reset` (DESTRUCTIVO, solo en dev/preview) para TRUNCATE de tablas de dominio + `migration_map` antes de re-correr (con RESTART IDENTITY no aplica — uuids; sólo TRUNCATE).\n\n**Criterios de aceptación**\n\n- [ ] `--verify` reporta 100% match esperado.\n- [ ] Discrepancia genera exit code != 0.\n- [ ] `ROLLBACK.md` cubre pre-cutover, in-cutover, post-cutover.\n- [ ] `--reset` protegido con confirmación explícita + env flag.",
+      "model": "opencode/deepseek-v4-pro",
+      "reason": "Task de implementación estándar — deepseek cubre CLI + queries verify.",
+      "status": "backlog",
+      "dependencies": [
+        "F1.3.T3",
+        "F1.3.T4",
+        "F1.3.T5",
+        "F1.3.T6",
+        "F1.3.T7"
+      ],
+      "estimateHours": 5.0,
+      "files": [
+        "scripts/migrate-wp/verify.ts",
+        "scripts/migrate-wp/reset.ts",
+        "scripts/migrate-wp/ROLLBACK.md"
+      ],
+      "specRef": "f1.md#F1.3.T8",
+      "comments": []
+    },
+    {
+      "id": "F2.1.T2",
+      "phase": 2,
+      "title": "CRUD `pacientes` (repos + handlers)",
+      "description": "**Objetivo**\n\nRepositorio y Route Handlers para create, get, list paginado, update, deactivate.\n\n**Contexto**\n\nARCH §5.1 (`pacientes.create`, `pacientes.search`), §6. ADR-11: cédula única por constraint declarativo (`UNIQUE (cedula)`).\n\n**Alcance**\n\nSí hace:\n- `packages/db/repos/pacientes.ts`:\n  - `getById(id)`.\n  - `list({ page?, limit? })` — paginado offset/limit, orden por `created_at` desc.\n  - `create({ ... })` — colisión 23505 sobre UNIQUE cedula → error `CEDULA_DUPLICADA`.\n  - `update(id, { ... })`.\n  - `deactivate(id)` — soft-delete (`activo = false`) si tiene resultados/presupuestos; delete OK si no.\n- Route Handlers bajo `/api/pacientes/*`.\n- Errores `CEDULA_DUPLICADA`, `CEDULA_INVALIDA`, `PACIENTE_TIENE_HISTORIAL`.\n- `requireRole(\"operador\")` mínimo (admin y operador escriben).\n\nNo hace:\n- Búsqueda (T03).\n- Ficha con historial (T04).\n\n**Criterios de aceptación**\n\n- [ ] Create con cédula única OK.\n- [ ] Create con cédula existente lanza `CEDULA_DUPLICADA`.\n- [ ] Update no toca cédula sin validación (idempotente si cambia otros campos).\n- [ ] Deactivate con historial → soft-delete.\n- [ ] Deactivate sin historial → hard-delete permitido.\n\n**Notas técnicas**\n\nSoft-delete usa flag `activo boolean DEFAULT true` ya incluido en el DDL de F0.1.T8.",
+      "model": "opencode/deepseek-v4-pro",
+      "reason": "Task de implementación estándar — deepseek cubre CRUD SQL + handlers.",
+      "status": "backlog",
+      "dependencies": [
+        "F0.1.T8",
+        "F0.2.T8",
+        "F2.1.T1"
+      ],
+      "estimateHours": 5.0,
+      "files": [
+        "packages/db/repos/pacientes.ts",
+        "apps/web/app/api/pacientes/route.ts",
+        "apps/web/app/api/pacientes/[id]/route.ts"
+      ],
+      "specRef": "f2.md#F2.1.T2",
+      "comments": []
+    },
+    {
+      "id": "F2.1.T3",
+      "phase": 2,
+      "title": "Búsqueda con debounce y top-10 (SQL prefix)",
+      "description": "**Objetivo**\n\nBúsqueda de pacientes por prefix en nombre/apellido/cédula, retorna top 10.\n\n**Contexto**\n\nARCH §5.1. NFR búsqueda ≤ 300 ms p95.\n\n**Alcance**\n\nSí hace:\n- `pacientesSearch({ term })` en repos:\n  - Normaliza term (si empieza con V/E → intenta match por cédula normalizada).\n  - Sino: prefix search en `nombre` + `apellido` (`ILIKE term || '%'`).\n  - Retorna top 10 con `{ id, nombre, apellido, cedula, fecha_nacimiento }`.\n- Endpoint `GET /api/pacientes/search?term=`.\n- Component reusable `packages/ui/pacientes/PacienteAutocomplete.tsx`:\n  - Input debounced 300ms (fetch al endpoint).\n  - Dropdown con highlight.\n  - `onSelect(paciente)`.\n- Tests unitarios (mock fetch).\n\nNo hace:\n- Fuzzy search.\n\n**Criterios de aceptación**\n\n- [ ] Term \"Juan\" retorna pacientes matcheando prefix.\n- [ ] Term \"V-2119\" retorna pacientes con cédula matcheando prefix.\n- [ ] Debounce funciona (verificado con test manual).\n- [ ] p95 < 300 ms con 500+ pacientes migrados (medir post-cutover).\n\n**Notas técnicas**\n\nÍndice B-tree sobre `lower(nombre)`, `lower(apellido)` y `cedula` alcanzan para este volumen; pg_trgm documentado como upgrade.",
+      "model": "opencode/deepseek-v4-pro",
+      "reason": "Task de implementación estándar — deepseek cubre query + componente.",
+      "status": "backlog",
+      "dependencies": [
+        "F2.1.T2",
+        "F1.2.T3"
+      ],
+      "estimateHours": 5.0,
+      "files": [
+        "packages/db/repos/pacientes.ts",
+        "apps/web/app/api/pacientes/search/route.ts",
+        "packages/ui/pacientes/PacienteAutocomplete.tsx"
+      ],
+      "specRef": "f2.md#F2.1.T3",
+      "comments": []
+    },
+    {
+      "id": "F2.1.T4",
+      "phase": 2,
+      "title": "Ficha del paciente con historial (`getWithHistorial`)",
+      "description": "**Objetivo**\n\nQuery que retorna paciente + últimos N resultados + últimos N presupuestos, ordenados desc.\n\n**Contexto**\n\nPRD §4 F3 (ficha con historial).\n\n**Alcance**\n\nSí hace:\n- `pacientesGetWithHistorial({ id, resultadosLimit?, presupuestosLimit? })` en repos (dos queries LATERAL o simples con LIMIT).\n- Retorna `{ paciente, resultados: [...], presupuestos: [...] }`.\n- Calcula edad server-side.\n- Auth requerida (Operador OK).\n- Endpoint `GET /api/pacientes/[id]/historial`.\n\nNo hace:\n- UI (T05).\n\n**Criterios de aceptación**\n\n- [ ] Retorna paciente completo.\n- [ ] Retorna hasta N resultados en orden `created_at` desc.\n- [ ] Retorna hasta N presupuestos en orden `created_at` desc.\n- [ ] Retorna edad calculada.\n- [ ] Retorna arrays vacíos si sin historial.",
+      "model": "opencode/deepseek-v4-pro",
+      "reason": "Task de implementación estándar — deepseek alcanza.",
+      "status": "backlog",
+      "dependencies": [
+        "F2.1.T2",
+        "F2.3.T2",
+        "F2.4.T2"
+      ],
+      "estimateHours": 3.0,
+      "files": [
+        "packages/db/repos/pacientes.ts",
+        "apps/web/app/api/pacientes/[id]/historial/route.ts",
+        "packages/lib/edad.ts"
+      ],
+      "specRef": "f2.md#F2.1.T4",
+      "comments": []
+    },
+    {
+      "id": "F2.2.T1",
+      "phase": 2,
+      "title": "Schema Zod + CRUD de paquetes (repos + handlers)",
+      "description": "**Objetivo**\n\nRepositorio y handlers para paquetes + join `paquetes_examenes`.\n\n**Contexto**\n\nTablas `paquetes` / `paquetes_examenes` ya en DDL de F0.1.T8 (PK compuesta). ADR-11: `setExamenes` es delete+insert en una transacción.\n\n**Alcance**\n\nSí hace:\n- `packages/lib/schemas/paquete.ts` con `paqueteCreate`, `paqueteUpdate`.\n- `packages/db/repos/paquetes.ts`:\n  - `list()` — todos los paquetes con count de exámenes (LEFT JOIN + COUNT).\n  - `getById(id)` — paquete + array de exámenes ordenados.\n  - `getExamenes(id)` — sólo lista de exámenes (para cargar en Resultado/Presupuesto).\n  - `create({ nombre, descripcion? })`.\n  - `update(id, { nombre?, descripcion? })`.\n  - `delete(id)`.\n  - `setExamenes(id, examenIds[])` — reemplaza toda la lista con orden dado (DELETE + INSERT batch en transacción).\n- Validación `nombre` único (`UNIQUE (nombre)` → `PAQUETE_DUPLICADO`).\n- Requiere Admin para create/update/delete; Operador puede leer.\n- Route Handlers bajo `/api/paquetes/*`.\n\nNo hace:\n- UI (T02).\n\n**Criterios de aceptación**\n\n- [ ] Create paquete único OK.\n- [ ] Create nombre duplicado rechaza `PAQUETE_DUPLICADO`.\n- [ ] `setExamenes` reemplaza toda la lista.\n- [ ] `getExamenes` retorna exámenes ordenados.\n- [ ] `list` incluye count.",
+      "model": "opencode/deepseek-v4-pro",
+      "reason": "Task de implementación estándar — deepseek cubre CRUD SQL + handlers.",
+      "status": "backlog",
+      "dependencies": [
+        "F0.1.T8",
+        "F0.2.T8",
+        "F1.2.T2"
+      ],
+      "estimateHours": 4.0,
+      "files": [
+        "packages/lib/schemas/paquete.ts",
+        "packages/db/repos/paquetes.ts",
+        "apps/web/app/api/paquetes/route.ts",
+        "apps/web/app/api/paquetes/[id]/route.ts",
+        "apps/web/app/api/paquetes/[id]/examenes/route.ts"
+      ],
+      "specRef": "f2.md#F2.2.T1",
+      "comments": []
+    },
+    {
+      "id": "F2.3.T2",
+      "phase": 2,
+      "title": "CRUD de resultados con snapshots (repos + handlers)",
+      "description": "**Objetivo**\n\nBackend completo para resultados con snapshots, en repos SQL + Route Handlers.\n\n**Contexto**\n\nARCH §5.1 (`resultados.create`, `resultados.getForPDF`), ADR-04. Ventaja ADR-11: header + N líneas insertan atómicos en una transacción.\n\n**Alcance**\n\nSí hace:\n- `packages/db/repos/resultados.ts`:\n  - `list({ page?, limit?, filters? })` — paginado, filtros por paciente, fecha, estado.\n  - `getById(id)` — resultado + líneas.\n  - `getForPDF(id)` — resultado + paciente + config empresa + object keys/URLs firmadas de logo/firma/sello.\n  - `search({ term, filters? })` — por nombre/cédula/fecha.\n  - `create({ paciente_id, fecha_muestra, fecha_resultado?, medico_solicitante?, observaciones?, examenes: [...] })`:\n    - Snapshot `nombre`, `precio`, `unidad`, `valores_referencia` desde catálogo (SELECT previo dentro de la misma transacción).\n    - Estado inicial `Pendiente` si `fecha_resultado` es null, sino `Completado`.\n    - INSERT `resultados` + N `resultados_examenes` en una transacción.\n  - `update(id, { ... })` — permite editar valores/observaciones/estado.\n  - `updateEstado(id, estado)`.\n  - `delete(id)` — Admin only.\n- Route Handlers bajo `/api/resultados/*`.\n- Auth: Operador OK.\n- Audit log.\n\nNo hace:\n- PDF (T04, T05).\n- UI (T06).\n\n**Criterios de aceptación**\n\n- [ ] Create con 3 exámenes inserta 1 resultado + 3 líneas con snapshots.\n- [ ] Editar precio del catálogo NO afecta snapshots (test explícito).\n- [ ] `getForPDF` retorna todo lo necesario para el template.\n- [ ] Estado se calcula/actualiza correctamente.\n- [ ] Delete Admin only.",
+      "model": "opencode/deepseek-v4-pro",
+      "reason": "Task de implementación estándar — deepseek cubre CRUD SQL transaccional.",
+      "status": "backlog",
+      "dependencies": [
+        "F0.1.T8",
+        "F0.2.T8",
+        "F1.2.T2",
+        "F2.1.T2",
+        "F2.3.T1"
+      ],
+      "estimateHours": 8.0,
+      "files": [
+        "packages/db/repos/resultados.ts",
+        "apps/web/app/api/resultados/route.ts",
+        "apps/web/app/api/resultados/[id]/route.ts"
+      ],
+      "specRef": "f2.md#F2.3.T2",
+      "comments": []
+    },
+    {
+      "id": "F2.3.T3",
+      "phase": 2,
+      "title": "Convertir presupuesto → resultado (backend)",
+      "description": "**Objetivo**\n\nOperación que crea un resultado a partir de un presupuesto Aprobado.\n\n**Contexto**\n\nARCH §5.1 y §4.2. Vive en el repo de presupuestos pero se lista acá por coherencia funcional. Ventaja ADR-11: toda la conversión es UNA transacción Postgres.\n\n**Alcance**\n\nSí hace:\n- `presupuestosConvertToResultado(id)` en `packages/db/repos/presupuestos.ts`, expuesto vía `POST /api/presupuestos/[id]/convertir`:\n  - Valida `estado === \"Aprobado\"`.\n  - Requiere `paciente_id`; si sólo `paciente_nombre_libre`, retorna error `PACIENTE_LIBRE_REQUIERE_FICHA`.\n  - Crea `resultados` con estado `Pendiente`, `origen_presupuesto_id`.\n  - Copia snapshots de exámenes desde `presupuestos_examenes` al nuevo `resultados_examenes`.\n  - Actualiza `presupuestos.estado = \"Convertido\"` y `resultado_id`.\n  - Todo en una transacción; idempotente: si ya hay `resultado_id`, retorna el existente.\n\n**Criterios de aceptación**\n\n- [ ] Presupuesto Aprobado con paciente → convierte OK.\n- [ ] Presupuesto Borrador rechaza `PRESUPUESTO_NO_APROBADO`.\n- [ ] Presupuesto con `nombre_libre` rechaza `PACIENTE_LIBRE_REQUIERE_FICHA`.\n- [ ] Segundo convert idempotente retorna mismo `resultado_id`.\n- [ ] Estado cambia a `Convertido`.",
+      "model": "opencode/deepseek-v4-pro",
+      "reason": "Task de implementación estándar — deepseek cubre transacción + handler.",
+      "status": "backlog",
+      "dependencies": [
+        "F2.3.T2",
+        "F2.4.T2"
+      ],
+      "estimateHours": 4.0,
+      "files": [
+        "packages/db/repos/presupuestos.ts",
+        "apps/web/app/api/presupuestos/[id]/convertir/route.ts"
+      ],
+      "specRef": "f2.md#F2.3.T3",
+      "comments": []
+    },
+    {
+      "id": "F2.3.T5",
+      "phase": 2,
+      "title": "Route Handler `/api/pdf/resultado/[id]`",
+      "description": "**Objetivo**\n\nEndpoint Next.js Node runtime que valida sesión, llama `resultados.getForPDF`, renderiza `<ResultadoPDF>` y streamea `application/pdf`.\n\n**Contexto**\n\nARCH ADR-02 y ADR-11 (el handler accede directo a Postgres + InsForge Storage; sin backend intermedio).\n\n**Alcance**\n\nSí hace:\n- `apps/web/app/api/pdf/resultado/[id]/route.ts` con `export const runtime = 'nodejs'`.\n- Lee sesión InsForge de la cookie y valida con helper server-side.\n- Helper `apps/web/lib/db-server.ts` con el pool postgres.js server-side (reemplaza al antiguo `convex-server.ts`).\n- Guard: si nombre de laboratorio vacío → `403 NOMBRE_LABORATORIO_REQUERIDO` (bloqueante PDF).\n- Assets (logo/firma/sello): URL firmada vía download strategy de InsForge Storage.\n- `ReactPDF.renderToStream(<ResultadoPDF data={...} />)` → respuesta `application/pdf` streamed.\n- Cache in-memory de assets (5min TTL).\n- Errores: 401 sin sesión, 404 sin resultado, 403 sin permisos o config incompleta.\n- Metric log `pdf_render_duration_ms`.\n\n**Criterios de aceptación**\n\n- [ ] Request con sesión válida devuelve PDF válido.\n- [ ] Request sin sesión responde 401.\n- [ ] Request de resultado inexistente responde 404.\n- [ ] Nombre laboratorio vacío responde 403 con mensaje claro.\n- [ ] Streaming funciona (Content-Length no obligatorio).\n- [ ] p95 warm < 3s (medir en preview).",
+      "model": "opencode/deepseek-v4-pro",
+      "reason": "Task de implementación estándar — deepseek cubre route handler + streaming.",
+      "status": "backlog",
+      "dependencies": [
+        "F0.2.T8",
+        "F1.1.T1",
+        "F1.1.T2",
+        "F2.3.T2",
+        "F2.3.T4"
+      ],
+      "estimateHours": 6.0,
+      "files": [
+        "apps/web/app/api/pdf/resultado/[id]/route.ts",
+        "apps/web/lib/db-server.ts",
+        "apps/web/lib/asset-cache.ts"
+      ],
+      "specRef": "f2.md#F2.3.T5",
+      "comments": []
+    },
+    {
+      "id": "F2.4.T2",
+      "phase": 2,
+      "title": "CRUD de presupuestos con snapshots + XOR paciente (repos + handlers)",
+      "description": "**Objetivo**\n\nBackend completo para presupuestos en repos SQL + Route Handlers.\n\n**Contexto**\n\nARCH ADR-05, §6, ADR-11 (XOR como CHECK declarativo + Zod `.refine`).\n\n**Alcance**\n\nSí hace:\n- `packages/db/repos/presupuestos.ts`:\n  - `list({ page?, limit?, filters })` — filtros paciente, estado, fecha.\n  - `getById(id)` — presupuesto + líneas.\n  - `getForPDF(id)` — para el PDF.\n  - `search({ term })`.\n  - `create({ paciente_id?, paciente_nombre_libre?, descuento_pct, ganancia_pct, tasa_bs, examenes: [...] })`:\n    - Constraint: exactamente uno de `paciente_id` / `nombre_libre` (Zod refine + CHECK en DDL).\n    - Snapshot nombre/precio.\n    - Precomputa `total_usd`, `total_bs` con `calcularTotales`.\n    - Estado inicial `Borrador`.\n    - INSERT header + líneas en transacción.\n  - `update(id, { ... })` — sólo si Borrador.\n  - `updateEstado(id, estado)`.\n  - `delete(id)` — Admin only.\n- Route Handlers bajo `/api/presupuestos/*`.\n- `packages/lib/schemas/presupuesto.ts` con Zod (XOR constraint via `.refine`).\n- Auth Operador OK.\n- Audit log.\n\n**Criterios de aceptación**\n\n- [ ] Create con paciente_id OK.\n- [ ] Create con nombre_libre OK.\n- [ ] Create con ambos → error `PACIENTE_XOR_REQUIRED` (y CHECK de DB como red).\n- [ ] Create sin ninguno → error.\n- [ ] Totales precomputados coinciden con `calcularTotales`.\n- [ ] Cambiar estado a Convertido requiere `resultado_id`.\n- [ ] Snapshots preservados.",
+      "model": "opencode/deepseek-v4-pro",
+      "reason": "Task de implementación estándar — deepseek cubre CRUD SQL transaccional.",
+      "status": "backlog",
+      "dependencies": [
+        "F0.1.T8",
+        "F0.2.T8",
+        "F1.2.T2",
+        "F2.1.T2",
+        "F2.4.T1"
+      ],
+      "estimateHours": 8.0,
+      "files": [
+        "packages/lib/schemas/presupuesto.ts",
+        "packages/db/repos/presupuestos.ts",
+        "apps/web/app/api/presupuestos/route.ts",
+        "apps/web/app/api/presupuestos/[id]/route.ts"
+      ],
+      "specRef": "f2.md#F2.4.T2",
+      "comments": []
+    },
+    {
+      "id": "F2.4.T3",
+      "phase": 2,
+      "title": "Tasa BCV: `getLatest` + `setManual`",
+      "description": "**Objetivo**\n\n`tasaRepo.getLatest()` (ya iniciada en F1.1.T3) + handler manual `POST /api/tasa/manual` `{ tasa, motivo }` (Admin only).\n\n**Contexto**\n\nARCH ADR-07, §6, ADR-11. Se usa en form de presupuesto para pre-rellenar `tasa_bs`. F3.bcv agrega el cron.\n\n**Alcance**\n\nSí hace:\n- Completa `packages/db/repos/tasa.ts`:\n  - `getLatest()` retorna `{ tasa, fuente, scraped_at, stale }` (stale = age > 24h).\n  - Handler `/api/tasa/manual` (Admin) — inserta con `fuente: \"manual\"`.\n- Endpoint `GET /api/tasa/latest` para el frontend.\n- Audit log.\n\n**Criterios de aceptación**\n\n- [ ] `getLatest` retorna null si tabla vacía.\n- [ ] `getLatest` marca `stale: true` si > 24h.\n- [ ] Manual Admin only.\n- [ ] audit_log registra motivo.",
+      "model": "opencode/deepseek-v4-pro",
+      "reason": "Task pequeña — deepseek alcanza.",
+      "status": "backlog",
+      "dependencies": [
+        "F0.2.T8",
+        "F1.1.T3"
+      ],
+      "estimateHours": 2.0,
+      "files": [
+        "packages/db/repos/tasa.ts",
+        "apps/web/app/api/tasa/manual/route.ts",
+        "apps/web/app/api/tasa/latest/route.ts"
+      ],
+      "specRef": "f2.md#F2.4.T3",
+      "comments": []
+    },
+    {
+      "id": "F3.1.T1",
+      "phase": 3,
+      "title": "Queries de dashboard: KPIs y actividad reciente",
+      "description": "**Objetivo**\n\nBackend con queries SQL eficientes para el dashboard.\n\n**Alcance**\n\nSí hace:\n- `packages/db/repos/dashboard.ts`:\n  - `getKPIs()` retorna `{ pacientesMes, resultadosMes, presupuestosMes, ingresosEstimadosUsd }`:\n    - Cuenta pacientes creados este mes.\n    - Cuenta resultados completados este mes.\n    - Cuenta presupuestos aprobados+convertidos este mes.\n    - Suma `total_usd` de presupuestos aprobados+convertidos.\n  - `getResultadosPorMes(months)` retorna array `[{ mes: \"2026-08\", count: 42 }, ...]` de los últimos N meses (`date_trunc('month', ...)` + `GROUP BY`, ceros rellenados en JS o generate_series).\n  - `getRecentActivity(limit)` retorna `{ resultados: [...], presupuestos: [...] }` últimos 5.\n- Endpoints bajo `/api/dashboard/*`.\n- Auth requerida (Operador OK — ve mismo dashboard).\n\nNo hace:\n- UI (T02).\n\n**Criterios de aceptación**\n\n- [ ] `getKPIs` retorna números correctos (test con dataset seed).\n- [ ] `getResultadosPorMes(6)` retorna 6 items.\n- [ ] `getRecentActivity(5)` retorna arrays con hasta 5 items.\n- [ ] Performance < 500ms con dataset migrado.\n\n**Notas técnicas**\n\nSQL agregado directo (COUNT/SUM/GROUP BY) sobre índices por fecha — mucho más simple que la agregación en JS que exigía Convex. Una sola query por KPI set si conviene.",
+      "model": "opencode/deepseek-v4-pro",
+      "reason": "Task de implementación estándar — deepseek cubre SQL agregado + endpoints.",
+      "status": "backlog",
+      "dependencies": [
+        "F0.2.T8",
+        "F2.1.T2",
+        "F2.3.T2",
+        "F2.4.T2"
+      ],
+      "estimateHours": 4.0,
+      "files": [
+        "packages/db/repos/dashboard.ts",
+        "apps/web/app/api/dashboard/route.ts"
+      ],
+      "specRef": "f3.md#F3.1.T1",
+      "comments": []
+    },
+    {
+      "id": "F3.1.T2",
+      "phase": 3,
+      "title": "UI `/dashboard` con KPI cards + chart + actividad",
+      "description": "**Objetivo**\n\nPágina `/dashboard` con layout de 4 cards KPI, chart de línea/barra de últimos 6 meses, dos listas de actividad reciente, accesos directos.\n\n**Contexto**\n\nPRD §4 F1; ARCH §9 (Recharts con `next/dynamic sin SSR`). ADR-11: sin realtime Convex → polling liviano.\n\n**Alcance**\n\nSí hace:\n- `apps/web/app/(app)/dashboard/page.tsx` — Server component con preload.\n- Cards KPI (4): Pacientes mes, Resultados mes, Presupuestos mes, Ingresos USD estimados.\n- Chart Recharts (import dinámico) barras/línea de resultados últimos 6 meses.\n- Lista \"Últimos 5 resultados\" con link a detalle.\n- Lista \"Últimos 5 presupuestos\" con link a detalle.\n- Cards de \"Acceso rápido\" a los módulos operativos.\n- Refresh automático cada 30s (SWR polling) + revalidación tras mutaciones.\n- Loading states + empty state (\"empezá creando tu primer paciente\").\n\n**Criterios de aceptación**\n\n- [ ] Renderiza sin errores con dataset seed.\n- [ ] Cards KPI se refrescan solas (polling 30s) y tras crear resultado/presupuesto.\n- [ ] Chart legible; tooltip funciona.\n- [ ] Links de actividad navegan al detalle correcto.\n- [ ] Recharts import dinámico (verificado en bundle analyzer).\n\n**Notas técnicas**\n\n`const Chart = dynamic(() => import('./ResultadosChart'), { ssr: false })`.",
+      "model": "opencode/deepseek-v4-pro",
+      "reason": "Task de implementación estándar — deepseek cubre UI + polling.",
+      "status": "backlog",
+      "dependencies": [
+        "F0.1.T6",
+        "F0.2.T8",
+        "F3.1.T1"
+      ],
+      "estimateHours": 8.0,
+      "files": [
+        "apps/web/app/(app)/dashboard/page.tsx",
+        "apps/web/app/(app)/dashboard/KPICards.tsx",
+        "apps/web/app/(app)/dashboard/ResultadosChart.tsx",
+        "apps/web/app/(app)/dashboard/RecentActivity.tsx",
+        "apps/web/app/(app)/dashboard/QuickLinks.tsx"
+      ],
+      "specRef": "f3.md#F3.1.T2",
+      "comments": []
+    },
+    {
+      "id": "F3.2.T1",
+      "phase": 3,
+      "title": "Utility CSV writer + subir a Storage + URL firmada",
+      "description": "**Objetivo**\n\nHelper reutilizable para: generar CSV string desde rows → subir a InsForge Storage (bucket `exports`) → retornar object key + URL firmada.\n\n**Alcance**\n\nSí hace:\n- `packages/lib/csv-export.ts`:\n  - `writeCsv(rows: Array<Record<string, unknown>>, columns: Array<{ key, header, format? }>): string` (UTF-8 BOM).\n  - `uploadCsv(csv: string, filename: string): Promise<objectKey>` — sube a bucket `exports` vía SDK/REST de InsForge server-side.\n  - `getSignedDownloadUrl(objectKey)` — URL firmada TTL ~1h vía download strategy.\n- Endpoint compartido `GET /api/export/url?key=` que devuelve URL firmada para un key del bucket exports.\n- Cache-Control header apropiado en la descarga.\n\n**Criterios de aceptación**\n\n- [ ] `writeCsv` escapa comillas y comas correctamente.\n- [ ] UTF-8 BOM presente (Excel-friendly).\n- [ ] `uploadCsv` sube y retorna key válido.\n- [ ] `getSignedDownloadUrl` retorna URL descargable ~1h.\n\n**Notas técnicas**\n\nEscribir CSV a mano (sin dependencia) como en diseño original; keys con prefijo de fecha `exports/2026-08/pacientes-<ts>.csv` facilita el cleanup.",
+      "model": "opencode/deepseek-v4-pro",
+      "reason": "Task de implementación estándar — deepseek cubre helper + integración storage.",
+      "status": "backlog",
+      "dependencies": [
+        "F0.0.T1",
+        "F0.2.T8"
+      ],
+      "estimateHours": 4.0,
+      "files": [
+        "packages/lib/csv-export.ts",
+        "apps/web/app/api/export/url/route.ts"
+      ],
+      "specRef": "f3.md#F3.2.T1",
+      "comments": []
+    },
+    {
+      "id": "F3.2.T2",
+      "phase": 3,
+      "title": "Export CSV de pacientes",
+      "description": "**Objetivo**\n\nExporta lista de pacientes con filtros aplicados a CSV.\n\n**Alcance**\n\nSí hace:\n- Route Handler `POST /api/export/pacientes` `{ filters?: { term? }}`:\n  - Lee pacientes matcheando filtros (paginación interna 1000).\n  - Columnas de S6: cédula, nombre, apellido, fecha_nacimiento, sexo, teléfono, email, dirección, created_at.\n  - Sube CSV a bucket exports → retorna `{ url }` firmada.\n\n**Criterios de aceptación**\n\n- [ ] 200+ pacientes exportados sin timeout.\n- [ ] Columnas coinciden con spec S6.\n- [ ] Fecha formato spec S6.",
+      "model": "opencode/deepseek-v4-pro",
+      "reason": "Task de implementación estándar — deepseek alcanza.",
+      "status": "backlog",
+      "dependencies": [
+        "F2.1.T2",
+        "F3.2.T1"
+      ],
+      "estimateHours": 3.0,
+      "files": [
+        "apps/web/app/api/export/pacientes/route.ts"
+      ],
+      "specRef": "f3.md#F3.2.T2",
+      "comments": []
+    },
+    {
+      "id": "F3.2.T3",
+      "phase": 3,
+      "title": "Export CSV de presupuestos",
+      "description": "**Objetivo**\n\nExporta presupuestos con filtros (desde/hasta/estado) a CSV.\n\n**Alcance**\n\nSí hace:\n- Route Handler `POST /api/export/presupuestos` `{ filters: { desde?, hasta?, estado? } }`.\n- Columnas de S6: fecha, paciente (nombre o libre), estado, subtotal USD, descuento %, ganancia %, total USD, tasa Bs, total Bs.\n- Paginación interna.\n\n**Criterios de aceptación**\n\n- [ ] 545+ presupuestos exportados.\n- [ ] Filtros aplicados.\n- [ ] Columnas correctas.",
+      "model": "opencode/deepseek-v4-pro",
+      "reason": "Task de implementación estándar — deepseek alcanza.",
+      "status": "backlog",
+      "dependencies": [
+        "F2.4.T2",
+        "F3.2.T1"
+      ],
+      "estimateHours": 3.0,
+      "files": [
+        "apps/web/app/api/export/presupuestos/route.ts"
+      ],
+      "specRef": "f3.md#F3.2.T3",
+      "comments": []
+    },
+    {
+      "id": "F3.2.T4",
+      "phase": 3,
+      "title": "Export CSV de resultados",
+      "description": "**Objetivo**\n\nExporta resultados con filtros a CSV.\n\n**Alcance**\n\nSí hace:\n- Route Handler `POST /api/export/resultados` `{ filters }`.\n- Columnas de S6: fecha muestra, fecha resultado, paciente, cédula, médico solicitante, estado, count exámenes.\n- Opcional: incluir líneas exámenes en hoja adicional (o export separado — decidir S6).\n\n**Criterios de aceptación**\n\n- [ ] Filtros aplicados.\n- [ ] 652+ resultados OK.",
+      "model": "opencode/deepseek-v4-pro",
+      "reason": "Task de implementación estándar — deepseek alcanza.",
+      "status": "backlog",
+      "dependencies": [
+        "F2.3.T2",
+        "F3.2.T1"
+      ],
+      "estimateHours": 3.0,
+      "files": [
+        "apps/web/app/api/export/resultados/route.ts"
+      ],
+      "specRef": "f3.md#F3.2.T4",
+      "comments": []
+    },
+    {
+      "id": "F3.2.T5",
+      "phase": 3,
+      "title": "Export CSV de costos (histórico de precios)",
+      "description": "**Objetivo**\n\nExporta histórico de precios por examen (snapshot histórico).\n\n**Alcance**\n\nSí hace:\n- Route Handler `POST /api/export/costos`:\n  - Lee todos los `resultados_examenes` + `presupuestos_examenes` con snapshots (UNION ALL con contexto).\n  - Agrupa por `examen_id` y muestra evolución de `precio_snap` en el tiempo.\n  - Columnas: fecha, examen (nombre snap), precio USD snap, contexto (resultado/presupuesto).\n\n**Criterios de aceptación**\n\n- [ ] Muestra evolución de precios por examen.\n- [ ] Volumen ~10k rows sin timeout (streaming del query si hace falta).",
+      "model": "opencode/deepseek-v4-pro",
+      "reason": "Task de implementación estándar — deepseek alcanza.",
+      "status": "backlog",
+      "dependencies": [
+        "F2.3.T2",
+        "F2.4.T2",
+        "F3.2.T1"
+      ],
+      "estimateHours": 4.0,
+      "files": [
+        "apps/web/app/api/export/costos/route.ts"
+      ],
+      "specRef": "f3.md#F3.2.T5",
+      "comments": []
+    },
+    {
+      "id": "F3.2.T6",
+      "phase": 3,
+      "title": "Cleanup semanal de exports (> 7 días)",
+      "description": "**Objetivo**\n\nJob programado que borra archivos del bucket `exports` con age > 7 días.\n\n**Contexto**\n\nARCH ADR-09 y ADR-11 (cron via crontab VPS → Route Handler protegido).\n\n**Alcance**\n\nSí hace:\n- Route Handler interno `POST /api/cron/cleanup-exports` protegido con header `CRON_SECRET`:\n  - Lista objetos del bucket exports con key anterior a 7d (prefijo de fecha).\n  - Borra los vencidos vía API de InsForge Storage.\n- Línea de crontab en el VPS (semanal) documentada en `docs/deploy/insforge-vps.md`.\n- Audit log del borrado (cantidad de objetos).\n\n**Criterios de aceptación**\n\n- [ ] Ejecución manual con secret OK; sin secret rechaza 401.\n- [ ] Borrado sólo elimina objetos del bucket exports vencidos.\n- [ ] Audit log presente.",
+      "model": "opencode/deepseek-v4-pro",
+      "reason": "Task pequeña — deepseek alcanza.",
+      "status": "backlog",
+      "dependencies": [
+        "F3.2.T1"
+      ],
+      "estimateHours": 2.0,
+      "files": [
+        "apps/web/app/api/cron/cleanup-exports/route.ts",
+        "docs/deploy/insforge-vps.md"
+      ],
+      "specRef": "f3.md#F3.2.T6",
+      "comments": []
+    },
+    {
+      "id": "F3.3.T1",
+      "phase": 3,
+      "title": "Scraper BCV como Route Handler + crontab VPS",
+      "description": "**Objetivo**\n\nJob que scrapea `bcv.org.ve` con fetch+cheerio, parsea tasa USD, escribe en tabla. Trigger: crontab del VPS → Route Handler protegido.\n\n**Contexto**\n\nARCH ADR-07 y ADR-11. S1 confirma selector y estrategia.\n\n**Alcance**\n\nSí hace:\n- Route Handler `POST /api/cron/scrape-bcv` protegido con header `CRON_SECRET`:\n  - `fetch(\"https://bcv.org.ve/\")` con user-agent realista (de S1).\n  - `cheerio.load(html)` + selector CSS de S1.\n  - Parse número (regex + Number.parseFloat).\n  - Insert en `tasa_cambio_bcv` con `fuente: \"bcv\"`, `fecha` (hoy VE), `scraped_at` (now).\n  - Retry con backoff (1 intento primario + 2 reintentos).\n  - Si falla → llamar fallback DolarToday (T02).\n  - Audit log de éxito/fallo.\n- Línea de crontab documentada: diario 13:00 UTC (09:00 VET) llamando al endpoint con secret.\n\n**Criterios de aceptación**\n\n- [ ] Scrape exitoso escribe fila.\n- [ ] Fetch falla → 2 reintentos backoff (1s, 3s).\n- [ ] 3 fallos → invoca fallback.\n- [ ] Fallo total → audit log warning, no lanza.\n- [ ] Sin `CRON_SECRET` válido responde 401.\n\n**Notas técnicas**\n\nAlternativa documentada en ADR-11: InsForge Edge Function con Schedule (pg_cron). Se elige Route Handler para mantener un solo runtime y logs unificados.",
+      "model": "opencode/deepseek-v4-pro",
+      "reason": "Task de implementación estándar — deepseek cubre scraper + handler.",
+      "status": "backlog",
+      "dependencies": [
+        "F0.1.T8"
+      ],
+      "estimateHours": 4.0,
+      "files": [
+        "apps/web/app/api/cron/scrape-bcv/route.ts",
+        "packages/lib/scrape/bcv.ts"
+      ],
+      "specRef": "f3.md#F3.3.T1",
+      "comments": []
+    },
+    {
+      "id": "F3.3.T2",
+      "phase": 3,
+      "title": "Fallback DolarToday",
+      "description": "**Objetivo**\n\nSegunda fuente de tasa cuando `bcv.org.ve` falla.\n\n**Alcance**\n\nSí hace:\n- `packages/lib/scrape/dolartoday.ts`:\n  - Fetch a API DolarToday (endpoint definido en S1).\n  - Parse JSON.\n  - Insert en `tasa_cambio_bcv` con `fuente: \"dolartoday\"` (reutiliza repo de tasa).\n\n**Criterios de aceptación**\n\n- [ ] Fallback escribe fila cuando primario falla.\n- [ ] Audit log distingue fuente.",
+      "model": "opencode/deepseek-v4-pro",
+      "reason": "Task pequeña — deepseek alcanza.",
+      "status": "backlog",
+      "dependencies": [
+        "F3.3.T1"
+      ],
+      "estimateHours": 2.0,
+      "files": [
+        "packages/lib/scrape/dolartoday.ts"
+      ],
+      "specRef": "f3.md#F3.3.T2",
+      "comments": []
+    },
+    {
+      "id": "F3.3.T3",
+      "phase": 3,
+      "title": "Registrar cron diario del scraper",
+      "description": "**Objetivo**\n\nProgramar el scrape diario 09:00 VET (13:00 UTC).\n\n**Alcance**\n\nSí hace:\n- Entrada de crontab en el VPS (`0 13 * * * curl -X POST .../api/cron/scrape-bcv -H \"x-cron-secret: ...\"`) documentada paso a paso en `docs/deploy/insforge-vps.md`.\n- Alternativa anotada: InsForge Schedules si se prefiere gestionar desde la plataforma.\n- Documentar cómo ejecutarlo manualmente (curl con secret) para pruebas.\n\n**Criterios de aceptación**\n\n- [ ] Cron activo en crontab del VPS (`crontab -l` lo muestra).\n- [ ] Ejecución manual via curl OK.\n- [ ] Corre al horario correcto (verificar log al día siguiente).",
+      "model": "opencode/deepseek-v4-pro",
+      "reason": "Task pequeña / config — deepseek alcanza.",
+      "status": "backlog",
+      "dependencies": [
+        "F3.3.T1"
+      ],
+      "estimateHours": 1.0,
+      "files": [
+        "docs/deploy/insforge-vps.md"
+      ],
+      "specRef": "f3.md#F3.3.T3",
+      "comments": []
+    },
+    {
+      "id": "F3.3.T4",
+      "phase": 3,
+      "title": "Banner UI \"tasa stale\" + alerta email a Admin (2 días)",
+      "description": "**Objetivo**\n\nComponente banner que aparece en `/presupuestos/*` cuando la tasa tiene > 24h. Alerta email a Admin si > 2 días.\n\n**Contexto**\n\nARCH ADR-07 (banner amarillo), §7.3 (alerta email), ADR-11 (email vía InsForge Messaging).\n\n**Alcance**\n\nSí hace:\n- Componente `packages/ui/tasa/StaleTasaBadge.tsx`:\n  - Consume `GET /api/tasa/latest` (SWR, refresco 5min).\n  - Si `stale === true` → badge amarillo con tooltip \"Última: X horas atrás\".\n  - Si tasa null → badge rojo \"Sin tasa registrada\".\n- Insertar badge en form nuevo presupuesto (F2.presupuestos.T06).\n- Job `POST /api/cron/check-stale-tasa` (protegido CRON_SECRET, crontab diario) que:\n  - Si tasa más reciente > 48h → envía email a Admin (`usuarios.role = \"admin\"`) vía InsForge Messaging SDK.\n  - Idempotente (no re-envía si ya alertó hoy — marca en audit_log).\n\n**Criterios de aceptación**\n\n- [ ] Badge amarillo con tasa > 24h.\n- [ ] Badge rojo sin tasa.\n- [ ] Email a Admin con tasa > 48h (mock/log en dev).\n- [ ] No re-envía el mismo día.",
+      "model": "opencode/deepseek-v4-pro",
+      "reason": "Task de implementación estándar — deepseek cubre UI + job + Messaging.",
+      "status": "backlog",
+      "dependencies": [
+        "F0.2.T8",
+        "F2.4.T3",
+        "F3.3.T1"
+      ],
+      "estimateHours": 4.0,
+      "files": [
+        "packages/ui/tasa/StaleTasaBadge.tsx",
+        "apps/web/app/api/cron/check-stale-tasa/route.ts",
+        "packages/lib/server/email.ts"
+      ],
+      "specRef": "f3.md#F3.3.T4",
+      "comments": []
+    },
+    {
+      "id": "F4.1.T2",
+      "phase": 4,
+      "title": "Error boundaries + toasts de error consistentes",
+      "description": "**Objetivo**\n\nError boundary por sección + sistema de toasts unificado (reusar `sonner` o shadcn toast).\n\n**Alcance**\n\nSí hace:\n- `apps/web/app/(app)/error.tsx` boundary root.\n- Per-section: `apps/web/app/(app)/[modulo]/error.tsx`.\n- Helper `packages/ui/feedback/toast.ts` con `notifyError`, `notifySuccess`, `notifyInfo`.\n- Helper `packages/lib/error-messages.ts`: mapping errores conocidos → texto humano (códigos de dominio `CEDULA_DUPLICADA`, etc. y errores PG 23505/23503 → códigos).\n- Refactor fetchers/mutaciones: capturar error → toast con mensaje humano-legible.\n- Todos los errores backend (repos + Route Handlers) mapeados.\n\n**Criterios de aceptación**\n\n- [ ] Excepción no capturada → error boundary muestra \"Algo salió mal\" con reset.\n- [ ] Todos los errores conocidos tienen mensaje humano en toast.\n- [ ] Errores 401 en API redirigen a login.",
+      "model": "opencode/deepseek-v4-pro",
+      "reason": "Task de implementación estándar — deepseek cubre boundaries + mapping.",
+      "status": "backlog",
+      "dependencies": [],
+      "estimateHours": 5.0,
+      "files": [
+        "apps/web/app/(app)/error.tsx",
+        "apps/web/app/(app)/*/error.tsx",
+        "packages/ui/feedback/toast.ts",
+        "packages/lib/error-messages.ts"
+      ],
+      "specRef": "f4.md#F4.1.T2",
+      "comments": []
+    },
+    {
+      "id": "F4.1.T3",
+      "phase": 4,
+      "title": "Validaciones edge (fechas, límites, XOR checks)",
+      "description": "**Objetivo**\n\nCubrir edge cases identificados en QA: fechas absurdas, cédulas rebordes, montos negativos, descuento > 100%, tasa 0.\n\n**Alcance**\n\nSí hace:\n- Refuerzo Zod schemas con `.refine` para:\n  - Fecha muestra ≤ hoy.\n  - Fecha resultado ≥ fecha muestra si ambas.\n  - Descuento 0-100.\n  - Ganancia ≥ 0.\n  - Tasa > 0.\n  - Cédula sin caracteres raros.\n- Backend defensive check duplicado (repos validan además de UI; CHECKs de DDL como última red).\n- Tests unitarios + de integración cubriendo cada edge (integración contra Postgres real o contenedor efímero).\n\n**Criterios de aceptación**\n\n- [ ] Fecha muestra futura rechaza.\n- [ ] Descuento 150% rechaza en form y backend.\n- [ ] Presupuesto con `paciente_id` + `nombre_libre` rechaza en backend (test integración — CHECK de DDL dispara).\n- [ ] Test coverage de schemas > 90%.",
+      "model": "opencode/deepseek-v4-pro",
+      "reason": "Task de implementación estándar — deepseek cubre schemas + tests integración.",
+      "status": "backlog",
+      "dependencies": [
+        "F2.1.T1",
+        "F2.3.T1",
+        "F2.4.T1"
+      ],
+      "estimateHours": 5.0,
+      "files": [
+        "packages/lib/schemas/*.ts",
+        "packages/db/repos/*.ts"
+      ],
+      "specRef": "f4.md#F4.1.T3",
+      "comments": []
+    },
+    {
+      "id": "F4.1.T4",
+      "phase": 4,
+      "title": "Warm-up ping PDF + health check",
+      "description": "**Objetivo**\n\nMantener el runtime Node del Route Handler PDF warm y verificar salud del servicio.\n\n**Contexto**\n\nARCH §9 riesgo cold-start. ADR-11: self-hosted en VPS — el cold start es menos crítico que serverless, pero el warm-up de `@react-pdf` sigue ayudando al primer render.\n\n**Alcance**\n\nSí hace:\n- Endpoint `apps/web/app/api/pdf/health/route.ts` (Node runtime) que:\n  - Retorna 200 OK + status de conexión a Postgres.\n  - Opcional: render dummy mini (1KB PDF) para calentar `@react-pdf`.\n- Entrada de crontab cada 5min en horario laboral llamando al endpoint (mismo patrón CRON_SECRET).\n- Métrica `pdf_health_ok` en logs.\n\n**Criterios de aceptación**\n\n- [ ] `/api/pdf/health` responde 200.\n- [ ] Cron activo en crontab del VPS.\n- [ ] Métrica visible en logs.",
+      "model": "opencode/deepseek-v4-pro",
+      "reason": "Task pequeña — deepseek alcanza.",
+      "status": "backlog",
+      "dependencies": [
+        "F2.3.T5"
+      ],
+      "estimateHours": 2.0,
+      "files": [
+        "apps/web/app/api/pdf/health/route.ts",
+        "docs/deploy/insforge-vps.md"
+      ],
+      "specRef": "f4.md#F4.1.T4",
+      "comments": []
+    },
+    {
+      "id": "F4.1.T6",
+      "phase": 4,
+      "title": "Audit log dashboard (Admin only)",
+      "description": "**Objetivo**\n\nPágina Admin `/audit` para ver últimos N eventos del `audit_log`.\n\n**Contexto**\n\nARCH §7.3.\n\n**Alcance**\n\nSí hace:\n- `packages/db/repos/audit.ts` con `list({ page?, limit?, filters })`.\n- Endpoint `GET /api/audit` (Admin only).\n- Página `/audit` (Admin only via middleware).\n- Tabla con filtros por usuario, acción, entity, fecha.\n- Sólo visualización (no edit).\n\n**Criterios de aceptación**\n\n- [ ] Admin ve logs; Operador redirigido.\n- [ ] Filtros funcionan.\n- [ ] Paginación.",
+      "model": "opencode/deepseek-v4-pro",
+      "reason": "Task de implementación estándar — deepseek cubre repo + página.",
+      "status": "backlog",
+      "dependencies": [
+        "F0.2.T8",
+        "F0.2.T5"
+      ],
+      "estimateHours": 4.0,
+      "files": [
+        "packages/db/repos/audit.ts",
+        "apps/web/app/api/audit/route.ts",
+        "apps/web/app/(app)/audit/page.tsx",
+        "apps/web/middleware.ts"
+      ],
+      "specRef": "f4.md#F4.1.T6",
+      "comments": []
+    },
+    {
+      "id": "F4.2.T2",
+      "phase": 4,
+      "title": "Ventana de cutover: WP read-only + migración real",
+      "description": "**Objetivo**\n\nEjecutar la migración real en ventana acordada, con plugin WP puesto en read-only durante la ejecución.\n\n**Contexto**\n\nPRD §7 (ventana coordinada), §8 rollout, ADR-11 (destino = Postgres de InsForge).\n\n**Alcance**\n\nSí hace:\n- Comunicación previa al equipo del laboratorio (email + WhatsApp Business).\n- Pasos:\n  1. Backup MySQL prod (dump completo con timestamp T0) + snapshot `pg_dump` del destino pre-migración.\n  2. Poner plugin WP en modo mantenimiento / read-only (banner \"sistema en actualización, no ingresar datos nuevos\").\n  3. Ejecutar `pnpm --filter migrate-wp run migrate -- --confirm` contra Postgres prod (`DATABASE_URL` del InsForge del VPS).\n  4. Ejecutar `--verify` post-migración.\n  5. Si verify OK → smoke tests (T03).\n  6. Si smoke OK → go-live LabSystem (apps/web servida en el VPS junto a InsForge), quitar WP mantenimiento pero dejar en read-only.\n- Runbook `docs/migration/CUTOVER-RUNBOOK.md` con cada paso, tiempo esperado, criterio de abort.\n\nNo hace:\n- Fixes en vivo (aborta si falla; rollback = restaurar snapshot pg_dump + reactivar WP).\n\n**Criterios de aceptación**\n\n- [ ] Backup MySQL creado antes de tocar nada.\n- [ ] Migración real termina sin errores.\n- [ ] `--verify` retorna 100% match.\n- [ ] LabSystem operativo post-migración.\n- [ ] WP en read-only (banner o plugin de \"solo lectura\").\n- [ ] Comunicación enviada al equipo.\n\n**Notas técnicas**\n\nEjecutar en horario fuera de operativa (viernes noche o sábado madrugada). El deploy de apps/web en el VPS debe estar probado antes (build + servicio systemd/docker).",
+      "model": "opencode/deepseek-v4-pro",
+      "reason": "Task operativo crítico — deepseek con runbook detallado.",
+      "status": "backlog",
+      "dependencies": [
+        "F4.2.T1"
+      ],
+      "estimateHours": 8.0,
+      "files": [
+        "docs/migration/CUTOVER-RUNBOOK.md"
+      ],
+      "specRef": "f4.md#F4.2.T2",
+      "comments": []
+    },
+    {
+      "id": "F4.2.T4",
+      "phase": 4,
+      "title": "Plan de rollback + procedimiento post-cutover",
+      "description": "**Objetivo**\n\nDocumentar y probar el procedimiento de rollback (WP read-only backup + procedimiento de re-import).\n\n**Contexto**\n\nPRD §8 rollback, ADR-11 (backups = pg_dump estándar).\n\n**Alcance**\n\nSí hace:\n- `docs/migration/POST-CUTOVER-PLAYBOOK.md` con:\n  - Cómo funciona WP en modo read-only 30d como backup.\n  - Procedimiento de emergencia: si LabSystem tiene bug bloqueante → cómo reactivar WP para operar.\n  - Procedimiento de re-import de datos post-cutover si hay que rollback (export CSV desde Postgres → reimport a WP o restauración).\n  - `pg_dump` programado diario (cron VPS) con retención 7d + export XLSX mensual.\n- Ensayar el procedimiento de rollback en preview.\n\n**Criterios de aceptación**\n\n- [ ] Playbook completo y revisado.\n- [ ] Ensayo de rollback documentado con evidencia.\n- [ ] `pg_dump` periódico configurado y verificado (restore de prueba).",
+      "model": "opencode/deepseek-v4-pro",
+      "reason": "Task documental operativo — deepseek alcanza.",
+      "status": "backlog",
+      "dependencies": [
+        "F1.3.T8"
+      ],
+      "estimateHours": 4.0,
+      "files": [
+        "docs/migration/POST-CUTOVER-PLAYBOOK.md"
+      ],
+      "specRef": "f4.md#F4.2.T4",
+      "comments": []
+    },
+    {
+      "id": "F4.2.T5",
+      "phase": 4,
+      "title": "Monitoreo uptime + primer mes post-cutover",
+      "description": "**Objetivo**\n\nConfigurar monitoreo, alertas y checkpoint del primer mes.\n\n**Contexto**\n\nPRD §9 success (uptime 99.5%, cero P0/P1 15d post-cutover). ADR-11: stack self-hosted — monitoreo externo + logs del VPS.\n\n**Alcance**\n\nSí hace:\n- Monitoreo uptime externo (UptimeRobot o equivalente) contra `/api/pdf/health` y el health endpoint de InsForge; alerta si < 99.5%.\n- Alerta email BCV stale (F3.bcv.T04 ya lo cubre).\n- Métricas: logs del contenedor apps/web (docker logs / pm2), PDF render > 5s p95 desde logs de requests.\n- Dashboard interno simple: página Admin `/audit` + logs; InsForge dashboard/diagnose para el backend.\n- Ceremonia checkpoint día 15 y día 30 post-cutover con Admin.\n- Documentar tickets/incidentes encontrados.\n\n**Criterios de aceptación**\n\n- [ ] Alertas activas (uptime + BCV stale).\n- [ ] Checkpoints día 15 y 30 realizados.\n- [ ] Reporte \"primer mes\" con métricas vs targets del PRD §9.\n- [ ] Cero P0/P1 abiertos al día 15 (success criteria).",
+      "model": "opencode/deepseek-v4-pro",
+      "reason": "Task de config/operación — deepseek alcanza.",
+      "status": "backlog",
+      "dependencies": [
+        "F4.2.T3"
+      ],
+      "estimateHours": 4.0,
+      "files": [
+        "docs/deploy/monitoreo.md",
+        "docs/migration/POST-CUTOVER-METRICS.md"
+      ],
+      "specRef": "f4.md#F4.2.T5",
+      "comments": []
+    }
+  ]
+}

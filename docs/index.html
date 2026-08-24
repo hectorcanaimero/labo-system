@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="es" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LabSystem — Docs Hub</title>
+  <style>
+    :root {
+      --bg: #0f0f17;
+      --bg-card: #1a1a2e;
+      --bg-hover: #22223a;
+      --border: #2a2a3e;
+      --text: #e4e4e7;
+      --text-muted: #8b8b9e;
+      --accent: #6366f1;
+      --accent-hover: #818cf8;
+      --pending: #f59e0b;
+      --ok: #22c55e;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      line-height: 1.6;
+    }
+
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 2rem 1.5rem 4rem;
+    }
+
+    header {
+      margin-bottom: 2.5rem;
+    }
+
+    header h1 {
+      font-size: 1.75rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      margin-bottom: 0.25rem;
+    }
+
+    header .subtitle {
+      color: var(--text-muted);
+      font-size: 0.875rem;
+    }
+
+    header .orch-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.375rem;
+      margin-top: 0.75rem;
+      font-size: 0.8125rem;
+      color: var(--accent);
+      text-decoration: none;
+      transition: color 0.15s;
+    }
+
+    header .orch-link:hover { color: var(--accent-hover); }
+
+    .section { margin-bottom: 2rem; }
+
+    .section-title {
+      font-size: 0.75rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--text-muted);
+      margin-bottom: 0.75rem;
+      padding-bottom: 0.5rem;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .card {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0.875rem 1rem;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 0.5rem;
+      margin-bottom: 0.5rem;
+      text-decoration: none;
+      color: var(--text);
+      transition: background 0.15s, border-color 0.15s;
+    }
+
+    .card:hover {
+      background: var(--bg-hover);
+      border-color: var(--accent);
+    }
+
+    .card-left {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .card-icon {
+      width: 2rem;
+      height: 2rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 0.375rem;
+      font-size: 0.875rem;
+      font-weight: 700;
+      flex-shrink: 0;
+    }
+
+    .icon-md { background: #312e81; color: #a5b4fc; }
+    .icon-html { background: #052e16; color: #86efac; }
+
+    .card-label {
+      font-size: 0.875rem;
+      font-weight: 500;
+    }
+
+    .card-path {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      font-family: "SF Mono", "Fira Code", monospace;
+    }
+
+    .card-status {
+      font-size: 0.75rem;
+      font-weight: 500;
+      padding: 0.125rem 0.5rem;
+      border-radius: 9999px;
+      white-space: nowrap;
+    }
+
+    .status-ok {
+      background: rgba(34, 197, 94, 0.1);
+      color: var(--ok);
+    }
+
+    .status-pending {
+      background: rgba(245, 158, 11, 0.1);
+      color: var(--pending);
+    }
+
+    .card.disabled {
+      opacity: 0.5;
+      pointer-events: none;
+    }
+
+    .regen-note {
+      margin-top: 2rem;
+      padding: 0.75rem 1rem;
+      background: rgba(99, 102, 241, 0.05);
+      border: 1px solid rgba(99, 102, 241, 0.15);
+      border-radius: 0.5rem;
+      font-size: 0.75rem;
+      color: var(--text-muted);
+    }
+
+    .regen-note code {
+      font-family: "SF Mono", "Fira Code", monospace;
+      background: var(--bg-card);
+      padding: 0.125rem 0.375rem;
+      border-radius: 0.25rem;
+      font-size: 0.6875rem;
+    }
+
+    .skeleton {
+      display: inline-block;
+      width: 3rem;
+      height: 1.25rem;
+      background: var(--border);
+      border-radius: 9999px;
+      animation: pulse 1.5s ease-in-out infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 0.3; }
+      50% { opacity: 0.6; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .skeleton { animation: none; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>LabSystem &mdash; Docs Hub</h1>
+      <p class="subtitle">PRD, ARCH y diagramas de arquitectura &mdash; 1 click.</p>
+      <a class="orch-link" href="http://localhost:7420" target="_blank" rel="noopener">
+        &larr; Volver al orch dashboard
+      </a>
+    </header>
+
+    <section class="section">
+      <h2 class="section-title">Spec Artifacts</h2>
+      <a class="card" id="card-prd" href="prd/001-labsystem-v1.md">
+        <div class="card-left">
+          <div class="card-icon icon-md">MD</div>
+          <div>
+            <div class="card-label">PRD &mdash; LabSystem v1</div>
+            <div class="card-path">docs/prd/001-labsystem-v1.md</div>
+          </div>
+        </div>
+        <span class="card-status skeleton" id="status-prd"></span>
+      </a>
+      <a class="card" id="card-arch" href="arch/001-labsystem-arch.md">
+        <div class="card-left">
+          <div class="card-icon icon-md">MD</div>
+          <div>
+            <div class="card-label">ARCH &mdash; Arquitectura T&eacute;cnica v1</div>
+            <div class="card-path">docs/arch/001-labsystem-arch.md</div>
+          </div>
+        </div>
+        <span class="card-status skeleton" id="status-arch"></span>
+      </a>
+    </section>
+
+    <section class="section">
+      <h2 class="section-title">Diagramas de Arquitectura (archify)</h2>
+      <a class="card" id="card-diagram-0" href="arch/diagrams/001-labsystem.diagrams.html">
+        <div class="card-left">
+          <div class="card-icon icon-html">H</div>
+          <div>
+            <div class="card-label">System Architecture</div>
+            <div class="card-path">docs/arch/diagrams/001-labsystem.diagrams.html</div>
+          </div>
+        </div>
+        <span class="card-status skeleton" id="status-diagram-0"></span>
+      </a>
+      <a class="card" id="card-diagram-1" href="arch/diagrams/001-labsystem-erd.diagrams.html">
+        <div class="card-left">
+          <div class="card-icon icon-html">H</div>
+          <div>
+            <div class="card-label">ERD &mdash; Entity Relationship Diagram</div>
+            <div class="card-path">docs/arch/diagrams/001-labsystem-erd.diagrams.html</div>
+          </div>
+        </div>
+        <span class="card-status skeleton" id="status-diagram-1"></span>
+      </a>
+      <a class="card" id="card-diagram-2" href="arch/diagrams/001-labsystem-bcv-cron.diagrams.html">
+        <div class="card-left">
+          <div class="card-icon icon-html">H</div>
+          <div>
+            <div class="card-label">BCV Cron &mdash; Tasa de cambio autom&aacute;tica</div>
+            <div class="card-path">docs/arch/diagrams/001-labsystem-bcv-cron.diagrams.html</div>
+          </div>
+        </div>
+        <span class="card-status skeleton" id="status-diagram-2"></span>
+      </a>
+      <a class="card" id="card-diagram-3" href="arch/diagrams/001-labsystem-f5-pdf.diagrams.html">
+        <div class="card-left">
+          <div class="card-icon icon-html">H</div>
+          <div>
+            <div class="card-label">F5 &mdash; Generaci&oacute;n de PDF</div>
+            <div class="card-path">docs/arch/diagrams/001-labsystem-f5-pdf.diagrams.html</div>
+          </div>
+        </div>
+        <span class="card-status skeleton" id="status-diagram-3"></span>
+      </a>
+      <a class="card" id="card-diagram-4" href="arch/diagrams/001-labsystem-f6-convert.diagrams.html">
+        <div class="card-left">
+          <div class="card-icon icon-html">H</div>
+          <div>
+            <div class="card-label">F6 &mdash; Convert (migraci&oacute;n WP)</div>
+            <div class="card-path">docs/arch/diagrams/001-labsystem-f6-convert.diagrams.html</div>
+          </div>
+        </div>
+        <span class="card-status skeleton" id="status-diagram-4"></span>
+      </a>
+      <a class="card" id="card-diagram-5" href="arch/diagrams/001-labsystem-export.diagrams.html">
+        <div class="card-left">
+          <div class="card-icon icon-html">H</div>
+          <div>
+            <div class="card-label">Export &mdash; Exportaci&oacute;n de datos</div>
+            <div class="card-path">docs/arch/diagrams/001-labsystem-export.diagrams.html</div>
+          </div>
+        </div>
+        <span class="card-status skeleton" id="status-diagram-5"></span>
+      </a>
+    </section>
+
+    <div class="regen-note">
+      <strong>Nota:</strong> Los diagramas se regeneran con <code>orch arch generate</code>.
+      Si se agregan o renombran diagramas, actualizar la lista en
+      <code>docs/index.html</code> y la secci&oacute;n <code>docs:</code> de
+      <code>dashboard.yaml</code>.
+    </div>
+  </div>
+
+  <script>
+    (function () {
+      "use strict";
+
+      var links = [
+        { id: "status-prd",        href: "prd/001-labsystem-v1.md" },
+        { id: "status-arch",       href: "arch/001-labsystem-arch.md" },
+        { id: "status-diagram-0",  href: "arch/diagrams/001-labsystem.diagrams.html" },
+        { id: "status-diagram-1",  href: "arch/diagrams/001-labsystem-erd.diagrams.html" },
+        { id: "status-diagram-2",  href: "arch/diagrams/001-labsystem-bcv-cron.diagrams.html" },
+        { id: "status-diagram-3",  href: "arch/diagrams/001-labsystem-f5-pdf.diagrams.html" },
+        { id: "status-diagram-4",  href: "arch/diagrams/001-labsystem-f6-convert.diagrams.html" },
+        { id: "status-diagram-5",  href: "arch/diagrams/001-labsystem-export.diagrams.html" }
+      ];
+
+      function setOk(el) {
+        el.className = "card-status status-ok";
+        el.textContent = "disponible";
+      }
+
+      function setPending(el, cardEl) {
+        el.className = "card-status status-pending";
+        el.textContent = "pendiente";
+        if (cardEl) cardEl.classList.add("disabled");
+      }
+
+      links.forEach(function (link) {
+        var statusEl = document.getElementById(link.id);
+        if (!statusEl) return;
+        var cardEl = document.getElementById(link.id.replace("status-", "card-"));
+
+        if (window.location.protocol === "file:") {
+          setOk(statusEl);
+          return;
+        }
+
+        fetch(link.href, { method: "HEAD" })
+          .then(function (res) { setOk(statusEl); })
+          .catch(function () { setPending(statusEl, cardEl); });
+      });
+    })();
+  </script>
+</body>
+</html>
