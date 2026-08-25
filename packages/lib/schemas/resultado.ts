@@ -14,6 +14,7 @@ export type EstadoResultado = (typeof ESTADO_RESULTADO)[number];
 export const PACIENTE_ID_REQUERIDO = "PACIENTE_ID_REQUERIDO";
 export const FECHA_MUESTRA_FUTURA = "FECHA_MUESTRA_FUTURA";
 export const FECHA_RESULTADO_FUTURA = "FECHA_RESULTADO_FUTURA";
+export const FECHA_RESULTADO_ANTERIOR_MUESTRA = "FECHA_RESULTADO_ANTERIOR_MUESTRA";
 export const EXAMENES_REQUERIDOS = "EXAMENES_REQUERIDOS";
 export const EXAMEN_ID_REQUERIDO = "EXAMEN_ID_REQUERIDO";
 export const ESTADO_INVALIDO = "ESTADO_INVALIDO";
@@ -55,16 +56,23 @@ export type LineaResultadoInput = z.infer<typeof lineaResultadoSchema>;
  * - `examenes` requerido y no vacío.
  * - `estado` no se envía: lo calcula el backend en función de `fecha_resultado`.
  */
-export const resultadoCreateSchema = z.object({
-  paciente_id: z.string().min(1, { message: PACIENTE_ID_REQUERIDO }),
-  fecha_muestra: fechaNoFutura(FECHA_MUESTRA_FUTURA),
-  fecha_resultado: fechaNoFutura(FECHA_RESULTADO_FUTURA).optional(),
-  medico_solicitante: z.string().optional(),
-  observaciones: z.string().optional(),
-  examenes: z
-    .array(lineaResultadoSchema)
-    .min(1, { message: EXAMENES_REQUERIDOS }),
-});
+export const resultadoCreateSchema = z
+  .object({
+    paciente_id: z.string().min(1, { message: PACIENTE_ID_REQUERIDO }),
+    fecha_muestra: fechaNoFutura(FECHA_MUESTRA_FUTURA),
+    fecha_resultado: fechaNoFutura(FECHA_RESULTADO_FUTURA).optional(),
+    medico_solicitante: z.string().optional(),
+    observaciones: z.string().optional(),
+    examenes: z
+      .array(lineaResultadoSchema)
+      .min(1, { message: EXAMENES_REQUERIDOS }),
+  })
+  .refine(
+    (data) =>
+      data.fecha_resultado === undefined ||
+      data.fecha_resultado >= data.fecha_muestra,
+    { message: FECHA_RESULTADO_ANTERIOR_MUESTRA, path: ["fecha_resultado"] },
+  );
 export type ResultadoCreateInput = z.infer<typeof resultadoCreateSchema>;
 
 /**
@@ -73,15 +81,23 @@ export type ResultadoCreateInput = z.infer<typeof resultadoCreateSchema>;
  * Todos los campos son opcionales; si se envía `examenes` no puede ser vacío.
  * `paciente_id` no se edita: se mantiene el original.
  */
-export const resultadoUpdateSchema = z.object({
-  fecha_muestra: fechaNoFutura(FECHA_MUESTRA_FUTURA).optional(),
-  fecha_resultado: fechaNoFutura(FECHA_RESULTADO_FUTURA).optional(),
-  medico_solicitante: z.string().optional(),
-  estado: estadoResultadoSchema.optional(),
-  observaciones: z.string().optional(),
-  examenes: z
-    .array(lineaResultadoSchema)
-    .min(1, { message: EXAMENES_REQUERIDOS })
-    .optional(),
-});
+export const resultadoUpdateSchema = z
+  .object({
+    fecha_muestra: fechaNoFutura(FECHA_MUESTRA_FUTURA).optional(),
+    fecha_resultado: fechaNoFutura(FECHA_RESULTADO_FUTURA).optional(),
+    medico_solicitante: z.string().optional(),
+    estado: estadoResultadoSchema.optional(),
+    observaciones: z.string().optional(),
+    examenes: z
+      .array(lineaResultadoSchema)
+      .min(1, { message: EXAMENES_REQUERIDOS })
+      .optional(),
+  })
+  .refine(
+    (data) =>
+      data.fecha_muestra === undefined ||
+      data.fecha_resultado === undefined ||
+      data.fecha_resultado >= data.fecha_muestra,
+    { message: FECHA_RESULTADO_ANTERIOR_MUESTRA, path: ["fecha_resultado"] },
+  );
 export type ResultadoUpdateInput = z.infer<typeof resultadoUpdateSchema>;

@@ -1,9 +1,8 @@
 "use client";
 
-import { useAuthActions, useConvexAuth } from "@convex-dev/auth/react";
 import { Loader2, LogIn } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useEffect, useState, type FormEvent } from "react";
+import { useState, type FormEvent } from "react";
 
 import { Button } from "@/components/ui/button";
 
@@ -13,22 +12,18 @@ const INVALID_CREDENTIALS = "Credenciales inválidas. Intentá de nuevo.";
 const inputClassName =
   "flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50";
 
+/**
+ * Form de login (F0.2.T8). El signIn se hace server-side vía `POST /api/me`
+ * (no directo contra InsForge desde el cliente) para que rate limit + audit
+ * queden del lado servidor — imposibles de saltar por cliente.
+ */
 export function LoginForm() {
-  const { signIn } = useAuthActions();
-  const { isAuthenticated } = useConvexAuth();
   const router = useRouter();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
-
-  useEffect(() => {
-    if (isAuthenticated) {
-      router.replace("/dashboard");
-      router.refresh();
-    }
-  }, [isAuthenticated, router]);
 
   const onSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -46,15 +41,20 @@ export function LoginForm() {
 
     setSubmitting(true);
     try {
-      const result = await signIn("password", {
-        email: trimmedEmail,
-        password,
-        flow: "signIn",
+      const res = await fetch("/api/me", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ email: trimmedEmail, password }),
+        credentials: "include",
+        cache: "no-store",
       });
-      if (result?.signingIn === false) {
+      if (!res.ok) {
         setError(INVALID_CREDENTIALS);
         setSubmitting(false);
+        return;
       }
+      router.replace("/dashboard");
+      router.refresh();
     } catch {
       setError(INVALID_CREDENTIALS);
       setSubmitting(false);

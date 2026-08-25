@@ -1,0 +1,580 @@
+"use client";
+
+import Link from "next/link";
+import { useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
+import {
+  ArrowLeft,
+  Loader2,
+  PackagePlus,
+  Plus,
+  Save,
+  Search,
+  Trash2,
+  UserRound,
+} from "lucide-react";
+
+import { Button } from "@/components/ui/button";
+import { toHumanError } from "@labo/lib/error-messages";
+import {
+  PacienteAutocomplete,
+  type PacienteAutocompleteItem,
+} from "@labo/ui/pacientes/PacienteAutocomplete";
+
+type ResultadoMode = "create" | "edit";
+
+type EstadoResultado = "Pendiente" | "Completado";
+
+interface ExamenCatalogoItem {
+  id: string;
+  titulo_id: string;
+  nombre: string;
+  precio_usd?: number;
+  unidad?: string | null;
+  activo?: boolean;
+}
+
+interface PaqueteItem {
+  id: string;
+  nombre: string;
+  descripcion: string | null;
+  examenes_count: number;
+}
+
+interface PaqueteExamen {
+  id: string;
+  titulo_id: string;
+  nombre: string;
+  precio_usd: number;
+  unidad: string | null;
+  valores_referencia: string | null;
+  activo: boolean;
+  orden: number;
+}
+
+interface ResultadoLineaForm {
+  examen_id: string;
+  nombre_snap: string;
+  valor: string;
+  observacion: string;
+  unidad_snap: string | null;
+}
+
+interface ResultadoInitialData {
+  id: string;
+  paciente_id: string;
+  paciente?: {
+    id: string;
+    nombre: string;
+    apellido: string;
+    cedula: string;
+  };
+  fecha_muestra: string;
+  fecha_resultado: string | null;
+  medico_solicitante: string | null;
+  observaciones: string | null;
+  examenes: Array<{
+    examen_id: string;
+    nombre_snap: string;
+    valor: string;
+    observacion: string | null;
+    unidad_snap: string | null;
+  }>;
+}
+
+interface ResultadoFormProps {
+  mode: ResultadoMode;
+  initialData?: ResultadoInitialData;
+  onSaved?: (resultadoId: string) => void;
+  onCancelEdit?: () => void;
+}
+
+function formatDateInput(value: string | null | undefined): string {
+  if (!value) return "";
+  return new Date(value).toISOString().slice(0, 10);
+}
+
+function toApiDate(value: string): string | undefined {
+  if (!value) return undefined;
+  return new Date(`${value}T12:00:00.000Z`).toISOString();
+}
+
+function inferEstado(fechaResultado: string): EstadoResultado {
+  return fechaResultado ? "Completado" : "Pendiente";
+}
+
+async function requestJson<T>(url: string, init?: RequestInit): Promise<T> {
+  const response = await fetch(url, {
+    ...init,
+    headers: {
+      accept: "application/json",
+      ...(init?.body ? { "content-type": "application/json" } : {}),
+      ...(init?.headers ?? {}),
+    },
+  });
+
+  if (!response.ok) {
+    const body = (await response.json().catch(() => null)) as { error?: string } | null;
+    throw new Error(body?.error ?? `REQUEST_FAILED_${response.status}`);
+  }
+
+  return response.json() as Promise<T>;
+}
+
+function upsertLineas(
+  current: ResultadoLineaForm[],
+  additions: Array<Pick<ResultadoLineaForm, "examen_id" | "nombre_snap" | "unidad_snap">>,
+): ResultadoLineaForm[] {
+  const seen = new Set(current.map((item) => item.examen_id));
+  const next = [...current];
+
+  for (const item of additions) {
+    if (seen.has(item.examen_id)) continue;
+    seen.add(item.examen_id);
+    next.push({
+      examen_id: item.examen_id,
+      nombre_snap: item.nombre_snap,
+      unidad_snap: item.unidad_snap,
+      valor: "",
+      observacion: "",
+    });
+  }
+
+  return next;
+}
+
+export function ResultadoForm({ mode, initialData, onSaved, onCancelEdit }: ResultadoFormProps) {
+  const router = useRouter();
+  const [selectedPaciente, setSelectedPaciente] = useState<PacienteAutocompleteItem | null>(
+    initialData?.paciente
+      ? {
+          id: initialData.paciente.id,
+          nombre: initialData.paciente.nombre,
+          apellido: initialData.paciente.apellido,
+          cedula: initialData.paciente.cedula,
+          fecha_nacimiento: "",
+        }
+      : null,
+  );
+  const [fechaMuestra, setFechaMuestra] = useState(formatDateInput(initialData?.fecha_muestra));
+  const [fechaResultado, setFechaResultado] = useState(formatDateInput(initialData?.fecha_resultado));
+  const [medicoSolicitante, setMedicoSolicitante] = useState(initialData?.medico_solicitante ?? "");
+  const [observaciones, setObservaciones] = useState(initialData?.observaciones ?? "");
+  const [lineas, setLineas] = useState<ResultadoLineaForm[]>(
+    initialData?.examenes.map((item) => ({
+      examen_id: item.examen_id,
+      nombre_snap: item.nombre_snap,
+      valor: item.valor,
+      observacion: item.observacion ?? "",
+      unidad_snap: item.unidad_snap,
+    })) ?? [],
+  );
+  const [examSearch, setExamSearch] = useState("");
+  const [examItems, setExamItems] = useState<ExamenCatalogoItem[]>([]);
+  const [examLoading, setExamLoading] = useState(false);
+  const [examError, setExamError] = useState<string | null>(null);
+  const [paquetes, setPaquetes] = useState<PaqueteItem[]>([]);
+  const [paquetesOpen, setPaquetesOpen] = useState(false);
+  const [paquetesLoading, setPaquetesLoading] = useState(false);
+  const [packageError, setPackageError] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [message, setMessage] = useState<string | null>(null);
+
+  const estado = useMemo(() => inferEstado(fechaResultado), [fechaResultado]);
+  const canSubmit = Boolean(selectedPaciente?.id || initialData?.paciente_id) && Boolean(fechaMuestra) && lineas.length > 0;
+
+  useEffect(() => {
+    if (examSearch.trim().length < 2) {
+      setExamItems([]);
+      setExamError(null);
+      setExamLoading(false);
+      return;
+    }
+
+    const controller = new AbortController();
+    const timer = window.setTimeout(async () => {
+      try {
+        setExamLoading(true);
+        setExamError(null);
+        const payload = await requestJson<ExamenCatalogoItem[]>(`/api/examenes?term=${encodeURIComponent(examSearch.trim())}`, {
+          signal: controller.signal,
+        });
+        setExamItems(payload);
+      } catch (error) {
+        if (controller.signal.aborted) return;
+        setExamError(toHumanError(error));
+        setExamItems([]);
+      } finally {
+        if (!controller.signal.aborted) setExamLoading(false);
+      }
+    }, 250);
+
+    return () => {
+      controller.abort();
+      window.clearTimeout(timer);
+    };
+  }, [examSearch]);
+
+  async function openPaquetes(): Promise<void> {
+    setPaquetesOpen(true);
+    if (paquetes.length > 0 || paquetesLoading) return;
+
+    try {
+      setPaquetesLoading(true);
+      setPackageError(null);
+      setPaquetes(await requestJson<PaqueteItem[]>("/api/paquetes"));
+    } catch (error) {
+      setPackageError(toHumanError(error));
+    } finally {
+      setPaquetesLoading(false);
+    }
+  }
+
+  function addExam(examen: ExamenCatalogoItem): void {
+    setLineas((current) =>
+      upsertLineas(current, [
+        {
+          examen_id: examen.id,
+          nombre_snap: examen.nombre,
+          unidad_snap: examen.unidad ?? null,
+        },
+      ]),
+    );
+    setExamSearch("");
+    setExamItems([]);
+  }
+
+  async function addPaquete(paqueteId: string): Promise<void> {
+    try {
+      setPackageError(null);
+      const examenes = await requestJson<PaqueteExamen[]>(`/api/paquetes/${paqueteId}/examenes`);
+      setLineas((current) =>
+        upsertLineas(
+          current,
+          examenes.map((item) => ({
+            examen_id: item.id,
+            nombre_snap: item.nombre,
+            unidad_snap: item.unidad,
+          })),
+        ),
+      );
+      setPaquetesOpen(false);
+    } catch (error) {
+      setPackageError(toHumanError(error));
+    }
+  }
+
+  function updateLinea(index: number, patch: Partial<ResultadoLineaForm>): void {
+    setLineas((current) =>
+      current.map((item, currentIndex) => (currentIndex === index ? { ...item, ...patch } : item)),
+    );
+  }
+
+  function removeLinea(index: number): void {
+    setLineas((current) => current.filter((_, currentIndex) => currentIndex !== index));
+  }
+
+  async function submit(): Promise<void> {
+    if (!canSubmit) {
+      setMessage("Completá paciente, fecha de muestra y al menos un examen.");
+      return;
+    }
+
+    try {
+      setSaving(true);
+      setMessage(null);
+
+      const payload = {
+        paciente_id: initialData?.paciente_id ?? selectedPaciente?.id,
+        fecha_muestra: toApiDate(fechaMuestra),
+        fecha_resultado: fechaResultado ? toApiDate(fechaResultado) : mode === "edit" ? null : undefined,
+        medico_solicitante: medicoSolicitante,
+        observaciones,
+        examenes: lineas.map((linea) => ({
+          examen_id: linea.examen_id,
+          valor: linea.valor,
+          observacion: linea.observacion,
+        })),
+      };
+
+      const response = await requestJson<{ id: string }>(
+        mode === "create" ? "/api/resultados" : `/api/resultados/${initialData!.id}`,
+        {
+          method: mode === "create" ? "POST" : "PATCH",
+          body: JSON.stringify(payload),
+        },
+      );
+
+      if (onSaved) {
+        onSaved(response.id);
+        return;
+      }
+
+      router.push(`/resultados/${response.id}`);
+      router.refresh();
+    } catch (error) {
+      setMessage(toHumanError(error));
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  const patientSummary = selectedPaciente || initialData?.paciente;
+
+  return (
+    <div className="flex flex-col gap-6">
+      <div className="flex items-center justify-between">
+        <Link href={mode === "create" ? "/resultados" : `/resultados/${initialData?.id ?? ""}`} className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground">
+          <ArrowLeft className="h-4 w-4" />
+          Volver
+        </Link>
+
+        <div className="rounded-full border border-border bg-card px-3 py-1 text-xs font-medium text-muted-foreground">
+          Estado al guardar: <span className="text-foreground">{estado}</span>
+        </div>
+      </div>
+
+      {message ? (
+        <p className="rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+          {message}
+        </p>
+      ) : null}
+
+      <section className="grid gap-6 rounded-2xl border border-border bg-card p-6 shadow-sm lg:grid-cols-2">
+        <div className="space-y-2">
+          <label className="text-sm font-medium">Paciente</label>
+          {mode === "create" ? (
+            <PacienteAutocomplete onSelect={setSelectedPaciente} placeholder="Buscar por nombre, apellido o cédula" />
+          ) : (
+            <div className="flex items-center gap-3 rounded-xl border border-border bg-background/70 px-4 py-3">
+              <UserRound className="h-4 w-4 text-muted-foreground" />
+              <div>
+                <p className="text-sm font-medium text-foreground">
+                  {patientSummary ? `${patientSummary.nombre} ${patientSummary.apellido}` : "Paciente asociado"}
+                </p>
+                {patientSummary ? <p className="text-xs text-muted-foreground">{patientSummary.cedula}</p> : null}
+              </div>
+            </div>
+          )}
+          {mode === "create" && selectedPaciente ? (
+            <p className="text-xs text-muted-foreground">
+              Seleccionado: {selectedPaciente.nombre} {selectedPaciente.apellido} · {selectedPaciente.cedula}
+            </p>
+          ) : null}
+        </div>
+
+        <div className="grid gap-4 sm:grid-cols-2">
+          <label className="space-y-2 text-sm font-medium">
+            <span>Fecha de muestra</span>
+            <input
+              type="date"
+              value={fechaMuestra}
+              onChange={(event) => setFechaMuestra(event.target.value)}
+              className="h-11 w-full rounded-md border border-input bg-background px-3 text-sm"
+            />
+          </label>
+
+          <label className="space-y-2 text-sm font-medium">
+            <span>Fecha de resultado</span>
+            <input
+              type="date"
+              value={fechaResultado}
+              onChange={(event) => setFechaResultado(event.target.value)}
+              className="h-11 w-full rounded-md border border-input bg-background px-3 text-sm"
+            />
+          </label>
+        </div>
+
+        <label className="space-y-2 text-sm font-medium lg:col-span-2">
+          <span>Médico solicitante</span>
+          <input
+            value={medicoSolicitante}
+            onChange={(event) => setMedicoSolicitante(event.target.value)}
+            placeholder="Ej: Dra. Mariana López"
+            className="h-11 w-full rounded-md border border-input bg-background px-3 text-sm"
+          />
+        </label>
+
+        <label className="space-y-2 text-sm font-medium lg:col-span-2">
+          <span>Observaciones generales</span>
+          <textarea
+            rows={4}
+            value={observaciones}
+            onChange={(event) => setObservaciones(event.target.value)}
+            placeholder="Notas para el informe, hallazgos o aclaratorias."
+            className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+          />
+        </label>
+      </section>
+
+      <section className="rounded-2xl border border-border bg-card p-6 shadow-sm">
+        <div className="flex flex-col gap-3 border-b border-border pb-4 md:flex-row md:items-center md:justify-between">
+          <div>
+            <h2 className="text-lg font-semibold">Exámenes del resultado</h2>
+            <p className="text-sm text-muted-foreground">Podés agregar exámenes manualmente o cargar un paquete completo.</p>
+          </div>
+
+          <div className="flex flex-wrap gap-2">
+            <Button type="button" variant="outline" onClick={() => void openPaquetes()}>
+              <PackagePlus className="h-4 w-4" />
+              Cargar paquete
+            </Button>
+          </div>
+        </div>
+
+        <div className="mt-4 grid gap-4 lg:grid-cols-[1.2fr_1fr]">
+          <div className="space-y-2">
+            <label className="text-sm font-medium">Agregar examen</label>
+            <div className="relative">
+              <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+              <input
+                value={examSearch}
+                onChange={(event) => setExamSearch(event.target.value)}
+                placeholder="Buscá por nombre del examen"
+                className="h-11 w-full rounded-md border border-input bg-background pl-9 pr-3 text-sm"
+              />
+            </div>
+            {examLoading ? <p className="text-xs text-muted-foreground">Buscando exámenes…</p> : null}
+            {examError ? <p className="text-xs text-destructive">{examError}</p> : null}
+            {examItems.length > 0 ? (
+              <div className="max-h-64 overflow-auto rounded-xl border border-border">
+                {examItems.map((item) => (
+                  <button
+                    key={item.id}
+                    type="button"
+                    onClick={() => addExam(item)}
+                    className="flex w-full items-center justify-between border-b border-border px-4 py-3 text-left last:border-b-0 hover:bg-muted/40"
+                  >
+                    <div>
+                      <p className="text-sm font-medium text-foreground">{item.nombre}</p>
+                      <p className="text-xs text-muted-foreground">{item.unidad || "Sin unidad"}</p>
+                    </div>
+                    <Plus className="h-4 w-4 text-muted-foreground" />
+                  </button>
+                ))}
+              </div>
+            ) : examSearch.trim().length >= 2 && !examLoading ? (
+              <p className="text-xs text-muted-foreground">No encontramos exámenes para ese término.</p>
+            ) : null}
+          </div>
+
+          <div className="rounded-xl border border-dashed border-border bg-background/40 p-4">
+            <p className="text-sm font-medium text-foreground">Resumen</p>
+            <p className="mt-2 text-sm text-muted-foreground">
+              {lineas.length} {lineas.length === 1 ? "examen cargado" : "exámenes cargados"}
+            </p>
+            <p className="mt-1 text-sm text-muted-foreground">
+              El estado se calcula al guardar: <span className="font-medium text-foreground">{estado}</span>
+            </p>
+          </div>
+        </div>
+
+        <div className="mt-6 overflow-x-auto rounded-xl border border-border">
+          <table className="min-w-full divide-y divide-border text-sm">
+            <thead className="bg-muted/40 text-left text-muted-foreground">
+              <tr>
+                <th className="px-4 py-3 font-medium">Examen</th>
+                <th className="px-4 py-3 font-medium">Valor</th>
+                <th className="px-4 py-3 font-medium">Observación</th>
+                <th className="px-4 py-3 font-medium">Unidad</th>
+                <th className="px-4 py-3 text-right font-medium">Acción</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-border">
+              {lineas.length === 0 ? (
+                <tr>
+                  <td colSpan={5} className="px-4 py-8 text-center text-sm text-muted-foreground">
+                    Todavía no agregaste exámenes. Usá el buscador o cargá un paquete.
+                  </td>
+                </tr>
+              ) : (
+                lineas.map((linea, index) => (
+                  <tr key={`${linea.examen_id}-${index}`}>
+                    <td className="px-4 py-3 font-medium text-foreground">{linea.nombre_snap}</td>
+                    <td className="px-4 py-3">
+                      <input
+                        value={linea.valor}
+                        onChange={(event) => updateLinea(index, { valor: event.target.value })}
+                        placeholder="Ej: 5.4"
+                        className="h-10 w-full min-w-28 rounded-md border border-input bg-background px-3 text-sm"
+                      />
+                    </td>
+                    <td className="px-4 py-3">
+                      <input
+                        value={linea.observacion}
+                        onChange={(event) => updateLinea(index, { observacion: event.target.value })}
+                        placeholder="Opcional"
+                        className="h-10 w-full min-w-48 rounded-md border border-input bg-background px-3 text-sm"
+                      />
+                    </td>
+                    <td className="px-4 py-3 text-muted-foreground">{linea.unidad_snap || "—"}</td>
+                    <td className="px-4 py-3 text-right">
+                      <Button type="button" variant="ghost" size="sm" onClick={() => removeLinea(index)}>
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+        {mode === "edit" && onCancelEdit ? (
+          <Button type="button" variant="outline" onClick={onCancelEdit}>
+            Cancelar
+          </Button>
+        ) : null}
+        <Button type="button" onClick={() => void submit()} disabled={saving || !canSubmit}>
+          {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+          {saving ? "Guardando…" : mode === "create" ? "Guardar resultado" : "Guardar cambios"}
+        </Button>
+      </div>
+
+      {paquetesOpen ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="w-full max-w-2xl rounded-2xl border border-border bg-card p-6 shadow-xl">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <h3 className="text-xl font-semibold">Cargar paquete</h3>
+                <p className="mt-1 text-sm text-muted-foreground">Elegí un paquete para agregar todos sus exámenes al resultado.</p>
+              </div>
+              <Button type="button" variant="ghost" onClick={() => setPaquetesOpen(false)}>Cerrar</Button>
+            </div>
+
+            {packageError ? <p className="mt-4 text-sm text-destructive">{packageError}</p> : null}
+
+            <div className="mt-4 max-h-[28rem] overflow-auto rounded-xl border border-border">
+              {paquetesLoading ? (
+                <div className="flex items-center gap-2 px-4 py-6 text-sm text-muted-foreground">
+                  <Loader2 className="h-4 w-4 animate-spin" /> Cargando paquetes…
+                </div>
+              ) : paquetes.length === 0 ? (
+                <p className="px-4 py-6 text-sm text-muted-foreground">No hay paquetes disponibles.</p>
+              ) : (
+                paquetes.map((paquete) => (
+                  <button
+                    key={paquete.id}
+                    type="button"
+                    onClick={() => void addPaquete(paquete.id)}
+                    className="flex w-full items-center justify-between border-b border-border px-4 py-4 text-left last:border-b-0 hover:bg-muted/30"
+                  >
+                    <div>
+                      <p className="font-medium text-foreground">{paquete.nombre}</p>
+                      <p className="text-sm text-muted-foreground">{paquete.descripcion || "Sin descripción"}</p>
+                    </div>
+                    <span className="rounded-full bg-primary/10 px-2.5 py-1 text-xs font-semibold text-primary">
+                      {paquete.examenes_count} {paquete.examenes_count === 1 ? "examen" : "exámenes"}
+                    </span>
+                  </button>
+                ))
+              )}
+            </div>
+          </div>
+        </div>
+      ) : null}
+    </div>
+  );
+}

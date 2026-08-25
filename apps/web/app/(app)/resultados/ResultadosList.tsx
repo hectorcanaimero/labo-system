@@ -2,21 +2,32 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import {
-  Plus,
-  Search,
-  FileText,
-  Calendar,
-  Filter,
-} from "lucide-react";
+import { Calendar, FileText, Filter, Plus, Search } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { toHumanError } from "@labo/lib/error-messages";
 import { EmptyState, SkeletonTable } from "@labo/ui/feedback";
 import { ExportButton } from "@labo/ui/exports/ExportButton";
 
+export interface ResultadoListItem {
+  id: string;
+  paciente_id: string;
+  paciente_nombre: string;
+  paciente_apellido: string;
+  paciente_cedula: string;
+  fecha_muestra: string;
+  fecha_resultado: string | null;
+  medico_solicitante: string | null;
+  estado: "Pendiente" | "Completado";
+  observaciones: string | null;
+  origen_presupuesto_id: string | null;
+  created_at: string;
+  created_by: string;
+  examenes_count: number;
+}
+
 export interface PaginatedResultadosResponse {
-  items: any[];
+  items: ResultadoListItem[];
   page: number;
   limit: number;
   total: number;
@@ -28,17 +39,17 @@ interface ResultadosListProps {
   pageSize: number;
 }
 
-const SEARCH_DEBOUNCE_MS = 300;
+const SEARCH_DEBOUNCE_MS = 250;
 
-function formatDate(value: string): string {
-  if (!value) return "";
+function formatDate(value: string | null): string {
+  if (!value) return "—";
   try {
     return new Intl.DateTimeFormat("es-VE", {
       dateStyle: "medium",
       timeZone: "UTC",
     }).format(new Date(value));
   } catch {
-    return "";
+    return "—";
   }
 }
 
@@ -61,14 +72,15 @@ export function ResultadosList({ initialData, pageSize }: ResultadosListProps) {
     return () => window.clearTimeout(timer);
   }, [searchTerm]);
 
-  const fetchFilters = useMemo(() => {
-    return {
+  const fetchFilters = useMemo(
+    () => ({
       term: debouncedSearchTerm || undefined,
       desde: desde || undefined,
       hasta: hasta || undefined,
       estado: estado || undefined,
-    };
-  }, [debouncedSearchTerm, desde, hasta, estado]);
+    }),
+    [debouncedSearchTerm, desde, hasta, estado],
+  );
 
   useEffect(() => {
     let cancelled = false;
@@ -121,9 +133,8 @@ export function ResultadosList({ initialData, pageSize }: ResultadosListProps) {
     return () => {
       cancelled = true;
     };
-  }, [page, pageSize, fetchFilters]);
+  }, [page, pageSize, fetchFilters, debouncedSearchTerm, desde, hasta, estado]);
 
-  // Reset page to 1 when filters change to avoid empty pages.
   useEffect(() => {
     setPage(1);
   }, [fetchFilters]);
@@ -133,7 +144,6 @@ export function ResultadosList({ initialData, pageSize }: ResultadosListProps) {
 
   return (
     <div className="flex flex-col gap-4">
-      {/* Search & Filter bar */}
       <div className="flex flex-col gap-3 rounded-xl border border-border bg-card p-4 shadow-sm">
         <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
           <div className="relative w-full max-w-xl">
@@ -142,7 +152,7 @@ export function ResultadosList({ initialData, pageSize }: ResultadosListProps) {
               type="search"
               value={searchTerm}
               onChange={(event) => setSearchTerm(event.target.value)}
-              placeholder="Buscar por paciente, cédula o médico"
+              placeholder="Buscar por paciente, cédula o fecha"
               className="flex h-11 w-full rounded-md border border-input bg-background py-2 pl-9 pr-10 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
             />
           </div>
@@ -150,15 +160,14 @@ export function ResultadosList({ initialData, pageSize }: ResultadosListProps) {
           <div className="flex items-center gap-2 shrink-0">
             <ExportButton actionName="resultados" filters={{ desde, hasta, estado }} />
             <Link href="/resultados/nuevo">
-              <Button type="button" className="shrink-0 h-11">
-                <Plus className="h-4 w-4 mr-2" />
+              <Button type="button" className="h-11 shrink-0">
+                <Plus className="mr-2 h-4 w-4" />
                 Nuevo resultado
               </Button>
             </Link>
           </div>
         </div>
 
-        {/* Detailed filters */}
         <div className="grid grid-cols-1 gap-3 border-t border-border pt-3 sm:grid-cols-3">
           <div className="flex flex-col gap-1">
             <label className="text-xs font-medium text-muted-foreground">Desde</label>
@@ -193,7 +202,7 @@ export function ResultadosList({ initialData, pageSize }: ResultadosListProps) {
               <select
                 value={estado}
                 onChange={(e) => setEstado(e.target.value)}
-                className="flex h-10 w-full rounded-md border border-input bg-background py-2 pl-9 pr-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring appearance-none"
+                className="flex h-10 w-full appearance-none rounded-md border border-input bg-background py-2 pl-9 pr-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
                 <option value="">Todos los estados</option>
                 <option value="Pendiente">Pendiente</option>
@@ -210,11 +219,10 @@ export function ResultadosList({ initialData, pageSize }: ResultadosListProps) {
         </p>
       ) : null}
 
-      {/* Main List Table */}
       <div className="rounded-xl border border-border bg-card shadow-sm">
         {loadingList ? (
           <div className="p-4">
-            <SkeletonTable rows={6} cols={5} />
+            <SkeletonTable rows={6} cols={6} />
           </div>
         ) : showEmptyState ? (
           <div className="p-6">
@@ -225,7 +233,7 @@ export function ResultadosList({ initialData, pageSize }: ResultadosListProps) {
               action={
                 <Link href="/resultados/nuevo">
                   <Button type="button">
-                    <Plus className="h-4 w-4 mr-2" />
+                    <Plus className="mr-2 h-4 w-4" />
                     Nuevo resultado
                   </Button>
                 </Link>
@@ -240,35 +248,27 @@ export function ResultadosList({ initialData, pageSize }: ResultadosListProps) {
                   <tr>
                     <th className="px-4 py-3 font-medium">Paciente</th>
                     <th className="px-4 py-3 font-medium">Cédula</th>
-                    <th className="px-4 py-3 font-medium">Fecha Muestra</th>
-                    <th className="px-4 py-3 font-medium">Médico</th>
+                    <th className="px-4 py-3 font-medium">Fecha muestra</th>
+                    <th className="px-4 py-3 font-medium">Entrega</th>
                     <th className="px-4 py-3 font-medium">Estado</th>
+                    <th className="px-4 py-3 font-medium">Exámenes</th>
                     <th className="px-4 py-3 text-right font-medium">Acciones</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border">
-                  {visibleItems.map((resultado: any) => {
+                  {visibleItems.map((resultado) => {
                     const pacienteName = `${resultado.paciente_nombre || ""} ${resultado.paciente_apellido || ""}`.trim();
 
                     return (
                       <tr key={resultado.id} className="hover:bg-muted/30">
                         <td className="px-4 py-3 font-medium text-foreground">
-                          <Link
-                            href={`/resultados/${resultado.id}`}
-                            className="hover:underline"
-                          >
+                          <Link href={`/resultados/${resultado.id}`} className="hover:underline">
                             {pacienteName}
                           </Link>
                         </td>
-                        <td className="px-4 py-3 text-muted-foreground">
-                          {resultado.paciente_cedula}
-                        </td>
-                        <td className="px-4 py-3 text-muted-foreground">
-                          {formatDate(resultado.fecha_muestra)}
-                        </td>
-                        <td className="px-4 py-3 text-muted-foreground">
-                          {resultado.medico_solicitante || "No especificado"}
-                        </td>
+                        <td className="px-4 py-3 text-muted-foreground">{resultado.paciente_cedula}</td>
+                        <td className="px-4 py-3 text-muted-foreground">{formatDate(resultado.fecha_muestra)}</td>
+                        <td className="px-4 py-3 text-muted-foreground">{formatDate(resultado.fecha_resultado)}</td>
                         <td className="px-4 py-3">
                           <span
                             className={`inline-flex items-center rounded-full px-2 py-1 text-xs font-medium ${
@@ -280,10 +280,11 @@ export function ResultadosList({ initialData, pageSize }: ResultadosListProps) {
                             {resultado.estado}
                           </span>
                         </td>
+                        <td className="px-4 py-3 text-muted-foreground">{resultado.examenes_count}</td>
                         <td className="px-4 py-3 text-right">
                           <Link href={`/resultados/${resultado.id}`}>
                             <Button type="button" variant="outline" size="sm">
-                              Ver Detalle
+                              Ver detalle
                             </Button>
                           </Link>
                         </td>
@@ -294,11 +295,10 @@ export function ResultadosList({ initialData, pageSize }: ResultadosListProps) {
               </table>
             </div>
 
-            {/* Pagination footer */}
             <div className="flex flex-col gap-3 border-t border-border px-4 py-3 md:flex-row md:items-center md:justify-between">
               <p className="text-sm text-muted-foreground">
                 Mostrando página <span className="font-medium text-foreground">{data.page}</span> de{" "}
-                <span className="font-medium text-foreground">{data.totalPages}</span> ·{" "}
+                <span className="font-medium text-foreground">{data.totalPages || 1}</span> ·{" "}
                 <span className="font-medium text-foreground">{data.total}</span> resultados
               </p>
 

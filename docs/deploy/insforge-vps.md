@@ -114,6 +114,143 @@ Configurado con Resend:
 
 No hace falta `password_reset_tokens` custom: el flujo de reset es nativo.
 
+## Tareas Programadas (Cron)
+
+Para automatizar tareas recurrentes en el VPS, se utiliza el `crontab` del sistema de modo que invoque los Route Handlers de Next.js. Todos estos endpoints están protegidos mediante el header `x-cron-secret` (cuyo valor debe coincidir con `CRON_SECRET`).
+
+### 1. Cleanup semanal de exportaciones (> 7 días)
+Borra automáticamente del bucket privado `exports` los archivos vencidos (con una antigüedad mayor a 7 días) y deja una traza detallada en el `audit_log` de Convex.
+
+- **Frecuencia**: Semanal (Todos los domingos a las 03:00 UTC / 23:00 VET del sábado).
+- **Línea de crontab recomendada**:
+  ```bash
+  0 3 * * 0 curl -X POST https://insforge.rvlaboratorio.com/api/cron/cleanup-exports -H "x-cron-secret: TU_CRON_SECRET_AQUI" -s > /dev/null
+  ```
+
+### Pruebas de ejecución manual
+Para forzar o testear el funcionamiento del cleanup manualmente, ejecutá el siguiente comando desde la consola:
+```bash
+curl -X POST https://insforge.rvlaboratorio.com/api/cron/cleanup-exports \
+  -H "x-cron-secret: TU_CRON_SECRET_AQUI" \
+  -i
+```
+
+Si el secret es incorrecto o no se provee, el servidor responderá con un código de estado `401 Unauthorized`.
+
+### 2. Scrape diario de la tasa BCV (09:00 VET / 13:00 UTC)
+
+Dispara el scraper `POST /api/cron/scrape-bcv` (ADR-11: crontab del VPS → Route
+Handler). El handler scrapea `bcv.org.ve`, con fallback a DolarAPI (`fuente:
+"dolartoday"`), persiste en `tasa_cambio_bcv` y deja traza en `audit_log`. Un
+fallo total devuelve `200` con `success: false` (para no disparar reintentos del
+crontab); la alerta de tasa vieja la cubre F3.3.T4.
+
+- **Frecuencia**: Diario a las 13:00 UTC = 09:00 VET (Venezuela es UTC−4 fijo,
+  sin horario de verano).
+- **Línea de crontab recomendada**:
+  ```bash
+  0 13 * * * curl -X POST https://insforge.rvlaboratorio.com/api/cron/scrape-bcv -H "x-cron-secret: TU_CRON_SECRET_AQUI" -s > /dev/null
+  ```
+
+#### Paso a paso para activarla en el VPS
+
+1. Entrar por SSH al VPS.
+2. Editar el crontab del usuario que corre el stack (`root` o el user del deploy):
+   ```bash
+   crontab -e
+   ```
+   Si preferís no abrir el editor, podés agregar la línea de forma idempotente:
+   ```bash
+   crontab -l 2>/dev/null | grep -q "api/cron/scrape-bcv" || \
+     (crontab -l 2>/dev/null; echo '0 13 * * * curl -X POST https://insforge.rvlaboratorio.com/api/cron/scrape-bcv -H "x-cron-secret: TU_CRON_SECRET_AQUI" -s > /dev/null') | crontab -
+   ```
+3. Guardar y verificar que quedó activa:
+   ```bash
+   crontab -l | grep scrape-bcv
+   ```
+
+> El `curl` no requiere la app levantada a nivel local: pega contra el dominio
+> público (`https://insforge.rvlaboratorio.com`) proxeado por Cloudflare. Si el
+> contenedor de la web app estuviera caído, el cron fallará silenciosamente
+> (mitigado por `restart: unless-stopped` + alerta de uptime, F4).
+
+#### Pruebas de ejecución manual
+
+Para forzar o testear el scrape manualmente, ejecutá desde cualquier máquina con
+acceso al dominio:
+
+```bash
+curl -X POST https://insforge.rvlaboratorio.com/api/cron/scrape-bcv \
+  -H "x-cron-secret: TU_CRON_SECRET_AQUI" \
+  -i
+```
+
+Respuestas esperadas:
+
+- `200` con `{"success":true,"id":"...","fuente":"bcv","tasa":...}` → scrape OK.
+- `200` con `{"success":false,"error":"bcv_scrape_failed",...}` → ambas fuentes
+  fallaron; quedó un warning en `audit_log`.
+- `401 Unauthorized` → secret faltante o incorrecto.
+
+Para verificar que corrió, revisar el `audit_log` (acciones
+`cron.scrape-bcv` / `cron.scrape-bcv.failed`) y la tabla `tasa_cambio_bcv`
+(fila con `fecha` de hoy). El día siguiente al alta del cron, confirmar que la
+fila del día existe (criterio de aceptación de F3.3.T3).
+
+### 3. Warm-up PDF + health check (cada 5 min en horario laboral)
+
+Mantiene caliente el runtime Node del Route Handler de PDF (`@react-pdf`) y
+verifica salud del servicio + conexión a Postgres (mitigación cold-start,
+ARCH §9 / ADR-11). El handler vive en `apps/web/app/api/pdf/health/route.ts`
+(F4.1.T4):
+
+- `GET /api/pdf/health` — probe público: `SELECT 1` contra Postgres y loguea la
+  métrica `pdf_health_ok`. Sin render (barato, sirve como health check externo).
+- `POST /api/pdf/health` — cron: requiere header `x-cron-secret` (mismo patrón
+  que los demás cron), chequea Postgres Y hace un render dummy mini (~1KB) para
+  calentar `@react-pdf`. Loguea `pdf_health_ok`.
+
+- **Frecuencia**: cada 5 minutos, lunes a viernes 07:00–19:00 VET =
+  11:00–23:00 UTC (Venezuela es UTC−4 fijo). El VPS corre en UTC.
+- **Línea de crontab recomendada**:
+  ```bash
+  */5 11-23 * * 1-5 curl -X POST https://insforge.rvlaboratorio.com/api/pdf/health -H "x-cron-secret: TU_CRON_SECRET_AQUI" -s > /dev/null
+  ```
+
+#### Pruebas de ejecución manual
+
+```bash
+# Health check público (sin secret)
+curl -s https://insforge.rvlaboratorio.com/api/pdf/health
+# {"ok":true,"db":{"status":"ok"}}
+
+# Warm-up como lo dispara el cron (con secret)
+curl -s -X POST https://insforge.rvlaboratorio.com/api/pdf/health \
+  -H "x-cron-secret: TU_CRON_SECRET_AQUI"
+# {"ok":true,"db":{"status":"ok"},"warmBytes":...}
+```
+
+Respuestas esperadas:
+
+- `200` con `{"ok":true,...}` → Postgres OK (+ render OK en POST).
+- `503` con `{"ok":false,"db":{...}}` → Postgres caído o `DATABASE_URL` no
+  configurado (el cron sigue pegándole cada 5 min, así queda la alerta en logs).
+- `401 Unauthorized` → secret faltante o incorrecto.
+
+La métrica `pdf_health_ok` (`ok`, `db`, `durationMs`, `warmBytes`) aparece en
+los logs del contenedor web; con `docker logs <web> | grep pdf_health_ok` se
+puede verificar que el cron está activo y renderizando.
+
+#### Alternativa: InsForge Schedules
+
+Si se prefiere gestionar la tarea desde la plataforma en vez del crontab del
+VPS, InsForge permite Edge Functions (Deno) con Schedule vía `pg_cron`. Se
+descartó en ADR-11 por implicar un segundo runtime y desplegar código fuera del
+monorepo; queda documentada como alternativa si el VPS no permitiera crontab.
+En ese caso el endpoint a llamar seguiría siendo el mismo Route Handler
+(`POST /api/pdf/health` con `x-cron-secret`), o directamente la lógica de
+warm-up re-implementada en la Edge Function.
+
 ## Variables de entorno
 
 Template completo en [`.env.example`](../../.env.example): `INSFORGE_URL`,

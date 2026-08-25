@@ -8,6 +8,7 @@ const config: Config = {
     "./lib/**/*.{ts,tsx}",
     "../../packages/ui/nav/**/*.{ts,tsx}",
     "../../packages/ui/text/**/*.{ts,tsx}",
+    "../../packages/ui/feedback/**/*.{ts,tsx}",
   ],
   theme: {
     container: {

@@ -92,3 +92,37 @@ export const configUpdateSchema = z.object({
 });
 
 export type ConfigUpdateInput = z.infer<typeof configUpdateSchema>;
+
+/**
+ * Variante "partial" del schema para el repo Postgres (F1.1.T5).
+ *
+ * A diferencia de `configUpdateSchema` (form completo, `nombre`/`direccion`
+ * requeridos), acá todos los campos son opcionales: el upsert del repo
+ * preserva los valores previos de los campos omitidos. Si `nombre` o `rif`
+ * vienen presentes, se validan con las mismas reglas (`NOMBRE_REQUERIDO`,
+ * `RIF_INVALIDO`).
+ */
+export const configUpdatePartialSchema = z.object({
+  nombre: z
+    .string()
+    .refine((v) => v.trim().length > 0, { message: NOMBRE_REQUERIDO })
+    .optional(),
+
+  direccion: z.string().optional(),
+
+  telefono: z.string().optional(),
+
+  email: z.string().optional(),
+
+  rif: z
+    .string()
+    .optional()
+    .refine(
+      (v) => v === undefined || v === "" || RIF_REGEX.test(v),
+      { message: RIF_INVALIDO },
+    ),
+
+  pdf_pie_pagina: z.string().optional(),
+});
+
+export type ConfigUpdatePartialInput = z.infer<typeof configUpdatePartialSchema>;

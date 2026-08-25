@@ -87,6 +87,18 @@ describe("pacienteCreate — cedula", () => {
   it("rechaza cédula vacía", () => {
     expect(pacienteCreate.safeParse(pacienteBase({ cedula: "" })).success).toBe(false);
   });
+
+  it("rechaza cédula con caracteres raros", () => {
+    const res = pacienteCreate.safeParse(pacienteBase({ cedula: "V-1234@#!" }));
+    expect(res.success).toBe(false);
+    if (!res.success) {
+      expect(res.error.issues[0].message).toBe(CEDULA_INVALIDA);
+    }
+  });
+
+  it("rechaza cédula con letras mezcladas", () => {
+    expect(pacienteCreate.safeParse(pacienteBase({ cedula: "V-12ab3456" })).success).toBe(false);
+  });
 });
 
 describe("pacienteCreate — fecha_nacimiento", () => {

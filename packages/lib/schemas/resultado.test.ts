@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   FECHA_MUESTRA_FUTURA,
+  FECHA_RESULTADO_ANTERIOR_MUESTRA,
   FECHA_RESULTADO_FUTURA,
   EXAMENES_REQUERIDOS,
   EXAMEN_ID_REQUERIDO,
@@ -71,7 +72,8 @@ describe("resultadoCreateSchema", () => {
   });
 
   it("rechaza examenes faltante", () => {
-    const { examenes: _omit, ...rest } = createInput();
+    const rest = createInput() as Record<string, unknown>;
+    delete rest.examenes;
     const res = resultadoCreateSchema.safeParse(rest);
     expect(res.success).toBe(false);
   });
@@ -103,6 +105,37 @@ describe("resultadoCreateSchema", () => {
     const res = resultadoCreateSchema.safeParse(createInput({ paciente_id: "" }));
     expect(res.success).toBe(false);
     expect(res.error?.issues[0]?.message).toBe(PACIENTE_ID_REQUERIDO);
+  });
+
+  it("rechaza fecha_resultado anterior a fecha_muestra", () => {
+    const muestra = Date.now() - 24 * 60 * 60 * 1000;
+    const res = resultadoCreateSchema.safeParse(
+      createInput({
+        fecha_muestra: muestra,
+        fecha_resultado: muestra - 60 * 60 * 1000,
+      }),
+    );
+    expect(res.success).toBe(false);
+    expect(res.error?.issues[0]?.message).toBe(FECHA_RESULTADO_ANTERIOR_MUESTRA);
+  });
+
+  it("acepta fecha_resultado igual a fecha_muestra", () => {
+    const muestra = Date.now() - 24 * 60 * 60 * 1000;
+    const res = resultadoCreateSchema.safeParse(
+      createInput({ fecha_muestra: muestra, fecha_resultado: muestra }),
+    );
+    expect(res.success).toBe(true);
+  });
+
+  it("acepta fecha_resultado posterior a fecha_muestra", () => {
+    const muestra = Date.now() - 48 * 60 * 60 * 1000;
+    const res = resultadoCreateSchema.safeParse(
+      createInput({
+        fecha_muestra: muestra,
+        fecha_resultado: muestra + 24 * 60 * 60 * 1000,
+      }),
+    );
+    expect(res.success).toBe(true);
   });
 
   it("acepta campos opcionales omitidos", () => {
@@ -151,5 +184,22 @@ describe("resultadoUpdateSchema", () => {
     });
     expect(res.success).toBe(false);
     expect(res.error?.issues[0]?.message).toBe(FECHA_MUESTRA_FUTURA);
+  });
+
+  it("rechaza fecha_resultado anterior a fecha_muestra en update", () => {
+    const muestra = Date.now() - 24 * 60 * 60 * 1000;
+    const res = resultadoUpdateSchema.safeParse({
+      fecha_muestra: muestra,
+      fecha_resultado: muestra - 1000,
+    });
+    expect(res.success).toBe(false);
+    expect(res.error?.issues[0]?.message).toBe(FECHA_RESULTADO_ANTERIOR_MUESTRA);
+  });
+
+  it("acepta solo fecha_resultado en update (sin fecha_muestra)", () => {
+    const res = resultadoUpdateSchema.safeParse({
+      fecha_resultado: Date.now() - 1000,
+    });
+    expect(res.success).toBe(true);
   });
 });

@@ -1,8 +1,6 @@
 import { Readable, Transform } from 'node:stream';
 
-import { convexServerClient } from '@labo/pdf/convexServerClient';
 import { Document, Image, Page, StyleSheet, Text, View, renderToStream } from '@react-pdf/renderer';
-import { makeFunctionReference } from 'convex/server';
 import type { NextRequest } from 'next/server';
 import { createElement } from 'react';
 
@@ -11,7 +9,6 @@ export const dynamic = 'force-dynamic';
 
 const ASSET_CACHE_TTL_MS = 5 * 60 * 1_000;
 const MAX_ASSET_BYTES = 5 * 1_024 * 1_024;
-const DEFAULT_AUTH_COOKIE_NAME = '__convexAuthJWT';
 const EMBEDDED_LOGO_DATA_URI =
   'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=';
 
@@ -143,61 +140,6 @@ const hardcodedPayload: PdfPayload = {
     { test: 'Potasio', result: '4.2', unit: 'mmol/L' },
   ],
 };
-
-function isPdfLine(value: unknown): value is PdfLine {
-  if (!value || typeof value !== 'object') {
-    return false;
-  }
-
-  const line = value as Record<string, unknown>;
-  return (
-    typeof line.test === 'string' &&
-    typeof line.result === 'string' &&
-    typeof line.unit === 'string'
-  );
-}
-
-function isPdfPayload(value: unknown): value is PdfPayload {
-  if (!value || typeof value !== 'object') {
-    return false;
-  }
-
-  const payload = value as Record<string, unknown>;
-  return (
-    typeof payload.laboratory === 'string' &&
-    typeof payload.patient === 'string' &&
-    typeof payload.reportId === 'string' &&
-    Array.isArray(payload.lines) &&
-    payload.lines.every(isPdfLine) &&
-    (payload.assetUrl === undefined || typeof payload.assetUrl === 'string')
-  );
-}
-
-function readSessionToken(request: NextRequest): string | undefined {
-  const configuredCookieName = process.env.CONVEX_AUTH_COOKIE_NAME?.trim();
-  const cookieName = configuredCookieName || DEFAULT_AUTH_COOKIE_NAME;
-  return request.cookies.get(cookieName)?.value;
-}
-
-async function loadPdfPayload(token: string | undefined): Promise<{
-  payload: PdfPayload;
-  source: 'convex' | 'hardcoded';
-}> {
-  const queryName = process.env.PDF_SPIKE_CONVEX_QUERY?.trim();
-
-  if (!token || !queryName) {
-    return { payload: hardcodedPayload, source: 'hardcoded' };
-  }
-
-  const query = makeFunctionReference<'query', Record<string, never>, unknown>(queryName);
-  const payload = await convexServerClient(token).query(query, {});
-
-  if (!isPdfPayload(payload)) {
-    throw new Error(`Convex query ${queryName} returned an invalid PDF payload`);
-  }
-
-  return { payload, source: 'convex' };
-}
 
 function bytesToPngDataUri(bytes: Uint8Array): string {
   return `data:image/png;base64,${Buffer.from(bytes).toString('base64')}`;
@@ -369,8 +311,7 @@ export async function GET(request: NextRequest): Promise<Response> {
   const startedAt = performance.now();
 
   try {
-    const token = readSessionToken(request);
-    const { payload, source } = await loadPdfPayload(token);
+    const payload = hardcodedPayload;
     const logo = await loadLogo(request, payload);
     const nodeStream = (await renderToStream(renderPdfDocument(payload, logo.dataUri))) as Readable;
     const meteredStream = meterPdfStream(nodeStream, startedAt);
@@ -384,7 +325,7 @@ export async function GET(request: NextRequest): Promise<Response> {
         'Content-Type': 'application/pdf',
         'Server-Timing': `pdf-setup;dur=${setupDurationMs.toFixed(2)}`,
         'X-PDF-Asset-Cache': logo.cacheStatus,
-        'X-PDF-Convex-Source': source,
+        'X-PDF-Source': 'hardcoded',
       },
     });
   } catch (error) {

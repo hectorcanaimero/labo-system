@@ -36,9 +36,9 @@ module.exports = {
           },
           {
             target: path.resolve(__dirname, 'packages/lib'),
-            from: path.resolve(__dirname, 'packages/convex'),
+            from: path.resolve(__dirname, 'packages/db'),
             message:
-              'ADR-08: packages/lib is a leaf package and cannot import from packages/convex',
+              'ADR-08 (ADR-11): packages/lib is a leaf package and cannot import from packages/db',
           },
           {
             target: path.resolve(__dirname, 'packages/lib'),
@@ -58,8 +58,8 @@ module.exports = {
           },
           {
             target: path.resolve(__dirname, 'packages/pdf'),
-            from: path.resolve(__dirname, 'packages/convex'),
-            message: 'ADR-08: packages/pdf can only import from packages/lib',
+            from: path.resolve(__dirname, 'packages/db'),
+            message: 'ADR-08 (ADR-11): packages/pdf can only import from packages/lib',
           },
           // packages/ui can only import from packages/lib
           {
@@ -74,24 +74,24 @@ module.exports = {
           },
           {
             target: path.resolve(__dirname, 'packages/ui'),
-            from: path.resolve(__dirname, 'packages/convex'),
-            message: 'ADR-08: packages/ui can only import from packages/lib',
+            from: path.resolve(__dirname, 'packages/db'),
+            message: 'ADR-08 (ADR-11): packages/ui can only import from packages/lib',
           },
-          // packages/convex can only import from packages/lib
+          // packages/db can only import from packages/lib (ADR-11 replaces packages/convex)
           {
-            target: path.resolve(__dirname, 'packages/convex'),
+            target: path.resolve(__dirname, 'packages/db'),
             from: path.resolve(__dirname, 'apps/web'),
-            message: 'ADR-08: packages/convex can only import from packages/lib',
+            message: 'ADR-08 (ADR-11): packages/db can only import from packages/lib',
           },
           {
-            target: path.resolve(__dirname, 'packages/convex'),
+            target: path.resolve(__dirname, 'packages/db'),
             from: path.resolve(__dirname, 'packages/ui'),
-            message: 'ADR-08: packages/convex can only import from packages/lib',
+            message: 'ADR-08 (ADR-11): packages/db can only import from packages/lib',
           },
           {
-            target: path.resolve(__dirname, 'packages/convex'),
+            target: path.resolve(__dirname, 'packages/db'),
             from: path.resolve(__dirname, 'packages/pdf'),
-            message: 'ADR-08: packages/convex can only import from packages/lib',
+            message: 'ADR-08 (ADR-11): packages/db can only import from packages/lib',
           },
         ],
       },

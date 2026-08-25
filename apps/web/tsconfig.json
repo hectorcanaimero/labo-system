@@ -13,11 +13,17 @@
       "@/*": [
         "./*"
       ],
+      "@labo/db": [
+        "../../packages/db"
+      ],
+      "@labo/db/*": [
+        "../../packages/db/*"
+      ],
       "@labo/lib": [
-        "../../packages/lib/src"
+        "../../packages/lib"
       ],
       "@labo/lib/*": [
-        "../../packages/lib/src/*"
+        "../../packages/lib/*"
       ],
       "@labo/ui": [
         "../../packages/ui"
@@ -26,10 +32,10 @@
         "../../packages/ui/*"
       ],
       "@labo/convex": [
-        "../../packages/convex/src"
+        "../../packages/convex"
       ],
       "@labo/convex/*": [
-        "../../packages/convex/src/*"
+        "../../packages/convex/*"
       ],
       "@labo/pdf": [
         "../../packages/pdf/src"

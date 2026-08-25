@@ -1,5 +1,5 @@
 import { v, type GenericId } from "convex/values";
-import { internalMutation, internalQuery } from "./_generated/server";
+import { internalMutation, internalQuery, mutation } from "./_generated/server";
 import type { MutationCtx } from "./_generated/server";
 import type { Doc } from "./_generated/dataModel";
 
@@ -108,5 +108,33 @@ export const recordLogout = internalMutation({
     metadata: {},
     created_at: Date.now(),
   });
+  },
+});
+
+/**
+ * Registra el cleanup semanal de los archivos de exportación vencidos.
+ */
+export const recordCleanupExports = mutation({
+  args: {
+    secret: v.string(),
+    countDeleted: v.number(),
+    deletedKeys: v.array(v.string()),
+  },
+  handler: async (ctx, args) => {
+    if (args.secret !== process.env.CRON_SECRET) {
+      throw new Error("Unauthorized");
+    }
+
+    const now = Date.now();
+    await ctx.db.insert("audit_log", {
+      accion: "cron.cleanup-exports",
+      entity_type: "storage_bucket",
+      entity_id: "exports",
+      metadata: {
+        count_deleted: args.countDeleted,
+        deleted_keys: args.deletedKeys,
+      },
+      created_at: now,
+    });
   },
 });

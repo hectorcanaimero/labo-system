@@ -1,0 +1,20 @@
+{
+  "users": [
+    {
+      "id": "00000000-0000-4000-8000-000000000001",
+      "authUserId": "10000000-0000-4000-8000-000000000001",
+      "email": "admin@labsystem.dev",
+      "password": "password123",
+      "nombre": "Admin LabSystem",
+      "role": "admin"
+    },
+    {
+      "id": "00000000-0000-4000-8000-000000000002",
+      "authUserId": "10000000-0000-4000-8000-000000000002",
+      "email": "operador@labsystem.dev",
+      "password": "password123",
+      "nombre": "Operador LabSystem",
+      "role": "operador"
+    }
+  ]
+}

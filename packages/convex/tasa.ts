@@ -1,4 +1,6 @@
-import { query } from "./_generated/server";
+import { query, mutation } from "./_generated/server";
+import { v } from "convex/values";
+import { requireRole } from "./helpers/auth.js";
 
 /**
  * Umbral de staleness: 24 horas en milisegundos.
@@ -35,5 +37,46 @@ export const getLatest = query({
       ...latest,
       stale: isStale,
     };
+  },
+});
+
+/**
+ * Registra una tasa de cambio de forma manual (solo Admin).
+ *
+ * Inserta la tasa con `fuente: "manual"`, `scraped_at: Date.now()`,
+ * y deja registro en `audit_log`.
+ */
+export const setManual = mutation({
+  args: {
+    tasa: v.number(),
+    motivo: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const user = await requireRole(ctx, "admin");
+    const now = Date.now();
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const fecha = today.getTime();
+
+    const id = await ctx.db.insert("tasa_cambio_bcv", {
+      tasa: args.tasa,
+      fecha,
+      fuente: "manual",
+      scraped_at: now,
+      motivo: args.motivo,
+      created_by: user._id,
+    });
+
+    await ctx.db.insert("audit_log", {
+      usuario_id: user._id,
+      accion: "tasa.setManual",
+      entity_type: "tasa_cambio_bcv",
+      entity_id: id,
+      metadata: { tasa: args.tasa, motivo: args.motivo },
+      created_at: now,
+    });
+
+    return id;
   },
 });
