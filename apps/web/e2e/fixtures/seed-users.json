@@ -15,6 +15,14 @@
       "password": "password123",
       "nombre": "Operador LabSystem",
       "role": "operador"
+    },
+    {
+      "id": "00000000-0000-4000-8000-000000000003",
+      "authUserId": "10000000-0000-4000-8000-000000000003",
+      "email": "reset@labsystem.dev",
+      "password": "password123",
+      "nombre": "Reset LabSystem",
+      "role": "operador"
     }
   ]
 }

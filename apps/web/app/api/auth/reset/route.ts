@@ -24,23 +24,10 @@ export async function POST(request: NextRequest): Promise<Response> {
   }
   const { email } = parsed.data;
 
-  // InsForge emite el token criptográficamente seguro, aplica TTL/single-use y
-  // lo entrega por email. El fallback al origin de la request mantiene E2E y
-  // desarrollo local funcionales sin aceptar un redirect aportado por el cliente.
-  const configuredOrigin = process.env.NEXT_PUBLIC_APP_URL?.trim();
-  let appOrigin = request.nextUrl.origin;
-  if (configuredOrigin) {
-    try {
-      appOrigin = new URL(configuredOrigin).origin;
-    } catch {
-      // Config inválida: usar el origin confiable que Next construyó para la request.
-    }
-  }
-  const redirectTo = new URL('/reset-password', appOrigin).toString();
-
-  // Llama InsForge y siempre responde OK (anti-enumeración).
-  // InsForge gestiona: rate limiting, TTL del token, single-use, envío de email.
-  await requestInsforgePasswordReset(email, redirectTo).catch(() => undefined);
+  // InsForge envía el código de 6 dígitos por email (resetPasswordMethod: "code").
+  // Siempre respondemos OK (anti-enumeración); rate limiting, TTL y single-use
+  // del código los gestiona InsForge (built-in).
+  await requestInsforgePasswordReset(email).catch(() => undefined);
 
   // Audit log solo si el usuario existe en nuestra tabla.
   // No registramos nada para emails inexistentes (no revela información).
@@ -66,7 +53,7 @@ export async function POST(request: NextRequest): Promise<Response> {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// PUT — completar reset con token + nueva contraseña
+// PUT — completar reset con código + nueva contraseña
 // ─────────────────────────────────────────────────────────────────────────────
 
 export async function PUT(request: NextRequest): Promise<Response> {
@@ -82,10 +69,10 @@ export async function PUT(request: NextRequest): Promise<Response> {
     }
     return NextResponse.json({ error: 'INVALID_INPUT' }, { status: 400 });
   }
-  const { token, password } = parsed.data;
+  const { email, code, password } = parsed.data;
 
   try {
-    await completeInsforgePasswordReset(token, password);
+    await completeInsforgePasswordReset(email, code, password);
   } catch (err) {
     if (err instanceof PasswordResetError) {
       return NextResponse.json({ error: err.code }, { status: 400 });
@@ -93,18 +80,18 @@ export async function PUT(request: NextRequest): Promise<Response> {
     return NextResponse.json({ error: 'RESET_FAILED' }, { status: 400 });
   }
 
-  // Audit log de completion. No tenemos el usuario_id sin decodificar el token;
-  // InsForge valida el token server-side y no expone el auth_user_id en la
-  // respuesta del PUT. Registramos el evento sin FK para mantener trazabilidad.
+  // Audit log de completion. InsForge ya validó el código; recuperamos el
+  // usuario de dominio por email para dejar la FK correcta en la traza.
   const sql = getSql();
+  const usuario = await getByEmail(sql, email).catch(() => null);
   await sql`
     INSERT INTO audit_log (usuario_id, accion, entity_type, entity_id, metadata)
     VALUES (
-      ${null},
+      ${usuario?.id ?? null},
       ${'auth.password_reset_completed'},
       ${'auth'},
-      ${null},
-      ${sql.json({})}
+      ${usuario?.id ?? null},
+      ${sql.json({ email_intent: email })}
     )
   `.catch(() => undefined);
 

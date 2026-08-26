@@ -7,6 +7,7 @@ import type { Page } from "@playwright/test";
 export const TEST_USERS = {
   admin: { email: "admin@labsystem.dev", password: "password123" },
   operador: { email: "operador@labsystem.dev", password: "password123" },
+  reset: { email: "reset@labsystem.dev", password: "password123" },
 } as const;
 
 /**

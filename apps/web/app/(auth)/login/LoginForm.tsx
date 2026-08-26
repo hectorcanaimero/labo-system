@@ -1,6 +1,7 @@
 "use client";
 
 import { Loader2, LogIn } from "lucide-react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
 
@@ -126,6 +127,13 @@ export function LoginForm() {
           </>
         )}
       </Button>
+
+      <Link
+        href="/forgot-password"
+        className="text-center text-sm text-muted-foreground underline underline-offset-4"
+      >
+        ¿Olvidaste tu contraseña?
+      </Link>
     </form>
   );
 }

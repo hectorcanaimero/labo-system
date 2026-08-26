@@ -2,6 +2,7 @@
 
 import { Loader2, MailCheck } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
 
 import { Button } from "@/components/ui/button";
@@ -12,6 +13,7 @@ const inputClassName =
   "flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50";
 
 export function ForgotForm() {
+  const router = useRouter();
   const [email, setEmail] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -29,17 +31,18 @@ export function ForgotForm() {
 
     setSubmitting(true);
     try {
-      // Respuesta ignorada intencionalmente — siempre mostramos confirmación
-      // para no revelar si el email existe (anti-enumeración, spec F0.2.T6).
+      // El backend siempre responde OK (anti-enumeración) y envía un código de
+      // 6 dígitos por email. Navegamos al paso de código para no revelar si el
+      // email existe.
       await fetch("/api/auth/reset", {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ email: trimmedEmail }),
         cache: "no-store",
       });
-      setSent(true);
+      router.replace(`/reset-password?email=${encodeURIComponent(trimmedEmail)}`);
     } catch {
-      // Error de red: igual mostramos confirmación para no revelar información.
+      // Error de red: mostramos confirmación genérica para no revelar información.
       setSent(true);
     } finally {
       setSubmitting(false);

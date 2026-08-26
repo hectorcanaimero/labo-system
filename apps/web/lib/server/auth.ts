@@ -1,6 +1,7 @@
 import { cookies } from 'next/headers';
 import { z } from 'zod';
 
+import { createClient, InsForgeError } from '@insforge/sdk';
 import { getSql } from '@labo/db/client';
 import {
   getByAuthUserId,
@@ -183,13 +184,22 @@ export const PasswordRecoveryRequestSchema = z
 
 export const PasswordRecoveryConfirmationSchema = z
   .object({
-    token: z.string().trim().min(1).max(4_096),
+    email: z
+      .string()
+      .trim()
+      .email()
+      .max(254)
+      .transform((email) => email.toLowerCase()),
+    code: z.string().trim().min(1).max(16),
     password: z.string().min(8).max(128),
   })
   .strict();
 
 export type PasswordResetErrorCode =
-  'TOKEN_EXPIRED' | 'TOKEN_USED' | 'TOKEN_INVALID' | 'RESET_FAILED';
+  | 'INVALID_CODE'
+  | 'TOKEN_EXPIRED'
+  | 'RATE_LIMITED'
+  | 'RESET_FAILED';
 
 export class PasswordResetError extends Error {
   readonly code: PasswordResetErrorCode;
@@ -200,131 +210,80 @@ export class PasswordResetError extends Error {
   }
 }
 
-interface InsforgeResetResponse {
-  error?: { message?: string; code?: string } | string;
-  code?: string;
-  message?: string;
-}
-
 function readInsforgeAnonKey(): string | null {
   const key = (process.env.INSFORGE_ANON_KEY ?? process.env.NEXT_PUBLIC_INSFORGE_ANON_KEY)?.trim();
   return key && key.length > 0 ? key : null;
 }
 
-function passwordResetHeaders(): Record<string, string> {
-  const anonKey = readInsforgeAnonKey();
-  return {
-    'content-type': 'application/json',
-    Accept: 'application/json',
-    ...(anonKey
-      ? {
-          apikey: anonKey,
-          Authorization: `Bearer ${anonKey}`,
-        }
-      : {}),
-  };
+/** Cliente InsForge server-side para endpoints públicos de reset (anon key). */
+function insforgeAuthClient() {
+  return createClient({
+    baseUrl: readInsforgeBaseUrl(),
+    anonKey: readInsforgeAnonKey() ?? '',
+  });
 }
 
-function normalizePasswordResetError(
-  payload: InsforgeResetResponse,
-  status: number
-): PasswordResetErrorCode {
-  const providerCode =
-    typeof payload.error === 'object'
-      ? (payload.error?.code ?? payload.error?.message)
-      : (payload.error ?? payload.code ?? payload.message);
-  const normalized = (providerCode ?? '').toLowerCase();
-
-  if (status === 410 || normalized.includes('expir')) return 'TOKEN_EXPIRED';
-  if (
-    normalized.includes('used') ||
-    normalized.includes('reuse') ||
-    normalized.includes('consum')
-  ) {
-    return 'TOKEN_USED';
+/** Mapea un error de InsForge (SDK) a un código de dominio legible por la UI. */
+function mapInsforgeResetError(error: InsForgeError): PasswordResetError {
+  switch (error.error) {
+    case 'AUTH_TOKEN_EXPIRED':
+      return new PasswordResetError('TOKEN_EXPIRED');
+    case 'RATE_LIMITED':
+    case 'TOO_MANY_REQUESTS':
+      return new PasswordResetError('RATE_LIMITED');
+    case 'INVALID_INPUT':
+    case 'NOT_FOUND':
+    case 'AUTH_UNAUTHORIZED':
+      return new PasswordResetError('INVALID_CODE');
+    default:
+      return new PasswordResetError('RESET_FAILED');
   }
-  if (
-    status === 400 ||
-    status === 401 ||
-    status === 403 ||
-    status === 404 ||
-    normalized.includes('invalid') ||
-    normalized.includes('token') ||
-    normalized.includes('otp')
-  ) {
-    return 'TOKEN_INVALID';
-  }
-  return 'RESET_FAILED';
 }
 
 /**
  * Solicita un reset de contraseña a InsForge Auth.
  *
- * InsForge envía el email con el link de reset. Si el email no existe en
- * auth.users, la API responde OK igual (anti-enumeración nativo). TTL y
- * single-use son responsabilidad de InsForge (built-in).
- *
- * `redirectTo` debe ser la URL absoluta de la página `/reset-password` de la
- * app; InsForge le agrega `?token=XXXX` antes de enviarlo en el email.
+ * Con `resetPasswordMethod: "code"` (config del backend), InsForge envía un
+ * código numérico de 6 dígitos por email (no un link). Si el email no existe
+ * en auth.users, la API responde OK igual (anti-enumeración nativo). TTL y
+ * single-use los gestiona InsForge (built-in).
  */
-export async function requestInsforgePasswordReset(
-  email: string,
-  redirectTo: string
-): Promise<void> {
-  const baseUrl = readInsforgeBaseUrl();
-  let res = await fetch(`${baseUrl}/api/auth/email/send-reset-password`, {
-    method: 'POST',
-    headers: passwordResetHeaders(),
-    body: JSON.stringify({ email, redirectTo }),
-    cache: 'no-store',
-  });
-  // Compatibilidad con despliegues InsForge que todavía exponen el contrato
-  // recovery/verify anterior. El mock E2E implementa ambos contratos.
-  if (res.status === 404) {
-    res = await fetch(`${baseUrl}/auth/v1/recover`, {
-      method: 'POST',
-      headers: passwordResetHeaders(),
-      body: JSON.stringify({ email, redirect_to: redirectTo }),
-      cache: 'no-store',
-    });
-  }
-  // 204 = no content (aceptado); 200 = OK con body. Ambos son éxito.
-  // 404 = email no existe — InsForge puede retornar esto; tratarlo como éxito
-  // para no revelar existencia del usuario.
-  if (!res.ok && res.status !== 204 && res.status !== 404) {
-    throw new Error(
-      `[@labo/web/lib/server/auth] InsForge password reset request failed: ${res.status}`
-    );
-  }
+export async function requestInsforgePasswordReset(email: string): Promise<void> {
+  const client = insforgeAuthClient();
+  const { error } = await client.auth.sendResetPasswordEmail({ email });
+  if (error) throw error;
 }
 
 /**
- * Completa el reset de contraseña con el token del email y la nueva password.
+ * Completa el reset de contraseña con el código de 6 dígitos y la nueva
+ * password (flujo de dos pasos, `resetPasswordMethod: "code"`):
  *
- * Lanza `PasswordResetError` con `code` específico cuando el token es inválido,
- * expirado o ya usado (InsForge retorna estos errores nativamente).
+ *  1. `exchangeResetPasswordToken({ email, code })` → token de reset.
+ *  2. `resetPassword({ newPassword, otp: token })` → actualiza la password.
+ *
+ * Lanza `PasswordResetError` con `code` específico (INVALID_CODE, TOKEN_EXPIRED,
+ * RATE_LIMITED o RESET_FAILED) mapeado desde los códigos de InsForge.
  */
 export async function completeInsforgePasswordReset(
-  token: string,
+  email: string,
+  code: string,
   newPassword: string
 ): Promise<void> {
-  const baseUrl = readInsforgeBaseUrl();
-  let res = await fetch(`${baseUrl}/api/auth/email/reset-password`, {
-    method: 'POST',
-    headers: passwordResetHeaders(),
-    body: JSON.stringify({ otp: token, newPassword }),
-    cache: 'no-store',
-  });
-  if (res.status === 404) {
-    res = await fetch(`${baseUrl}/auth/v1/verify`, {
-      method: 'POST',
-      headers: passwordResetHeaders(),
-      body: JSON.stringify({ type: 'recovery', token, password: newPassword }),
-      cache: 'no-store',
-    });
-  }
-  if (res.ok || res.status === 204) return;
+  const client = insforgeAuthClient();
 
-  const payload = (await res.json().catch(() => ({}))) as InsforgeResetResponse;
-  throw new PasswordResetError(normalizePasswordResetError(payload, res.status));
+  const exchange = await client.auth.exchangeResetPasswordToken({ email, code });
+  if (exchange.error) {
+    throw exchange.error instanceof InsForgeError
+      ? mapInsforgeResetError(exchange.error)
+      : new PasswordResetError('RESET_FAILED');
+  }
+  const token = exchange.data?.token;
+  if (!token) throw new PasswordResetError('INVALID_CODE');
+
+  const reset = await client.auth.resetPassword({ newPassword, otp: token });
+  if (reset.error) {
+    throw reset.error instanceof InsForgeError
+      ? mapInsforgeResetError(reset.error)
+      : new PasswordResetError('RESET_FAILED');
+  }
 }

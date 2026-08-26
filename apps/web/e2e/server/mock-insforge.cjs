@@ -10,10 +10,9 @@
  *     POST   /api/auth/sessions/password   → login email+password
  *     GET    /api/auth/sessions/current    → valida Bearer token → usuario
  *     DELETE /api/auth/sessions/current    → logout (204)
- *     POST   /auth/v1/recover              → emite token recovery determinista
- *     POST   /auth/v1/verify               → consume token y actualiza password
- *     POST   /api/auth/email/send-reset-password → alias SDK InsForge actual
- *     POST   /api/auth/email/reset-password      → alias SDK InsForge actual
+ *     POST   /api/auth/email/send-reset-password            → emite código de 6 dígitos
+ *     POST   /api/auth/email/exchange-reset-password-token  → canjea código por token
+ *     POST   /api/auth/email/reset-password                 → consume token y actualiza password
  *
  *   Storage (usado por el export CSV server-side vía @insforge/sdk):
  *     POST   /api/storage/buckets/exports/upload-strategy   → método presigned
@@ -40,25 +39,12 @@ const users = loadUsers();
 const byEmail = new Map(users.map((u) => [u.email, u]));
 const byAuthUserId = new Map(users.map((u) => [u.authUserId, u]));
 const RECOVERY_TTL_MS = 60 * 60 * 1_000;
+const RECOVERY_CODE = '123456';
 const recoveryTokens = new Map();
+const pendingCodes = new Map(); // email -> { code, user, expiresAt, used }
 
 function recoveryTokenFor(user) {
   return `mock-recovery-${user.authUserId}`;
-}
-
-// Casos borde públicos y estables para specs que necesitan probar expiración
-// y single-use sin esperar una hora ni depender del reloj del runner.
-for (const user of users) {
-  recoveryTokens.set(`mock-recovery-expired-${user.authUserId}`, {
-    user,
-    expiresAt: 0,
-    used: false,
-  });
-  recoveryTokens.set(`mock-recovery-used-${user.authUserId}`, {
-    user,
-    expiresAt: Number.MAX_SAFE_INTEGER,
-    used: true,
-  });
 }
 
 function json(res, status, body) {
@@ -147,17 +133,14 @@ const server = http.createServer(async (req, res) => {
     return res.end();
   }
 
-  // ── Auth: solicitar recuperación de password ──────────────────────────
-  if (
-    method === 'POST' &&
-    (pathname === '/auth/v1/recover' || pathname === '/api/auth/email/send-reset-password')
-  ) {
+  // ── Auth: solicitar recuperación de password (código de 6 dígitos) ─────
+  if (method === 'POST' && pathname === '/api/auth/email/send-reset-password') {
     const body = JSON.parse((await readBody(req)) || '{}');
     const email = typeof body.email === 'string' ? body.email.trim().toLowerCase() : '';
     const user = byEmail.get(email);
 
     // Contrato anti-enumeración: la respuesta pública siempre es éxito. En el
-    // mock exponemos el token únicamente para que Playwright no dependa de SMTP.
+    // mock exponemos el código únicamente para que Playwright no dependa de SMTP.
     if (!user) {
       return json(res, 200, {
         success: true,
@@ -165,67 +148,84 @@ const server = http.createServer(async (req, res) => {
       });
     }
 
-    const token = recoveryTokenFor(user);
     const expiresAt = Date.now() + RECOVERY_TTL_MS;
-    recoveryTokens.set(token, { user, expiresAt, used: false });
+    pendingCodes.set(email, { code: RECOVERY_CODE, user, expiresAt, used: false });
 
     return json(res, 200, {
       success: true,
       message: 'If the account exists, a recovery email has been sent',
-      token,
-      expires_at: new Date(expiresAt).toISOString(),
+      code: RECOVERY_CODE,
     });
   }
 
-  // ── Auth: confirmar recuperación de password ──────────────────────────
-  if (
-    method === 'POST' &&
-    (pathname === '/auth/v1/verify' || pathname === '/api/auth/email/reset-password')
-  ) {
+  // ── Auth: canjear código por token de reset ─────────────────────────────
+  if (method === 'POST' && pathname === '/api/auth/email/exchange-reset-password-token') {
     const body = JSON.parse((await readBody(req)) || '{}');
-    const token =
-      typeof body.token === 'string'
-        ? body.token.trim()
-        : typeof body.otp === 'string'
-          ? body.otp.trim()
-          : '';
-    const password =
-      typeof body.password === 'string'
-        ? body.password
-        : typeof body.newPassword === 'string'
-          ? body.newPassword
-          : '';
-    const recovery = recoveryTokens.get(token);
+    const email = typeof body.email === 'string' ? body.email.trim().toLowerCase() : '';
+    const code = typeof body.code === 'string' ? body.code.trim() : '';
+    const pending = pendingCodes.get(email);
 
-    if (body.type !== undefined && body.type !== 'recovery') {
+    if (!pending || pending.used) {
       return json(res, 400, {
-        error: { message: 'Invalid recovery type', code: 'TOKEN_INVALID' },
+        error: { message: 'Invalid or expired code', code: 'INVALID_INPUT' },
       });
     }
+    if (pending.expiresAt <= Date.now()) {
+      return json(res, 400, {
+        error: { message: 'Code expired', code: 'AUTH_TOKEN_EXPIRED' },
+      });
+    }
+    if (pending.code !== code) {
+      return json(res, 400, {
+        error: { message: 'Invalid code', code: 'INVALID_INPUT' },
+      });
+    }
+
+    pending.used = true;
+    const token = recoveryTokenFor(pending.user);
+    recoveryTokens.set(token, {
+      user: pending.user,
+      expiresAt: Date.now() + RECOVERY_TTL_MS,
+      used: false,
+    });
+
+    return json(res, 200, {
+      token,
+      expiresAt: new Date(Date.now() + RECOVERY_TTL_MS).toISOString(),
+    });
+  }
+
+  // ── Auth: consumir token y actualizar password ─────────────────────────
+  if (method === 'POST' && pathname === '/api/auth/email/reset-password') {
+    const body = JSON.parse((await readBody(req)) || '{}');
+    const token = typeof body.otp === 'string' ? body.otp.trim() : '';
+    const password = typeof body.newPassword === 'string' ? body.newPassword : '';
+    const recovery = recoveryTokens.get(token);
+
     if (!recovery) {
       return json(res, 400, {
-        error: { message: 'Invalid recovery token', code: 'TOKEN_INVALID' },
+        error: { message: 'Invalid reset token', code: 'INVALID_INPUT' },
       });
     }
     if (recovery.used) {
       return json(res, 400, {
-        error: { message: 'Recovery token already used', code: 'TOKEN_USED' },
+        error: { message: 'Reset token already used', code: 'INVALID_INPUT' },
       });
     }
     if (recovery.expiresAt <= Date.now()) {
-      return json(res, 410, {
-        error: { message: 'Recovery token expired', code: 'TOKEN_EXPIRED' },
+      return json(res, 400, {
+        error: { message: 'Reset token expired', code: 'AUTH_TOKEN_EXPIRED' },
       });
     }
     if (password.length < 8) {
       return json(res, 400, {
-        error: { message: 'Password too short', code: 'PASSWORD_TOO_SHORT' },
+        error: { message: 'Password too short', code: 'AUTH_WEAK_PASSWORD' },
       });
     }
 
     recovery.used = true;
     recovery.user.password = password;
-    return json(res, 200, { success: true, message: 'Password updated' });
+    return json(res, 200, { message: 'Password reset successfully' });
   }
 
   // ── Storage: estrategia de upload (export CSV) ─────────────────────────

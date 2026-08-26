@@ -8,9 +8,9 @@ import { useState, type FormEvent } from "react";
 import { Button } from "@/components/ui/button";
 
 const ERROR_MESSAGES: Record<string, string> = {
-  TOKEN_EXPIRED: "El link expiró. Solicitá uno nuevo.",
-  TOKEN_USED: "El link ya fue utilizado. Solicitá uno nuevo.",
-  TOKEN_INVALID: "El link es inválido. Solicitá uno nuevo.",
+  INVALID_CODE: "Código incorrecto. Verificá e intentá de nuevo.",
+  TOKEN_EXPIRED: "El código expiró. Solicitá uno nuevo.",
+  RATE_LIMITED: "Demasiados intentos. Esperá unos minutos.",
   PASSWORD_TOO_SHORT: "La contraseña debe tener al menos 8 caracteres.",
   RESET_FAILED: "No se pudo restablecer la contraseña. Intentá de nuevo.",
 };
@@ -19,17 +19,18 @@ const inputClassName =
   "flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50";
 
 interface Props {
-  token: string;
+  email: string;
 }
 
-export function ResetForm({ token }: Props) {
+export function ResetForm({ email }: Props) {
   const router = useRouter();
+  const [code, setCode] = useState("");
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
-  if (!token) {
+  if (!email) {
     return (
       <div className="flex flex-col items-center gap-4 text-center">
         <p className="text-sm text-muted-foreground">
@@ -50,6 +51,10 @@ export function ResetForm({ token }: Props) {
     event.preventDefault();
     setError(null);
 
+    if (!/^\d{6}$/.test(code.trim())) {
+      setError("Ingresá el código de 6 dígitos que recibiste por email.");
+      return;
+    }
     if (password.length < 8) {
       setError(ERROR_MESSAGES.PASSWORD_TOO_SHORT);
       return;
@@ -64,7 +69,7 @@ export function ResetForm({ token }: Props) {
       const res = await fetch("/api/auth/reset", {
         method: "PUT",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ token, password }),
+        body: JSON.stringify({ email, code: code.trim(), password }),
         cache: "no-store",
       });
 
@@ -72,8 +77,8 @@ export function ResetForm({ token }: Props) {
         const body = (await res.json().catch(() => ({}))) as {
           error?: string;
         };
-        const code = body.error ?? "RESET_FAILED";
-        setError(ERROR_MESSAGES[code] ?? ERROR_MESSAGES.RESET_FAILED);
+        const codeError = body.error ?? "RESET_FAILED";
+        setError(ERROR_MESSAGES[codeError] ?? ERROR_MESSAGES.RESET_FAILED);
         return;
       }
 
@@ -87,6 +92,31 @@ export function ResetForm({ token }: Props) {
 
   return (
     <form onSubmit={onSubmit} className="flex flex-col gap-4" noValidate>
+      <p className="text-sm text-muted-foreground">
+        Ingresá el código de 6 dígitos que enviamos a{" "}
+        <span className="font-medium text-foreground">{email}</span>.
+      </p>
+
+      <div className="flex flex-col gap-2">
+        <label htmlFor="code" className="text-sm font-medium leading-none">
+          Código de verificación
+        </label>
+        <input
+          id="code"
+          name="code"
+          type="text"
+          inputMode="numeric"
+          autoComplete="one-time-code"
+          value={code}
+          onChange={(event) =>
+            setCode(event.target.value.replace(/[^\d]/g, "").slice(0, 6))
+          }
+          disabled={submitting}
+          placeholder="123456"
+          className={`${inputClassName} text-center tracking-[0.5em]`}
+        />
+      </div>
+
       <div className="flex flex-col gap-2">
         <label htmlFor="password" className="text-sm font-medium leading-none">
           Nueva contraseña
@@ -149,7 +179,7 @@ export function ResetForm({ token }: Props) {
         href="/forgot-password"
         className="text-center text-sm text-muted-foreground underline underline-offset-4"
       >
-        Solicitar nuevo link
+        No recibí el código — reenviar
       </Link>
     </form>
   );
