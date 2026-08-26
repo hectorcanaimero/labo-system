@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
-import { getCurrentUser, AUTH_COOKIE_NAMES } from "@labo/lib/server/auth";
+import { getCurrentUser, AUTH_COOKIE_NAMES, AuthError } from "@/lib/server/auth";
 import { getSignedDownloadUrl } from "@labo/lib/csv-export";
 
 export const dynamic = "force-dynamic";
@@ -37,8 +37,11 @@ export async function GET(request: Request) {
         },
       },
     );
-  } catch (error: any) {
-    if (error.code === "UNAUTHENTICATED" || error.code === "UNAUTHORIZED") {
+  } catch (error) {
+    if (
+      error instanceof AuthError &&
+      (error.code === "UNAUTHENTICATED" || error.code === "UNAUTHORIZED")
+    ) {
       return NextResponse.json({ error: "No autorizado" }, { status: 401 });
     }
     console.error("[GET /api/export/url] Error:", error);

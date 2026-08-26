@@ -55,7 +55,7 @@ export function ForgotForm() {
           tu contraseña. Revisá también la carpeta de spam.
         </p>
         <Link
-          href="/login"
+          href="/"
           className="text-sm font-medium underline underline-offset-4"
         >
           Volver al login
@@ -111,7 +111,7 @@ export function ForgotForm() {
       </Button>
 
       <Link
-        href="/login"
+        href="/"
         className="text-center text-sm text-muted-foreground underline underline-offset-4"
       >
         Volver al login

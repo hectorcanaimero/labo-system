@@ -71,9 +71,9 @@ export default function AppLayout({ children }: { children: ReactNode }) {
           cache: "no-store",
         });
 
-        // Sesión expirada o inválida → a `/login` de inmediato.
+        // Sesión expirada o inválida → a `/` de inmediato.
         if (!res.ok) {
-          router.replace("/login");
+          router.replace("/");
           return;
         }
 
@@ -87,7 +87,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
         setLoading(false);
       } catch {
         if (!cancelled) {
-          router.replace("/login");
+          router.replace("/");
         }
       }
     }
@@ -110,7 +110,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
     } catch {
       // Best-effort: el redirect es la fuente de "no autenticado" en el cliente.
     } finally {
-      router.replace("/login");
+      router.replace("/");
       router.refresh();
     }
   }

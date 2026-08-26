@@ -2,7 +2,7 @@ import { createClient } from "@insforge/sdk";
 
 export function writeCsv(
   rows: Array<Record<string, unknown>>,
-  columns: Array<{ key: string; header: string; format?: (val: any) => string }>,
+  columns: Array<{ key: string; header: string; format?: (val: unknown) => string }>,
 ): string {
   const BOM = "\uFEFF";
 

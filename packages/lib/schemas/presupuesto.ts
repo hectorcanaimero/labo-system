@@ -1,4 +1,4 @@
-import { z } from "zod";
+import { z } from 'zod';
 
 /**
  * Errores de validación del dominio de presupuestos.
@@ -8,24 +8,63 @@ import { z } from "zod";
  * (`presupuestos.descuento_pct BETWEEN 0 AND 100`, `ganancia_pct >= 0`,
  * `tasa_bs > 0`, `presupuestos_paciente_xor`) que actúan como última red.
  */
-export const DESCUENTO_FUERA_RANGO = "DESCUENTO_FUERA_RANGO";
-export const GANANCIA_NEGATIVA = "GANANCIA_NEGATIVA";
-export const TASA_INVALIDA = "TASA_INVALIDA";
-export const PACIENTE_XOR_REQUIRED = "PACIENTE_XOR_REQUIRED";
+export const DESCUENTO_FUERA_RANGO = 'DESCUENTO_FUERA_RANGO';
+export const GANANCIA_NEGATIVA = 'GANANCIA_NEGATIVA';
+export const TASA_INVALIDA = 'TASA_INVALIDA';
+export const PACIENTE_XOR_REQUIRED = 'PACIENTE_XOR_REQUIRED';
 /** Alias histórico en español; ambos exponen el código HTTP canónico. */
 export const PACIENTE_XOR_REQUERIDO = PACIENTE_XOR_REQUIRED;
-export const EXAMENES_REQUERIDOS = "EXAMENES_REQUERIDOS";
-export const EXAMEN_ID_REQUERIDO = "EXAMEN_ID_REQUERIDO";
+export const EXAMENES_REQUERIDOS = 'EXAMENES_REQUERIDOS';
+export const EXAMEN_ID_REQUERIDO = 'EXAMEN_ID_REQUERIDO';
+export const MOTIVO_RECHAZO_REQUERIDO = 'MOTIVO_RECHAZO_REQUERIDO';
+export const PRECIO_INVALIDO = 'PRECIO_INVALIDO';
 
 /**
- * Estados posibles de un presupuesto (ADR-05 / DDL `estado`).
+ * Estados posibles del pipeline comercial de presupuestos.
  */
-export const ESTADO_PRESUPUESTO = ["Borrador", "Aprobado", "Convertido"] as const;
-export type EstadoPresupuesto = (typeof ESTADO_PRESUPUESTO)[number];
+export const ESTADO_PRESUPUESTO = [
+  'Borrador',
+  'Enviado',
+  'Aprobado',
+  'Rechazado',
+  'Cancelado',
+  'Convertido',
+] as const;
 
-export const estadoPresupuestoSchema = z.enum(ESTADO_PRESUPUESTO, {
-  errorMap: () => ({ message: "ESTADO_INVALIDO" }),
+export const PresupuestoEstadoEnum = z.enum(ESTADO_PRESUPUESTO, {
+  errorMap: () => ({ message: 'ESTADO_INVALIDO' }),
 });
+export type PresupuestoEstado = z.infer<typeof PresupuestoEstadoEnum>;
+
+/** Alias de compatibilidad con el contrato anterior. */
+export const estadoPresupuestoSchema = PresupuestoEstadoEnum;
+export type EstadoPresupuesto = PresupuestoEstado;
+
+/**
+ * Contrato para solicitar un cambio de estado.
+ *
+ * El motivo es obligatorio y debe aportar contenido real cuando el presupuesto
+ * pasa a `Rechazado`; en el resto de los estados es opcional.
+ */
+export const presupuestoCambiarEstadoSchema = z
+  .object({
+    estado: PresupuestoEstadoEnum,
+    motivo_rechazo: z.string().trim().optional(),
+  })
+  .superRefine((data, ctx) => {
+    if (
+      data.estado === 'Rechazado' &&
+      (data.motivo_rechazo == null || data.motivo_rechazo.length < 3)
+    ) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: MOTIVO_RECHAZO_REQUERIDO,
+        path: ['motivo_rechazo'],
+      });
+    }
+  });
+
+export type PresupuestoCambiarEstadoInput = z.infer<typeof presupuestoCambiarEstadoSchema>;
 
 /**
  * Descuento expresado en porcentaje: 0..100 (inclusive).
@@ -43,27 +82,34 @@ export const descuentoPctSchema = z
  * No se admite ganancia negativa (perdería dinero el laboratorio). Refleja el
  * CHECK `ganancia_pct >= 0`.
  */
-export const gananciaPctSchema = z
-  .number()
-  .refine((v) => v >= 0, { message: GANANCIA_NEGATIVA });
+export const gananciaPctSchema = z.number().refine((v) => v >= 0, { message: GANANCIA_NEGATIVA });
 
 /**
  * Tasa de cambio Bs/USD: estrictamente > 0 (una tasa 0 produce totales Bs = 0).
  *
  * Refleja el CHECK `tasa_bs > 0`.
  */
-export const tasaBsSchema = z
+export const tasaBsSchema = z.number().refine((v) => v > 0, { message: TASA_INVALIDA });
+
+/** Precio snapshot de una línea, expresado en USD y nunca negativo. */
+export const precioSnapshotSchema = z
   .number()
-  .refine((v) => v > 0, { message: TASA_INVALIDA });
+  .finite()
+  .refine((v) => v >= 0, { message: PRECIO_INVALIDO });
 
 /**
- * Línea de presupuesto: una referencia a un examen del catálogo.
+ * Línea de presupuesto: referencia al examen y snapshots de pricing.
  *
- * Los snapshots (`nombre_snap`, `precio_snap`) los resuelve el backend al crear,
- * igual que en resultados (ADR-04). Acá sólo se valida la referencia.
+ * Los snapshots de nombre/precio/pricing pueden ser completados por el backend
+ * al crear, igual que en resultados (ADR-04); por eso los campos de pricing son
+ * opcionales en el payload de entrada y obligatorios en el DDL persistido.
  */
 export const lineaPresupuestoSchema = z.object({
   examen_id: z.string().min(1, { message: EXAMEN_ID_REQUERIDO }),
+  paquete_id: z.string().min(1).optional(),
+  precio_base_snap: precioSnapshotSchema.optional(),
+  ganancia_pct: gananciaPctSchema.optional(),
+  precio_final_snap: precioSnapshotSchema.optional(),
 });
 export type LineaPresupuestoInput = z.infer<typeof lineaPresupuestoSchema>;
 
@@ -72,9 +118,7 @@ export type LineaPresupuestoInput = z.infer<typeof lineaPresupuestoSchema>;
  *
  * `(a == null) !== (b == null)` es `true` solo cuando exactamente uno es `null`.
  */
-function xorPaciente(
-  data: { paciente_id?: string; paciente_nombre_libre?: string },
-): boolean {
+function xorPaciente(data: { paciente_id?: string; paciente_nombre_libre?: string }): boolean {
   return (data.paciente_id == null) !== (data.paciente_nombre_libre == null);
 }
 
@@ -95,13 +139,11 @@ export const presupuestoCreateSchema = z
     descuento_pct: descuentoPctSchema,
     ganancia_pct: gananciaPctSchema,
     tasa_bs: tasaBsSchema,
-    examenes: z
-      .array(lineaPresupuestoSchema)
-      .min(1, { message: EXAMENES_REQUERIDOS }),
+    examenes: z.array(lineaPresupuestoSchema).min(1, { message: EXAMENES_REQUERIDOS }),
   })
   .refine(xorPaciente, {
     message: PACIENTE_XOR_REQUIRED,
-    path: ["paciente_id"],
+    path: ['paciente_id'],
   });
 
 export type PresupuestoCreateInput = z.infer<typeof presupuestoCreateSchema>;
@@ -121,18 +163,11 @@ export const presupuestoUpdateSchema = z
     tasa_bs: tasaBsSchema.optional(),
     estado: estadoPresupuestoSchema.optional(),
     resultado_id: z.string().min(1).optional(),
-    examenes: z
-      .array(lineaPresupuestoSchema)
-      .min(1, { message: EXAMENES_REQUERIDOS })
-      .optional(),
+    examenes: z.array(lineaPresupuestoSchema).min(1, { message: EXAMENES_REQUERIDOS }).optional(),
   })
-  .refine(
-    (data) =>
-      data.paciente_id == null || data.paciente_nombre_libre == null,
-    {
-      message: PACIENTE_XOR_REQUIRED,
-      path: ["paciente_nombre_libre"],
-    },
-  );
+  .refine((data) => data.paciente_id == null || data.paciente_nombre_libre == null, {
+    message: PACIENTE_XOR_REQUIRED,
+    path: ['paciente_nombre_libre'],
+  });
 
 export type PresupuestoUpdateInput = z.infer<typeof presupuestoUpdateSchema>;

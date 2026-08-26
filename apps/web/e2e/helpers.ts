@@ -18,7 +18,7 @@ export async function login(
   email: string,
   password: string,
 ): Promise<void> {
-  await page.goto("/login");
+  await page.goto("/");
   await page.locator("#email").fill(email);
   await page.locator("#password").fill(password);
   await page.getByRole("button", { name: "Entrar" }).click();

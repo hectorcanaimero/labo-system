@@ -106,10 +106,10 @@ INSERT INTO tasa_cambio_bcv (id, tasa, fecha, fuente, created_by) VALUES
   ('${TASA_BCV}', 36.5000, now(), 'manual', '${adminId}');
 
 INSERT INTO presupuestos (id, paciente_id, descuento_pct, ganancia_pct, tasa_bs, total_usd, total_bs, estado, created_by) VALUES
-  ('${PRESUPUESTO_SEED}', '${PACIENTE_MARIA}', 0, 30, 36.5000, 25.00, 912.50, 'Borrador', '${operadorId}');
+  ('${PRESUPUESTO_SEED}', '${PACIENTE_MARIA}', 0, 30, 36.5000, 32.50, 1186.25, 'Borrador', '${operadorId}');
 
-INSERT INTO presupuestos_examenes (id, presupuesto_id, examen_id, nombre_snap, precio_snap, orden) VALUES
-  ('${PRESUPUESTO_LINEA}', '${PRESUPUESTO_SEED}', '${EXAMEN_HEMOGRAMA}', 'Hemograma Completo', 25.00, 0);
+INSERT INTO presupuestos_examenes (id, presupuesto_id, examen_id, nombre_snap, precio_snap, precio_base_snap, ganancia_pct, precio_final_snap, orden) VALUES
+  ('${PRESUPUESTO_LINEA}', '${PRESUPUESTO_SEED}', '${EXAMEN_HEMOGRAMA}', 'Hemograma Completo', 25.00, 25.00, 30, 32.50, 0);
 `;
 }
 

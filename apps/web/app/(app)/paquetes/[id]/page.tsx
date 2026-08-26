@@ -1,7 +1,7 @@
 import { notFound, redirect } from "next/navigation";
 
 import { getById } from "@labo/db/repos/paquetes";
-import { AuthError, getCurrentUser } from "@labo/lib/server/auth";
+import { AuthError, getCurrentUser } from "@/lib/server/auth";
 import { PaqueteBuilder, type PaqueteBuilderData } from "../PaqueteBuilder";
 
 async function requireOperador() {
@@ -24,6 +24,7 @@ export default async function PaqueteDetailPage({ params }: { params: { id: stri
     id: paquete.id,
     nombre: paquete.nombre,
     descripcion: paquete.descripcion,
+    precio_base: paquete.precio_base,
     examenes: paquete.examenes,
   };
   return <PaqueteBuilder initialData={initialData} canEdit={user.role === "admin"} />;

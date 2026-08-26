@@ -15,31 +15,30 @@ export interface PacienteInfoProps {
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: "#f0f9ff",
-    borderColor: "#bae6fd",
-    borderRadius: 3,
-    borderWidth: 0.75,
     marginBottom: 16,
-    marginTop: 14,
-    padding: 10,
+    marginTop: 4,
+    borderWidth: 1,
+    borderColor: "#DCDCDC",
+    borderRadius: 4,
+    overflow: "hidden",
   },
   row: {
     flexDirection: "row",
-    marginBottom: 5,
+    paddingVertical: 6,
+    paddingHorizontal: 10,
   },
-  lastRow: {
-    flexDirection: "row",
+  rowOdd: {
+    backgroundColor: "#E6E6E6",
   },
-  fieldWide: {
-    paddingRight: 12,
-    width: "55%",
+  rowEven: {
+    backgroundColor: "#DCDCDC",
   },
-  fieldNarrow: {
-    paddingRight: 12,
-    width: "22.5%",
+  field: {
+    flex: 1,
+    paddingRight: 8,
   },
   label: {
-    color: "#64748b",
+    color: "#0E9090",
     fontFamily: "Helvetica-Bold",
     fontSize: 7.5,
     marginBottom: 2,
@@ -47,7 +46,8 @@ const styles = StyleSheet.create({
   },
   value: {
     color: "#0f172a",
-    fontSize: 9.5,
+    fontSize: 9,
+    fontFamily: "Helvetica-Bold",
   },
 });
 
@@ -57,31 +57,45 @@ const SEX_LABELS: Record<NonNullable<PacienteInfoData["sexo"]>, string> = {
   O: "Otro",
 };
 
+function getEtapaClinica(edad: number): string {
+  if (edad < 1) return "Lactante"; // Or Neonatal
+  if (edad < 12) return "Pediátrico";
+  if (edad < 18) return "Adolescente";
+  if (edad < 60) return "Adulto";
+  return "Tercera Edad";
+}
+
 export function PacienteInfo({ paciente, edad, fecha }: PacienteInfoProps) {
+  const etapaClinica = getEtapaClinica(edad);
+  const edadDisplay = edad === 0 ? "Menor a 1 año" : `${edad} años`;
+  
   return (
     <View style={styles.container}>
-      <View style={styles.row}>
-        <View style={styles.fieldWide}>
+      <View style={[styles.row, styles.rowEven]}>
+        <View style={[styles.field, { flex: 2 }]}>
           <Text style={styles.label}>Paciente</Text>
           <Text style={styles.value}>{paciente.nombre} {paciente.apellido}</Text>
         </View>
-        <View style={styles.fieldNarrow}>
+        <View style={styles.field}>
           <Text style={styles.label}>Cédula</Text>
           <Text style={styles.value}>{paciente.cedula}</Text>
         </View>
-        <View style={styles.fieldNarrow}>
-          <Text style={styles.label}>Edad</Text>
-          <Text style={styles.value}>{edad} años</Text>
-        </View>
-      </View>
-      <View style={styles.lastRow}>
-        <View style={styles.fieldWide}>
-          <Text style={styles.label}>Fecha de muestra</Text>
-          <Text style={styles.value}>{fecha}</Text>
-        </View>
-        <View style={styles.fieldNarrow}>
+        <View style={styles.field}>
           <Text style={styles.label}>Sexo</Text>
           <Text style={styles.value}>{paciente.sexo ? SEX_LABELS[paciente.sexo] : "No indicado"}</Text>
+        </View>
+      </View>
+      <View style={[styles.row, styles.rowOdd]}>
+        <View style={[styles.field, { flex: 2 }]}>
+          <Text style={styles.label}>Edad / Etapa Clínica</Text>
+          <Text style={styles.value}>{edadDisplay} ({etapaClinica})</Text>
+        </View>
+        <View style={styles.field}>
+          <Text style={styles.label}>Fecha de Muestra</Text>
+          <Text style={styles.value}>{fecha}</Text>
+        </View>
+        <View style={styles.field}>
+          {/* Placeholder for alignment if needed, or something else */}
         </View>
       </View>
     </View>

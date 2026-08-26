@@ -20,6 +20,7 @@ const descripcionUpdateSchema = z
 export const paqueteCreate = z.object({
   nombre: nombreSchema,
   descripcion: descripcionCreateSchema,
+  precio_base: z.number().min(0).default(0),
 });
 
 export type PaqueteCreateInput = z.infer<typeof paqueteCreate>;
@@ -27,6 +28,7 @@ export type PaqueteCreateInput = z.infer<typeof paqueteCreate>;
 export const paqueteUpdate = z.object({
   nombre: nombreSchema.optional(),
   descripcion: descripcionUpdateSchema,
+  precio_base: z.number().min(0).optional(),
 });
 
 export type PaqueteUpdateInput = z.infer<typeof paqueteUpdate>;

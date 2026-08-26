@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 
 import { get, update } from "@labo/db/repos/config";
-import { AuthError, getCurrentUser, requireRole } from "@labo/lib/server/auth";
+import { AuthError, getCurrentUser, requireRole } from "@/lib/server/auth";
 import { NOMBRE_REQUERIDO, RIF_INVALIDO } from "@labo/lib/schemas/config";
 
 export const runtime = "nodejs";

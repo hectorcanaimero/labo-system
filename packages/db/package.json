@@ -19,6 +19,7 @@
     "migrate": "psql \"$DATABASE_URL\" -v ON_ERROR_STOP=1 -f migrations/0001_init.sql"
   },
   "dependencies": {
+    "@labo/lib": "workspace:*",
     "postgres": "^3.4.5"
   },
   "devDependencies": {

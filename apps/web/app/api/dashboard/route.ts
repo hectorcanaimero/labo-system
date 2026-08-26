@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { getKPIs, getResultadosPorMes, getRecentActivity } from "@labo/db/repos/dashboard";
-import { AuthError, getCurrentUser } from "@labo/lib/server/auth";
+import { AuthError, getCurrentUser } from "@/lib/server/auth";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";

@@ -1,10 +1,10 @@
-"use client";
+'use client';
 
-import { useEffect, useMemo, useState } from "react";
-import { FlaskConical, Loader2, PencilLine, Plus, X } from "lucide-react";
+import { useEffect, useMemo, useState } from 'react';
+import { FlaskConical, Loader2, PencilLine, Plus, X } from 'lucide-react';
 
-import { Button } from "@/components/ui/button";
-import { toHumanError } from "@labo/lib/error-messages";
+import { Button } from '@/components/ui/button';
+import { toHumanError } from '@labo/lib/error-messages';
 
 interface ExamenDraft {
   id: string;
@@ -13,6 +13,8 @@ interface ExamenDraft {
   precio_usd: number;
   unidad: string | null;
   valores_referencia: string | null;
+  tipo_analisis: string | null;
+  metodo: string | null;
   activo: boolean;
 }
 
@@ -31,11 +33,11 @@ interface ApiErrorPayload {
 
 async function readApiError(response: Response): Promise<Error> {
   const payload = (await response.json().catch(() => null)) as ApiErrorPayload | null;
-  return new Error(payload?.error ?? "ERROR_GENERICO");
+  return new Error(payload?.error ?? 'ERROR_GENERICO');
 }
 
 function formatPriceInput(price?: number): string {
-  return typeof price === "number" && Number.isFinite(price) ? price.toFixed(2) : "";
+  return typeof price === 'number' && Number.isFinite(price) ? price.toFixed(2) : '';
 }
 
 export function ExamenFormDialog({
@@ -47,17 +49,16 @@ export function ExamenFormDialog({
   tituloNombre,
 }: ExamenFormDialogProps) {
   const isEdit = Boolean(examen);
-  const [nombre, setNombre] = useState("");
-  const [precioUsd, setPrecioUsd] = useState("");
-  const [unidad, setUnidad] = useState("");
-  const [valoresReferencia, setValoresReferencia] = useState("");
+  const [nombre, setNombre] = useState('');
+  const [precioUsd, setPrecioUsd] = useState('');
+  const [unidad, setUnidad] = useState('');
+  const [valoresReferencia, setValoresReferencia] = useState('');
+  const [tipoAnalisis, setTipoAnalisis] = useState('');
+  const [metodo, setMetodo] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  const dialogTitle = useMemo(
-    () => (isEdit ? "Editar examen" : "Nuevo examen"),
-    [isEdit],
-  );
+  const dialogTitle = useMemo(() => (isEdit ? 'Editar examen' : 'Nuevo examen'), [isEdit]);
 
   useEffect(() => {
     if (!open) {
@@ -66,10 +67,12 @@ export function ExamenFormDialog({
       return;
     }
 
-    setNombre(examen?.nombre ?? "");
+    setNombre(examen?.nombre ?? '');
     setPrecioUsd(formatPriceInput(examen?.precio_usd));
-    setUnidad(examen?.unidad ?? "");
-    setValoresReferencia(examen?.valores_referencia ?? "");
+    setUnidad(examen?.unidad ?? '');
+    setValoresReferencia(examen?.valores_referencia ?? '');
+    setTipoAnalisis(examen?.tipo_analisis ?? '');
+    setMetodo(examen?.metodo ?? '');
     setErrorMessage(null);
   }, [examen, open]);
 
@@ -85,15 +88,15 @@ export function ExamenFormDialog({
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const trimmedNombre = nombre.trim();
-    const parsedPrecio = Number.parseFloat(precioUsd.replace(",", "."));
+    const parsedPrecio = Number.parseFloat(precioUsd.replace(',', '.'));
 
     if (trimmedNombre.length === 0) {
-      setErrorMessage("Ingresá el nombre del examen.");
+      setErrorMessage('Ingresá el nombre del examen.');
       return;
     }
 
     if (!Number.isFinite(parsedPrecio) || parsedPrecio < 0) {
-      setErrorMessage("Ingresá un precio válido en USD.");
+      setErrorMessage('Ingresá un precio válido en USD.');
       return;
     }
 
@@ -101,11 +104,11 @@ export function ExamenFormDialog({
     setErrorMessage(null);
 
     try {
-      const response = await fetch(isEdit ? `/api/examenes/${examen?.id}` : "/api/examenes", {
-        method: isEdit ? "PATCH" : "POST",
+      const response = await fetch(isEdit ? `/api/examenes/${examen?.id}` : '/api/examenes', {
+        method: isEdit ? 'PATCH' : 'POST',
         headers: {
-          "content-type": "application/json",
-          accept: "application/json",
+          'content-type': 'application/json',
+          accept: 'application/json',
         },
         body: JSON.stringify(
           isEdit
@@ -114,6 +117,8 @@ export function ExamenFormDialog({
                 precio_usd: Number(parsedPrecio.toFixed(2)),
                 unidad,
                 valores_referencia: valoresReferencia,
+                tipo_analisis: tipoAnalisis.trim() || null,
+                metodo: metodo.trim() || null,
               }
             : {
                 titulo_id: tituloId,
@@ -121,16 +126,18 @@ export function ExamenFormDialog({
                 precio_usd: Number(parsedPrecio.toFixed(2)),
                 unidad,
                 valores_referencia: valoresReferencia,
-              },
+                tipo_analisis: tipoAnalisis.trim() || null,
+                metodo: metodo.trim() || null,
+              }
         ),
       });
 
       if (response.status === 401) {
-        window.location.href = "/login";
+        window.location.href = '/login';
         return;
       }
       if (response.status === 403) {
-        window.location.href = "/dashboard?reason=sin-permisos";
+        window.location.href = '/dashboard?reason=sin-permisos';
         return;
       }
       if (!response.ok) {
@@ -152,9 +159,7 @@ export function ExamenFormDialog({
       <div className="w-full max-w-2xl rounded-xl border border-border bg-card p-6 text-card-foreground shadow-lg">
         <div className="flex items-start justify-between gap-4">
           <div className="flex flex-col gap-1">
-            <h2 className="text-lg font-semibold leading-none tracking-tight">
-              {dialogTitle}
-            </h2>
+            <h2 className="text-lg font-semibold leading-none tracking-tight">{dialogTitle}</h2>
             <p className="text-sm text-muted-foreground">
               {isEdit
                 ? `Actualizá nombre, precio y referencia de ${tituloNombre}.`
@@ -223,6 +228,54 @@ export function ExamenFormDialog({
             />
           </div>
 
+          <div className="flex flex-col gap-2">
+            <label htmlFor="examen-tipo-analisis" className="text-sm font-medium">
+              Tipo de análisis
+            </label>
+            <input
+              id="examen-tipo-analisis"
+              type="text"
+              value={tipoAnalisis}
+              onChange={(event) => setTipoAnalisis(event.target.value)}
+              disabled={submitting}
+              list="tipos-analisis-list"
+              placeholder="Ej. Sangre, Orina"
+              className="flex h-11 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+            />
+            <datalist id="tipos-analisis-list">
+              <option value="Sangre" />
+              <option value="Orina" />
+              <option value="Heces" />
+              <option value="Hematología" />
+              <option value="Química sanguínea" />
+              <option value="Inmunología" />
+            </datalist>
+          </div>
+
+          <div className="flex flex-col gap-2 md:col-span-2">
+            <label htmlFor="examen-metodo" className="text-sm font-medium">
+              Método
+            </label>
+            <input
+              id="examen-metodo"
+              type="text"
+              value={metodo}
+              onChange={(event) => setMetodo(event.target.value)}
+              disabled={submitting}
+              list="metodos-list"
+              placeholder="Ej. Espectrofotometría, ELISA"
+              className="flex h-11 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+            />
+            <datalist id="metodos-list">
+              <option value="Espectrofotometría" />
+              <option value="Quimioluminiscencia" />
+              <option value="ELISA" />
+              <option value="Microscopía" />
+              <option value="PCR" />
+              <option value="Inmunocromatografía" />
+            </datalist>
+          </div>
+
           <div className="flex flex-col gap-2 md:col-span-2">
             <label htmlFor="examen-referencia" className="text-sm font-medium">
               Valores de referencia
@@ -245,12 +298,7 @@ export function ExamenFormDialog({
           ) : null}
 
           <div className="flex justify-end gap-2 pt-2 md:col-span-2">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={handleClose}
-              disabled={submitting}
-            >
+            <Button type="button" variant="outline" onClick={handleClose} disabled={submitting}>
               Cancelar
             </Button>
             <Button type="submit" disabled={submitting}>

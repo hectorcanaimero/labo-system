@@ -8,7 +8,7 @@ import {
   update,
   updateEstado,
 } from "@labo/db/repos/resultados";
-import { AuthError, getCurrentUser, requireRole } from "@labo/lib/server/auth";
+import { AuthError, getCurrentUser, requireRole } from "@/lib/server/auth";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";

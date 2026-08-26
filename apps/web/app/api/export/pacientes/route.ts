@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { getSql } from "@labo/db/client";
-import { AuthError, getCurrentUser } from "@labo/lib/server/auth";
+import { AuthError, getCurrentUser } from "@/lib/server/auth";
 import { createClient } from "@insforge/sdk";
 
 export const runtime = "nodejs";

@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 
 import { list } from "@labo/db/repos/resultados";
-import { AuthError, getCurrentUser } from "@labo/lib/server/auth";
+import { AuthError, getCurrentUser } from "@/lib/server/auth";
 
 import { ResultadosList, type PaginatedResultadosResponse } from "./ResultadosList";
 

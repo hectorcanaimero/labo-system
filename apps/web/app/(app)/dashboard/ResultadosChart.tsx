@@ -33,13 +33,20 @@ function formatMes(mes: string): string {
   return `${MONTH_NAMES[month ?? ""] ?? month} '${(year ?? "").slice(2)}`;
 }
 
-function CustomTooltip({ active, payload, label }: any) {
+interface CustomTooltipProps {
+  active?: boolean;
+  payload?: ReadonlyArray<{ value?: string | number }>;
+  label?: string | number;
+}
+
+function CustomTooltip({ active, payload, label }: CustomTooltipProps) {
   if (!active || !payload?.length) return null;
+  const value = Number(payload[0]?.value ?? 0);
   return (
     <div className="rounded-lg border border-border bg-card px-3 py-2 shadow-md">
       <p className="text-xs font-medium text-muted-foreground">{label}</p>
       <p className="text-sm font-bold text-foreground">
-        {payload[0]?.value ?? 0} resultado{(payload[0]?.value ?? 0) !== 1 ? "s" : ""}
+        {value} resultado{value !== 1 ? "s" : ""}
       </p>
     </div>
   );

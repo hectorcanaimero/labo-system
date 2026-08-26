@@ -13,11 +13,12 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     minHeight: 76,
     paddingBottom: 12,
-    paddingTop: 8,
+    paddingTop: 16,
+    gap: 40, // space between firma and sello
   },
   signatureBlock: {
     alignItems: "center",
-    marginHorizontal: 12,
+    marginHorizontal: 12, // fallback for gap
     width: 150,
   },
   asset: {
@@ -26,26 +27,40 @@ const styles = StyleSheet.create({
     width: 120,
   },
   signatureLine: {
-    borderTopColor: "#64748b",
-    borderTopWidth: 0.5,
-    color: "#475569",
+    borderTopColor: "#0E9090",
+    borderTopWidth: 1,
+    color: "#0E9090",
+    fontFamily: "Helvetica-Bold",
     fontSize: 7.5,
-    marginTop: 3,
-    paddingTop: 3,
+    marginTop: 4,
+    paddingTop: 4,
     textAlign: "center",
     width: 130,
+    textTransform: "uppercase",
   },
   footer: {
-    bottom: 14,
-    color: "#64748b",
-    fontSize: 7.5,
+    bottom: 16,
     left: 36,
     position: "absolute",
     right: 36,
     textAlign: "center",
   },
+  footerText: {
+    color: "#475569",
+    fontSize: 7,
+    marginBottom: 4,
+  },
+  legalClause: {
+    color: "#64748b",
+    fontSize: 6.5,
+    fontFamily: "Helvetica-Oblique",
+    lineHeight: 1.2,
+    marginBottom: 6,
+  },
   pageNumber: {
-    marginTop: 2,
+    color: "#0E9090",
+    fontFamily: "Helvetica-Bold",
+    fontSize: 7.5,
   },
 });
 
@@ -69,7 +84,11 @@ export function PDFFooter({ firma, sello, pieDePagina }: PDFFooterProps) {
         </View>
       ) : null}
       <View fixed style={styles.footer}>
-        {pieDePagina ? <Text>{pieDePagina}</Text> : null}
+        <Text style={styles.legalClause}>
+          Los resultados emitidos en este informe tienen validez clínica únicamente bajo la interpretación del médico tratante.
+          Este documento es de carácter confidencial y su uso está restringido exclusivamente a fines médicos.
+        </Text>
+        {pieDePagina ? <Text style={styles.footerText}>{pieDePagina}</Text> : null}
         <Text
           style={styles.pageNumber}
           render={({ pageNumber, totalPages }) => `Página ${pageNumber} de ${totalPages}`}

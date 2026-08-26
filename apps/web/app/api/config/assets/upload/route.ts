@@ -2,7 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { cookies } from "next/headers";
 import crypto from "crypto";
 
-import { requireRole, AUTH_COOKIE_NAMES, AuthError } from "@labo/lib/server/auth";
+import { requireRole, AUTH_COOKIE_NAMES, AuthError } from "@/lib/server/auth";
 import {
   ASSET_TIPO_INVALIDO,
   validateAssetFile,

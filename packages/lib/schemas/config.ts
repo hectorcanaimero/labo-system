@@ -59,10 +59,8 @@ export function validateAssetFile(file: {
   return null;
 }
 
-/**
- * Regex para RIF venezolano jurídico: J-XXXXXXXX-X.
- */
-const RIF_REGEX = /^J-\d{8}-\d$/;
+/** Regex para RIF venezolano de persona natural o jurídica. */
+const RIF_REGEX = /^[VJGPEC]-\d{7,9}-\d$/;
 
 /**
  * Schema compartido para actualizar la configuración del laboratorio.
@@ -79,6 +77,10 @@ export const configUpdateSchema = z.object({
   telefono: z.string().optional(),
 
   email: z.string().optional(),
+
+  colegio_bioanalistas: z.string().optional(),
+
+  mpps: z.string().optional(),
 
   rif: z
     .string()
@@ -113,6 +115,10 @@ export const configUpdatePartialSchema = z.object({
   telefono: z.string().optional(),
 
   email: z.string().optional(),
+
+  colegio_bioanalistas: z.string().optional(),
+
+  mpps: z.string().optional(),
 
   rif: z
     .string()

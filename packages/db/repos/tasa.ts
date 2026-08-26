@@ -8,6 +8,7 @@ export interface LatestTasa {
   tasa: number;
   fuente: TasaFuente;
   scraped_at: Date;
+  motivo: string | null;
   stale: boolean;
 }
 
@@ -21,6 +22,7 @@ interface LatestTasaRow {
   tasa: string | number;
   fuente: TasaFuente;
   scraped_at: Date;
+  motivo: string | null;
 }
 
 const STALE_THRESHOLD_MS = 24 * 60 * 60 * 1000;
@@ -44,7 +46,7 @@ function normalizeTasa(value: string | number): number {
  */
 export async function getLatest(sql: Sql): Promise<LatestTasa | null> {
   const rows = await sql<LatestTasaRow[]>`
-    SELECT tasa, fuente, scraped_at
+    SELECT tasa, fuente, scraped_at, motivo
     FROM tasa_cambio_bcv
     ORDER BY fecha DESC, scraped_at DESC
     LIMIT 1
@@ -59,6 +61,7 @@ export async function getLatest(sql: Sql): Promise<LatestTasa | null> {
     tasa: normalizeTasa(latest.tasa),
     fuente: latest.fuente,
     scraped_at: latest.scraped_at,
+    motivo: latest.motivo,
     stale: Date.now() - latest.scraped_at.getTime() > STALE_THRESHOLD_MS,
   };
 }

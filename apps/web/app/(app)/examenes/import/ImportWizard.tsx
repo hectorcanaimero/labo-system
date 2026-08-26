@@ -92,8 +92,8 @@ export function ImportWizard() {
       setResult(data as ImportResult);
       router.refresh();
       
-    } catch (err: any) {
-      setError(err.message || "Error de conexión");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Error de conexión");
     } finally {
       setLoading(false);
     }

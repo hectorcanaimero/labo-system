@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 
 import { deactivate, getById, update } from "@labo/db/repos/pacientes";
-import { AuthError, getCurrentUser } from "@labo/lib/server/auth";
+import { AuthError, getCurrentUser } from "@/lib/server/auth";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";

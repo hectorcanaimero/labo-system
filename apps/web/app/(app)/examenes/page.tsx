@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 
 import { titulosList } from "@labo/db/repos/examenes";
-import { AuthError, getCurrentUser } from "@labo/lib/server/auth";
+import { AuthError, getCurrentUser } from "@/lib/server/auth";
 
 import { TitulosNavigator } from "./TitulosNavigator";
 

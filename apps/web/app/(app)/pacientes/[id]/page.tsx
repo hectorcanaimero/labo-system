@@ -3,7 +3,7 @@ import { notFound, redirect } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 
 import { pacientesGetWithHistorial } from "@labo/db/repos/pacientes";
-import { AuthError, getCurrentUser } from "@labo/lib/server/auth";
+import { AuthError, getCurrentUser } from "@/lib/server/auth";
 
 import { FichaTabs, type PacienteFichaData } from "./FichaTabs";
 

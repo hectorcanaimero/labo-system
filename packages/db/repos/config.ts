@@ -21,6 +21,8 @@ export interface LaboratorioConfig {
   telefono: string | null;
   email: string | null;
   rif: string | null;
+  colegio_bioanalistas: string | null;
+  mpps: string | null;
   logo_object_key: string | null;
   firma_object_key: string | null;
   sello_object_key: string | null;
@@ -35,6 +37,8 @@ export interface UpdateConfigInput {
   telefono?: string;
   email?: string;
   rif?: string;
+  colegio_bioanalistas?: string;
+  mpps?: string;
   pdf_pie_pagina?: string;
 }
 
@@ -68,6 +72,7 @@ export async function get(): Promise<LaboratorioConfig | null> {
   const sql = getSql();
   const rows = await sql<LaboratorioConfig[]>`
     SELECT id, nombre, direccion, telefono, email, rif,
+           colegio_bioanalistas, mpps,
            logo_object_key, firma_object_key, sello_object_key,
            pdf_pie_pagina, updated_at, updated_by
     FROM laboratorio_config
@@ -100,6 +105,7 @@ export async function update(
   return withTransaction(async (tx) => {
     const existing = await tx<LaboratorioConfig[]>`
       SELECT id, nombre, direccion, telefono, email, rif,
+             colegio_bioanalistas, mpps,
              logo_object_key, firma_object_key, sello_object_key,
              pdf_pie_pagina, updated_at, updated_by
       FROM laboratorio_config
@@ -123,6 +129,11 @@ export async function update(
     const email =
       data.email !== undefined ? trimOrNull(data.email) : (current?.email ?? null);
     const rif = data.rif !== undefined ? trimOrNull(data.rif) : (current?.rif ?? null);
+    const colegioBioanalistas =
+      data.colegio_bioanalistas !== undefined
+        ? trimOrNull(data.colegio_bioanalistas)
+        : (current?.colegio_bioanalistas ?? null);
+    const mpps = data.mpps !== undefined ? trimOrNull(data.mpps) : (current?.mpps ?? null);
     const pdf =
       data.pdf_pie_pagina !== undefined
         ? trimOrNull(data.pdf_pie_pagina)
@@ -136,7 +147,8 @@ export async function update(
 
     const rows = await tx<LaboratorioConfig[]>`
       INSERT INTO laboratorio_config
-        (singleton, nombre, direccion, telefono, email, rif, pdf_pie_pagina, updated_by)
+        (singleton, nombre, direccion, telefono, email, rif,
+         colegio_bioanalistas, mpps, pdf_pie_pagina, updated_by)
       VALUES (
         true,
         ${nombre},
@@ -144,6 +156,8 @@ export async function update(
         ${telefono},
         ${email},
         ${rif},
+        ${colegioBioanalistas},
+        ${mpps},
         ${pdf},
         ${usuarioId}
       )
@@ -153,10 +167,13 @@ export async function update(
         telefono = EXCLUDED.telefono,
         email = EXCLUDED.email,
         rif = EXCLUDED.rif,
+        colegio_bioanalistas = EXCLUDED.colegio_bioanalistas,
+        mpps = EXCLUDED.mpps,
         pdf_pie_pagina = EXCLUDED.pdf_pie_pagina,
         updated_at = now(),
         updated_by = EXCLUDED.updated_by
       RETURNING id, nombre, direccion, telefono, email, rif,
+                colegio_bioanalistas, mpps,
                 logo_object_key, firma_object_key, sello_object_key,
                 pdf_pie_pagina, updated_at, updated_by
     `;
@@ -173,7 +190,7 @@ export async function update(
         ${AUDIT_ACTION},
         ${ENTITY_TYPE},
         ${row.id},
-        ${tx.json({ input: data } as any)}
+        ${tx.json({ input: { ...data } })}
       )
     `;
 
@@ -195,6 +212,7 @@ export async function updateAssetKey(
     // Buscar la config existente
     const existing = await tx<LaboratorioConfig[]>`
       SELECT id, nombre, direccion, telefono, email, rif,
+             colegio_bioanalistas, mpps,
              logo_object_key, firma_object_key, sello_object_key,
              pdf_pie_pagina, updated_at, updated_by
       FROM laboratorio_config
@@ -227,6 +245,7 @@ export async function updateAssetKey(
           ${usuarioId}
         )
         RETURNING id, nombre, direccion, telefono, email, rif,
+                  colegio_bioanalistas, mpps,
                   logo_object_key, firma_object_key, sello_object_key,
                   pdf_pie_pagina, updated_at, updated_by
       `;
@@ -247,6 +266,7 @@ export async function updateAssetKey(
           updated_by = ${usuarioId}
         WHERE singleton = true
         RETURNING id, nombre, direccion, telefono, email, rif,
+                  colegio_bioanalistas, mpps,
                   logo_object_key, firma_object_key, sello_object_key,
                   pdf_pie_pagina, updated_at, updated_by
       `;
@@ -265,7 +285,7 @@ export async function updateAssetKey(
         ${AUDIT_ACTION},
         ${ENTITY_TYPE},
         ${row.id},
-        ${tx.json({ asset_type: type, object_key: key } as any)}
+        ${tx.json({ asset_type: type, object_key: key })}
       )
     `;
 

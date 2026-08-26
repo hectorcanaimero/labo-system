@@ -329,6 +329,8 @@ interface ExamenRow {
   precio_usd: string | number;
   unidad: string | null;
   valores_referencia: string | null;
+  tipo_analisis: string | null;
+  metodo: string | null;
   activo: boolean;
   created_at: Date;
   updated_at: Date;
@@ -341,6 +343,8 @@ export interface Examen {
   precio_usd: number;
   unidad: string | null;
   valores_referencia: string | null;
+  tipo_analisis: string | null;
+  metodo: string | null;
   activo: boolean;
   created_at: Date;
   updated_at: Date;
@@ -361,6 +365,8 @@ export interface ExamenCreateInput {
   precio_usd: number;
   unidad?: string;
   valores_referencia?: string;
+  tipo_analisis?: string;
+  metodo?: string;
   usuarioId: string;
 }
 
@@ -370,6 +376,8 @@ export interface ExamenUpdateInput {
   precio_usd?: number;
   unidad?: string;
   valores_referencia?: string;
+  tipo_analisis?: string;
+  metodo?: string;
   usuarioId: string;
 }
 
@@ -461,7 +469,7 @@ export async function examenesListByTitulo(input: {
   const tituloId = validateTituloId(input.titulo_id);
   const sql = getSql();
   const rows = await sql<ExamenRow[]>`
-    SELECT id, titulo_id, nombre, precio_usd, unidad, valores_referencia,
+    SELECT id, titulo_id, nombre, precio_usd, unidad, valores_referencia, tipo_analisis, metodo,
            activo, created_at, updated_at
     FROM examenes
     WHERE titulo_id = ${tituloId} AND activo = true
@@ -505,7 +513,7 @@ export async function examenesGetById(input: {
 }): Promise<Examen | null> {
   const sql = getSql();
   const rows = await sql<ExamenRow[]>`
-    SELECT id, titulo_id, nombre, precio_usd, unidad, valores_referencia,
+    SELECT id, titulo_id, nombre, precio_usd, unidad, valores_referencia, tipo_analisis, metodo,
            activo, created_at, updated_at
     FROM examenes
     WHERE id = ${input.id}
@@ -528,6 +536,8 @@ export async function examenesCreate(input: ExamenCreateInput): Promise<Examen> 
   const precioUsd = validatePrecioUsd(input.precio_usd);
   const unidad = trimOrNull(input.unidad);
   const valoresReferencia = trimOrNull(input.valores_referencia);
+  const tipoAnalisis = trimOrNull(input.tipo_analisis);
+  const metodo = trimOrNull(input.metodo);
 
   try {
     return await withTransaction(async (tx) => {
@@ -537,9 +547,9 @@ export async function examenesCreate(input: ExamenCreateInput): Promise<Examen> 
       if (!tituloRows[0]) throw new Error(TITULO_NO_ENCONTRADO);
 
       const rows = await tx<ExamenRow[]>`
-        INSERT INTO examenes (titulo_id, nombre, precio_usd, unidad, valores_referencia)
-        VALUES (${tituloId}, ${nombre}, ${precioUsd}, ${unidad}, ${valoresReferencia})
-        RETURNING id, titulo_id, nombre, precio_usd, unidad, valores_referencia,
+        INSERT INTO examenes (titulo_id, nombre, precio_usd, unidad, valores_referencia, tipo_analisis, metodo)
+        VALUES (${tituloId}, ${nombre}, ${precioUsd}, ${unidad}, ${valoresReferencia}, ${tipoAnalisis}, ${metodo})
+        RETURNING id, titulo_id, nombre, precio_usd, unidad, valores_referencia, tipo_analisis, metodo,
                   activo, created_at, updated_at
       `;
       const examen = toExamen(rows[0]!);
@@ -557,6 +567,8 @@ export async function examenesCreate(input: ExamenCreateInput): Promise<Examen> 
             precio_usd: precioUsd,
             unidad,
             valores_referencia: valoresReferencia,
+            tipo_analisis: tipoAnalisis,
+            metodo,
           })}
         )
       `;
@@ -582,6 +594,8 @@ export async function examenesUpdate(input: ExamenUpdateInput): Promise<Examen> 
     precio_usd?: number;
     unidad?: string | null;
     valores_referencia?: string | null;
+    tipo_analisis?: string | null;
+    metodo?: string | null;
   } = {};
   if (input.nombre !== undefined) patch.nombre = validateNombre(input.nombre);
   if (input.precio_usd !== undefined) {
@@ -590,6 +604,12 @@ export async function examenesUpdate(input: ExamenUpdateInput): Promise<Examen> 
   if (input.unidad !== undefined) patch.unidad = trimOrNull(input.unidad);
   if (input.valores_referencia !== undefined) {
     patch.valores_referencia = trimOrNull(input.valores_referencia);
+  }
+  if (input.tipo_analisis !== undefined) {
+    patch.tipo_analisis = trimOrNull(input.tipo_analisis);
+  }
+  if (input.metodo !== undefined) {
+    patch.metodo = trimOrNull(input.metodo);
   }
 
   if (Object.keys(patch).length === 0) {
@@ -601,7 +621,7 @@ export async function examenesUpdate(input: ExamenUpdateInput): Promise<Examen> 
   try {
     return await withTransaction(async (tx) => {
       const existing = await tx<ExamenRow[]>`
-        SELECT id, titulo_id, nombre, precio_usd, unidad, valores_referencia,
+        SELECT id, titulo_id, nombre, precio_usd, unidad, valores_referencia, tipo_analisis, metodo,
                activo, created_at, updated_at
         FROM examenes
         WHERE id = ${input.id}
@@ -615,7 +635,7 @@ export async function examenesUpdate(input: ExamenUpdateInput): Promise<Examen> 
         UPDATE examenes
         SET ${tx(patch, ...columns)}, updated_at = now()
         WHERE id = ${input.id}
-        RETURNING id, titulo_id, nombre, precio_usd, unidad, valores_referencia,
+        RETURNING id, titulo_id, nombre, precio_usd, unidad, valores_referencia, tipo_analisis, metodo,
                   activo, created_at, updated_at
       `;
       const examen = toExamen(rows[0]!);
@@ -633,6 +653,8 @@ export async function examenesUpdate(input: ExamenUpdateInput): Promise<Examen> 
               precio_usd: toExamen(anterior).precio_usd,
               unidad: anterior.unidad,
               valores_referencia: anterior.valores_referencia,
+              tipo_analisis: anterior.tipo_analisis,
+              metodo: anterior.metodo,
             },
             nuevo: patch,
           })}
@@ -657,7 +679,7 @@ export async function examenesDeactivate(input: {
 }): Promise<Examen> {
   return withTransaction(async (tx) => {
     const existing = await tx<ExamenRow[]>`
-      SELECT id, titulo_id, nombre, precio_usd, unidad, valores_referencia,
+      SELECT id, titulo_id, nombre, precio_usd, unidad, valores_referencia, tipo_analisis, metodo,
              activo, created_at, updated_at
       FROM examenes
       WHERE id = ${input.id}
@@ -670,7 +692,7 @@ export async function examenesDeactivate(input: {
       UPDATE examenes
       SET activo = false, updated_at = now()
       WHERE id = ${input.id}
-      RETURNING id, titulo_id, nombre, precio_usd, unidad, valores_referencia,
+      RETURNING id, titulo_id, nombre, precio_usd, unidad, valores_referencia, tipo_analisis, metodo,
                 activo, created_at, updated_at
     `;
     const examen = toExamen(rows[0]!);
@@ -701,7 +723,7 @@ export async function examenesActivate(input: {
 }): Promise<Examen> {
   return withTransaction(async (tx) => {
     const existing = await tx<ExamenRow[]>`
-      SELECT id, titulo_id, nombre, precio_usd, unidad, valores_referencia,
+      SELECT id, titulo_id, nombre, precio_usd, unidad, valores_referencia, tipo_analisis, metodo,
              activo, created_at, updated_at
       FROM examenes
       WHERE id = ${input.id}
@@ -714,7 +736,7 @@ export async function examenesActivate(input: {
       UPDATE examenes
       SET activo = true, updated_at = now()
       WHERE id = ${input.id}
-      RETURNING id, titulo_id, nombre, precio_usd, unidad, valores_referencia,
+      RETURNING id, titulo_id, nombre, precio_usd, unidad, valores_referencia, tipo_analisis, metodo,
                 activo, created_at, updated_at
     `;
     const examen = toExamen(rows[0]!);
@@ -747,6 +769,8 @@ export interface ImportBatchInputRow {
   precio_usd: number;
   unidad?: string;
   valores_referencia?: string;
+  tipo_analisis?: string;
+  metodo?: string;
 }
 
 export async function examenesImportBatch(
@@ -778,7 +802,7 @@ export async function examenesImportBatch(
       titulosMap.set(t.nombre.toLowerCase().trim(), t.id);
     }
 
-    let nextOrdenResult = await tx<{max_orden: number}[]>`
+    const nextOrdenResult = await tx<{max_orden: number}[]>`
       SELECT COALESCE(MAX(orden), 0) as max_orden FROM examenes_titulos
     `;
     let nextOrden = Number(nextOrdenResult[0]?.max_orden ?? 0) + 1;
@@ -814,19 +838,23 @@ export async function examenesImportBatch(
     for (const row of rows) {
       const tituloId = titulosMap.get(row.titulo.trim().toLowerCase())!;
       const result = await tx<ExamenRow[]>`
-        INSERT INTO examenes (titulo_id, nombre, precio_usd, unidad, valores_referencia, activo)
+        INSERT INTO examenes (titulo_id, nombre, precio_usd, unidad, valores_referencia, tipo_analisis, metodo, activo)
         VALUES (
           ${tituloId}, 
           ${row.nombre.trim()}, 
           ${row.precio_usd}, 
           ${row.unidad ?? null}, 
           ${row.valores_referencia ?? null},
+          ${row.tipo_analisis ?? null},
+          ${row.metodo ?? null},
           true
         )
         ON CONFLICT ON CONSTRAINT examenes_titulo_nombre_unique DO UPDATE SET
           precio_usd = EXCLUDED.precio_usd,
           unidad = EXCLUDED.unidad,
           valores_referencia = EXCLUDED.valores_referencia,
+          tipo_analisis = EXCLUDED.tipo_analisis,
+          metodo = EXCLUDED.metodo,
           activo = true,
           updated_at = now()
         RETURNING id, created_at, updated_at

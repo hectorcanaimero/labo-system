@@ -13,7 +13,7 @@ test.describe("Auth (F4.1.T5)", () => {
   });
 
   test("login fallido muestra error y no redirige", async ({ page }) => {
-    await page.goto("/login");
+    await page.goto("/");
     await page.locator("#email").fill(TEST_USERS.admin.email);
     await page.locator("#password").fill("clave-incorrecta");
     await page.getByRole("button", { name: "Entrar" }).click();
@@ -21,6 +21,6 @@ test.describe("Auth (F4.1.T5)", () => {
     await expect(
       page.getByRole("alert").filter({ hasText: "Credenciales inválidas" }),
     ).toBeVisible();
-    await expect(page).toHaveURL(/\/login/);
+    await expect(page).toHaveURL(/\/$/);
   });
 });

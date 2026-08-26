@@ -5,7 +5,7 @@ import { notifyError } from "../feedback/toast";
 
 export interface ExportButtonProps {
   actionName: string;
-  filters?: Record<string, any>;
+  filters?: Record<string, unknown>;
   className?: string;
 }
 
@@ -92,7 +92,7 @@ export function ExportButton({ actionName, filters = {}, className }: ExportButt
 
       // Open signed URL to start CSV download
       window.open(data.url, "_blank");
-    } catch (error: any) {
+    } catch (error) {
       console.error(`Error exporting ${actionName}:`, error);
       notifyError(error);
     } finally {

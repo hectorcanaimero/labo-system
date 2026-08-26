@@ -7,6 +7,7 @@ import { FileText, NotebookTabs, PencilLine, ReceiptText } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@labo/ui/feedback";
+import { calcularEdadDesglosada } from "@labo/lib/edad";
 
 import {
   PacienteFormDialog,
@@ -99,18 +100,31 @@ export function FichaTabs({ data }: FichaTabsProps) {
   const [activeTab, setActiveTab] = useState<TabKey>("resultados");
   const [isEditOpen, setIsEditOpen] = useState(false);
 
-  const ficha = useMemo(
-    () => [
+  const ficha = useMemo(() => {
+    const edadInfo = calcularEdadDesglosada(new Date(data.paciente.fecha_nacimiento));
+    const edadContent = edadInfo ? (
+      <div className="flex flex-col gap-1 items-start">
+        <span>{edadInfo.textoFormateado}</span>
+        {edadInfo.anos < 18 && (
+          <span className="inline-block rounded-full bg-blue-50 px-2 py-0.5 text-[10px] font-semibold tracking-wide text-blue-700 dark:bg-blue-950 dark:text-blue-300">
+            {edadInfo.etapa.toUpperCase()}
+          </span>
+        )}
+      </div>
+    ) : (
+      `${data.paciente.edad} años`
+    );
+
+    return [
       { label: "Cédula", value: data.paciente.cedula },
-      { label: "Edad", value: `${data.paciente.edad} años` },
+      { label: "Edad", value: edadContent },
       { label: "Nacimiento", value: formatDate(data.paciente.fecha_nacimiento) },
       { label: "Sexo", value: data.paciente.sexo ?? "No especificado" },
       { label: "Teléfono", value: data.paciente.telefono ?? "—" },
       { label: "Correo", value: data.paciente.email ?? "—" },
       { label: "Dirección", value: data.paciente.direccion ?? "—" },
-    ],
-    [data.paciente],
-  );
+    ];
+  }, [data.paciente]);
 
   return (
     <div className="flex flex-col gap-6">

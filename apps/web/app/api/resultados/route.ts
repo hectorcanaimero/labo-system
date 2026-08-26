@@ -8,7 +8,7 @@ import {
   search,
   type ResultadoFilters,
 } from "@labo/db/repos/resultados";
-import { AuthError, getCurrentUser } from "@labo/lib/server/auth";
+import { AuthError, getCurrentUser } from "@/lib/server/auth";
 import { ESTADO_RESULTADO, type EstadoResultado } from "@labo/lib/schemas/resultado";
 
 export const runtime = "nodejs";

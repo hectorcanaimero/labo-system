@@ -8,6 +8,7 @@ import {
   CEDULA_PREFIJO_INVALIDO,
   FECHA_NACIMIENTO_FUTURA,
   NOMBRE_REQUERIDO,
+  SEXO_REQUERIDO,
 } from "./paciente";
 
 function pacienteBase(overrides: Record<string, unknown> = {}) {
@@ -16,6 +17,7 @@ function pacienteBase(overrides: Record<string, unknown> = {}) {
     apellido: "Pérez",
     cedula: "V-21197865",
     fecha_nacimiento: new Date("1990-05-15T00:00:00.000Z"),
+    sexo: "M",
     ...overrides,
   };
 }
@@ -134,14 +136,16 @@ describe("pacienteCreate — sexo", () => {
     expect(pacienteCreate.safeParse(pacienteBase({ sexo: "X" })).success).toBe(false);
   });
 
-  it("permite sexo ausente", () => {
-    const input = {
-      nombre: "Juan",
-      apellido: "Pérez",
-      cedula: "V-21197865",
-      fecha_nacimiento: new Date("1990-05-15T00:00:00.000Z"),
-    };
-    expect(pacienteCreate.parse(input).sexo).toBeUndefined();
+  it("rechaza sexo O porque el contrato solo admite M o F", () => {
+    expect(pacienteCreate.safeParse(pacienteBase({ sexo: "O" })).success).toBe(false);
+  });
+
+  it("rechaza sexo ausente con SEXO_REQUERIDO", () => {
+    const result = pacienteCreate.safeParse(pacienteBase({ sexo: undefined }));
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.issues[0].message).toBe(SEXO_REQUERIDO);
+    }
   });
 });
 

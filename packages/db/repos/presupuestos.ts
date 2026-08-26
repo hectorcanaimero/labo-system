@@ -3,7 +3,7 @@ import type { Sql } from "postgres";
 import {
   presupuestoCreateSchema,
   presupuestoUpdateSchema,
-  estadoPresupuestoSchema,
+  presupuestoCambiarEstadoSchema,
   type EstadoPresupuesto,
 } from "@labo/lib/schemas/presupuesto";
 import { calcularTotales } from "@labo/lib/calcular-totales";
@@ -13,7 +13,7 @@ export const PRESUPUESTO_NO_BORRADOR = "PRESUPUESTO_NO_BORRADOR";
 export const PRESUPUESTO_NO_APROBADO = "PRESUPUESTO_NO_APROBADO";
 export const PACIENTE_LIBRE_REQUIERE_FICHA = "PACIENTE_LIBRE_REQUIERE_FICHA";
 export const PACIENTE_XOR_REQUIRED = "PACIENTE_XOR_REQUIRED";
-export const RESULTADO_ID_REQUERIDO = "RESULTADO_ID_REQUERIDO";
+export const TRANSICION_ESTADO_INVALIDA = "TRANSICION_ESTADO_INVALIDA";
 export const EXAMEN_NO_ENCONTRADO = "EXAMEN_NO_ENCONTRADO";
 
 const DEFAULT_PAGE = 1;
@@ -21,11 +21,32 @@ const DEFAULT_LIMIT = 20;
 const MAX_LIMIT = 100;
 const ENTITY_TYPE = "presupuestos";
 
+/**
+ * Matriz de transiciones permitidas del pipeline comercial de presupuestos.
+ *
+ * `Cancelado` y `Convertido` son estados terminales (no admiten salida). La
+ * conversión a resultado clínico (`Aprobado` -> `Convertido`) se ejecuta a
+ * través de `presupuestosConvertToResultado`, que crea el `resultados` y sus
+ * líneas snapshot en una única transacción; esta matriz documenta el grafo
+ * completo de estados.
+ */
+export const TRANSICIONES_ESTADO: Readonly<
+  Record<EstadoPresupuesto, readonly EstadoPresupuesto[]>
+> = {
+  Borrador: ["Enviado", "Cancelado"],
+  Enviado: ["Aprobado", "Rechazado", "Cancelado"],
+  Aprobado: ["Convertido", "Cancelado"],
+  Rechazado: ["Borrador", "Cancelado"],
+  Cancelado: [],
+  Convertido: [],
+};
+
 type Numeric = number | string;
 
 export interface PresupuestoFilters {
   paciente_id?: string;
   estado?: EstadoPresupuesto;
+  estados?: EstadoPresupuesto[];
   desde?: Date | string;
   hasta?: Date | string;
 }
@@ -34,8 +55,12 @@ export interface PresupuestoLinea {
   id: string;
   presupuesto_id: string;
   examen_id: string;
+  paquete_id: string | null;
   nombre_snap: string;
   precio_snap: number;
+  precio_base_snap: number;
+  ganancia_pct: number;
+  precio_final_snap: number;
   orden: number;
 }
 
@@ -93,7 +118,13 @@ function mapHeader(row: Record<string, unknown>): Omit<Presupuesto, "lineas"> {
 }
 
 function mapLinea(row: Record<string, unknown>): PresupuestoLinea {
-  return { ...(row as unknown as PresupuestoLinea), precio_snap: numberOf(row.precio_snap as Numeric) };
+  return {
+    ...(row as unknown as PresupuestoLinea),
+    precio_snap: numberOf(row.precio_snap as Numeric),
+    precio_base_snap: numberOf(row.precio_base_snap as Numeric),
+    ganancia_pct: numberOf(row.ganancia_pct as Numeric),
+    precio_final_snap: numberOf(row.precio_final_snap as Numeric),
+  };
 }
 
 function validationError(error: unknown): Error {
@@ -121,7 +152,8 @@ async function hydrate(rows: Record<string, unknown>[], query = getSql()): Promi
   if (rows.length === 0) return [];
   const ids = rows.map((row) => String(row.id));
   const lineas = await query<Record<string, unknown>[]>`
-    SELECT id, presupuesto_id, examen_id, nombre_snap, precio_snap, orden
+    SELECT id, presupuesto_id, examen_id, paquete_id, nombre_snap, precio_snap,
+           precio_base_snap, ganancia_pct, precio_final_snap, orden
     FROM presupuestos_examenes
     WHERE presupuesto_id IN ${query(ids)}
     ORDER BY orden ASC, id ASC
@@ -142,7 +174,8 @@ export async function list(input: { page?: number; limit?: number; filters?: Pre
   const filters = input.filters ?? {};
   const conditions = [sql`TRUE`];
   if (filters.paciente_id) conditions.push(sql`p.paciente_id = ${filters.paciente_id}`);
-  if (filters.estado) conditions.push(sql`p.estado = ${filters.estado}`);
+  if (filters.estados && filters.estados.length > 0) conditions.push(sql`p.estado IN ${sql(filters.estados)}`);
+  else if (filters.estado) conditions.push(sql`p.estado = ${filters.estado}`);
   if (filters.desde) conditions.push(sql`p.created_at >= ${filters.desde}`);
   if (filters.hasta) conditions.push(sql`p.created_at <= ${filters.hasta}`);
   const where = conditions.reduce((result, condition) => sql`${result} AND ${condition}`);
@@ -210,7 +243,7 @@ export async function presupuestosConvertToResultado(
       SELECT ${resultadoId}, pe.examen_id, pe.nombre_snap, pe.precio_snap,
              e.unidad, e.valores_referencia, '', NULL, pe.orden
       FROM presupuestos_examenes pe
-      INNER JOIN examenes e ON e.id = pe.examen_id
+      INNER JOIN examenes e ON e.id = pe.examen_id AND e.activo = true
       WHERE pe.presupuesto_id = ${id}
     `;
 
@@ -254,19 +287,40 @@ export async function create(input: unknown, createdBy?: string): Promise<Presup
     `;
     if (exams.length !== examIds.length) throw new Error(EXAMEN_NO_ENCONTRADO);
     const examById = new Map(exams.map((exam) => [exam.id, exam]));
-    const subtotal = exams.reduce((sum, exam) => sum + numberOf(exam.precio_usd), 0);
-    const totals = calcularTotales({ subtotal, descuentoPct: parsed.data.descuento_pct, gananciaPct: parsed.data.ganancia_pct, tasa: parsed.data.tasa_bs });
+    const lineasInput = parsed.data.examenes.map((linea) => {
+      const exam = examById.get(linea.examen_id)!;
+      return {
+        linea,
+        nombreSnap: exam.nombre,
+        precioSnap: numberOf(exam.precio_usd),
+        precioBase: linea.precio_base_snap ?? numberOf(exam.precio_usd),
+        gananciaEfectiva: linea.ganancia_pct ?? parsed.data.ganancia_pct,
+      };
+    });
+    const totals = calcularTotales({
+      descuentoPct: parsed.data.descuento_pct,
+      gananciaPct: parsed.data.ganancia_pct,
+      tasa: parsed.data.tasa_bs,
+      lineas: lineasInput.map((item) => ({
+        precioBase: item.precioBase,
+        gananciaPct: item.gananciaEfectiva,
+      })),
+    });
     const headers = await tx<Record<string, unknown>[]>`
       INSERT INTO presupuestos (paciente_id, paciente_nombre_libre, descuento_pct, ganancia_pct, tasa_bs, total_usd, total_bs, estado, created_by)
       VALUES (${parsed.data.paciente_id ?? null}, ${parsed.data.paciente_nombre_libre ?? null}, ${parsed.data.descuento_pct}, ${parsed.data.ganancia_pct}, ${parsed.data.tasa_bs}, ${totals.totalUsd}, ${totals.totalBs}, 'Borrador', ${actor})
       RETURNING id
     `;
     const id = String(headers[0]!.id);
-    for (const [orden, linea] of parsed.data.examenes.entries()) {
-      const exam = examById.get(linea.examen_id)!;
+    for (const [orden, item] of lineasInput.entries()) {
       await tx`
-        INSERT INTO presupuestos_examenes (presupuesto_id, examen_id, nombre_snap, precio_snap, orden)
-        VALUES (${id}, ${exam.id}, ${exam.nombre}, ${numberOf(exam.precio_usd)}, ${orden})
+        INSERT INTO presupuestos_examenes
+          (presupuesto_id, examen_id, paquete_id, nombre_snap, precio_snap,
+           precio_base_snap, ganancia_pct, precio_final_snap, orden)
+        VALUES
+          (${id}, ${item.linea.examen_id}, ${item.linea.paquete_id ?? null},
+           ${item.nombreSnap}, ${item.precioSnap}, ${item.precioBase},
+           ${item.gananciaEfectiva}, ${totals.lineas![orden]!.precioFinal}, ${orden})
       `;
     }
     await tx`INSERT INTO audit_log (usuario_id, accion, entity_type, entity_id, metadata) VALUES (${actor}, 'presupuestos.create', ${ENTITY_TYPE}, ${id}, ${tx.json({ total_usd: totals.totalUsd, total_bs: totals.totalBs })})`;
@@ -295,38 +349,121 @@ export async function update(id: string, input: unknown, updatedBy?: string): Pr
       const exams = await tx<{ id: string; nombre: string; precio_usd: Numeric }[]>`SELECT id, nombre, precio_usd FROM examenes WHERE id IN ${tx(ids)} AND activo = true`;
       if (exams.length !== ids.length) throw new Error(EXAMEN_NO_ENCONTRADO);
       const byId = new Map(exams.map((exam) => [exam.id, exam]));
-      const subtotal = exams.reduce((sum, exam) => sum + numberOf(exam.precio_usd), 0);
-      const totals = calcularTotales({ subtotal, descuentoPct: data.descuento_pct ?? numberOf(current.descuento_pct as Numeric), gananciaPct: data.ganancia_pct ?? numberOf(current.ganancia_pct as Numeric), tasa: data.tasa_bs ?? numberOf(current.tasa_bs as Numeric) });
+      const descuentoPct = data.descuento_pct ?? numberOf(current.descuento_pct as Numeric);
+      const gananciaGlobal = data.ganancia_pct ?? numberOf(current.ganancia_pct as Numeric);
+      const tasaBs = data.tasa_bs ?? numberOf(current.tasa_bs as Numeric);
+      const lineasInput = examenes.map((linea) => {
+        const exam = byId.get(linea.examen_id)!;
+        return {
+          linea,
+          nombreSnap: exam.nombre,
+          precioSnap: numberOf(exam.precio_usd),
+          precioBase: linea.precio_base_snap ?? numberOf(exam.precio_usd),
+          gananciaEfectiva: linea.ganancia_pct ?? gananciaGlobal,
+        };
+      });
+      const totals = calcularTotales({
+        descuentoPct,
+        gananciaPct: gananciaGlobal,
+        tasa: tasaBs,
+        lineas: lineasInput.map((item) => ({
+          precioBase: item.precioBase,
+          gananciaPct: item.gananciaEfectiva,
+        })),
+      });
       totalUsd = totals.totalUsd; totalBs = totals.totalBs;
       await tx`DELETE FROM presupuestos_examenes WHERE presupuesto_id = ${id}`;
-      for (const [orden, linea] of examenes.entries()) {
-        const exam = byId.get(linea.examen_id)!;
-        await tx`INSERT INTO presupuestos_examenes (presupuesto_id, examen_id, nombre_snap, precio_snap, orden) VALUES (${id}, ${exam.id}, ${exam.nombre}, ${numberOf(exam.precio_usd)}, ${orden})`;
+      for (const [orden, item] of lineasInput.entries()) {
+        await tx`
+          INSERT INTO presupuestos_examenes
+            (presupuesto_id, examen_id, paquete_id, nombre_snap, precio_snap,
+             precio_base_snap, ganancia_pct, precio_final_snap, orden)
+          VALUES
+            (${id}, ${item.linea.examen_id}, ${item.linea.paquete_id ?? null},
+             ${item.nombreSnap}, ${item.precioSnap}, ${item.precioBase},
+             ${item.gananciaEfectiva}, ${totals.lineas![orden]!.precioFinal}, ${orden})
+        `;
       }
     } else if (data.descuento_pct !== undefined || data.ganancia_pct !== undefined || data.tasa_bs !== undefined) {
-      const lines = await tx<{ precio_snap: Numeric }[]>`SELECT precio_snap FROM presupuestos_examenes WHERE presupuesto_id = ${id}`;
-      const totals = calcularTotales({ subtotal: lines.reduce((sum, line) => sum + numberOf(line.precio_snap), 0), descuentoPct: data.descuento_pct ?? numberOf(current.descuento_pct as Numeric), gananciaPct: data.ganancia_pct ?? numberOf(current.ganancia_pct as Numeric), tasa: data.tasa_bs ?? numberOf(current.tasa_bs as Numeric) });
+      const descuentoPct = data.descuento_pct ?? numberOf(current.descuento_pct as Numeric);
+      const gananciaGlobal = data.ganancia_pct;
+      const gananciaPct = gananciaGlobal ?? numberOf(current.ganancia_pct as Numeric);
+      const tasaBs = data.tasa_bs ?? numberOf(current.tasa_bs as Numeric);
+      const lines = await tx<{ id: string; precio_base_snap: Numeric; ganancia_pct: Numeric }[]>`
+        SELECT id, precio_base_snap, ganancia_pct
+        FROM presupuestos_examenes
+        WHERE presupuesto_id = ${id}
+        ORDER BY orden ASC, id ASC
+      `;
+      const totals = calcularTotales({
+        descuentoPct,
+        gananciaPct,
+        tasa: tasaBs,
+        lineas: lines.map((line) => ({
+          precioBase: numberOf(line.precio_base_snap),
+          ...(gananciaGlobal === undefined ? { gananciaPct: numberOf(line.ganancia_pct) } : {}),
+        })),
+      });
       totalUsd = totals.totalUsd; totalBs = totals.totalBs;
+      for (const [index, line] of lines.entries()) {
+        await tx`
+          UPDATE presupuestos_examenes
+          SET ganancia_pct = ${gananciaGlobal === undefined ? numberOf(line.ganancia_pct) : gananciaGlobal},
+              precio_final_snap = ${totals.lineas![index]!.precioFinal}
+          WHERE id = ${line.id}
+        `;
+      }
     }
     const descuento = data.descuento_pct ?? (current.descuento_pct as Numeric);
     const ganancia = data.ganancia_pct ?? (current.ganancia_pct as Numeric);
     const tasa = data.tasa_bs ?? (current.tasa_bs as Numeric);
     const updated = await tx<Record<string, unknown>[]>`UPDATE presupuestos SET paciente_id = ${pacienteId ?? null}, paciente_nombre_libre = ${nombreLibre ?? null}, descuento_pct = ${descuento}, ganancia_pct = ${ganancia}, tasa_bs = ${tasa}, total_usd = ${totalUsd}, total_bs = ${totalBs} WHERE id = ${id} RETURNING id`;
-    await tx`INSERT INTO audit_log (usuario_id, accion, entity_type, entity_id, metadata) VALUES (${updatedBy ?? null}, 'presupuestos.update', ${ENTITY_TYPE}, ${id}, ${tx.json(data as any)})`;
+    await tx`INSERT INTO audit_log (usuario_id, accion, entity_type, entity_id, metadata) VALUES (${updatedBy ?? null}, 'presupuestos.update', ${ENTITY_TYPE}, ${id}, ${tx.json(data)})`;
     return String(updated[0]!.id);
   }).then((resultId) => getById(resultId)) as Promise<Presupuesto>;
 }
 
-export async function updateEstado(id: string, estado: unknown, resultadoId?: string | null, updatedBy?: string): Promise<Presupuesto> {
-  const parsed = estadoPresupuestoSchema.safeParse(estado);
-  if (!parsed.success) throw new Error("ESTADO_INVALIDO");
-  if (parsed.data === "Convertido" && !resultadoId) throw new Error(RESULTADO_ID_REQUERIDO);
+export async function cambiarEstado(
+  id: string,
+  nuevoEstado: unknown,
+  motivoRechazo?: string,
+  userId?: string,
+): Promise<Presupuesto> {
+  const parsed = presupuestoCambiarEstadoSchema.safeParse({
+    estado: nuevoEstado,
+    motivo_rechazo: motivoRechazo,
+  });
+  if (!parsed.success) throw validationError(parsed.error);
+  const estado = parsed.data.estado;
+  const motivo = parsed.data.motivo_rechazo ?? null;
+
   return withTransaction(async (tx) => {
-    const current = await tx<Record<string, unknown>[]>`SELECT id, estado FROM presupuestos WHERE id = ${id} FOR UPDATE`;
-    if (!current[0]) throw new Error(PRESUPUESTO_NO_ENCONTRADO);
-    const rows = await tx<Record<string, unknown>[]>`UPDATE presupuestos SET estado = ${parsed.data}, resultado_id = ${resultadoId ?? null} WHERE id = ${id} RETURNING id`;
-    await tx`INSERT INTO audit_log (usuario_id, accion, entity_type, entity_id, metadata) VALUES (${updatedBy ?? null}, 'presupuestos.update_estado', ${ENTITY_TYPE}, ${id}, ${tx.json({ estado: parsed.data, resultado_id: resultadoId ?? null })})`;
-    return String(rows[0]!.id);
+    const current = await tx<{ id: string; estado: EstadoPresupuesto }[]>`
+      SELECT id, estado FROM presupuestos WHERE id = ${id} FOR UPDATE
+    `;
+    const presupuesto = current[0];
+    if (!presupuesto) throw new Error(PRESUPUESTO_NO_ENCONTRADO);
+
+    const permitidos = TRANSICIONES_ESTADO[presupuesto.estado];
+    if (!permitidos.includes(estado)) {
+      throw new Error(TRANSICION_ESTADO_INVALIDA);
+    }
+
+    await tx`
+      UPDATE presupuestos
+      SET estado = ${estado},
+          motivo_rechazo = ${estado === "Rechazado" ? motivo : null},
+          fecha_estado = now()
+      WHERE id = ${id}
+    `;
+
+    await tx`
+      INSERT INTO audit_log (usuario_id, accion, entity_type, entity_id, metadata)
+      VALUES (${userId ?? null}, 'presupuestos.update_estado', ${ENTITY_TYPE}, ${id},
+        ${tx.json({ estado_anterior: presupuesto.estado, estado, motivo_rechazo: motivo })})
+    `;
+
+    return id;
   }).then((resultId) => getById(resultId)) as Promise<Presupuesto>;
 }
 

@@ -42,6 +42,7 @@ export const DOMAIN_ERROR_MESSAGES: Readonly<Record<string, string>> = {
   CEDULA_DUPLICADA: "Ya existe un paciente con esa cédula.",
   CEDULA_INVALIDA: "El formato de la cédula no es válido.",
   PACIENTE_NO_ENCONTRADO: "El paciente que buscás ya no existe.",
+  SEXO_REQUERIDO: "El sexo biológico es requerido (M o F).",
 
   // ── Presupuestos / Resultados / Paquetes (F2, F3) ─────────────────────
   PRESUPUESTO_NO_ENCONTRADO: "El presupuesto que buscás ya no existe.",
@@ -248,7 +249,7 @@ export function isUnauthorizedError(error: unknown): boolean {
 /**
  * Maneja un error proveniente de un fetch/mutation del lado cliente.
  *
- * Si el error es de sesión (401), redirige a `/login` (única vez) y devuelve
+ * Si el error es de sesión (401), redirige a `/` (única vez) y devuelve
  * el mensaje humano. Caso contrario devuelve `toHumanError(error)`.
  *
  * SSR-safe: si no hay `window` (server), sólo devuelve el mensaje.
@@ -261,7 +262,7 @@ export function handleRequestError(
     if (typeof window !== "undefined" && !sessionStorage.getItem("labo:redirecting")) {
       sessionStorage.setItem("labo:redirecting", "1");
       opts?.onUnauthorized?.();
-      window.location.assign("/login");
+      window.location.assign("/");
     }
     return DOMAIN_ERROR_MESSAGES.UNAUTHENTICATED;
   }

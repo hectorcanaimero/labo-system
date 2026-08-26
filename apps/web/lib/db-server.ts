@@ -4,7 +4,7 @@ import { cookies } from "next/headers";
 import type { Sql } from "postgres";
 
 import { closeSql, getSql } from "@labo/db/client";
-import { AUTH_COOKIE_NAMES } from "@labo/lib/server/auth";
+import { AUTH_COOKIE_NAMES } from "@/lib/server/auth";
 
 export function getDb(): Sql {
   return getSql();

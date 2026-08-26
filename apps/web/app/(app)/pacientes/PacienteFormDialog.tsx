@@ -6,6 +6,7 @@ import { Loader2, PencilLine, Trash2, UserRound, X } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { toHumanError } from "@labo/lib/error-messages";
+import { calcularEdadDesglosada } from "@labo/lib/edad";
 import {
   pacienteCreate,
   type PacienteCreateInput,
@@ -97,7 +98,7 @@ function toSchemaInput(values: PacienteFormValues): Omit<PacienteCreateInput, "f
     apellido: values.apellido,
     cedula: values.cedula,
     fecha_nacimiento: new Date(`${values.fecha_nacimiento}T00:00:00.000Z`),
-    sexo: values.sexo || undefined,
+    sexo: values.sexo as "M" | "F",
     telefono: values.telefono,
     email: values.email,
     direccion: values.direccion,
@@ -167,6 +168,7 @@ export function PacienteFormDialog({
     register,
     handleSubmit,
     reset,
+    watch,
     formState: { errors },
   } = useForm<PacienteFormValues>({
     resolver: pacienteFormResolver,
@@ -181,6 +183,14 @@ export function PacienteFormDialog({
       direccion: "",
     },
   });
+
+  const fechaNacimientoValue = watch("fecha_nacimiento");
+
+  const edadInfo = useMemo(() => {
+    if (!fechaNacimientoValue) return null;
+    const date = new Date(`${fechaNacimientoValue}T00:00:00.000Z`);
+    return calcularEdadDesglosada(date);
+  }, [fechaNacimientoValue]);
 
   useEffect(() => {
     if (!open) {
@@ -226,7 +236,7 @@ export function PacienteFormDialog({
           apellido: values.apellido,
           cedula: values.cedula,
           fecha_nacimiento: `${values.fecha_nacimiento}T00:00:00.000Z`,
-          sexo: values.sexo || undefined,
+          sexo: values.sexo,
           telefono: values.telefono.trim() || undefined,
           email: values.email.trim() || undefined,
           direccion: values.direccion.trim() || undefined,
@@ -384,6 +394,13 @@ export function PacienteFormDialog({
               className="flex h-11 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
               {...register("fecha_nacimiento")}
             />
+            {edadInfo ? (
+              <div className="mt-1 inline-flex items-center gap-1.5 self-start rounded-full bg-blue-50 px-2.5 py-0.5 text-xs font-semibold text-blue-700 dark:bg-blue-950 dark:text-blue-300">
+                <span>{edadInfo.textoFormateado}</span>
+                <span className="opacity-60">•</span>
+                <span>{edadInfo.etapa}</span>
+              </div>
+            ) : null}
             {errors.fecha_nacimiento ? (
               <p className="text-xs text-destructive">{errors.fecha_nacimiento.message}</p>
             ) : null}
@@ -399,11 +416,11 @@ export function PacienteFormDialog({
               className="flex h-11 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
               {...register("sexo")}
             >
-              <option value="">No especificado</option>
+              <option value="">Seleccione sexo...</option>
               <option value="M">Masculino</option>
               <option value="F">Femenino</option>
-              <option value="O">Otro</option>
             </select>
+            {errors.sexo ? <p className="text-xs text-destructive">{errors.sexo.message}</p> : null}
           </div>
 
           <div className="flex flex-col gap-2">

@@ -5,12 +5,16 @@ import {
   EXAMENES_REQUERIDOS,
   EXAMEN_ID_REQUERIDO,
   GANANCIA_NEGATIVA,
+  MOTIVO_RECHAZO_REQUERIDO,
   PACIENTE_XOR_REQUERIDO,
+  PRECIO_INVALIDO,
+  PresupuestoEstadoEnum,
   TASA_INVALIDA,
   descuentoPctSchema,
   estadoPresupuestoSchema,
   gananciaPctSchema,
   lineaPresupuestoSchema,
+  presupuestoCambiarEstadoSchema,
   presupuestoCreateSchema,
   presupuestoUpdateSchema,
   tasaBsSchema,
@@ -46,6 +50,40 @@ describe("lineaPresupuestoSchema", () => {
 
   it("rechaza examen_id faltante", () => {
     expect(lineaPresupuestoSchema.safeParse({}).success).toBe(false);
+  });
+
+  it("acepta línea con pricing completo de paquete", () => {
+    const res = lineaPresupuestoSchema.safeParse(
+      linea({
+        paquete_id: "j70paquete1234567890123456",
+        precio_base_snap: 50,
+        ganancia_pct: 25,
+        precio_final_snap: 62.5,
+      }),
+    );
+    expect(res.success).toBe(true);
+  });
+
+  it("rechaza precio_base_snap negativo", () => {
+    const res = lineaPresupuestoSchema.safeParse(linea({ precio_base_snap: -1 }));
+    expect(res.success).toBe(false);
+    expect(res.error?.issues[0]?.message).toBe(PRECIO_INVALIDO);
+  });
+
+  it("rechaza precio_final_snap negativo", () => {
+    const res = lineaPresupuestoSchema.safeParse(linea({ precio_final_snap: -0.01 }));
+    expect(res.success).toBe(false);
+    expect(res.error?.issues[0]?.message).toBe(PRECIO_INVALIDO);
+  });
+
+  it("rechaza ganancia_pct negativa en la línea", () => {
+    const res = lineaPresupuestoSchema.safeParse(linea({ ganancia_pct: -5 }));
+    expect(res.success).toBe(false);
+    expect(res.error?.issues[0]?.message).toBe(GANANCIA_NEGATIVA);
+  });
+
+  it("rechaza paquete_id vacío", () => {
+    expect(lineaPresupuestoSchema.safeParse(linea({ paquete_id: "" })).success).toBe(false);
   });
 });
 
@@ -158,6 +196,26 @@ describe("presupuestoCreateSchema", () => {
     expect(res.error?.issues[0]?.message).toBe(EXAMENES_REQUERIDOS);
   });
 
+  it("acepta ganancia por línea distinta a la global", () => {
+    const res = presupuestoCreateSchema.safeParse(
+      createInput({
+        ganancia_pct: 30,
+        examenes: [linea({ ganancia_pct: 50 }), linea({ examen_id: "j70def12345678901234567890" })],
+      }),
+    );
+    expect(res.success).toBe(true);
+  });
+
+  it("rechaza ganancia por línea negativa aunque la global sea válida", () => {
+    const res = presupuestoCreateSchema.safeParse(
+      createInput({
+        examenes: [linea({ ganancia_pct: -10 })],
+      }),
+    );
+    expect(res.success).toBe(false);
+    expect(res.error?.issues[0]?.message).toBe(GANANCIA_NEGATIVA);
+  });
+
   it("rechaza examenes faltante", () => {
     const rest = createInput() as Record<string, unknown>;
     delete rest.examenes;
@@ -211,7 +269,9 @@ describe("presupuestoUpdateSchema", () => {
   });
 
   it("rechaza estado inválido", () => {
-    expect(presupuestoUpdateSchema.safeParse({ estado: "Cancelado" }).success).toBe(false);
+    expect(
+      presupuestoUpdateSchema.safeParse({ estado: "Archivado" }).success,
+    ).toBe(false);
   });
 
   it("rechaza setear paciente_id y nombre_libre a la vez", () => {
@@ -238,12 +298,70 @@ describe("presupuestoUpdateSchema", () => {
 
 describe("estadoPresupuestoSchema", () => {
   it("acepta estados válidos", () => {
-    expect(estadoPresupuestoSchema.safeParse("Borrador").success).toBe(true);
-    expect(estadoPresupuestoSchema.safeParse("Aprobado").success).toBe(true);
-    expect(estadoPresupuestoSchema.safeParse("Convertido").success).toBe(true);
+    for (const estado of [
+      "Borrador",
+      "Enviado",
+      "Aprobado",
+      "Rechazado",
+      "Cancelado",
+      "Convertido",
+    ]) {
+      expect(estadoPresupuestoSchema.safeParse(estado).success).toBe(true);
+      expect(PresupuestoEstadoEnum.safeParse(estado).success).toBe(true);
+    }
   });
 
   it("rechaza estado inválido", () => {
-    expect(estadoPresupuestoSchema.safeParse("Rechazado").success).toBe(false);
+    expect(estadoPresupuestoSchema.safeParse("Archivado").success).toBe(false);
+  });
+});
+
+describe("presupuestoCambiarEstadoSchema", () => {
+  it("acepta Rechazado con un motivo de al menos 3 caracteres", () => {
+    const res = presupuestoCambiarEstadoSchema.safeParse({
+      estado: "Rechazado",
+      motivo_rechazo: "Sin disponibilidad",
+    });
+
+    expect(res.success).toBe(true);
+  });
+
+  it("rechaza Rechazado sin motivo", () => {
+    const res = presupuestoCambiarEstadoSchema.safeParse({
+      estado: "Rechazado",
+    });
+
+    expect(res.success).toBe(false);
+    expect(res.error?.issues[0]).toMatchObject({
+      message: MOTIVO_RECHAZO_REQUERIDO,
+      path: ["motivo_rechazo"],
+    });
+  });
+
+  it.each(["", "  ", "ab", " ab "])(
+    "rechaza Rechazado con motivo insuficiente: %j",
+    (motivo_rechazo) => {
+      const res = presupuestoCambiarEstadoSchema.safeParse({
+        estado: "Rechazado",
+        motivo_rechazo,
+      });
+
+      expect(res.success).toBe(false);
+      expect(res.error?.issues[0]?.message).toBe(MOTIVO_RECHAZO_REQUERIDO);
+    },
+  );
+
+  it("acepta otros estados sin motivo de rechazo", () => {
+    for (const estado of [
+      "Borrador",
+      "Enviado",
+      "Aprobado",
+      "Cancelado",
+      "Convertido",
+    ]) {
+      expect(
+        presupuestoCambiarEstadoSchema.safeParse({ estado }).success,
+      ).toBe(true);
+    }
   });
 });

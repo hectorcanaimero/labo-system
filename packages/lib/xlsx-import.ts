@@ -7,6 +7,8 @@ export interface ExamenImportRow {
   precio_usd: number;
   unidad?: string;
   valores_referencia?: string;
+  tipo_analisis?: string;
+  metodo?: string;
   _rowNumber: number;
 }
 
@@ -16,6 +18,8 @@ const RowSchema = z.object({
   precio_usd: z.number().min(0, "El precio no puede ser negativo"),
   unidad: z.string().optional(),
   valores_referencia: z.string().optional(),
+  tipo_analisis: z.string().optional(),
+  metodo: z.string().optional(),
 });
 
 export interface ParseResult {
@@ -38,7 +42,7 @@ export function parseExamenesXlsx(buffer: Buffer): ParseResult {
 
     // Read as JSON, assuming first row is header
     // Using defval: undefined so empty cells are undefined
-    const rawRows = utils.sheet_to_json<any>(sheet!, { defval: undefined });
+    const rawRows = utils.sheet_to_json<Record<string, unknown>>(sheet!, { defval: undefined });
 
     rawRows.forEach((row, index) => {
       const rowNumber = index + 2; // +1 for 0-index, +1 for header
@@ -58,8 +62,16 @@ export function parseExamenesXlsx(buffer: Buffer): ParseResult {
       const rawPrecio = getValue(["precio"]);
       const rawUnidad = getValue(["unidad"]);
       const rawValores = getValue(["valores", "referencia"]);
+      const rawTipoAnalisis = getValue([
+        "tipo de análisis",
+        "tipo de analisis",
+        "tipo análisis",
+        "tipo analisis",
+        "tipo",
+      ]);
+      const rawMetodo = getValue(["método", "metodo"]);
 
-      const parsedPrecio = typeof rawPrecio === "number" ? rawPrecio : parseFloat(rawPrecio);
+      const parsedPrecio = typeof rawPrecio === "number" ? rawPrecio : parseFloat(String(rawPrecio));
 
       const parsedRow = {
         titulo: typeof rawTitulo === "string" ? rawTitulo.trim() : rawTitulo,
@@ -67,6 +79,14 @@ export function parseExamenesXlsx(buffer: Buffer): ParseResult {
         precio_usd: parsedPrecio,
         unidad: typeof rawUnidad === "string" ? rawUnidad.trim() : undefined,
         valores_referencia: typeof rawValores === "string" ? rawValores.trim() : undefined,
+        tipo_analisis:
+          typeof rawTipoAnalisis === "string" && rawTipoAnalisis.trim() !== ""
+            ? rawTipoAnalisis.trim()
+            : undefined,
+        metodo:
+          typeof rawMetodo === "string" && rawMetodo.trim() !== ""
+            ? rawMetodo.trim()
+            : undefined,
       };
 
       const parsed = RowSchema.safeParse(parsedRow);
@@ -81,8 +101,9 @@ export function parseExamenesXlsx(buffer: Buffer): ParseResult {
       }
     });
 
-  } catch (error: any) {
-    result.errors.push({ row: 0, msg: `Error leyendo XLSX: ${error?.message || "Archivo inválido"}` });
+  } catch (error) {
+    const msg = error instanceof Error ? error.message : "Archivo inválido";
+    result.errors.push({ row: 0, msg: `Error leyendo XLSX: ${msg}` });
   }
 
   return result;

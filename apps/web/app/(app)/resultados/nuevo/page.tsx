@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 
-import { AuthError, getCurrentUser } from "@labo/lib/server/auth";
+import { AuthError, getCurrentUser } from "@/lib/server/auth";
 
 import { ResultadoForm } from "./ResultadoForm";
 

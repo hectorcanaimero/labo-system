@@ -7,9 +7,8 @@ import {
   ArrowLeft,
   BadgePercent,
   Loader2,
-  Plus,
+  PackageOpen,
   Save,
-  Search,
   Trash2,
   UserRound,
 } from "lucide-react";
@@ -18,7 +17,8 @@ import { Button } from "@/components/ui/button";
 import { toHumanError } from "@labo/lib/error-messages";
 import { formatBs, formatUsd } from "@labo/lib/bs-format";
 import { calcularTotales } from "@labo/lib/calcular-totales";
-import { CargarPaqueteButton, type PaqueteExamen } from "@labo/ui/paquetes/CargarPaqueteButton";
+import type { EstadoPresupuesto } from "@labo/lib/schemas/presupuesto";
+import { ExamenAutocomplete } from "@labo/ui/examenes/ExamenAutocomplete";
 import {
   PacienteAutocomplete,
   type PacienteAutocompleteItem,
@@ -26,7 +26,7 @@ import {
 import { StaleTasaBadge } from "@labo/ui/tasa/StaleTasaBadge";
 
 type PresupuestoMode = "create" | "edit";
-type EstadoPresupuesto = "Borrador" | "Aprobado" | "Convertido";
+type ModoCargaPaquete = "cerrado" | "desglosado";
 
 interface ExamenCatalogoItem {
   id: string;
@@ -37,10 +37,27 @@ interface ExamenCatalogoItem {
   activo: boolean;
 }
 
+interface PaqueteResumenItem {
+  id: string;
+  nombre: string;
+  precio_base: number;
+  examenes_count: number;
+}
+
+interface PaqueteExamenItem {
+  id: string;
+  nombre: string;
+  precio_usd: number;
+}
+
 interface PresupuestoLineaForm {
   examen_id: string;
   nombre_snap: string;
   precio_snap: number;
+  paquete_id: string | null;
+  precio_base_snap: number;
+  gananciaPctInput: string;
+  cerrado: boolean;
 }
 
 interface PresupuestoFormInitialData {
@@ -57,6 +74,9 @@ interface PresupuestoFormInitialData {
     examen_id: string;
     nombre_snap: string;
     precio_snap: number;
+    paquete_id?: string | null;
+    precio_base_snap?: number;
+    ganancia_pct?: number;
   }>;
 }
 
@@ -95,24 +115,26 @@ async function requestJson<T>(url: string, init?: RequestInit): Promise<T> {
   return response.json() as Promise<T>;
 }
 
-function upsertLineas(
-  current: PresupuestoLineaForm[],
-  additions: Array<Pick<PresupuestoLineaForm, "examen_id" | "nombre_snap" | "precio_snap">>,
-): PresupuestoLineaForm[] {
-  const seen = new Set(current.map((item) => item.examen_id));
-  const next = [...current];
+function distribuirPrecioBase(precioBasePaquete: number, preciosCatalogo: number[]): number[] {
+  const totalCents = Math.round(precioBasePaquete * 100);
+  const catalogoCents = preciosCatalogo.map((precio) => Math.round(precio * 100));
+  const sumaCatalogo = catalogoCents.reduce((sum, cents) => sum + cents, 0);
+  const partes: number[] = [];
+  let asignado = 0;
 
-  for (const item of additions) {
-    if (seen.has(item.examen_id)) continue;
-    seen.add(item.examen_id);
-    next.push({
-      examen_id: item.examen_id,
-      nombre_snap: item.nombre_snap,
-      precio_snap: item.precio_snap,
-    });
+  for (let index = 0; index < catalogoCents.length; index++) {
+    if (index === catalogoCents.length - 1) {
+      partes.push((totalCents - asignado) / 100);
+      break;
+    }
+    const parte = sumaCatalogo > 0
+      ? Math.round((totalCents * catalogoCents[index]) / sumaCatalogo)
+      : Math.floor(totalCents / catalogoCents.length);
+    partes.push(parte / 100);
+    asignado += parte;
   }
 
-  return next;
+  return partes;
 }
 
 export function PresupuestoForm({
@@ -145,6 +167,15 @@ export function PresupuestoForm({
       examen_id: item.examen_id,
       nombre_snap: item.nombre_snap,
       precio_snap: item.precio_snap,
+      paquete_id: item.paquete_id ?? null,
+      precio_base_snap: item.precio_base_snap ?? item.precio_snap,
+      gananciaPctInput:
+        item.ganancia_pct != null &&
+        initialData &&
+        item.ganancia_pct !== initialData.ganancia_pct
+          ? String(item.ganancia_pct)
+          : "",
+      cerrado: false,
     })) ?? [],
   );
   const [descuentoPct, setDescuentoPct] = useState(
@@ -155,15 +186,20 @@ export function PresupuestoForm({
   );
   const [tasaBs, setTasaBs] = useState(initialTasa ? String(initialTasa.tasa) : initialData ? String(initialData.tasa_bs) : "");
 
-  const [examSearch, setExamSearch] = useState("");
-  const [examItems, setExamItems] = useState<ExamenCatalogoItem[]>([]);
-  const [examLoading, setExamLoading] = useState(false);
-  const [examError, setExamError] = useState<string | null>(null);
+  const [paquetePanelOpen, setPaquetePanelOpen] = useState(false);
+  const [paquetes, setPaquetes] = useState<PaqueteResumenItem[]>([]);
+  const [paquetesLoading, setPaquetesLoading] = useState(false);
+  const [paquetesError, setPaquetesError] = useState<string | null>(null);
+  const [paqueteElegido, setPaqueteElegido] = useState<PaqueteResumenItem | null>(null);
+  const [cargandoPaqueteId, setCargandoPaqueteId] = useState<string | null>(null);
+
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
 
+  const selectedExamIds = useMemo(() => lineas.map((linea) => linea.examen_id), [lineas]);
+
   const subtotal = useMemo(
-    () => lineas.reduce((sum, linea) => sum + linea.precio_snap, 0),
+    () => lineas.reduce((sum, linea) => sum + linea.precio_base_snap, 0),
     [lineas],
   );
 
@@ -174,78 +210,172 @@ export function PresupuestoForm({
   const descuentoValido =
     !hasValue(descuentoPct) || (descuentoNum >= 0 && descuentoNum <= 100);
   const gananciaValida = !hasValue(gananciaPct) || gananciaNum >= 0;
+  const gananciaPorLineaValida = lineas.every(
+    (linea) => !hasValue(linea.gananciaPctInput) || toNumber(linea.gananciaPctInput) >= 0,
+  );
 
   const totals = useMemo(() => {
-    const descuento = hasValue(descuentoPct) ? descuentoNum : 0;
-    const ganancia = hasValue(gananciaPct) ? gananciaNum : 0;
-    if (!tasaValida) return { totalUsd: null as number | null, totalBs: null as number | null };
-    return calcularTotales({ subtotal, descuentoPct: descuento, gananciaPct: ganancia, tasa: tasaNum });
-  }, [subtotal, descuentoPct, gananciaPct, tasaBs, descuentoNum, gananciaNum, tasaNum, tasaValida]);
+    if (!tasaValida || lineas.length === 0) return null;
+    return calcularTotales({
+      descuentoPct: descuentoNum,
+      gananciaPct: gananciaNum,
+      tasa: tasaNum,
+      lineas: lineas.map((linea) => ({
+        precioBase: linea.precio_base_snap,
+        ...(hasValue(linea.gananciaPctInput)
+          ? { gananciaPct: toNumber(linea.gananciaPctInput) }
+          : {}),
+      })),
+    });
+  }, [lineas, descuentoNum, gananciaNum, tasaNum, tasaValida]);
 
   const pacienteOk =
     (modoPaciente === "registrado" && Boolean(selectedPaciente?.id)) ||
     (modoPaciente === "libre" && nombreLibre.trim().length > 0);
   const canSubmit =
-    pacienteOk && lineas.length > 0 && descuentoValido && gananciaValida && tasaValida;
+    pacienteOk &&
+    lineas.length > 0 &&
+    descuentoValido &&
+    gananciaValida &&
+    gananciaPorLineaValida &&
+    tasaValida;
 
   useEffect(() => {
-    if (examSearch.trim().length < 2) {
-      setExamItems([]);
-      setExamError(null);
-      setExamLoading(false);
+    if (!paquetePanelOpen) {
+      setPaqueteElegido(null);
+      setPaquetesError(null);
+      setPaquetesLoading(false);
       return;
     }
 
     const controller = new AbortController();
-    const timer = window.setTimeout(async () => {
+    void (async () => {
       try {
-        setExamLoading(true);
-        setExamError(null);
-        const payload = await requestJson<ExamenCatalogoItem[]>(
-          `/api/examenes?term=${encodeURIComponent(examSearch.trim())}`,
-          { signal: controller.signal },
-        );
-        setExamItems(payload);
+        setPaquetesLoading(true);
+        setPaquetesError(null);
+        const payload = await requestJson<PaqueteResumenItem[]>("/api/paquetes", {
+          signal: controller.signal,
+        });
+        setPaquetes(payload);
       } catch (error) {
         if (controller.signal.aborted) return;
-        setExamError(toHumanError(error));
-        setExamItems([]);
+        setPaquetesError(toHumanError(error));
       } finally {
-        if (!controller.signal.aborted) setExamLoading(false);
+        if (!controller.signal.aborted) setPaquetesLoading(false);
       }
-    }, 250);
+    })();
 
-    return () => {
-      controller.abort();
-      window.clearTimeout(timer);
-    };
-  }, [examSearch]);
+    return () => controller.abort();
+  }, [paquetePanelOpen]);
 
-  function addExam(examen: ExamenCatalogoItem): void {
-    setLineas((current) =>
-      upsertLineas(current, [
-        { examen_id: examen.id, nombre_snap: examen.nombre, precio_snap: examen.precio_usd },
-      ]),
-    );
-    setExamSearch("");
-    setExamItems([]);
+  function addExamen(examen: ExamenCatalogoItem): void {
+    setLineas((current) => {
+      if (current.some((linea) => linea.examen_id === examen.id)) return current;
+      return [
+        ...current,
+        {
+          examen_id: examen.id,
+          nombre_snap: examen.nombre,
+          precio_snap: examen.precio_usd,
+          paquete_id: null,
+          precio_base_snap: examen.precio_usd,
+          gananciaPctInput: "",
+          cerrado: false,
+        },
+      ];
+    });
   }
 
-  function addPaquete(examenes: PaqueteExamen[]): void {
-    setLineas((current) =>
-      upsertLineas(
-        current,
-        examenes.map((item) => ({
-          examen_id: item.id,
-          nombre_snap: item.nombre,
-          precio_snap: toNumber(String(item.precio_usd)),
-        })),
-      ),
+  function incorporarPaquete(
+    paquete: PaqueteResumenItem,
+    nuevas: PresupuestoLineaForm[],
+  ): void {
+    const idsNuevos = new Set(nuevas.map((linea) => linea.examen_id));
+    const conflicto = lineas.find(
+      (linea) =>
+        linea.paquete_id !== null &&
+        linea.paquete_id !== paquete.id &&
+        idsNuevos.has(linea.examen_id),
     );
+
+    if (conflicto) {
+      setMessage(
+        `"${conflicto.nombre_snap}" ya forma parte de otro paquete cargado. Quitá ese paquete primero si querés cambiar de modalidad.`,
+      );
+      return;
+    }
+
+    setLineas((current) => {
+      const sinCopiasSueltas = current.filter(
+        (linea) => !(linea.paquete_id === null && idsNuevos.has(linea.examen_id)),
+      );
+      return [...sinCopiasSueltas, ...nuevas];
+    });
+    setMessage(null);
+    setPaquetePanelOpen(false);
+    setPaqueteElegido(null);
+  }
+
+  async function cargarPaqueteElegido(modo: ModoCargaPaquete): Promise<void> {
+    const paquete = paqueteElegido;
+    if (!paquete || cargandoPaqueteId) return;
+
+    try {
+      setCargandoPaqueteId(paquete.id);
+      setMessage(null);
+
+      const examenes = await requestJson<PaqueteExamenItem[]>(
+        `/api/paquetes/${paquete.id}/examenes`,
+      );
+
+      if (examenes.length === 0) {
+        setMessage(`El paquete "${paquete.nombre}" no tiene exámenes activos para cargar.`);
+        return;
+      }
+
+      const precios = examenes.map((examen) => Number(examen.precio_usd));
+      const bases =
+        modo === "cerrado"
+          ? distribuirPrecioBase(Number(paquete.precio_base), precios)
+          : precios;
+
+      incorporarPaquete(
+        paquete,
+        examenes.map((examen, index) => ({
+          examen_id: examen.id,
+          nombre_snap: examen.nombre,
+          precio_snap: precios[index],
+          paquete_id: paquete.id,
+          precio_base_snap: bases[index],
+          gananciaPctInput: "",
+          cerrado: modo === "cerrado",
+        })),
+      );
+    } catch (error) {
+      setMessage(toHumanError(error));
+    } finally {
+      setCargandoPaqueteId(null);
+    }
   }
 
   function removeLinea(index: number): void {
+    const linea = lineas[index];
+    if (!linea) return;
+
+    if (linea.cerrado && linea.paquete_id) {
+      setLineas((current) => current.filter((item) => item.paquete_id !== linea.paquete_id));
+      return;
+    }
+
     setLineas((current) => current.filter((_, currentIndex) => currentIndex !== index));
+  }
+
+  function updateGananciaLinea(index: number, value: string): void {
+    setLineas((current) =>
+      current.map((linea, currentIndex) =>
+        currentIndex === index ? { ...linea, gananciaPctInput: value } : linea,
+      ),
+    );
   }
 
   async function submit(): Promise<void> {
@@ -264,7 +394,14 @@ export function PresupuestoForm({
         descuento_pct: descuentoNum,
         ganancia_pct: gananciaNum,
         tasa_bs: tasaNum,
-        examenes: lineas.map((linea) => ({ examen_id: linea.examen_id })),
+        examenes: lineas.map((linea) => ({
+          examen_id: linea.examen_id,
+          ...(linea.paquete_id ? { paquete_id: linea.paquete_id } : {}),
+          precio_base_snap: linea.precio_base_snap,
+          ...(hasValue(linea.gananciaPctInput)
+            ? { ganancia_pct: toNumber(linea.gananciaPctInput) }
+            : {}),
+        })),
       };
 
       const response = await requestJson<{ id: string }>(
@@ -408,54 +545,114 @@ export function PresupuestoForm({
           <div>
             <h2 className="text-lg font-semibold">Exámenes del presupuesto</h2>
             <p className="text-sm text-muted-foreground">
-              Agregá exámenes manualmente o cargá un paquete completo.
+              Agregá exámenes individuales o cargá un paquete en modo cerrado o desglosado.
             </p>
           </div>
 
           <div className="flex flex-wrap gap-2">
-            <CargarPaqueteButton onLoad={addPaquete} />
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setPaquetePanelOpen((open) => !open)}
+            >
+              <PackageOpen className="h-4 w-4" />
+              Cargar paquete
+            </Button>
           </div>
         </div>
 
-        <div className="mt-4 space-y-2">
-          <label className="text-sm font-medium">Agregar examen</label>
-          <div className="relative">
-            <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-            <input
-              value={examSearch}
-              onChange={(event) => setExamSearch(event.target.value)}
-              placeholder="Buscá por nombre del examen"
-              className="h-11 w-full rounded-md border border-input bg-background pl-9 pr-3 text-sm"
-            />
-          </div>
-          {examLoading ? (
-            <p className="text-xs text-muted-foreground">Buscando exámenes…</p>
-          ) : null}
-          {examError ? <p className="text-xs text-destructive">{examError}</p> : null}
-          {examItems.length > 0 ? (
-            <div className="max-h-64 overflow-auto rounded-xl border border-border">
-              {examItems.map((item) => (
-                <button
-                  key={item.id}
-                  type="button"
-                  onClick={() => addExam(item)}
-                  className="flex w-full items-center justify-between border-b border-border px-4 py-3 text-left last:border-b-0 hover:bg-muted/40"
-                >
-                  <div>
-                    <p className="text-sm font-medium text-foreground">{item.nombre}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {item.unidad || "Sin unidad"} · {formatUsd(item.precio_usd)}
-                    </p>
-                  </div>
-                  <Plus className="h-4 w-4 text-muted-foreground" />
-                </button>
-              ))}
-            </div>
-          ) : examSearch.trim().length >= 2 && !examLoading ? (
-            <p className="text-xs text-muted-foreground">
-              No encontramos exámenes para ese término.
+        {paquetePanelOpen ? (
+          <div className="mt-4 rounded-xl border border-border bg-background/60 p-4">
+            <p className="text-sm font-medium text-foreground">
+              Elegí un paquete y después el modo de carga
             </p>
-          ) : null}
+
+            {paquetesLoading ? (
+              <p className="mt-2 text-xs text-muted-foreground">Cargando paquetes…</p>
+            ) : null}
+            {paquetesError ? (
+              <p className="mt-2 text-xs text-destructive">{paquetesError}</p>
+            ) : null}
+            {!paquetesLoading && !paquetesError && paquetes.length === 0 ? (
+              <p className="mt-2 text-xs text-muted-foreground">
+                Todavía no hay paquetes creados.
+              </p>
+            ) : null}
+
+            <ul className="mt-3 space-y-2">
+              {paquetes.map((paquete) => {
+                const elegido = paqueteElegido?.id === paquete.id;
+                const cargando = cargandoPaqueteId === paquete.id;
+                const precioBase = Number(paquete.precio_base);
+
+                return (
+                  <li
+                    key={paquete.id}
+                    className={`rounded-lg border px-4 py-3 transition ${
+                      elegido ? "border-primary/50 bg-primary/5" : "border-border"
+                    }`}
+                  >
+                    <button
+                      type="button"
+                      onClick={() => setPaqueteElegido(elegido ? null : paquete)}
+                      disabled={Boolean(cargandoPaqueteId)}
+                      className="flex w-full items-center justify-between gap-3 text-left"
+                    >
+                      <span>
+                        <span className="text-sm font-medium text-foreground">
+                          {paquete.nombre}
+                        </span>
+                        <span className="block text-xs text-muted-foreground">
+                          {paquete.examenes_count}{" "}
+                          {paquete.examenes_count === 1 ? "examen" : "exámenes"} · Base{" "}
+                          {formatUsd(precioBase)}
+                        </span>
+                      </span>
+                      <span className="shrink-0 text-xs font-medium text-primary">
+                        {elegido ? "Elegí el modo" : "Seleccionar"}
+                      </span>
+                    </button>
+
+                    {elegido ? (
+                      <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:flex-wrap">
+                        <Button
+                          type="button"
+                          size="sm"
+                          onClick={() => void cargarPaqueteElegido("cerrado")}
+                          disabled={cargando}
+                        >
+                          {cargando ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+                          Modo A · Cerrado ({formatUsd(precioBase)})
+                        </Button>
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="outline"
+                          onClick={() => void cargarPaqueteElegido("desglosado")}
+                          disabled={cargando}
+                        >
+                          Modo B · Desglosado ({paquete.examenes_count})
+                        </Button>
+                      </div>
+                    ) : null}
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+        ) : null}
+
+        <div className="mt-4 space-y-2">
+          <label className="text-sm font-medium">Agregar examen individual</label>
+          <ExamenAutocomplete
+            onSelect={addExamen}
+            selectedIds={selectedExamIds}
+            autoFocusOnSelect
+            placeholder="Buscá por nombre del examen"
+          />
+          <p className="text-xs text-muted-foreground">
+            Buscá y agregá con Enter o clic; el campo recupera el foco para seguir cargando.
+          </p>
         </div>
 
         <div className="mt-6 overflow-x-auto rounded-xl border border-border">
@@ -463,40 +660,99 @@ export function PresupuestoForm({
             <thead className="bg-muted/40 text-left text-muted-foreground">
               <tr>
                 <th className="px-4 py-3 font-medium">Examen</th>
-                <th className="px-4 py-3 font-medium">Precio USD</th>
+                <th className="px-4 py-3 font-medium">Origen</th>
+                <th className="px-4 py-3 font-medium">Precio base USD</th>
+                <th className="px-4 py-3 font-medium">Ganancia %</th>
+                <th className="px-4 py-3 text-right font-medium">Precio final USD</th>
                 <th className="px-4 py-3 text-right font-medium">Acción</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
               {lineas.length === 0 ? (
                 <tr>
-                  <td colSpan={3} className="px-4 py-8 text-center text-sm text-muted-foreground">
+                  <td colSpan={6} className="px-4 py-8 text-center text-sm text-muted-foreground">
                     Todavía no agregaste exámenes. Usá el buscador o cargá un paquete.
                   </td>
                 </tr>
               ) : (
-                lineas.map((linea, index) => (
-                  <tr key={`${linea.examen_id}-${index}`}>
-                    <td className="px-4 py-3 font-medium text-foreground">{linea.nombre_snap}</td>
-                    <td className="px-4 py-3 font-mono text-muted-foreground">
-                      {formatUsd(linea.precio_snap)}
-                    </td>
-                    <td className="px-4 py-3 text-right">
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => removeLinea(index)}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </td>
-                  </tr>
-                ))
+                lineas.map((linea, index) => {
+                  const gananciaInvalida =
+                    hasValue(linea.gananciaPctInput) && toNumber(linea.gananciaPctInput) < 0;
+                  const precioFinalLinea = totals?.lineas?.[index]?.precioFinal;
+
+                  return (
+                    <tr key={`${linea.examen_id}-${index}`} className={linea.cerrado ? "bg-muted/20" : ""}>
+                      <td className="px-4 py-3 font-medium text-foreground">
+                        {linea.nombre_snap}
+                      </td>
+                      <td className="px-4 py-3">
+                        {linea.paquete_id ? (
+                          <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">
+                            <PackageOpen className="h-3 w-3" />
+                            {linea.cerrado ? "Paquete cerrado" : "Paquete desglosado"}
+                          </span>
+                        ) : (
+                          <span className="text-xs text-muted-foreground">Individual</span>
+                        )}
+                      </td>
+                      <td className="px-4 py-3 font-mono text-muted-foreground">
+                        {formatUsd(linea.precio_base_snap)}
+                      </td>
+                      <td className="px-4 py-3">
+                        {linea.cerrado ? (
+                          <span className="text-xs text-muted-foreground">Global</span>
+                        ) : (
+                          <input
+                            type="number"
+                            min={0}
+                            step="0.01"
+                            value={linea.gananciaPctInput}
+                            onChange={(event) => updateGananciaLinea(index, event.target.value)}
+                            placeholder="Global"
+                            aria-label={`Ganancia % de ${linea.nombre_snap}`}
+                            className={`h-9 w-24 rounded-md border bg-background px-2 text-sm ${
+                              gananciaInvalida
+                                ? "border-destructive text-destructive"
+                                : "border-input"
+                            }`}
+                          />
+                        )}
+                      </td>
+                      <td className="px-4 py-3 text-right font-mono text-foreground">
+                        {precioFinalLinea === undefined ? "—" : formatUsd(precioFinalLinea)}
+                      </td>
+                      <td className="px-4 py-3 text-right">
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => removeLinea(index)}
+                          title={
+                            linea.cerrado
+                              ? "Quitar el paquete completo"
+                              : `Quitar ${linea.nombre_snap}`
+                          }
+                          aria-label={
+                            linea.cerrado
+                              ? "Quitar el paquete completo"
+                              : `Quitar ${linea.nombre_snap}`
+                          }
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </td>
+                    </tr>
+                  );
+                })
               )}
             </tbody>
           </table>
         </div>
+        {lineas.some((linea) => linea.cerrado) ? (
+          <p className="mt-2 text-xs text-muted-foreground">
+            Los paquetes cerrados se quitan completos para mantener su precio pactado.
+          </p>
+        ) : null}
       </section>
 
       <section className="rounded-2xl border border-border bg-card p-6 shadow-sm">
@@ -587,18 +843,19 @@ export function PresupuestoForm({
               <div className="mt-3 flex items-center justify-between border-t border-border pt-3">
                 <span className="font-medium text-foreground">Total USD</span>
                 <span className="font-mono text-lg font-semibold text-foreground">
-                  {totals.totalUsd === null ? "—" : formatUsd(totals.totalUsd)}
+                  {totals === null ? "—" : formatUsd(totals.totalUsd)}
                 </span>
               </div>
               <div className="flex items-center justify-between">
                 <span className="font-medium text-foreground">Total Bs</span>
                 <span className="font-mono text-lg font-semibold text-foreground">
-                  {totals.totalBs === null ? "—" : formatBs(totals.totalBs)}
+                  {totals === null ? "—" : formatBs(totals.totalBs)}
                 </span>
               </div>
             </div>
             <p className="mt-4 text-xs text-muted-foreground">
-              La ganancia sólo se ve en este resumen; no aparece en el PDF del presupuesto.
+              El PDF del presupuesto muestra el precio final de cada línea con la ganancia ya
+              incluida; el porcentaje aplicado no se desglosa en el documento.
             </p>
           </div>
         </div>

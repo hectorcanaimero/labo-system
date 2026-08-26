@@ -13,13 +13,16 @@ export const APELLIDO_REQUERIDO = "APELLIDO_REQUERIDO";
 export const CEDULA_INVALIDA = "CEDULA_INVALIDA";
 export const CEDULA_PREFIJO_INVALIDO = "CEDULA_PREFIJO_INVALIDO";
 export const FECHA_NACIMIENTO_FUTURA = "FECHA_NACIMIENTO_FUTURA";
+export const SEXO_REQUERIDO = "SEXO_REQUERIDO";
 
 /**
  * Sexo biológico admitido para pacientes (ADR-06 / §6 modelo de datos).
  */
-export const SEXO_VALUES = ["M", "F", "O"] as const;
+export const SEXO_VALUES = ["M", "F"] as const;
 
-export const sexoSchema = z.enum(SEXO_VALUES);
+export const sexoSchema = z.enum(["M", "F"], {
+  errorMap: () => ({ message: SEXO_REQUERIDO }),
+});
 
 /**
  * ADR-06: la cédula de un paciente normaliza siempre a `V-XXXXXXXX` (venezolano)
@@ -70,7 +73,7 @@ export const pacienteCreate = z.object({
   apellido: z.string().trim().min(1, { message: APELLIDO_REQUERIDO }),
   cedula: cedulaSchema,
   fecha_nacimiento: fechaNacimientoSchema,
-  sexo: sexoSchema.optional(),
+  sexo: sexoSchema,
   telefono: z.string().optional(),
   email: z.string().optional(),
   direccion: z.string().optional(),

@@ -9,6 +9,10 @@ export interface PresupuestoPDFConfig {
   nombre: string;
   direccion: string;
   rif: string | null;
+  colegio_bioanalistas: string | null;
+  mpps: string | null;
+  telefono: string | null;
+  email: string | null;
   logo_url: string | null;
   firma_url: string | null;
   sello_url: string | null;
@@ -18,7 +22,7 @@ export interface PresupuestoPDFConfig {
 export interface PresupuestoPDFLinea {
   id: string;
   nombre_snap: string;
-  precio_snap: number;
+  precio_final_snap: number;
   orden: number;
 }
 
@@ -50,21 +54,21 @@ const styles = StyleSheet.create({
     color: "#0f172a",
     fontFamily: "Helvetica",
     fontSize: 9,
-    paddingBottom: 54,
+    paddingBottom: 70, // extra space for footer
     paddingHorizontal: 36,
     paddingTop: 30,
   },
   patient: {
-    backgroundColor: "#f0f9ff",
-    borderColor: "#bae6fd",
-    borderRadius: 3,
-    borderWidth: 0.75,
+    borderWidth: 1,
+    borderColor: "#DCDCDC",
+    borderRadius: 4,
     marginBottom: 14,
-    marginTop: 14,
+    marginTop: 4,
     padding: 10,
+    backgroundColor: "#E6E6E6",
   },
   patientLabel: {
-    color: "#64748b",
+    color: "#0E9090",
     fontFamily: "Helvetica-Bold",
     fontSize: 7.5,
     marginBottom: 3,
@@ -73,6 +77,7 @@ const styles = StyleSheet.create({
   patientName: {
     color: "#0f172a",
     fontSize: 10,
+    fontFamily: "Helvetica-Bold",
   },
   patientMeta: {
     color: "#475569",
@@ -80,8 +85,8 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   metadata: {
-    borderBottomColor: "#e2e8f0",
-    borderBottomWidth: 0.5,
+    borderBottomColor: "#DCDCDC",
+    borderBottomWidth: 1,
     flexDirection: "row",
     justifyContent: "space-between",
     marginBottom: 10,
@@ -93,26 +98,31 @@ const styles = StyleSheet.create({
   },
   table: {
     marginBottom: 14,
+    borderWidth: 1,
+    borderColor: "#DCDCDC",
+    borderRadius: 4,
+    overflow: "hidden",
   },
   tableHeader: {
-    backgroundColor: "#155e75",
+    backgroundColor: "#0E9090",
     color: "#ffffff",
     flexDirection: "row",
     fontFamily: "Helvetica-Bold",
     fontSize: 8,
-    paddingHorizontal: 7,
+    paddingHorizontal: 8,
     paddingVertical: 6,
   },
   tableRow: {
-    borderBottomColor: "#cbd5e1",
-    borderBottomWidth: 0.5,
     flexDirection: "row",
     fontSize: 8.5,
-    paddingHorizontal: 7,
+    paddingHorizontal: 8,
     paddingVertical: 7,
   },
-  alternateRow: {
-    backgroundColor: "#f8fafc",
+  rowOdd: {
+    backgroundColor: "#E6E6E6",
+  },
+  rowEven: {
+    backgroundColor: "#DCDCDC",
   },
   examColumn: {
     paddingRight: 8,
@@ -123,19 +133,19 @@ const styles = StyleSheet.create({
     width: "22%",
   },
   empty: {
-    borderBottomColor: "#cbd5e1",
-    borderBottomWidth: 0.5,
     color: "#64748b",
     fontSize: 9,
     padding: 14,
     textAlign: "center",
+    backgroundColor: "#E6E6E6",
   },
   totals: {
     alignSelf: "flex-end",
-    borderTopColor: "#155e75",
-    borderTopWidth: 1,
-    paddingTop: 7,
-    width: "48%",
+    borderTopColor: "#0E9090",
+    borderTopWidth: 2,
+    paddingTop: 8,
+    width: "50%",
+    marginBottom: 16,
   },
   totalRow: {
     flexDirection: "row",
@@ -153,21 +163,32 @@ const styles = StyleSheet.create({
     textAlign: "right",
   },
   grandTotal: {
-    borderTopColor: "#cbd5e1",
-    borderTopWidth: 0.5,
+    borderTopColor: "#DCDCDC",
+    borderTopWidth: 1,
     marginTop: 2,
     paddingTop: 6,
   },
   grandTotalLabel: {
-    color: "#164e63",
+    color: "#0E9090",
     fontFamily: "Helvetica-Bold",
     fontSize: 10,
   },
   grandTotalValue: {
-    color: "#164e63",
+    color: "#0E9090",
     fontFamily: "Helvetica-Bold",
     fontSize: 10,
     textAlign: "right",
+  },
+  validityClause: {
+    backgroundColor: "#E6E6E6",
+    color: "#0E9090",
+    padding: 8,
+    borderRadius: 4,
+    fontFamily: "Helvetica-Bold",
+    fontSize: 8,
+    textAlign: "center",
+    marginTop: 10,
+    textTransform: "uppercase",
   },
 });
 
@@ -190,7 +211,7 @@ export function PresupuestoPDF({ data }: PresupuestoPDFProps) {
   const laboratoryName = config?.nombre.trim() || FALLBACK_LAB_NAME;
   const patient = patientDisplay(data);
   const lines = [...data.lineas].sort((left, right) => left.orden - right.orden);
-  const subtotalUsd = lines.reduce((sum, line) => sum + line.precio_snap, 0);
+  const subtotalUsd = lines.reduce((sum, line) => sum + line.precio_final_snap, 0);
 
   return (
     <Document
@@ -204,6 +225,11 @@ export function PresupuestoPDF({ data }: PresupuestoPDFProps) {
           logo={config?.logo_url ?? null}
           nombre={laboratoryName}
           rif={config?.rif ?? null}
+          colegioBioanalistas={config?.colegio_bioanalistas ?? null}
+          mpps={config?.mpps ?? null}
+          telefono={config?.telefono ?? null}
+          email={config?.email ?? null}
+          titulo="Presupuesto"
         />
 
         <View style={styles.patient}>
@@ -220,42 +246,48 @@ export function PresupuestoPDF({ data }: PresupuestoPDFProps) {
 
         <View style={styles.table}>
           <View fixed style={styles.tableHeader}>
-            <Text style={styles.examColumn}>Examen</Text>
-            <Text style={styles.amountColumn}>Precio USD</Text>
-            <Text style={styles.amountColumn}>Precio Bs</Text>
+            <Text style={styles.examColumn}>PRUEBA / EXAMEN</Text>
+            <Text style={styles.amountColumn}>PRECIO (USD)</Text>
+            <Text style={styles.amountColumn}>PRECIO (Bs)</Text>
           </View>
           {lines.length === 0 ? <Text style={styles.empty}>Sin exámenes registrados</Text> : null}
           {lines.map((line, index) => (
             <View
               key={line.id}
               wrap={false}
-              style={[styles.tableRow, ...(index % 2 === 1 ? [styles.alternateRow] : [])]}
+              style={[styles.tableRow, index % 2 === 0 ? styles.rowEven : styles.rowOdd]}
             >
               <Text style={styles.examColumn}>{line.nombre_snap}</Text>
-              <Text style={styles.amountColumn}>{formatUsd(line.precio_snap)}</Text>
-              <Text style={styles.amountColumn}>{formatBs(line.precio_snap * data.tasa_bs)}</Text>
+              <Text style={styles.amountColumn}>{formatUsd(line.precio_final_snap)}</Text>
+              <Text style={styles.amountColumn}>{formatBs(line.precio_final_snap * data.tasa_bs)}</Text>
             </View>
           ))}
         </View>
 
         <View style={styles.totals}>
           <View style={styles.totalRow}>
-            <Text style={styles.totalLabel}>Subtotal USD</Text>
+            <Text style={styles.totalLabel}>Suma de exámenes (USD)</Text>
             <Text style={styles.totalValue}>{formatUsd(subtotalUsd)}</Text>
           </View>
-          <View style={styles.totalRow}>
-            <Text style={styles.totalLabel}>Descuento ({formatUsd(data.descuento_pct)}%)</Text>
-            <Text style={styles.totalValue}>{formatUsd(subtotalUsd * data.descuento_pct / 100)}</Text>
-          </View>
+          {data.descuento_pct > 0 ? (
+            <View style={styles.totalRow}>
+              <Text style={styles.totalLabel}>Descuento del {data.descuento_pct}%</Text>
+              <Text style={styles.totalValue}>incluido en los precios</Text>
+            </View>
+          ) : null}
           <View style={[styles.totalRow, styles.grandTotal]}>
-            <Text style={styles.grandTotalLabel}>Total USD</Text>
+            <Text style={styles.grandTotalLabel}>Total a Pagar (USD)</Text>
             <Text style={styles.grandTotalValue}>{formatUsd(data.total_usd)}</Text>
           </View>
           <View style={styles.totalRow}>
-            <Text style={styles.grandTotalLabel}>Total Bs</Text>
+            <Text style={styles.grandTotalLabel}>Total a Pagar (Bs)</Text>
             <Text style={styles.grandTotalValue}>{formatBs(data.total_bs)}</Text>
           </View>
         </View>
+        
+        <Text style={styles.validityClause}>
+          Presupuesto válido por 24 horas a partir de su emisión
+        </Text>
 
         <PDFFooter
           firma={config?.firma_url ?? null}

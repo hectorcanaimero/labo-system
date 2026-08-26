@@ -77,7 +77,7 @@ export function ResetForm({ token }: Props) {
         return;
       }
 
-      router.replace("/login?reset=ok");
+      router.replace("/?reset=ok");
     } catch {
       setError(ERROR_MESSAGES.RESET_FAILED);
     } finally {

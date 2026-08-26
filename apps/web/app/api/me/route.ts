@@ -8,7 +8,7 @@ import {
   logAuthEvent,
   syncFromAuth,
 } from "@labo/db/repos/usuarios";
-import { AUTH_COOKIE_NAMES, tryGetCurrentUser } from "@labo/lib/server/auth";
+import { AUTH_COOKIE_NAMES, tryGetCurrentUser } from "@/lib/server/auth";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";

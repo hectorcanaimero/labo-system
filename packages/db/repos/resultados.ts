@@ -47,6 +47,8 @@ interface LineaRow {
   precio_snap: number | string;
   unidad_snap: string | null;
   valores_referencia_snap: string | null;
+  tipo_analisis_snap: string | null;
+  metodo_snap: string | null;
   valor: string;
   observacion: string | null;
   orden: number;
@@ -58,6 +60,8 @@ interface CatalogoRow {
   precio_usd: number | string;
   unidad: string | null;
   valores_referencia: string | null;
+  tipo_analisis: string | null;
+  metodo: string | null;
 }
 
 export interface ResultadoFilters {
@@ -114,6 +118,8 @@ export interface ResultadoConfig {
   telefono: string | null;
   email: string | null;
   rif: string | null;
+  colegio_bioanalistas: string | null;
+  mpps: string | null;
   logo_object_key: string | null;
   firma_object_key: string | null;
   sello_object_key: string | null;
@@ -123,7 +129,13 @@ export interface ResultadoConfig {
   pdf_pie_pagina: string | null;
 }
 
-export interface ResultadoForPDF extends ResultadoDetail {
+export interface ResultadoLineaPDF extends ResultadoLinea {
+  /** Nombre del grupo (examenes_titulos) vigente del catálogo; null si el examen fue eliminado. */
+  titulo: string | null;
+}
+
+export interface ResultadoForPDF extends Omit<ResultadoDetail, "examenes"> {
+  examenes: ResultadoLineaPDF[];
   paciente: ResultadoPaciente;
   config: ResultadoConfig | null;
 }
@@ -164,7 +176,7 @@ function trimOrNull(value: string | undefined): string | null {
   return trimmed.length > 0 ? trimmed : null;
 }
 
-function mapLinea(row: LineaRow): ResultadoLinea {
+function mapLinea<T extends LineaRow>(row: T) {
   return { ...row, precio_snap: Number(row.precio_snap) };
 }
 
@@ -184,10 +196,32 @@ function buildWhere(sql: Sql, filters?: ResultadoFilters) {
 async function fetchLineas(sql: Sql | TransactionSql, resultadoId: string) {
   const rows = await sql<LineaRow[]>`
     SELECT id, examen_id, nombre_snap, precio_snap, unidad_snap,
-           valores_referencia_snap, valor, observacion, orden
+           valores_referencia_snap, tipo_analisis_snap, metodo_snap,
+           valor, observacion, orden
     FROM resultados_examenes
     WHERE resultado_id = ${resultadoId}
     ORDER BY orden ASC, id ASC
+  `;
+  return rows.map(mapLinea);
+}
+
+/**
+ * Hidratación exclusiva del PDF: igual que `fetchLineas` pero resuelve el
+ * título (grupo) vigente del catálogo vía `examenes → examenes_titulos`.
+ * LEFT JOIN: líneas cuyo examen fue eliminado del catálogo quedan con
+ * `titulo = null` y caen en el grupo residual del informe.
+ */
+async function fetchLineasForPDF(sql: Sql, resultadoId: string): Promise<ResultadoLineaPDF[]> {
+  const rows = await sql<Array<LineaRow & { titulo: string | null }>>`
+    SELECT re.id, re.examen_id, re.nombre_snap, re.precio_snap, re.unidad_snap,
+           re.valores_referencia_snap, re.tipo_analisis_snap, re.metodo_snap,
+           re.valor, re.observacion, re.orden,
+           t.nombre AS titulo
+    FROM resultados_examenes re
+    LEFT JOIN examenes e ON e.id = re.examen_id
+    LEFT JOIN examenes_titulos t ON t.id = e.titulo_id
+    WHERE re.resultado_id = ${resultadoId}
+    ORDER BY re.orden ASC, re.id ASC
   `;
   return rows.map(mapLinea);
 }
@@ -200,7 +234,7 @@ async function insertLineas(
 ): Promise<void> {
   const ids = [...new Set(examenes.map((linea) => linea.examen_id))];
   const catalogo = await tx<CatalogoRow[]>`
-    SELECT id, nombre, precio_usd, unidad, valores_referencia
+    SELECT id, nombre, precio_usd, unidad, valores_referencia, tipo_analisis, metodo
     FROM examenes
     WHERE id IN ${tx(ids)}
       AND activo = true
@@ -219,6 +253,8 @@ async function insertLineas(
       unidad_snap: snapshot?.unidad_snap ?? source!.unidad,
       valores_referencia_snap:
         snapshot?.valores_referencia_snap ?? source!.valores_referencia,
+      tipo_analisis_snap: snapshot?.tipo_analisis_snap ?? source!.tipo_analisis,
+      metodo_snap: snapshot?.metodo_snap ?? source!.metodo,
       valor: linea.valor,
       observacion: trimOrNull(linea.observacion),
       orden: index + 1,
@@ -234,6 +270,8 @@ async function insertLineas(
       "precio_snap",
       "unidad_snap",
       "valores_referencia_snap",
+      "tipo_analisis_snap",
+      "metodo_snap",
       "valor",
       "observacion",
       "orden",
@@ -318,14 +356,15 @@ export async function getForPDF(
   const sql = getSql();
   const resultado = await getByIdWith(sql, id);
   if (!resultado) return null;
-  const [pacientes, configs] = await Promise.all([
+  const [examenes, pacientes, configs] = await Promise.all([
+    fetchLineasForPDF(sql, id),
     sql<ResultadoPaciente[]>`
       SELECT id, nombre, apellido, cedula, fecha_nacimiento, sexo, telefono,
              email, direccion FROM pacientes WHERE id = ${resultado.paciente_id} LIMIT 1
     `,
     sql<Array<Omit<ResultadoConfig, "logo_url" | "firma_url" | "sello_url">>>`
-      SELECT nombre, direccion, telefono, email, rif, logo_object_key,
-             firma_object_key, sello_object_key, pdf_pie_pagina
+      SELECT nombre, direccion, telefono, email, rif, colegio_bioanalistas, mpps,
+             logo_object_key, firma_object_key, sello_object_key, pdf_pie_pagina
       FROM laboratorio_config WHERE singleton = true LIMIT 1
     `,
   ]);
@@ -342,7 +381,7 @@ export async function getForPDF(
     ]);
     config = { ...configRow, logo_url, firma_url, sello_url };
   }
-  return { ...resultado, paciente, config };
+  return { ...resultado, examenes, paciente, config };
 }
 
 export async function create(input: unknown, usuarioId: string): Promise<ResultadoDetail> {

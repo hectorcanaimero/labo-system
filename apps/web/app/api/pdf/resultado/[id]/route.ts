@@ -4,11 +4,11 @@ import { Readable } from "node:stream";
 
 import { getForPDF, RESULTADO_NO_ENCONTRADO } from "@labo/db/repos/resultados";
 import { createSignedDownloadUrl } from "@labo/lib/storage";
-import { AuthError, getCurrentUser } from "@labo/lib/server/auth";
+import { AuthError, getCurrentUser } from "@/lib/server/auth";
 import ResultadoPDF from "@labo/pdf/ResultadoPDF";
-import { renderToStream } from "@react-pdf/renderer";
+import { renderToStream, type DocumentProps } from "@react-pdf/renderer";
 import { NextResponse, type NextRequest } from "next/server";
-import { createElement } from "react";
+import { createElement, type ReactElement } from "react";
 
 import { pdfAssetCache } from "@/lib/asset-cache";
 import { getDb, getSessionAccessToken } from "@/lib/db-server";
@@ -20,6 +20,13 @@ const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3
 const ASSET_BUCKET = "assets";
 const SIGNED_URL_TTL_SECONDS = 60 * 60;
 const LAB_NAME_REQUIRED = "NOMBRE_LABORATORIO_REQUERIDO";
+
+// PNG 1×1 transparente: fallback para que el PDF siga renderizando si un asset
+// (logo/firma/sello) no puede descargarse (bloqueo de red, objeto borrado, etc).
+const EMBEDDED_TRANSPARENT_PNG =
+  "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=";
+const MAX_ASSET_BYTES = 5 * 1024 * 1024;
+const ASSET_FETCH_TIMEOUT_MS = 10_000;
 
 type RouteParams = {
   params: {
@@ -43,16 +50,52 @@ async function requirePdfAccess() {
   return user;
 }
 
-async function resolveAssetUrl(objectKey: string): Promise<string> {
+/**
+ * Descarga el asset desde su URL firmada/pública y lo embebe como data URI
+ * (base64), de modo que `@react-pdf/renderer` no tenga que resolver la URL en
+ * tiempo de render (evita bloqueos de red y reintentos dentro del renderizador).
+ */
+async function resolveAssetDataUri(objectKey: string): Promise<string> {
   return pdfAssetCache.getOrSet(objectKey, async () => {
     const accessToken = getSessionAccessToken();
-    return createSignedDownloadUrl(
+    const url = await createSignedDownloadUrl(
       ASSET_BUCKET,
       objectKey,
       SIGNED_URL_TTL_SECONDS,
       accessToken ?? undefined,
     );
+
+    const response = await fetch(url, {
+      cache: "no-store",
+      signal: AbortSignal.timeout(ASSET_FETCH_TIMEOUT_MS),
+    });
+    if (!response.ok) {
+      throw new Error(`Asset download failed with HTTP ${response.status}`);
+    }
+
+    const contentType =
+      response.headers.get("content-type")?.split(";", 1)[0]?.trim() || "image/png";
+    const bytes = new Uint8Array(await response.arrayBuffer());
+    if (bytes.byteLength > MAX_ASSET_BYTES) {
+      throw new Error(`Asset exceeds ${MAX_ASSET_BYTES} bytes`);
+    }
+
+    return `data:${contentType};base64,${Buffer.from(bytes).toString("base64")}`;
   });
+}
+
+/**
+ * Resuelve un asset a data URI sin romper la generación del PDF: si la descarga
+ * falla, degrada a un PNG transparente (el documento se emite igual, sin el
+ * asset). Contrato: `AssetUrlResolver` retorna `Promise<string>`.
+ */
+async function resolveAssetUrl(objectKey: string): Promise<string> {
+  try {
+    return await resolveAssetDataUri(objectKey);
+  } catch (error) {
+    console.error(`[pdf:resultado] No se pudo embeber el asset "${objectKey}":`, error);
+    return EMBEDDED_TRANSPARENT_PNG;
+  }
 }
 
 function assertPdfConfig(nombre: string | null | undefined): void {
@@ -100,7 +143,10 @@ export async function GET(_request: NextRequest, { params }: RouteParams): Promi
 
     assertPdfConfig(data.config?.nombre);
 
-    const stream = await renderToStream(createElement(ResultadoPDF, { data }) as any);
+    // Afirmación solo en el límite del renderer: las props ya están chequeadas
+    // por createElement(ResultadoPDF, { data }) contra ResultadoPDFProps.
+    const element = createElement(ResultadoPDF, { data }) as ReactElement<DocumentProps>;
+    const stream = await renderToStream(element);
     const body = Readable.toWeb(stream as unknown as Readable) as ReadableStream<Uint8Array>;
     const filename = `resultado-${params.id}.pdf`;
 

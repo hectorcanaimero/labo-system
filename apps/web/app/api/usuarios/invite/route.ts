@@ -7,7 +7,7 @@ import {
   listPendingInvitations,
   type UserRole,
 } from "@labo/db/repos/usuarios";
-import { getCurrentUser, AuthError } from "@labo/lib/server/auth";
+import { getCurrentUser, AuthError } from "@/lib/server/auth";
 import { sendEmail } from "@labo/lib/server/email";
 
 const INVITE_TTL_DAYS = 7;

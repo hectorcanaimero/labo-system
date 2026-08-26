@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from 'next/server';
 
 import { setManual } from '@labo/db/repos/tasa';
-import { AuthError, requireRole } from '@labo/lib/server/auth';
+import { AuthError, requireRole } from '@/lib/server/auth';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';

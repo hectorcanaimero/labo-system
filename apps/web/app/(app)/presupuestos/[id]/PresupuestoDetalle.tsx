@@ -18,10 +18,9 @@ import { Button } from "@/components/ui/button";
 import { EmptyState } from "@labo/ui/feedback";
 import { formatBs, formatUsd } from "@labo/lib/bs-format";
 import { toHumanError } from "@labo/lib/error-messages";
+import type { EstadoPresupuesto } from "@labo/lib/schemas/presupuesto";
 
 import { PresupuestoForm } from "../nuevo/PresupuestoForm";
-
-type EstadoPresupuesto = "Borrador" | "Aprobado" | "Convertido";
 
 interface PresupuestoDetalleProps {
   role: string;
@@ -45,6 +44,10 @@ interface PresupuestoDetalleProps {
       nombre_snap: string;
       precio_snap: number;
       orden: number;
+      paquete_id?: string | null;
+      precio_base_snap?: number;
+      ganancia_pct?: number;
+      precio_final_snap?: number;
     }>;
   };
 }
@@ -288,7 +291,7 @@ export function PresupuestoDetalle({ initialData }: PresupuestoDetalleProps) {
         <div className="border-b border-border p-6">
           <h2 className="text-lg font-semibold">Detalle de exámenes</h2>
           <p className="text-sm text-muted-foreground">
-            Precios en snapshot al momento de armar el presupuesto.
+            El PDF muestra estos mismos precios finales por línea, con la ganancia incluida.
           </p>
         </div>
 
@@ -306,7 +309,9 @@ export function PresupuestoDetalle({ initialData }: PresupuestoDetalleProps) {
                 <thead className="bg-muted/40 text-left text-muted-foreground">
                   <tr>
                     <th className="px-4 py-3 font-medium">Examen</th>
-                    <th className="px-4 py-3 text-right font-medium">Precio USD</th>
+                    <th className="px-4 py-3 font-medium">Origen</th>
+                    <th className="px-4 py-3 text-right font-medium">Precio base USD</th>
+                    <th className="px-4 py-3 text-right font-medium">Precio final USD</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border">
@@ -316,8 +321,20 @@ export function PresupuestoDetalle({ initialData }: PresupuestoDetalleProps) {
                         <span className="mr-2 text-muted-foreground">#{index + 1}</span>
                         {linea.nombre_snap}
                       </td>
+                      <td className="px-4 py-3">
+                        {linea.paquete_id ? (
+                          <span className="inline-flex items-center rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">
+                            Paquete
+                          </span>
+                        ) : (
+                          <span className="text-xs text-muted-foreground">Individual</span>
+                        )}
+                      </td>
                       <td className="px-4 py-3 text-right font-mono text-muted-foreground">
-                        {formatUsd(linea.precio_snap)}
+                        {formatUsd(linea.precio_base_snap ?? linea.precio_snap)}
+                      </td>
+                      <td className="px-4 py-3 text-right font-mono text-foreground">
+                        {formatUsd(linea.precio_final_snap ?? linea.precio_snap)}
                       </td>
                     </tr>
                   ))}

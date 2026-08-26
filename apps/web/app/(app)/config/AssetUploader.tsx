@@ -4,29 +4,43 @@ import { useState, useRef, useEffect } from "react";
 import { Loader2, Upload, FileImage } from "lucide-react";
 import { validateAssetFile } from "@labo/lib/schemas/config";
 import { Skeleton } from "@labo/ui/feedback";
+import type { UploadStrategyResponse } from "@labo/lib/storage";
 
 interface AssetUploaderProps {
   type: "logo" | "firma" | "sello";
   label: string;
   description: string;
-  onSuccess: (url: string) => void;
+  onSuccess: (message: string) => void;
   onError: (error: string) => void;
 }
 
 export function AssetUploader({ type, label, description, onSuccess, onError }: AssetUploaderProps) {
-  const generateUploadUrl = async () => "mock_url";
-  const setAsset = async (_data: any) => {};
-  const currentAssetUrl = null;
-
   const [uploading, setUploading] = useState(false);
   const [localPreview, setLocalPreview] = useState<string | null>(null);
+  const [currentAssetUrl, setCurrentAssetUrl] = useState<string | null>(null);
+  const [loadingAsset, setLoadingAsset] = useState(true);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // Cargar el asset actual (URL firmada de descarga) al montar.
   useEffect(() => {
-    if (currentAssetUrl) {
-      setLocalPreview(null);
-    }
-  }, [currentAssetUrl]);
+    let cancelled = false;
+    setLoadingAsset(true);
+    fetch(`/api/config/assets/url?type=${type}`)
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data: { url?: string | null } | null) => {
+        if (cancelled) return;
+        setCurrentAssetUrl(data && typeof data.url === "string" ? data.url : null);
+        setLoadingAsset(false);
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setCurrentAssetUrl(null);
+        setLoadingAsset(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [type]);
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -51,29 +65,69 @@ export function AssetUploader({ type, label, description, onSuccess, onError }: 
 
     setUploading(true);
     try {
-      // 1. Generar URL de upload de Convex
-      const uploadUrl = await generateUploadUrl();
-
-      // 2. Subir archivo a Convex File Storage
-      const result = await fetch(uploadUrl, {
+      // 1. Pedir upload strategy + key a InsForge
+      const uploadRes = await fetch("/api/config/assets/upload", {
         method: "POST",
-        headers: { "Content-Type": file.type },
-        body: file,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          type,
+          filename: file.name,
+          contentType: file.type,
+          size: file.size,
+        }),
       });
+      if (!uploadRes.ok) {
+        throw new Error("No se pudo iniciar la subida del archivo.");
+      }
+      const { strategy, key } = (await uploadRes.json()) as {
+        strategy: UploadStrategyResponse;
+        key: string;
+      };
 
-      if (!result.ok) {
-        throw new Error("Fallo al subir el archivo al almacenamiento.");
+      // 2. Subir el archivo a InsForge Storage
+      if (strategy.method === "presigned") {
+        await fetch(strategy.uploadUrl, {
+          method: "PUT",
+          headers: { "Content-Type": file.type },
+          body: file,
+        });
+      } else {
+        const form = new FormData();
+        for (const [field, value] of Object.entries(strategy.fields ?? {})) {
+          form.append(field, value);
+        }
+        form.append("file", file);
+        await fetch(strategy.uploadUrl, { method: "POST", body: form });
       }
 
-      const { storageId } = await result.json();
+      // 3. Confirmar la subida (verifica existencia y metadatos en Storage)
+      await fetch("/api/config/assets/confirm", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          key,
+          size: file.size,
+          contentType: file.type,
+          confirmUrl: strategy.confirmUrl,
+        }),
+      });
 
-      // 3. Asociar asset con la configuración
-      await setAsset({ type, storageId });
+      // 4. Asociar el asset a la configuración
+      const setRes = await fetch("/api/config/assets/set", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ type, key }),
+      });
+      if (!setRes.ok) {
+        throw new Error("No se pudo asociar el archivo a la configuración.");
+      }
 
+      setCurrentAssetUrl(objectUrl);
+      setLocalPreview(null);
       onSuccess(`¡Se actualizó el ${label} correctamente!`);
-    } catch (err: any) {
+    } catch (err) {
       console.error(err);
-      onError(err.message || `Ocurrió un error al subir el ${label}.`);
+      onError(err instanceof Error ? err.message : `Ocurrió un error al subir el ${label}.`);
       setLocalPreview(null);
     } finally {
       setUploading(false);
@@ -95,7 +149,7 @@ export function AssetUploader({ type, label, description, onSuccess, onError }: 
     <div className="flex flex-col gap-2">
       <label className="text-sm font-medium text-foreground">{label}</label>
 
-      {currentAssetUrl === undefined && !localPreview ? (
+      {loadingAsset && !localPreview ? (
         <Skeleton className="h-40 w-full rounded-xl" />
       ) : (
         <div
@@ -118,7 +172,6 @@ export function AssetUploader({ type, label, description, onSuccess, onError }: 
           </div>
         ) : activePreview ? (
           <div className="relative h-full w-full p-3 flex items-center justify-center">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={activePreview}
               alt={label}

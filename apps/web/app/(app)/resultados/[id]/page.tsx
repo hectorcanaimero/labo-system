@@ -2,7 +2,7 @@ import { notFound, redirect } from "next/navigation";
 
 import { getById as getPacienteById } from "@labo/db/repos/pacientes";
 import { getById } from "@labo/db/repos/resultados";
-import { AuthError, getCurrentUser } from "@labo/lib/server/auth";
+import { AuthError, getCurrentUser } from "@/lib/server/auth";
 
 import { ResultadoDetalle } from "./ResultadoDetalle";
 

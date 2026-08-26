@@ -1,12 +1,13 @@
-import { cookies } from "next/headers";
+import { cookies } from 'next/headers';
+import { z } from 'zod';
 
-import { getSql } from "@labo/db/client";
+import { getSql } from '@labo/db/client';
 import {
   getByAuthUserId,
   syncFromAuth,
   type UserRole,
   type Usuario,
-} from "@labo/db/repos/usuarios";
+} from '@labo/db/repos/usuarios';
 
 /**
  * Auth server helpers (ADR-11, F0.2.T8).
@@ -22,22 +23,22 @@ import {
  *   await requireRole("admin");
  */
 
-const DEFAULT_ACCESS_COOKIE = "insforge-access-token";
-const DEFAULT_REFRESH_COOKIE = "insforge-refresh-token";
+const DEFAULT_ACCESS_COOKIE = 'insforge-access-token';
+const DEFAULT_REFRESH_COOKIE = 'insforge-refresh-token';
 
 export const AUTH_COOKIE_NAMES = {
   access: process.env.INSFORGE_ACCESS_COOKIE ?? DEFAULT_ACCESS_COOKIE,
   refresh: process.env.INSFORGE_REFRESH_COOKIE ?? DEFAULT_REFRESH_COOKIE,
 } as const;
 
-export type AuthErrorCode = "UNAUTHENTICATED" | "UNAUTHORIZED";
+export type AuthErrorCode = 'UNAUTHENTICATED' | 'UNAUTHORIZED';
 
 export class AuthError extends Error {
   readonly code: AuthErrorCode;
   constructor(code: AuthErrorCode, message?: string) {
     super(message ?? code);
     this.code = code;
-    this.name = "AuthError";
+    this.name = 'AuthError';
   }
 }
 
@@ -58,11 +59,11 @@ function readInsforgeBaseUrl(): string {
   const url = process.env.INSFORGE_URL?.trim();
   if (!url || url.length === 0) {
     throw new Error(
-      "[@labo/lib/server/auth] INSFORGE_URL no está definida. " +
-        "Es requerida para validar sesiones server-side contra InsForge Auth.",
+      '[@labo/web/lib/server/auth] INSFORGE_URL no está definida. ' +
+        'Es requerida para validar sesiones server-side contra InsForge Auth.'
     );
   }
-  return url.replace(/\/+$/, "");
+  return url.replace(/\/+$/, '');
 }
 
 function readAccessTokenFromCookies(): string | null {
@@ -79,23 +80,23 @@ function readAccessTokenFromCookies(): string | null {
  * requiere carga adicional del cliente JS.
  */
 async function fetchInsforgeUser(
-  accessToken: string,
-): Promise<InsforgeSessionResponse["user"] | null> {
+  accessToken: string
+): Promise<InsforgeSessionResponse['user'] | null> {
   const baseUrl = readInsforgeBaseUrl();
   const res = await fetch(`${baseUrl}/api/auth/sessions/current`, {
-    method: "GET",
+    method: 'GET',
     headers: {
       Authorization: `Bearer ${accessToken}`,
-      Accept: "application/json",
+      Accept: 'application/json',
     },
-    cache: "no-store",
+    cache: 'no-store',
   });
   if (res.status === 401 || res.status === 403 || res.status === 404) {
     return null;
   }
   if (!res.ok) {
     throw new Error(
-      `[@labo/lib/server/auth] InsForge Auth respondió ${res.status} al validar sesión.`,
+      `[@labo/web/lib/server/auth] InsForge Auth respondió ${res.status} al validar sesión.`
     );
   }
   const payload = (await res.json()) as InsforgeSessionResponse;
@@ -113,16 +114,14 @@ async function fetchInsforgeUser(
  */
 export async function getCurrentUser(): Promise<CurrentUser> {
   const token = readAccessTokenFromCookies();
-  if (!token) throw new AuthError("UNAUTHENTICATED");
+  if (!token) throw new AuthError('UNAUTHENTICATED');
 
   const authUser = await fetchInsforgeUser(token);
-  if (!authUser?.id || !authUser.email) throw new AuthError("UNAUTHENTICATED");
+  if (!authUser?.id || !authUser.email) throw new AuthError('UNAUTHENTICATED');
 
   const sql = getSql();
   const displayName =
-    authUser.user_metadata?.name?.trim() ||
-    authUser.name?.trim() ||
-    authUser.email;
+    authUser.user_metadata?.name?.trim() || authUser.name?.trim() || authUser.email;
 
   let usuario: Usuario | null = await getByAuthUserId(sql, authUser.id);
   if (!usuario) {
@@ -133,7 +132,7 @@ export async function getCurrentUser(): Promise<CurrentUser> {
     });
   }
 
-  if (!usuario.activo) throw new AuthError("UNAUTHORIZED");
+  if (!usuario.activo) throw new AuthError('UNAUTHORIZED');
 
   return {
     userId: usuario.id,
@@ -163,7 +162,7 @@ export async function tryGetCurrentUser(): Promise<CurrentUser | null> {
  */
 export async function requireRole(role: UserRole): Promise<CurrentUser> {
   const user = await getCurrentUser();
-  if (user.role !== role) throw new AuthError("UNAUTHORIZED");
+  if (user.role !== role) throw new AuthError('UNAUTHORIZED');
   return user;
 }
 
@@ -171,17 +170,91 @@ export async function requireRole(role: UserRole): Promise<CurrentUser> {
 // Password reset — F0.2.T6
 // ─────────────────────────────────────────────────────────────────────────────
 
+export const PasswordRecoveryRequestSchema = z
+  .object({
+    email: z
+      .string()
+      .trim()
+      .email()
+      .max(254)
+      .transform((email) => email.toLowerCase()),
+  })
+  .strict();
+
+export const PasswordRecoveryConfirmationSchema = z
+  .object({
+    token: z.string().trim().min(1).max(4_096),
+    password: z.string().min(8).max(128),
+  })
+  .strict();
+
+export type PasswordResetErrorCode =
+  'TOKEN_EXPIRED' | 'TOKEN_USED' | 'TOKEN_INVALID' | 'RESET_FAILED';
+
 export class PasswordResetError extends Error {
-  readonly code: string;
-  constructor(code: string, message: string) {
-    super(message);
+  readonly code: PasswordResetErrorCode;
+  constructor(code: PasswordResetErrorCode) {
+    super(code);
     this.code = code;
-    this.name = "PasswordResetError";
+    this.name = 'PasswordResetError';
   }
 }
 
 interface InsforgeResetResponse {
-  error?: { message?: string; code?: string };
+  error?: { message?: string; code?: string } | string;
+  code?: string;
+  message?: string;
+}
+
+function readInsforgeAnonKey(): string | null {
+  const key = (process.env.INSFORGE_ANON_KEY ?? process.env.NEXT_PUBLIC_INSFORGE_ANON_KEY)?.trim();
+  return key && key.length > 0 ? key : null;
+}
+
+function passwordResetHeaders(): Record<string, string> {
+  const anonKey = readInsforgeAnonKey();
+  return {
+    'content-type': 'application/json',
+    Accept: 'application/json',
+    ...(anonKey
+      ? {
+          apikey: anonKey,
+          Authorization: `Bearer ${anonKey}`,
+        }
+      : {}),
+  };
+}
+
+function normalizePasswordResetError(
+  payload: InsforgeResetResponse,
+  status: number
+): PasswordResetErrorCode {
+  const providerCode =
+    typeof payload.error === 'object'
+      ? (payload.error?.code ?? payload.error?.message)
+      : (payload.error ?? payload.code ?? payload.message);
+  const normalized = (providerCode ?? '').toLowerCase();
+
+  if (status === 410 || normalized.includes('expir')) return 'TOKEN_EXPIRED';
+  if (
+    normalized.includes('used') ||
+    normalized.includes('reuse') ||
+    normalized.includes('consum')
+  ) {
+    return 'TOKEN_USED';
+  }
+  if (
+    status === 400 ||
+    status === 401 ||
+    status === 403 ||
+    status === 404 ||
+    normalized.includes('invalid') ||
+    normalized.includes('token') ||
+    normalized.includes('otp')
+  ) {
+    return 'TOKEN_INVALID';
+  }
+  return 'RESET_FAILED';
 }
 
 /**
@@ -196,24 +269,31 @@ interface InsforgeResetResponse {
  */
 export async function requestInsforgePasswordReset(
   email: string,
-  redirectTo: string,
+  redirectTo: string
 ): Promise<void> {
   const baseUrl = readInsforgeBaseUrl();
-  const res = await fetch(`${baseUrl}/api/auth/passwords/reset`, {
-    method: "POST",
-    headers: {
-      "content-type": "application/json",
-      Accept: "application/json",
-    },
-    body: JSON.stringify({ email, redirect_to: redirectTo }),
-    cache: "no-store",
+  let res = await fetch(`${baseUrl}/api/auth/email/send-reset-password`, {
+    method: 'POST',
+    headers: passwordResetHeaders(),
+    body: JSON.stringify({ email, redirectTo }),
+    cache: 'no-store',
   });
+  // Compatibilidad con despliegues InsForge que todavía exponen el contrato
+  // recovery/verify anterior. El mock E2E implementa ambos contratos.
+  if (res.status === 404) {
+    res = await fetch(`${baseUrl}/auth/v1/recover`, {
+      method: 'POST',
+      headers: passwordResetHeaders(),
+      body: JSON.stringify({ email, redirect_to: redirectTo }),
+      cache: 'no-store',
+    });
+  }
   // 204 = no content (aceptado); 200 = OK con body. Ambos son éxito.
   // 404 = email no existe — InsForge puede retornar esto; tratarlo como éxito
   // para no revelar existencia del usuario.
   if (!res.ok && res.status !== 204 && res.status !== 404) {
     throw new Error(
-      `[@labo/lib/server/auth] InsForge password reset request failed: ${res.status}`,
+      `[@labo/web/lib/server/auth] InsForge password reset request failed: ${res.status}`
     );
   }
 }
@@ -226,24 +306,25 @@ export async function requestInsforgePasswordReset(
  */
 export async function completeInsforgePasswordReset(
   token: string,
-  newPassword: string,
+  newPassword: string
 ): Promise<void> {
   const baseUrl = readInsforgeBaseUrl();
-  const res = await fetch(`${baseUrl}/api/auth/passwords/reset`, {
-    method: "PUT",
-    headers: {
-      "content-type": "application/json",
-      Accept: "application/json",
-    },
-    body: JSON.stringify({ token, password: newPassword }),
-    cache: "no-store",
+  let res = await fetch(`${baseUrl}/api/auth/email/reset-password`, {
+    method: 'POST',
+    headers: passwordResetHeaders(),
+    body: JSON.stringify({ otp: token, newPassword }),
+    cache: 'no-store',
   });
+  if (res.status === 404) {
+    res = await fetch(`${baseUrl}/auth/v1/verify`, {
+      method: 'POST',
+      headers: passwordResetHeaders(),
+      body: JSON.stringify({ type: 'recovery', token, password: newPassword }),
+      cache: 'no-store',
+    });
+  }
   if (res.ok || res.status === 204) return;
 
   const payload = (await res.json().catch(() => ({}))) as InsforgeResetResponse;
-  const code = payload.error?.code ?? "RESET_FAILED";
-  throw new PasswordResetError(
-    code,
-    payload.error?.message ?? "Password reset failed",
-  );
+  throw new PasswordResetError(normalizePasswordResetError(payload, res.status));
 }

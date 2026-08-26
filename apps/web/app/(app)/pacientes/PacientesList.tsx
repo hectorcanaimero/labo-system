@@ -15,6 +15,7 @@ import { Button } from "@/components/ui/button";
 import { toHumanError } from "@labo/lib/error-messages";
 import { EmptyState, SkeletonTable } from "@labo/ui/feedback";
 import { ExportButton } from "@labo/ui/exports/ExportButton";
+import { calcularEdadDesglosada } from "@labo/lib/edad";
 
 import {
   PacienteFormDialog,
@@ -49,23 +50,6 @@ function formatDate(value: string): string {
     dateStyle: "medium",
     timeZone: "UTC",
   }).format(new Date(value));
-}
-
-function calculateAge(value: string): number {
-  const birthDate = new Date(value);
-  const now = new Date();
-
-  if (Number.isNaN(birthDate.getTime())) return 0;
-
-  let age = now.getUTCFullYear() - birthDate.getUTCFullYear();
-  const monthDelta = now.getUTCMonth() - birthDate.getUTCMonth();
-  const dayDelta = now.getUTCDate() - birthDate.getUTCDate();
-
-  if (monthDelta < 0 || (monthDelta === 0 && dayDelta < 0)) {
-    age -= 1;
-  }
-
-  return Math.max(0, age);
 }
 
 async function readApiError(response: Response): Promise<Error> {
@@ -363,7 +347,21 @@ export function PacientesList({ initialData, pageSize }: PacientesListProps) {
                         {formatDate(paciente.fecha_nacimiento)}
                       </td>
                       <td className="px-4 py-3 text-muted-foreground">
-                        {calculateAge(paciente.fecha_nacimiento)} años
+                        {(() => {
+                          const info = calcularEdadDesglosada(new Date(paciente.fecha_nacimiento));
+                          if (!info) return "N/A";
+                          const isPediatric = info.anos < 18;
+                          return (
+                            <div className="flex flex-col gap-1 items-start">
+                              <span>{info.textoFormateado}</span>
+                              {isPediatric && (
+                                <span className="inline-block rounded-full bg-blue-50 px-2 py-0.5 text-[10px] font-semibold tracking-wide text-blue-700 dark:bg-blue-950 dark:text-blue-300">
+                                  {info.etapa.toUpperCase()}
+                                </span>
+                              )}
+                            </div>
+                          );
+                        })()}
                       </td>
                       <td className="px-4 py-3">
                         <div className="flex justify-end gap-2">

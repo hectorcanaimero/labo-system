@@ -6,6 +6,7 @@ export interface ExamenTableRow {
   valor: string;
   unidad: string | null;
   referencia: string | null;
+  metodo: string | null;
   observacion: string | null;
 }
 
@@ -16,55 +17,60 @@ export interface ExamenesTableProps {
 const styles = StyleSheet.create({
   table: {
     marginBottom: 16,
+    borderWidth: 1,
+    borderColor: "#DCDCDC",
+    borderRadius: 4,
+    overflow: "hidden",
   },
   header: {
-    backgroundColor: "#155e75",
+    backgroundColor: "#0E9090",
     color: "#ffffff",
     flexDirection: "row",
     fontFamily: "Helvetica-Bold",
     fontSize: 8,
-    paddingHorizontal: 7,
+    paddingHorizontal: 8,
     paddingVertical: 6,
   },
   row: {
-    borderBottomColor: "#cbd5e1",
-    borderBottomWidth: 0.5,
     color: "#1e293b",
     flexDirection: "row",
     fontSize: 8.5,
-    paddingHorizontal: 7,
+    paddingHorizontal: 8,
     paddingVertical: 7,
   },
-  alternateRow: {
-    backgroundColor: "#f8fafc",
+  rowOdd: {
+    backgroundColor: "#E6E6E6",
   },
-  testColumn: {
+  rowEven: {
+    backgroundColor: "#DCDCDC",
+  },
+  pruebaColumn: {
     paddingRight: 6,
-    width: "31%",
+    width: "25%",
   },
-  resultColumn: {
+  resultadoColumn: {
     fontFamily: "Helvetica-Bold",
     paddingRight: 6,
-    width: "18%",
+    width: "15%",
   },
-  unitColumn: {
+  unidadColumn: {
     paddingRight: 6,
     width: "15%",
   },
-  referenceColumn: {
+  referenciaColumn: {
     paddingRight: 6,
-    width: "21%",
+    width: "25%",
   },
-  observationColumn: {
-    width: "15%",
+  metodoColumn: {
+    paddingRight: 6,
+    width: "20%",
   },
   empty: {
-    borderBottomColor: "#cbd5e1",
-    borderBottomWidth: 0.5,
     color: "#64748b",
     fontSize: 9,
     padding: 14,
     textAlign: "center",
+    backgroundColor: "#E6E6E6",
   },
 });
 
@@ -72,24 +78,24 @@ export function ExamenesTable({ rows }: ExamenesTableProps) {
   return (
     <View style={styles.table}>
       <View fixed style={styles.header}>
-        <Text style={styles.testColumn}>Examen</Text>
-        <Text style={styles.resultColumn}>Resultado</Text>
-        <Text style={styles.unitColumn}>Unidad</Text>
-        <Text style={styles.referenceColumn}>Referencia</Text>
-        <Text style={styles.observationColumn}>Observación</Text>
+        <Text style={styles.pruebaColumn}>PRUEBA</Text>
+        <Text style={styles.resultadoColumn}>RESULTADO</Text>
+        <Text style={styles.unidadColumn}>UNIDAD</Text>
+        <Text style={styles.referenciaColumn}>VALOR NORMAL</Text>
+        <Text style={styles.metodoColumn}>MÉTODO</Text>
       </View>
       {rows.length === 0 ? <Text style={styles.empty}>Sin exámenes registrados</Text> : null}
       {rows.map((row, index) => (
         <View
           key={row.id}
           wrap={false}
-          style={[styles.row, ...(index % 2 === 1 ? [styles.alternateRow] : [])]}
+          style={[styles.row, index % 2 === 0 ? styles.rowEven : styles.rowOdd]}
         >
-          <Text style={styles.testColumn}>{row.nombre}</Text>
-          <Text style={styles.resultColumn}>{row.valor}</Text>
-          <Text style={styles.unitColumn}>{row.unidad ?? "—"}</Text>
-          <Text style={styles.referenceColumn}>{row.referencia ?? "—"}</Text>
-          <Text style={styles.observationColumn}>{row.observacion ?? "—"}</Text>
+          <Text style={styles.pruebaColumn}>{row.nombre}</Text>
+          <Text style={styles.resultadoColumn}>{row.valor}</Text>
+          <Text style={styles.unidadColumn}>{row.unidad ?? "—"}</Text>
+          <Text style={styles.referenciaColumn}>{row.referencia ?? "—"}</Text>
+          <Text style={styles.metodoColumn}>{row.metodo ?? "—"}</Text>
         </View>
       ))}
     </View>

@@ -1,7 +1,7 @@
-"use client";
+'use client';
 
-import Link from "next/link";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import Link from 'next/link';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ChevronDown,
   ChevronUp,
@@ -12,16 +12,16 @@ import {
   Plus,
   Search,
   Trash2,
-} from "lucide-react";
+} from 'lucide-react';
 
-import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
-import { toHumanError } from "@labo/lib/error-messages";
-import { EmptyState, SkeletonText } from "@labo/ui/feedback";
-import { HighlightedText } from "@labo/ui/text/HighlightedText";
+import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
+import { toHumanError } from '@labo/lib/error-messages';
+import { EmptyState, SkeletonText } from '@labo/ui/feedback';
+import { HighlightedText } from '@labo/ui/text/HighlightedText';
 
-import { ExamenFormDialog } from "./ExamenFormDialog";
-import { TituloFormDialog } from "./TituloFormDialog";
+import { ExamenFormDialog } from './ExamenFormDialog';
+import { TituloFormDialog } from './TituloFormDialog';
 
 interface TituloListItem {
   id: string;
@@ -36,6 +36,8 @@ interface ExamenItem {
   precio_usd: number;
   unidad: string | null;
   valores_referencia: string | null;
+  tipo_analisis: string | null;
+  metodo: string | null;
   activo: boolean;
 }
 
@@ -45,6 +47,8 @@ interface SearchResultItem {
   nombre: string;
   precio_usd: number;
   unidad: string | null;
+  tipo_analisis: string | null;
+  metodo: string | null;
   activo: boolean;
 }
 
@@ -53,31 +57,31 @@ interface ApiErrorPayload {
 }
 
 type LoadableList<T> =
-  | { status: "idle"; items: T[]; errorMessage: null }
-  | { status: "loading"; items: T[]; errorMessage: null }
-  | { status: "success"; items: T[]; errorMessage: null }
-  | { status: "error"; items: T[]; errorMessage: string };
+  | { status: 'idle'; items: T[]; errorMessage: null }
+  | { status: 'loading'; items: T[]; errorMessage: null }
+  | { status: 'success'; items: T[]; errorMessage: null }
+  | { status: 'error'; items: T[]; errorMessage: string };
 
 interface TitulosNavigatorProps {
   initialTitulos: TituloListItem[];
 }
 
 const EMPTY_EXAMS: LoadableList<ExamenItem> = {
-  status: "idle",
+  status: 'idle',
   items: [],
   errorMessage: null,
 };
 
 const EMPTY_SEARCH: LoadableList<SearchResultItem> = {
-  status: "idle",
+  status: 'idle',
   items: [],
   errorMessage: null,
 };
 
 function formatUsd(value: number): string {
-  return new Intl.NumberFormat("es-VE", {
-    style: "currency",
-    currency: "USD",
+  return new Intl.NumberFormat('es-VE', {
+    style: 'currency',
+    currency: 'USD',
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   }).format(value);
@@ -85,27 +89,27 @@ function formatUsd(value: number): string {
 
 async function readApiError(response: Response): Promise<Error> {
   const payload = (await response.json().catch(() => null)) as ApiErrorPayload | null;
-  return new Error(payload?.error ?? "ERROR_GENERICO");
+  return new Error(payload?.error ?? 'ERROR_GENERICO');
 }
 
 async function requestJson<T>(input: RequestInfo | URL, init?: RequestInit): Promise<T> {
   const response = await fetch(input, {
     ...init,
     headers: {
-      accept: "application/json",
+      accept: 'application/json',
       ...(init?.headers ?? {}),
     },
-    cache: "no-store",
+    cache: 'no-store',
   });
 
   if (response.status === 401) {
-    window.location.href = "/login";
-    throw new Error("UNAUTHENTICATED");
+    window.location.href = '/login';
+    throw new Error('UNAUTHENTICATED');
   }
 
   if (response.status === 403) {
-    window.location.href = "/dashboard?reason=sin-permisos";
-    throw new Error("UNAUTHORIZED");
+    window.location.href = '/dashboard?reason=sin-permisos';
+    throw new Error('UNAUTHORIZED');
   }
 
   if (!response.ok) {
@@ -116,38 +120,43 @@ async function requestJson<T>(input: RequestInfo | URL, init?: RequestInit): Pro
 }
 
 function nextOrdenFrom(titulos: TituloListItem[]): number {
-  const highestOrden = titulos.reduce(
-    (current, titulo) => Math.max(current, titulo.orden),
-    0,
-  );
+  const highestOrden = titulos.reduce((current, titulo) => Math.max(current, titulo.orden), 0);
   return highestOrden + 1;
 }
 
 export function TitulosNavigator({ initialTitulos }: TitulosNavigatorProps) {
   const [titulos, setTitulos] = useState<TituloListItem[]>(initialTitulos);
   const [expandedTituloId, setExpandedTituloId] = useState<string | null>(
-    initialTitulos[0]?.id ?? null,
+    initialTitulos[0]?.id ?? null
   );
-  const [examensByTitulo, setExamensByTitulo] = useState<Record<string, LoadableList<ExamenItem>>>({});
-  const [searchTerm, setSearchTerm] = useState("");
-  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("");
+  const [examensByTitulo, setExamensByTitulo] = useState<Record<string, LoadableList<ExamenItem>>>(
+    {}
+  );
+  const [searchTerm, setSearchTerm] = useState('');
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
   const [searchState, setSearchState] = useState<LoadableList<SearchResultItem>>(EMPTY_SEARCH);
   const [pageError, setPageError] = useState<string | null>(null);
   const [tituloDialogOpen, setTituloDialogOpen] = useState(false);
   const [editingTitulo, setEditingTitulo] = useState<TituloListItem | null>(null);
   const [examenDialogOpen, setExamenDialogOpen] = useState(false);
-  const [selectedTituloForExamen, setSelectedTituloForExamen] = useState<TituloListItem | null>(null);
+  const [selectedTituloForExamen, setSelectedTituloForExamen] = useState<TituloListItem | null>(
+    null
+  );
   const [editingExamen, setEditingExamen] = useState<ExamenItem | null>(null);
   const [busyTitleId, setBusyTitleId] = useState<string | null>(null);
   const [busyExamenId, setBusyExamenId] = useState<string | null>(null);
 
   const titulosById = useMemo(
-    () => Object.fromEntries(titulos.map((titulo) => [titulo.id, titulo])) as Record<string, TituloListItem>,
-    [titulos],
+    () =>
+      Object.fromEntries(titulos.map((titulo) => [titulo.id, titulo])) as Record<
+        string,
+        TituloListItem
+      >,
+    [titulos]
   );
 
   const refreshTitulos = useCallback(async (): Promise<TituloListItem[]> => {
-    const nextTitulos = await requestJson<TituloListItem[]>("/api/examenes/titulos");
+    const nextTitulos = await requestJson<TituloListItem[]>('/api/examenes/titulos');
     setTitulos(nextTitulos);
     setExpandedTituloId((current) => {
       if (!current) {
@@ -155,43 +164,46 @@ export function TitulosNavigator({ initialTitulos }: TitulosNavigatorProps) {
       }
       return nextTitulos.some((titulo) => titulo.id === current)
         ? current
-        : nextTitulos[0]?.id ?? null;
+        : (nextTitulos[0]?.id ?? null);
     });
     return nextTitulos;
   }, []);
 
-  const loadExamenes = useCallback(async (tituloId: string, force = false) => {
-    const currentState = examensByTitulo[tituloId] ?? EMPTY_EXAMS;
-    if (!force && (currentState.status === "loading" || currentState.status === "success")) {
-      return;
-    }
+  const loadExamenes = useCallback(
+    async (tituloId: string, force = false) => {
+      const currentState = examensByTitulo[tituloId] ?? EMPTY_EXAMS;
+      if (!force && (currentState.status === 'loading' || currentState.status === 'success')) {
+        return;
+      }
 
-    setExamensByTitulo((current) => ({
-      ...current,
-      [tituloId]: {
-        status: "loading",
-        items: force ? [] : current[tituloId]?.items ?? [],
-        errorMessage: null,
-      },
-    }));
-
-    try {
-      const items = await requestJson<ExamenItem[]>(`/api/examenes?titulo_id=${tituloId}`);
-      setExamensByTitulo((current) => ({
-        ...current,
-        [tituloId]: { status: "success", items, errorMessage: null },
-      }));
-    } catch (error) {
       setExamensByTitulo((current) => ({
         ...current,
         [tituloId]: {
-          status: "error",
-          items: current[tituloId]?.items ?? [],
-          errorMessage: toHumanError(error),
+          status: 'loading',
+          items: force ? [] : (current[tituloId]?.items ?? []),
+          errorMessage: null,
         },
       }));
-    }
-  }, [examensByTitulo]);
+
+      try {
+        const items = await requestJson<ExamenItem[]>(`/api/examenes?titulo_id=${tituloId}`);
+        setExamensByTitulo((current) => ({
+          ...current,
+          [tituloId]: { status: 'success', items, errorMessage: null },
+        }));
+      } catch (error) {
+        setExamensByTitulo((current) => ({
+          ...current,
+          [tituloId]: {
+            status: 'error',
+            items: current[tituloId]?.items ?? [],
+            errorMessage: toHumanError(error),
+          },
+        }));
+      }
+    },
+    [examensByTitulo]
+  );
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
@@ -207,7 +219,7 @@ export function TitulosNavigator({ initialTitulos }: TitulosNavigatorProps) {
     }
 
     const currentState = examensByTitulo[expandedTituloId] ?? EMPTY_EXAMS;
-    if (currentState.status === "idle") {
+    if (currentState.status === 'idle') {
       void loadExamenes(expandedTituloId);
     }
   }, [expandedTituloId, examensByTitulo, loadExamenes]);
@@ -220,22 +232,22 @@ export function TitulosNavigator({ initialTitulos }: TitulosNavigatorProps) {
 
     let cancelled = false;
     setSearchState((current) => ({
-      status: "loading",
+      status: 'loading',
       items: current.items,
       errorMessage: null,
     }));
 
     void requestJson<SearchResultItem[]>(
-      `/api/examenes?term=${encodeURIComponent(debouncedSearchTerm)}`,
+      `/api/examenes?term=${encodeURIComponent(debouncedSearchTerm)}`
     )
       .then((items) => {
         if (cancelled) return;
-        setSearchState({ status: "success", items, errorMessage: null });
+        setSearchState({ status: 'success', items, errorMessage: null });
       })
       .catch((error) => {
         if (cancelled) return;
         setSearchState({
-          status: "error",
+          status: 'error',
           items: [],
           errorMessage: toHumanError(error),
         });
@@ -285,9 +297,9 @@ export function TitulosNavigator({ initialTitulos }: TitulosNavigatorProps) {
     setPageError(null);
 
     try {
-      await requestJson<{ orderedIds: string[] }>("/api/examenes/titulos", {
-        method: "PATCH",
-        headers: { "content-type": "application/json" },
+      await requestJson<{ orderedIds: string[] }>('/api/examenes/titulos', {
+        method: 'PATCH',
+        headers: { 'content-type': 'application/json' },
         body: JSON.stringify({ orderedIds: reordered.map((titulo) => titulo.id) }),
       });
       await refreshTitulos();
@@ -300,7 +312,7 @@ export function TitulosNavigator({ initialTitulos }: TitulosNavigatorProps) {
 
   const handleDeleteTitulo = async (titulo: TituloListItem) => {
     const confirmed = window.confirm(
-      `¿Seguro que querés eliminar "${titulo.nombre}"? Si tiene exámenes, el sistema lo va a rechazar.`,
+      `¿Seguro que querés eliminar "${titulo.nombre}"? Si tiene exámenes, el sistema lo va a rechazar.`
     );
     if (!confirmed) {
       return;
@@ -310,7 +322,7 @@ export function TitulosNavigator({ initialTitulos }: TitulosNavigatorProps) {
     setPageError(null);
 
     try {
-      await requestJson(`/api/examenes/titulos/${titulo.id}`, { method: "DELETE" });
+      await requestJson(`/api/examenes/titulos/${titulo.id}`, { method: 'DELETE' });
       setExamensByTitulo((current) => {
         const next = { ...current };
         delete next[titulo.id];
@@ -342,9 +354,7 @@ export function TitulosNavigator({ initialTitulos }: TitulosNavigatorProps) {
   };
 
   const handleDeleteExamen = async (examen: ExamenItem) => {
-    const confirmed = window.confirm(
-      `¿Querés desactivar "${examen.nombre}" del catálogo?`,
-    );
+    const confirmed = window.confirm(`¿Querés desactivar "${examen.nombre}" del catálogo?`);
     if (!confirmed) {
       return;
     }
@@ -353,13 +363,13 @@ export function TitulosNavigator({ initialTitulos }: TitulosNavigatorProps) {
     setPageError(null);
 
     try {
-      await requestJson(`/api/examenes/${examen.id}`, { method: "DELETE" });
+      await requestJson(`/api/examenes/${examen.id}`, { method: 'DELETE' });
       await loadExamenes(examen.titulo_id, true);
       if (debouncedSearchTerm.length > 0) {
         const items = await requestJson<SearchResultItem[]>(
-          `/api/examenes?term=${encodeURIComponent(debouncedSearchTerm)}`,
+          `/api/examenes?term=${encodeURIComponent(debouncedSearchTerm)}`
         );
-        setSearchState({ status: "success", items, errorMessage: null });
+        setSearchState({ status: 'success', items, errorMessage: null });
       }
     } catch (error) {
       setPageError(toHumanError(error));
@@ -429,19 +439,21 @@ export function TitulosNavigator({ initialTitulos }: TitulosNavigatorProps) {
                 Coincidencias para <span className="font-medium">“{debouncedSearchTerm}”</span>
               </p>
             </div>
-            {searchState.status === "loading" ? <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" /> : null}
+            {searchState.status === 'loading' ? (
+              <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+            ) : null}
           </div>
 
-          {searchState.status === "error" ? (
+          {searchState.status === 'error' ? (
             <EmptyState
               compact
               title="No pudimos completar la búsqueda"
-              description={searchState.errorMessage ?? "Intentá de nuevo en unos segundos."}
+              description={searchState.errorMessage ?? 'Intentá de nuevo en unos segundos.'}
               icon={<Search className="h-5 w-5" />}
             />
           ) : null}
 
-          {searchState.status === "success" && searchState.items.length === 0 ? (
+          {searchState.status === 'success' && searchState.items.length === 0 ? (
             <EmptyState
               compact
               title="Sin coincidencias"
@@ -467,15 +479,31 @@ export function TitulosNavigator({ initialTitulos }: TitulosNavigatorProps) {
                           <HighlightedText text={result.nombre} term={debouncedSearchTerm} />
                         </span>
                         <span className="text-xs text-muted-foreground">
-                          {titulo?.nombre ?? "Título sin resolver"}
+                          {titulo?.nombre ?? 'Título sin resolver'}
                         </span>
                       </div>
                       <span className="text-sm font-medium text-foreground">
                         {formatUsd(result.precio_usd)}
                       </span>
                     </div>
-                    {result.unidad ? (
-                      <span className="text-xs text-muted-foreground">Unidad: {result.unidad}</span>
+                    {result.unidad || result.tipo_analisis || result.metodo ? (
+                      <div className="flex flex-wrap gap-2 mt-1">
+                        {result.tipo_analisis ? (
+                          <span className="rounded bg-primary/10 px-2 py-0.5 text-[11px] font-medium text-primary">
+                            {result.tipo_analisis}
+                          </span>
+                        ) : null}
+                        {result.metodo ? (
+                          <span className="rounded bg-secondary px-2 py-0.5 text-[11px] font-medium text-secondary-foreground">
+                            {result.metodo}
+                          </span>
+                        ) : null}
+                        {result.unidad ? (
+                          <span className="rounded bg-muted px-2 py-0.5 text-[11px] text-muted-foreground">
+                            Unidad: {result.unidad}
+                          </span>
+                        ) : null}
+                      </div>
                     ) : null}
                   </button>
                 );
@@ -524,9 +552,9 @@ export function TitulosNavigator({ initialTitulos }: TitulosNavigatorProps) {
                           {titulo.nombre}
                         </h3>
                         <span className="text-xs text-muted-foreground">
-                          {examenesState.status === "success"
+                          {examenesState.status === 'success'
                             ? `${examenesState.items.length} exámenes`
-                            : "Expandí para cargar"}
+                            : 'Expandí para cargar'}
                         </span>
                       </div>
                     </div>
@@ -567,11 +595,7 @@ export function TitulosNavigator({ initialTitulos }: TitulosNavigatorProps) {
                       <PencilLine />
                       Editar título
                     </Button>
-                    <Button
-                      type="button"
-                      size="sm"
-                      onClick={() => handleOpenCreateExamen(titulo)}
-                    >
+                    <Button type="button" size="sm" onClick={() => handleOpenCreateExamen(titulo)}>
                       <Plus />
                       Nuevo examen
                     </Button>
@@ -590,24 +614,23 @@ export function TitulosNavigator({ initialTitulos }: TitulosNavigatorProps) {
 
                 {isExpanded ? (
                   <div className="flex flex-col gap-4 px-4 py-4">
-                    {examenesState.status === "loading" ? (
+                    {examenesState.status === 'loading' ? (
                       <div className="flex flex-col gap-3">
                         {Array.from({ length: 4 }, (_, index) => (
-                          <div
-                            key={index}
-                            className="rounded-lg border border-border px-4 py-3"
-                          >
+                          <div key={index} className="rounded-lg border border-border px-4 py-3">
                             <SkeletonText lines={2} />
                           </div>
                         ))}
                       </div>
                     ) : null}
 
-                    {examenesState.status === "error" ? (
+                    {examenesState.status === 'error' ? (
                       <EmptyState
                         compact
                         title="No pudimos cargar los exámenes"
-                        description={examenesState.errorMessage ?? "Intentá expandir el título otra vez."}
+                        description={
+                          examenesState.errorMessage ?? 'Intentá expandir el título otra vez.'
+                        }
                         icon={<FlaskConical className="h-5 w-5" />}
                         action={
                           <Button
@@ -622,14 +645,18 @@ export function TitulosNavigator({ initialTitulos }: TitulosNavigatorProps) {
                       />
                     ) : null}
 
-                    {examenesState.status === "success" && examenesState.items.length === 0 ? (
+                    {examenesState.status === 'success' && examenesState.items.length === 0 ? (
                       <EmptyState
                         compact
                         title="Este título todavía no tiene exámenes"
                         description="Creá el primer examen del grupo para empezar a usarlo en presupuestos y resultados."
                         icon={<FlaskConical className="h-5 w-5" />}
                         action={
-                          <Button type="button" size="sm" onClick={() => handleOpenCreateExamen(titulo)}>
+                          <Button
+                            type="button"
+                            size="sm"
+                            onClick={() => handleOpenCreateExamen(titulo)}
+                          >
                             <Plus />
                             Nuevo examen
                           </Button>
@@ -649,21 +676,38 @@ export function TitulosNavigator({ initialTitulos }: TitulosNavigatorProps) {
                               <div className="min-w-0 flex-1">
                                 <div className="flex flex-wrap items-center gap-2">
                                   <h4 className="text-sm font-semibold text-foreground">
-                                    <HighlightedText text={examen.nombre} term={debouncedSearchTerm} />
+                                    <HighlightedText
+                                      text={examen.nombre}
+                                      term={debouncedSearchTerm}
+                                    />
                                   </h4>
-                                  {examen.unidad ? (
-                                    <span className="rounded-full bg-muted px-2 py-0.5 text-[11px] text-muted-foreground">
-                                      {examen.unidad}
-                                    </span>
-                                  ) : null}
                                 </div>
-                                <p className="mt-1 text-sm font-medium text-foreground">
+                                {examen.unidad || examen.tipo_analisis || examen.metodo ? (
+                                  <div className="flex flex-wrap gap-2 mt-1.5">
+                                    {examen.tipo_analisis ? (
+                                      <span className="rounded bg-primary/10 px-2 py-0.5 text-[11px] font-medium text-primary">
+                                        {examen.tipo_analisis}
+                                      </span>
+                                    ) : null}
+                                    {examen.metodo ? (
+                                      <span className="rounded bg-secondary px-2 py-0.5 text-[11px] font-medium text-secondary-foreground">
+                                        {examen.metodo}
+                                      </span>
+                                    ) : null}
+                                    {examen.unidad ? (
+                                      <span className="rounded bg-muted px-2 py-0.5 text-[11px] text-muted-foreground">
+                                        Unidad: {examen.unidad}
+                                      </span>
+                                    ) : null}
+                                  </div>
+                                ) : null}
+                                <p className="mt-2 text-sm font-medium text-foreground">
                                   {formatUsd(examen.precio_usd)}
                                 </p>
                                 <p
                                   className={cn(
-                                    "mt-1 text-sm text-muted-foreground",
-                                    examen.valores_referencia ? "block" : "hidden",
+                                    'mt-1 text-sm text-muted-foreground',
+                                    examen.valores_referencia ? 'block' : 'hidden'
                                   )}
                                 >
                                   {examen.valores_referencia}

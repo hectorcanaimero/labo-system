@@ -31,6 +31,8 @@ CREATE TABLE IF NOT EXISTS laboratorio_config (
   telefono        text,
   email           text,
   rif             text,
+  colegio_bioanalistas text,
+  mpps            text,
   logo_object_key       text,
   firma_object_key      text,
   sello_object_key      text,
@@ -48,7 +50,7 @@ CREATE TABLE IF NOT EXISTS pacientes (
   apellido          text        NOT NULL,
   cedula            text        NOT NULL,
   fecha_nacimiento  timestamptz NOT NULL,
-  sexo              text        CHECK (sexo IN ('M', 'F', 'O')),
+  sexo              text        NOT NULL CHECK (sexo IN ('M', 'F', 'O')),
   telefono          text,
   email             text,
   direccion         text,
@@ -85,6 +87,8 @@ CREATE TABLE IF NOT EXISTS examenes (
   precio_usd          numeric(12, 2) NOT NULL CHECK (precio_usd >= 0),
   unidad              text,
   valores_referencia  text,
+  tipo_analisis       text,
+  metodo              text,
   activo              boolean        NOT NULL DEFAULT true,
   created_at          timestamptz    NOT NULL DEFAULT now(),
   updated_at          timestamptz    NOT NULL DEFAULT now(),
@@ -101,6 +105,7 @@ CREATE TABLE IF NOT EXISTS paquetes (
   id          uuid        PRIMARY KEY DEFAULT gen_random_uuid(),
   nombre      text        NOT NULL,
   descripcion text,
+  precio_base numeric(12, 2) NOT NULL DEFAULT 0,
   created_at  timestamptz NOT NULL DEFAULT now(),
   CONSTRAINT paquetes_nombre_unique UNIQUE (nombre)
 );
@@ -117,7 +122,7 @@ CREATE INDEX IF NOT EXISTS paquetes_examenes_by_paquete ON paquetes_examenes (pa
 -- ─────────────────────────────────────────────────────────────────────────────
 -- Presupuestos
 --   ADR-05: XOR paciente_id vs paciente_nombre_libre.
---   Estados: Borrador / Aprobado / Convertido.
+--   Estados del pipeline comercial y motivo obligatorio al rechazar.
 -- ─────────────────────────────────────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS presupuestos (
   id                     uuid           PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -129,10 +134,27 @@ CREATE TABLE IF NOT EXISTS presupuestos (
   total_usd              numeric(14, 2) NOT NULL DEFAULT 0 CHECK (total_usd >= 0),
   total_bs               numeric(16, 2) NOT NULL DEFAULT 0 CHECK (total_bs >= 0),
   estado                 text           NOT NULL DEFAULT 'Borrador'
-                                        CHECK (estado IN ('Borrador', 'Aprobado', 'Convertido')),
+                                        CONSTRAINT presupuestos_estado_check
+                                        CHECK (estado IN (
+                                          'Borrador',
+                                          'Enviado',
+                                          'Aprobado',
+                                          'Rechazado',
+                                          'Cancelado',
+                                          'Convertido'
+                                        )),
+  motivo_rechazo         text,
+  fecha_estado           timestamptz    NOT NULL DEFAULT now(),
   resultado_id           uuid,  -- FK agregada abajo (ciclo con resultados)
   created_at             timestamptz    NOT NULL DEFAULT now(),
   created_by             uuid           NOT NULL,
+  CONSTRAINT presupuestos_motivo_rechazo_check CHECK (
+    estado <> 'Rechazado'
+    OR (
+      motivo_rechazo IS NOT NULL
+      AND char_length(btrim(motivo_rechazo)) >= 3
+    )
+  ),
   CONSTRAINT presupuestos_paciente_xor CHECK (
     (paciente_id IS NULL) <> (paciente_nombre_libre IS NULL)
   )
@@ -181,6 +203,8 @@ CREATE TABLE IF NOT EXISTS resultados_examenes (
   precio_snap              numeric(12, 2) NOT NULL CHECK (precio_snap >= 0),
   unidad_snap              text,
   valores_referencia_snap  text,
+  tipo_analisis_snap       text,
+  metodo_snap              text,
   valor                    text           NOT NULL,
   observacion              text,
   orden                    integer        NOT NULL DEFAULT 0
@@ -192,12 +216,16 @@ CREATE INDEX IF NOT EXISTS resultados_examenes_by_resultado ON resultados_examen
 -- presupuestos_examenes (líneas con snapshot — ADR-04)
 -- ─────────────────────────────────────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS presupuestos_examenes (
-  id             uuid           PRIMARY KEY DEFAULT gen_random_uuid(),
-  presupuesto_id uuid           NOT NULL REFERENCES presupuestos (id) ON DELETE CASCADE,
-  examen_id      uuid           NOT NULL REFERENCES examenes     (id) ON DELETE RESTRICT,
-  nombre_snap    text           NOT NULL,
-  precio_snap    numeric(12, 2) NOT NULL CHECK (precio_snap >= 0),
-  orden          integer        NOT NULL DEFAULT 0
+  id                uuid           PRIMARY KEY DEFAULT gen_random_uuid(),
+  presupuesto_id    uuid           NOT NULL REFERENCES presupuestos (id) ON DELETE CASCADE,
+  examen_id         uuid           NOT NULL REFERENCES examenes     (id) ON DELETE RESTRICT,
+  paquete_id        uuid           REFERENCES paquetes              (id) ON DELETE RESTRICT,
+  nombre_snap       text           NOT NULL,
+  precio_snap       numeric(12, 2) NOT NULL CHECK (precio_snap >= 0),
+  precio_base_snap  numeric(12, 2) NOT NULL CHECK (precio_base_snap >= 0),
+  ganancia_pct      numeric(5, 2)  NOT NULL DEFAULT 0 CHECK (ganancia_pct >= 0),
+  precio_final_snap numeric(12, 2) NOT NULL CHECK (precio_final_snap >= 0),
+  orden             integer        NOT NULL DEFAULT 0
 );
 
 CREATE INDEX IF NOT EXISTS presupuestos_examenes_by_presupuesto ON presupuestos_examenes (presupuesto_id, orden);

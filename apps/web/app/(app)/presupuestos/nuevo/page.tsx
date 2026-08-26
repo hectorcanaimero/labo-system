@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 
 import { getSql } from "@labo/db/client";
 import { getLatest } from "@labo/db/repos/tasa";
-import { AuthError, getCurrentUser } from "@labo/lib/server/auth";
+import { AuthError, getCurrentUser } from "@/lib/server/auth";
 
 import { PresupuestoForm } from "./PresupuestoForm";
 

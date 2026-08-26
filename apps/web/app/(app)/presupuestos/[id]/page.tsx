@@ -1,7 +1,7 @@
 import { notFound, redirect } from "next/navigation";
 
 import { getById } from "@labo/db/repos/presupuestos";
-import { AuthError, getCurrentUser } from "@labo/lib/server/auth";
+import { AuthError, getCurrentUser } from "@/lib/server/auth";
 
 import { PresupuestoDetalle } from "./PresupuestoDetalle";
 

@@ -1,10 +1,10 @@
 import { NextResponse, type NextRequest } from "next/server";
 
 /**
- * Middleware Next.js (F0.2.T8 — ADR-11).
+ * Middleware Next.js (F0.2.T8 — ADR-11, actualizado en F6.1.T2).
  *
- * - Auth guard sobre el grupo `(app)` (redirect a `/login` sin sesión).
- * - Redirige `/login` → `/dashboard` si ya hay sesión.
+ * - Auth guard sobre el grupo `(app)` (redirect a `/` sin sesión).
+ * - `/` es la ruta pública de login; si ya hay sesión redirige a `/dashboard`.
  * - Guard de rol Admin sobre `/config/*`, `/examenes/*` y `/audit/*`.
  * - Excluye del matcher `/api/pdf/*` y `/api/cron/*` (validan internamente).
  *
@@ -18,7 +18,6 @@ const ACCESS_COOKIE_NAME =
   process.env.INSFORGE_ACCESS_COOKIE ?? "insforge-access-token";
 
 const PUBLIC_ROUTES = [
-  "/login",
   "/forgot-password",
   "/reset-password",
   "/accept-invite",
@@ -78,7 +77,7 @@ export default async function middleware(
   const hasSessionCookie =
     (request.cookies.get(ACCESS_COOKIE_NAME)?.value?.length ?? 0) > 0;
 
-  if (pathname === "/login") {
+  if (pathname === "/") {
     if (hasSessionCookie) {
       // Confirmar contra `/api/me` (la cookie podría estar expirada) para no
       // redirigir en loop si la sesión ya no es válida.
@@ -93,12 +92,12 @@ export default async function middleware(
   }
 
   if (!hasSessionCookie) {
-    return redirect(request, "/login");
+    return redirect(request, "/");
   }
 
   if (isAdminRoute(pathname)) {
     const role = await fetchRoleFromApi(request);
-    if (!role) return redirect(request, "/login");
+    if (!role) return redirect(request, "/");
     if (role !== "admin") {
       return redirect(request, `/dashboard?reason=${NO_PERMISSION_REASON}`);
     }

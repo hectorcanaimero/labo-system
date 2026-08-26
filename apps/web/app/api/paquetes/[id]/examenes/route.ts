@@ -6,7 +6,7 @@ import {
   PAQUETE_NO_ENCONTRADO,
   setExamenes,
 } from "@labo/db/repos/paquetes";
-import { AuthError, getCurrentUser, requireRole } from "@labo/lib/server/auth";
+import { AuthError, getCurrentUser, requireRole } from "@/lib/server/auth";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";

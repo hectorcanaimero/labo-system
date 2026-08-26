@@ -6,7 +6,7 @@ import {
   PRESUPUESTO_NO_ENCONTRADO,
   presupuestosConvertToResultado,
 } from '@labo/db/repos/presupuestos';
-import { AuthError, getCurrentUser } from '@labo/lib/server/auth';
+import { AuthError, getCurrentUser } from '@/lib/server/auth';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';

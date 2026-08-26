@@ -22,17 +22,55 @@ import { EmptyState } from "@labo/ui/feedback";
 import { AssetUploader } from "./AssetUploader";
 import { InviteUserDialog } from "./InviteUserDialog";
 
-interface ConfigFormProps {
-  preloadedConfig: any;
-  preloadedTasa: any;
+export interface ConfigPreloaded {
+  nombre: string;
+  direccion: string;
+  telefono: string | null;
+  email: string | null;
+  rif: string | null;
+  pdf_pie_pagina: string | null;
 }
 
-export function ConfigForm({ preloadedConfig: _pC, preloadedTasa: _pT }: ConfigFormProps) {
-  const config = null as any;
-  const latestTasa = null as any;
+export interface TasaPreloaded {
+  tasa: number;
+  fuente: string;
+  scraped_at: string;
+  motivo: string | null;
+  stale: boolean;
+}
 
-  const updateConfig = async (_data: any) => {};
-  const setManualTasa = async (_data: any) => {};
+interface ConfigFormProps {
+  preloadedConfig: ConfigPreloaded | null;
+  preloadedTasa: TasaPreloaded | null;
+}
+
+export function ConfigForm({ preloadedConfig, preloadedTasa }: ConfigFormProps) {
+  const config = preloadedConfig;
+  const [latestTasa, setLatestTasa] = useState<TasaPreloaded | null>(preloadedTasa);
+
+  const updateConfig = async (data: ConfigUpdateInput): Promise<void> => {
+    const res = await fetch("/api/config", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data),
+    });
+    if (!res.ok) {
+      const payload = (await res.json().catch(() => null)) as { error?: string } | null;
+      throw new Error(payload?.error || "Error al guardar la configuración.");
+    }
+  };
+
+  const setManualTasa = async (data: { tasa: number; motivo?: string }): Promise<void> => {
+    const res = await fetch("/api/tasa/manual", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data),
+    });
+    if (!res.ok) {
+      const payload = (await res.json().catch(() => null)) as { error?: string } | null;
+      throw new Error(payload?.error || "Error al actualizar la tasa.");
+    }
+  };
 
   const [savingConfig, setSavingConfig] = useState(false);
   const [updatingTasa, setUpdatingTasa] = useState(false);
@@ -92,9 +130,9 @@ export function ConfigForm({ preloadedConfig: _pC, preloadedTasa: _pT }: ConfigF
     try {
       await updateConfig(data);
       showToast("Configuración del laboratorio guardada correctamente.", "success");
-    } catch (err: any) {
+    } catch (err) {
       console.error(err);
-      showToast(err.message || "Error al guardar la configuración.", "error");
+      showToast(err instanceof Error ? err.message : "Error al guardar la configuración.", "error");
     } finally {
       setSavingConfig(false);
     }
@@ -119,12 +157,19 @@ export function ConfigForm({ preloadedConfig: _pC, preloadedTasa: _pT }: ConfigF
         tasa: value,
         motivo: tasaMotivo || undefined,
       });
+      setLatestTasa({
+        tasa: value,
+        fuente: "manual",
+        scraped_at: new Date().toISOString(),
+        motivo: tasaMotivo || null,
+        stale: false,
+      });
       showToast("Tasa de cambio actualizada correctamente.", "success");
       setTasaInput("");
       setTasaMotivo("");
-    } catch (err: any) {
+    } catch (err) {
       console.error(err);
-      showToast(err.message || "Error al actualizar la tasa.", "error");
+      showToast(err instanceof Error ? err.message : "Error al actualizar la tasa.", "error");
     } finally {
       setUpdatingTasa(false);
     }

@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { cookies } from "next/headers";
 
-import { requireRole, AUTH_COOKIE_NAMES, AuthError } from "@labo/lib/server/auth";
+import { requireRole, AUTH_COOKIE_NAMES, AuthError } from "@/lib/server/auth";
 import {
   ASSET_MIME_INVALIDO,
   ASSET_TAMANO_EXCEDIDO,

@@ -18,6 +18,7 @@ interface PaqueteRow {
   id: string;
   nombre: string;
   descripcion: string | null;
+  precio_base: string | number;
   created_at: Date;
 }
 
@@ -40,6 +41,7 @@ export interface Paquete {
   id: string;
   nombre: string;
   descripcion: string | null;
+  precio_base: number;
   created_at: Date;
 }
 
@@ -109,10 +111,20 @@ function mapSetExamenesError(error: unknown): never {
 function toPaqueteListItem(row: PaqueteListRow): PaqueteListItem {
   return {
     ...row,
+    precio_base:
+      typeof row.precio_base === "number" ? row.precio_base : Number(row.precio_base),
     examenes_count:
       typeof row.examenes_count === "number"
         ? row.examenes_count
         : Number(row.examenes_count),
+  };
+}
+
+function toPaquete(row: PaqueteRow): Paquete {
+  return {
+    ...row,
+    precio_base:
+      typeof row.precio_base === "number" ? row.precio_base : Number(row.precio_base),
   };
 }
 
@@ -155,11 +167,12 @@ export async function list(): Promise<PaqueteListItem[]> {
     SELECT p.id,
            p.nombre,
            p.descripcion,
+           p.precio_base,
            p.created_at,
            COUNT(pe.examen_id)::int AS examenes_count
     FROM paquetes p
     LEFT JOIN paquetes_examenes pe ON pe.paquete_id = p.id
-    GROUP BY p.id, p.nombre, p.descripcion, p.created_at
+    GROUP BY p.id, p.nombre, p.descripcion, p.precio_base, p.created_at
     ORDER BY p.nombre ASC, p.created_at ASC
   `;
 
@@ -169,7 +182,7 @@ export async function list(): Promise<PaqueteListItem[]> {
 export async function getById(id: string): Promise<PaqueteDetail | null> {
   const sql = getSql();
   const paqueteRows = await sql<PaqueteRow[]>`
-    SELECT id, nombre, descripcion, created_at
+    SELECT id, nombre, descripcion, precio_base, created_at
     FROM paquetes
     WHERE id = ${id}
     LIMIT 1
@@ -194,7 +207,7 @@ export async function getById(id: string): Promise<PaqueteDetail | null> {
   `;
 
   return {
-    ...paquete,
+    ...toPaquete(paquete),
     examenes: examenRows.map(toPaqueteExamen),
   };
 }
@@ -240,15 +253,16 @@ export async function create(input: unknown): Promise<Paquete> {
   const payload = {
     nombre: parsed.data.nombre,
     descripcion: parsed.data.descripcion ?? null,
+    precio_base: parsed.data.precio_base,
   };
 
   const sql = getSql();
   try {
     const rows = await sql<PaqueteRow[]>`
       INSERT INTO paquetes ${sql(payload)}
-      RETURNING id, nombre, descripcion, created_at
+      RETURNING id, nombre, descripcion, precio_base, created_at
     `;
-    return rows[0]!;
+    return toPaquete(rows[0]!);
   } catch (error) {
     mapUniquePaqueteError(error);
   }
@@ -265,6 +279,7 @@ export async function update(id: string, input: unknown): Promise<Paquete> {
   if (Object.prototype.hasOwnProperty.call(parsed.data, "descripcion")) {
     patch.descripcion = parsed.data.descripcion ?? null;
   }
+  if (parsed.data.precio_base !== undefined) patch.precio_base = parsed.data.precio_base;
 
   if (Object.keys(patch).length === 0) {
     const existing = await getById(id);
@@ -279,12 +294,12 @@ export async function update(id: string, input: unknown): Promise<Paquete> {
       UPDATE paquetes
       SET ${sql(patch, ...columns)}
       WHERE id = ${id}
-      RETURNING id, nombre, descripcion, created_at
+      RETURNING id, nombre, descripcion, precio_base, created_at
     `;
 
     const paquete = rows[0];
     if (!paquete) throw new Error(PAQUETE_NO_ENCONTRADO);
-    return paquete;
+    return toPaquete(paquete);
   } catch (error) {
     mapUniquePaqueteError(error);
   }
@@ -295,12 +310,12 @@ async function deletePaquete(id: string): Promise<Paquete> {
   const rows = await sql<PaqueteRow[]>`
     DELETE FROM paquetes
     WHERE id = ${id}
-    RETURNING id, nombre, descripcion, created_at
+    RETURNING id, nombre, descripcion, precio_base, created_at
   `;
 
   const paquete = rows[0];
   if (!paquete) throw new Error(PAQUETE_NO_ENCONTRADO);
-  return paquete;
+  return toPaquete(paquete);
 }
 
 export { deletePaquete as delete };

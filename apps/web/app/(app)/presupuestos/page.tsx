@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 
 import { list } from "@labo/db/repos/presupuestos";
-import { AuthError, getCurrentUser } from "@labo/lib/server/auth";
+import { AuthError, getCurrentUser } from "@/lib/server/auth";
 
 import { PresupuestosList, type PaginatedPresupuestosResponse } from "./PresupuestosList";
 

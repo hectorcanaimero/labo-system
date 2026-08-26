@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getSql } from "@labo/db/client";
-import { AuthError, getCurrentUser, AUTH_COOKIE_NAMES } from "@labo/lib/server/auth";
+import { AuthError, getCurrentUser, AUTH_COOKIE_NAMES } from "@/lib/server/auth";
 import { writeCsv, uploadCsv, getSignedDownloadUrl } from "@labo/lib/csv-export";
 import { cookies } from "next/headers";
 
