@@ -14,8 +14,13 @@ export default function LoginPage({ searchParams }: Props) {
           Contraseña actualizada correctamente. Ingresá con tu nueva contraseña.
         </div>
       ) : null}
-      <div className="mb-6 flex flex-col gap-1.5 text-center">
-        <h1 className="text-2xl font-bold tracking-tight">LabSystem</h1>
+      <div className="mb-6 flex flex-col items-center gap-3 text-center">
+        <img
+          src="/logo.png"
+          alt="RV Laboratorio"
+          className="h-16 w-16 rounded-xl object-contain"
+        />
+        <h1 className="text-2xl font-bold tracking-tight">RV Laboratorio</h1>
         <p className="text-sm text-muted-foreground">
           Ingresá tus credenciales para continuar
         </p>

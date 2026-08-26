@@ -24,12 +24,12 @@ function buildInviteEmail(
 ): { subject: string; html: string } {
   const roleName = role === "admin" ? "Administrador" : "Operador";
   return {
-    subject: "[LabSystem] Te invitaron a unirte",
+    subject: "[RV Laboratorio] Te invitaron a unirte",
     html: `
       <div style="font-family: Arial, Helvetica, sans-serif; font-size: 14px; line-height: 1.6; color: #1e293b;">
-        <h2 style="font-size: 18px; margin: 0 0 16px;">Invitación a LabSystem</h2>
+        <h2 style="font-size: 18px; margin: 0 0 16px;">Invitación a RV Laboratorio</h2>
         <p style="margin: 0 0 12px;">
-          Fuiste invitado a unirte a <strong>LabSystem</strong> con el rol de <strong>${roleName}</strong>.
+          Fuiste invitado a unirte a <strong>RV Laboratorio</strong> con el rol de <strong>${roleName}</strong>.
         </p>
         <p style="margin: 0 0 20px;">
           El enlace es válido por <strong>${INVITE_TTL_DAYS} días</strong>.

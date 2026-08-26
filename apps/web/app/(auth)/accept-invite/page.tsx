@@ -152,7 +152,7 @@ export default function AcceptInvitePage() {
         <div className="space-y-1 text-center">
           <h1 className="text-2xl font-bold tracking-tight">Aceptar invitación</h1>
           <p className="text-sm text-muted-foreground">
-            Elegí una contraseña para activar tu cuenta en LabSystem.
+            Elegí una contraseña para activar tu cuenta en RV Laboratorio.
           </p>
         </div>
 

@@ -50,7 +50,7 @@ async function renderWarmupPdf(): Promise<{ bytes: number; durationMs: number }>
   const startedAt = performance.now();
   const document = createElement(
     Document,
-    { author: 'LabSystem', subject: 'PDF health warm-up', title: 'health-warm-up' },
+    { author: 'RV Laboratorio', subject: 'PDF health warm-up', title: 'health-warm-up' },
     createElement(
       Page,
       { size: 'A4', style: warmStyles.page },

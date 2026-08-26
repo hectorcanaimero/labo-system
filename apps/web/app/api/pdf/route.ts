@@ -275,7 +275,7 @@ function renderPdfDocument(payload: PdfPayload, logoDataUri: string) {
   return createElement(
     Document,
     {
-      author: 'LabSystem',
+      author: 'RV Laboratorio',
       subject: 'Benchmark @react-pdf server-side',
       title: payload.reportId,
     },

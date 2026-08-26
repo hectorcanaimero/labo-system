@@ -121,7 +121,16 @@ export default function AppLayout({ children }: { children: ReactNode }) {
         <Sidebar
           items={NAV_ITEMS}
           activeHref={activeHref}
-          brand={<span className="text-base">LabSystem</span>}
+          brand={
+            <div className="flex items-center gap-2">
+              <img
+                src="/logo.png"
+                alt="RV Laboratorio"
+                className="h-8 w-8 rounded-md object-contain"
+              />
+              <span className="text-base">RV Laboratorio</span>
+            </div>
+          }
         />
         <div className="flex min-h-screen flex-1 flex-col md:min-w-0">
           <Header

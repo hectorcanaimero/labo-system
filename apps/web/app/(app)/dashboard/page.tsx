@@ -7,7 +7,7 @@ import { QuickLinks } from "./QuickLinks";
 import type { RecentActivityData } from "./RecentActivity";
 
 export const metadata: Metadata = {
-  title: "Dashboard — LabSystem",
+  title: "Dashboard — RV Laboratorio",
 };
 
 const ResultadosChart = dynamic(() => import("./ResultadosChart"), {

@@ -4,7 +4,7 @@ import type { ReactNode } from "react";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "LabSystem",
+  title: "RV Laboratorio",
   description: "Sistema de gestión de laboratorio clínico",
 };
 
