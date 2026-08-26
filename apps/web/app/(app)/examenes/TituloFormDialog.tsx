@@ -42,7 +42,7 @@ export function TituloFormDialog({
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const dialogTitle = useMemo(
-    () => (isEdit ? "Editar título" : "Nuevo título"),
+    () => (isEdit ? "Editar grupo" : "Nuevo grupo"),
     [isEdit],
   );
 
@@ -71,7 +71,7 @@ export function TituloFormDialog({
     const trimmedNombre = nombre.trim();
 
     if (trimmedNombre.length === 0) {
-      setErrorMessage("Ingresá un nombre para el título.");
+      setErrorMessage("Ingresá un nombre para el grupo.");
       return;
     }
 
@@ -144,7 +144,7 @@ export function TituloFormDialog({
         <form onSubmit={handleSubmit} className="mt-6 flex flex-col gap-4">
           <div className="flex flex-col gap-2">
             <label htmlFor="titulo-nombre" className="text-sm font-medium">
-              Nombre del título
+              Nombre del grupo
             </label>
             <input
               id="titulo-nombre"
@@ -186,7 +186,7 @@ export function TituloFormDialog({
               ) : (
                 <>
                   <Plus />
-                  Crear título
+                  Crear grupo
                 </>
               )}
             </Button>

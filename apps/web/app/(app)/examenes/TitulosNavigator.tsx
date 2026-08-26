@@ -418,7 +418,7 @@ export function TitulosNavigator({ initialTitulos }: TitulosNavigatorProps) {
             </Button>
             <Button type="button" variant="outline" onClick={handleOpenCreateTitulo}>
               <Plus />
-              Nuevo título
+              Nuevo grupo
             </Button>
           </div>
         </div>
@@ -457,7 +457,7 @@ export function TitulosNavigator({ initialTitulos }: TitulosNavigatorProps) {
             <EmptyState
               compact
               title="Sin coincidencias"
-              description="Probá con otro prefijo o abrí un título para revisar el catálogo completo."
+              description="Probá con otro prefijo o abrí un grupo para revisar el catálogo completo."
               icon={<Search className="h-5 w-5" />}
             />
           ) : null}
@@ -479,7 +479,7 @@ export function TitulosNavigator({ initialTitulos }: TitulosNavigatorProps) {
                           <HighlightedText text={result.nombre} term={debouncedSearchTerm} />
                         </span>
                         <span className="text-xs text-muted-foreground">
-                          {titulo?.nombre ?? 'Título sin resolver'}
+                          {titulo?.nombre ?? 'Grupo sin resolver'}
                         </span>
                       </div>
                       <span className="text-sm font-medium text-foreground">
@@ -515,13 +515,13 @@ export function TitulosNavigator({ initialTitulos }: TitulosNavigatorProps) {
 
       {titulos.length === 0 ? (
         <EmptyState
-          title="Todavía no hay títulos cargados"
-          description="Creá el primer título para empezar a organizar el catálogo de exámenes."
+          title="Todavía no hay grupos cargados"
+          description="Creá el primer grupo para empezar a organizar el catálogo de exámenes."
           icon={<FlaskConical className="h-6 w-6" />}
           action={
             <Button type="button" onClick={handleOpenCreateTitulo}>
               <Plus />
-              Nuevo título
+              Nuevo grupo
             </Button>
           }
         />
@@ -593,7 +593,7 @@ export function TitulosNavigator({ initialTitulos }: TitulosNavigatorProps) {
                       onClick={() => handleOpenEditTitulo(titulo)}
                     >
                       <PencilLine />
-                      Editar título
+                      Editar grupo
                     </Button>
                     <Button type="button" size="sm" onClick={() => handleOpenCreateExamen(titulo)}>
                       <Plus />
@@ -648,7 +648,7 @@ export function TitulosNavigator({ initialTitulos }: TitulosNavigatorProps) {
                     {examenesState.status === 'success' && examenesState.items.length === 0 ? (
                       <EmptyState
                         compact
-                        title="Este título todavía no tiene exámenes"
+                        title="Este grupo todavía no tiene exámenes"
                         description="Creá el primer examen del grupo para empezar a usarlo en presupuestos y resultados."
                         icon={<FlaskConical className="h-5 w-5" />}
                         action={

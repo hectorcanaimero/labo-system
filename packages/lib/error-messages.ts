@@ -25,10 +25,10 @@ export const DOMAIN_ERROR_MESSAGES: Readonly<Record<string, string>> = {
   CREDENCIALES_INVALIDAS: "Correo o contraseña incorrectos.",
 
   // ── Exámenes (packages/convex/examenes.ts) ────────────────────────────
-  TITULO_DUPLICADO: "Ya existe un examen con ese título.",
-  TITULO_NO_ENCONTRADO: "El examen que buscás ya no existe.",
+  TITULO_DUPLICADO: "Ya existe un grupo con ese nombre.",
+  TITULO_NO_ENCONTRADO: "El grupo que buscás ya no existe.",
   TITULO_TIENE_EXAMENES:
-    "No se puede eliminar el título porque tiene exámenes asociados.",
+    "No se puede eliminar el grupo porque tiene exámenes asociados.",
 
   // ── Config (packages/convex/config.ts) ────────────────────────────────
   ASSET_NO_ENCONTRADO: "El recurso que intentás usar ya no existe.",
@@ -79,7 +79,7 @@ export const PG_ERROR_CODE_MESSAGES: Readonly<Record<string, string>> = {
  */
 export const PG_CONSTRAINT_MESSAGES: Readonly<Record<string, string>> = {
   pacientes_cedula_unique: "Ya existe un paciente con esa cédula.",
-  examenes_titulos_nombre_unique: "Ya existe un examen con ese título.",
+  examenes_titulos_nombre_unique: "Ya existe un grupo con ese nombre.",
   examenes_titulo_nombre_unique: "Ya existe un examen con ese nombre.",
   paquetes_nombre_unique: "Ya existe un paquete con ese nombre.",
   usuarios_email_unique: "Ya existe un usuario con ese correo.",

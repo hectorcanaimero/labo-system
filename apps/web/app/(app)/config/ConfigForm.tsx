@@ -20,7 +20,6 @@ import { configUpdateSchema, type ConfigUpdateInput } from "@labo/lib/schemas/co
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@labo/ui/feedback";
 import { AssetUploader } from "./AssetUploader";
-import { InviteUserDialog } from "./InviteUserDialog";
 
 export interface ConfigPreloaded {
   nombre: string;
@@ -486,24 +485,6 @@ export function ConfigForm({ preloadedConfig, preloadedTasa }: ConfigFormProps) 
               )}
             </Button>
           </form>
-        </div>
-
-        {/* Sección Control de Acceso (Invitación de usuarios) */}
-        <div className="rounded-xl border border-border bg-card p-6 shadow-sm space-y-4">
-          <div className="flex flex-col gap-1.5 border-b pb-3">
-            <h2 className="text-lg font-semibold tracking-tight">Control de Accesos</h2>
-            <p className="text-xs text-muted-foreground text-sm">
-              Invitá a nuevos administradores u operadores para colaborar en la gestión clínica.
-            </p>
-          </div>
-
-          <div className="flex items-center justify-between">
-            <span className="text-xs text-muted-foreground">Flujo de invitación (V1)</span>
-            <InviteUserDialog 
-              onSuccess={(msg) => showToast(msg, "success")}
-              onError={(msg) => showToast(msg, "error")}
-            />
-          </div>
         </div>
       </div>
     </div>

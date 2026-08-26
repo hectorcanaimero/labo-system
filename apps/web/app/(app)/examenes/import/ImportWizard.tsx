@@ -200,7 +200,7 @@ export function ImportWizard() {
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6">
               <div className="bg-white p-4 rounded shadow-sm border border-green-100 text-center">
                 <p className="text-2xl font-bold text-gray-900">{result.titulos_creados}</p>
-                <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mt-1">Títulos Creados</p>
+                <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mt-1">Grupos Creados</p>
               </div>
               <div className="bg-white p-4 rounded shadow-sm border border-green-100 text-center">
                 <p className="text-2xl font-bold text-gray-900">{result.examenes_creados}</p>

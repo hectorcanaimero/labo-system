@@ -41,7 +41,7 @@ export default async function ExamenesPage() {
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Exámenes</h1>
           <p className="text-sm text-muted-foreground">
-            Gestioná el catálogo por títulos, actualizá precios y prepará la
+            Gestioná el catálogo por grupos, actualizá precios y prepará la
             importación masiva desde Excel.
           </p>
         </div>

@@ -23,7 +23,7 @@ const PUBLIC_ROUTES = [
   "/accept-invite",
 ] as const;
 
-const ADMIN_ROUTE_PREFIXES = ["/config", "/examenes", "/audit"] as const;
+const ADMIN_ROUTE_PREFIXES = ["/config", "/examenes", "/audit", "/usuarios"] as const;
 
 const NO_PERMISSION_REASON = "sin-permisos";
 

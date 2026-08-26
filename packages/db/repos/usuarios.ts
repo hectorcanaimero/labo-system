@@ -224,3 +224,43 @@ export async function listPendingInvitations(
     ORDER BY created_at DESC
   `;
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Gestión de usuarios (F9 — listado y administración de roles)
+// ─────────────────────────────────────────────────────────────────────────────
+
+export async function listAll(sql: Sql): Promise<Usuario[]> {
+  return sql<Usuario[]>`
+    SELECT id, auth_user_id, email, nombre, role, activo, created_at
+    FROM usuarios
+    ORDER BY created_at ASC
+  `;
+}
+
+export async function updateRole(
+  sql: Sql,
+  id: string,
+  role: UserRole,
+): Promise<Usuario> {
+  const rows = await sql<Usuario[]>`
+    UPDATE usuarios
+    SET role = ${role}
+    WHERE id = ${id}
+    RETURNING id, auth_user_id, email, nombre, role, activo, created_at
+  `;
+  return rows[0]!;
+}
+
+export async function setActivo(
+  sql: Sql,
+  id: string,
+  activo: boolean,
+): Promise<Usuario> {
+  const rows = await sql<Usuario[]>`
+    UPDATE usuarios
+    SET activo = ${activo}
+    WHERE id = ${id}
+    RETURNING id, auth_user_id, email, nombre, role, activo, created_at
+  `;
+  return rows[0]!;
+}
