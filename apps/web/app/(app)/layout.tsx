@@ -131,6 +131,13 @@ export default function AppLayout({ children }: { children: ReactNode }) {
               <span className="text-base">RV Laboratorio</span>
             </div>
           }
+          brandIcon={
+            <img
+              src="/logo.png"
+              alt="RV Laboratorio"
+              className="h-8 w-8 rounded-md object-contain"
+            />
+          }
         />
         <div className="flex min-h-screen flex-1 flex-col md:min-w-0">
           <Header
