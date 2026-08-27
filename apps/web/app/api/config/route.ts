@@ -2,7 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 
 import { get, update } from "@labo/db/repos/config";
 import { AuthError, getCurrentUser, requireRole } from "@/lib/server/auth";
-import { NOMBRE_REQUERIDO, RIF_INVALIDO } from "@labo/lib/schemas/config";
+import { NOMBRE_REQUERIDO, RIF_INVALIDO, DIRECCION_REQUERIDA } from "@labo/lib/schemas/config";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -23,6 +23,7 @@ function toStatus(error: unknown): { status: number; error: string } {
   switch (code) {
     case NOMBRE_REQUERIDO:
     case RIF_INVALIDO:
+    case DIRECCION_REQUERIDA:
     case "VALIDACION_FALLIDA":
       return { status: 400, error: code };
     default:

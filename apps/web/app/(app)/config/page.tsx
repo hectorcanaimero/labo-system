@@ -17,6 +17,8 @@ export default async function ConfigPage() {
         telefono: config.telefono,
         email: config.email,
         rif: config.rif,
+        colegio_bioanalistas: config.colegio_bioanalistas,
+        mpps: config.mpps,
         pdf_pie_pagina: config.pdf_pie_pagina,
       }
     : null;

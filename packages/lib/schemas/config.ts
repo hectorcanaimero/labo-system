@@ -5,6 +5,7 @@ import { z } from "zod";
  */
 export const NOMBRE_REQUERIDO = "NOMBRE_REQUERIDO";
 export const RIF_INVALIDO = "RIF_INVALIDO";
+export const DIRECCION_REQUERIDA = "DIRECCION_REQUERIDA";
 
 /**
  * Errores de validación de assets (logo/firma/sello).
@@ -72,7 +73,9 @@ export const configUpdateSchema = z.object({
     .string()
     .refine((v) => v.trim().length > 0, { message: NOMBRE_REQUERIDO }),
 
-  direccion: z.string(),
+  direccion: z
+    .string()
+    .refine((v) => v.trim().length > 0, { message: DIRECCION_REQUERIDA }),
 
   telefono: z.string().optional(),
 
@@ -110,7 +113,10 @@ export const configUpdatePartialSchema = z.object({
     .refine((v) => v.trim().length > 0, { message: NOMBRE_REQUERIDO })
     .optional(),
 
-  direccion: z.string().optional(),
+  direccion: z
+    .string()
+    .refine((v) => v.trim().length > 0, { message: DIRECCION_REQUERIDA })
+    .optional(),
 
   telefono: z.string().optional(),
 

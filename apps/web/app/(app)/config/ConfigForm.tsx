@@ -27,6 +27,8 @@ export interface ConfigPreloaded {
   telefono: string | null;
   email: string | null;
   rif: string | null;
+  colegio_bioanalistas: string | null;
+  mpps: string | null;
   pdf_pie_pagina: string | null;
 }
 
@@ -107,6 +109,8 @@ export function ConfigForm({ preloadedConfig, preloadedTasa }: ConfigFormProps) 
       telefono: config?.telefono || "",
       email: config?.email || "",
       rif: config?.rif || "",
+      colegio_bioanalistas: config?.colegio_bioanalistas || "",
+      mpps: config?.mpps || "",
       pdf_pie_pagina: config?.pdf_pie_pagina || "",
     },
   });
@@ -119,6 +123,8 @@ export function ConfigForm({ preloadedConfig, preloadedTasa }: ConfigFormProps) 
         telefono: config.telefono || "",
         email: config.email || "",
         rif: config.rif || "",
+        colegio_bioanalistas: config.colegio_bioanalistas || "",
+        mpps: config.mpps || "",
         pdf_pie_pagina: config.pdf_pie_pagina || "",
       });
     }
@@ -247,6 +253,40 @@ export function ConfigForm({ preloadedConfig, preloadedTasa }: ConfigFormProps) 
                   </p>
                 )}
               </div>
+
+              <div className="flex flex-col gap-2">
+                <label htmlFor="colegio_bioanalistas" className="text-sm font-medium leading-none text-foreground">
+                  Colegio de Bioanalistas
+                </label>
+                <div className="relative">
+                  <FileText className="absolute left-3 top-3 h-4 w-4 text-muted-foreground/60" />
+                  <input
+                    id="colegio_bioanalistas"
+                    type="text"
+                    placeholder="Ej. N° 713"
+                    {...register("colegio_bioanalistas")}
+                    disabled={savingConfig}
+                    className="flex h-10 w-full rounded-md border border-input bg-background py-2 pl-9 pr-3 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                  />
+                </div>
+              </div>
+
+              <div className="flex flex-col gap-2">
+                <label htmlFor="mpps" className="text-sm font-medium leading-none text-foreground">
+                  MPPS
+                </label>
+                <div className="relative">
+                  <FileText className="absolute left-3 top-3 h-4 w-4 text-muted-foreground/60" />
+                  <input
+                    id="mpps"
+                    type="text"
+                    placeholder="Ej. 10738"
+                    {...register("mpps")}
+                    disabled={savingConfig}
+                    className="flex h-10 w-full rounded-md border border-input bg-background py-2 pl-9 pr-3 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                  />
+                </div>
+              </div>
             </div>
           </div>
 
@@ -261,7 +301,7 @@ export function ConfigForm({ preloadedConfig, preloadedTasa }: ConfigFormProps) 
 
             <div className="flex flex-col gap-2">
               <label htmlFor="direccion" className="text-sm font-medium leading-none text-foreground">
-                Dirección Física
+                Dirección Física <span className="text-destructive">*</span>
               </label>
               <div className="relative">
                 <MapPin className="absolute left-3 top-3 h-4 w-4 text-muted-foreground/60" />
@@ -271,9 +311,14 @@ export function ConfigForm({ preloadedConfig, preloadedTasa }: ConfigFormProps) 
                   placeholder="Ej. Av. Francisco de Miranda, Edif. Centro, Piso 1, Ofic. 12"
                   {...register("direccion")}
                   disabled={savingConfig}
-                  className="flex h-10 w-full rounded-md border border-input bg-background py-2 pl-9 pr-3 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                  className={`flex h-10 w-full rounded-md border bg-background py-2 pl-9 pr-3 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 ${errors.direccion ? "border-destructive focus-visible:ring-destructive" : "border-input"}`}
                 />
               </div>
+              {errors.direccion && (
+                <p className="text-xs font-medium text-destructive">
+                  La dirección es requerida.
+                </p>
+              )}
             </div>
 
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
