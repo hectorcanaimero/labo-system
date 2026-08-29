@@ -5,6 +5,7 @@
   "scripts": {
     "build": "next build",
     "dev": "next dev",
+    "start": "next start",
     "lint": "eslint . --ext .ts,.tsx --no-error-on-unmatched-pattern",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
