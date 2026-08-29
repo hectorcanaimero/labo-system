@@ -8,6 +8,8 @@ export const metadata: Metadata = {
   description: "Sistema de gestión de laboratorio clínico",
 };
 
+export const dynamic = "force-dynamic";
+
 export default function RootLayout({
   children,
 }: {
