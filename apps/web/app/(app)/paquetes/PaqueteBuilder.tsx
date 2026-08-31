@@ -236,7 +236,6 @@ export function PaqueteBuilder({
         }
       }),
     );
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedTitulos.length]);
 
   const selectedExamIds = useMemo(() => new Set(items.map((i) => i.id)), [items]);

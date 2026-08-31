@@ -197,7 +197,6 @@ export function OrdenesPipelineSection({ items }: OrdenesPipelineSectionProps) {
       }
     }
     if (changed) setOverrides(next);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [items]);
 
   const cards = useMemo<PipelineOrdenCard[]>(

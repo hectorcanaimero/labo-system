@@ -15,7 +15,6 @@ export default function LoginPage({ searchParams }: Props) {
         </div>
       ) : null}
       <div className="mb-5 flex flex-col items-center gap-2 text-center">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src="/logo.png"
           alt="RV Laboratorio"
