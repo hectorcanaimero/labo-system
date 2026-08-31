@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from 'next/server';
 
 import { setManual } from '@labo/db/repos/tasa';
 import { AuthError, requireRole } from '@/lib/server/auth';
+import { getAdminDb } from '@/lib/db-server';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -41,7 +42,7 @@ export async function POST(request: NextRequest): Promise<Response> {
       return bad(400, 'INVALID_INPUT');
     }
 
-    const id = await setManual({
+    const id = await setManual(getAdminDb(), {
       tasa: input.tasa,
       motivo: input.motivo,
       usuarioId: user.userId,

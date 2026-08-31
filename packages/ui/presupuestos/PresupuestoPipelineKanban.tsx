@@ -20,12 +20,12 @@ import { PresupuestoEstadoBadge } from "./PresupuestoEstadoBadge";
 export const TRANSICIONES_ESTADO_UI: Readonly<
   Record<EstadoPresupuesto, readonly EstadoPresupuesto[]>
 > = {
-  Borrador: ["Enviado", "Cancelado"],
+  Borrador: ["Enviado", "Aprobado", "Cancelado"],
   Enviado: ["Aprobado", "Rechazado", "Cancelado"],
-  Aprobado: ["Convertido", "Cancelado"],
+  Aprobado: ["Cerrado", "Cancelado"],
   Rechazado: ["Borrador", "Cancelado"],
   Cancelado: [],
-  Convertido: [],
+  Cerrado: [],
 };
 
 export function esTransicionValida(
@@ -37,6 +37,8 @@ export function esTransicionValida(
 
 export interface PipelinePresupuestoCard {
   id: string;
+  numeroCorrelativo: number;
+  numeroLegible: string;
   estado: EstadoPresupuesto;
   pacienteLabel: string;
   fechaLabel: string;
@@ -65,9 +67,14 @@ export function PresupuestoKanbanCard({
   return (
     <div className="flex flex-col gap-2 rounded-lg border border-border bg-card p-3 shadow-sm">
       <div className="flex items-start justify-between gap-2">
-        <span className="min-w-0 flex-1 truncate text-sm font-medium text-foreground" title={card.pacienteLabel}>
-          {card.pacienteLabel}
-        </span>
+        <div className="min-w-0 flex-1">
+          <p className="font-mono text-[10px] uppercase tracking-wide text-muted-foreground/80">
+            {card.numeroLegible}
+          </p>
+          <span className="mt-0.5 block truncate text-sm font-medium text-foreground" title={card.pacienteLabel}>
+            {card.pacienteLabel}
+          </span>
+        </div>
         <PresupuestoEstadoBadge estado={card.estado} />
       </div>
       <p className="text-xs text-muted-foreground">{card.fechaLabel}</p>

@@ -21,6 +21,9 @@ export const PRECIO_INVALIDO = 'PRECIO_INVALIDO';
 
 /**
  * Estados posibles del pipeline comercial de presupuestos.
+ *
+ * `Cerrado` es el estado terminal exitoso: el presupuesto generó una orden de
+ * laboratorio (reemplaza al histórico `Convertido`).
  */
 export const ESTADO_PRESUPUESTO = [
   'Borrador',
@@ -28,7 +31,7 @@ export const ESTADO_PRESUPUESTO = [
   'Aprobado',
   'Rechazado',
   'Cancelado',
-  'Convertido',
+  'Cerrado',
 ] as const;
 
 export const PresupuestoEstadoEnum = z.enum(ESTADO_PRESUPUESTO, {
@@ -162,7 +165,7 @@ export const presupuestoUpdateSchema = z
     ganancia_pct: gananciaPctSchema.optional(),
     tasa_bs: tasaBsSchema.optional(),
     estado: estadoPresupuestoSchema.optional(),
-    resultado_id: z.string().min(1).optional(),
+    orden_id: z.string().min(1).optional(),
     examenes: z.array(lineaPresupuestoSchema).min(1, { message: EXAMENES_REQUERIDOS }).optional(),
   })
   .refine((data) => data.paciente_id == null || data.paciente_nombre_libre == null, {

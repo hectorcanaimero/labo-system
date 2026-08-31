@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 
 import { create, list } from "@labo/db/repos/pacientes";
+import { getDb } from "@/lib/db-server";
 import { AuthError, getCurrentUser } from "@/lib/server/auth";
 
 export const runtime = "nodejs";
@@ -53,7 +54,7 @@ export async function GET(request: NextRequest): Promise<Response> {
     const page = parsePositiveInt(request.nextUrl.searchParams.get("page"), 1);
     const limit = parsePositiveInt(request.nextUrl.searchParams.get("limit"), 20);
 
-    const result = await list({ page, limit });
+    const result = await list(getDb(), { page, limit });
     return NextResponse.json(result);
   } catch (error) {
     const { status, error: code } = toStatus(error);
@@ -70,7 +71,7 @@ export async function POST(request: NextRequest): Promise<Response> {
       return bad(400, "VALIDACION_FALLIDA");
     }
 
-    const paciente = await create(body);
+    const paciente = await create(getDb(), body);
     return NextResponse.json(paciente, { status: 201 });
   } catch (error) {
     const { status, error: code } = toStatus(error);

@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { delete as deletePresupuesto, getById, update, cambiarEstado } from "@labo/db/repos/presupuestos";
 import { AuthError, getCurrentUser, requireRole } from "@/lib/server/auth";
+import { getAdminDb } from "@/lib/db-server";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -16,7 +17,7 @@ export async function GET(_request: NextRequest, context: { params: { id: string
   try {
     const user = await getCurrentUser();
     if (user.role !== "admin" && user.role !== "operador") throw new AuthError("UNAUTHORIZED");
-    const item = await getById(context.params.id);
+    const item = await getById(getAdminDb(), context.params.id);
     return item ? NextResponse.json(item) : NextResponse.json({ error: "PRESUPUESTO_NO_ENCONTRADO" }, { status: 404 });
   } catch (error) { return response(error); }
 }
@@ -27,21 +28,23 @@ export async function PATCH(request: NextRequest, context: { params: { id: strin
     if (user.role !== "admin" && user.role !== "operador") throw new AuthError("UNAUTHORIZED");
     const body = await request.json().catch(() => null) as Record<string, unknown> | null;
     if (!body) return NextResponse.json({ error: "VALIDACION_FALLIDA" }, { status: 400 });
+    const db = getAdminDb();
     if (body.estado !== undefined) {
       return NextResponse.json(await cambiarEstado(
+        db,
         context.params.id,
         body.estado,
         typeof body.motivo_rechazo === "string" ? body.motivo_rechazo : undefined,
         user.userId,
       ));
     }
-    return NextResponse.json(await update(context.params.id, body, user.userId));
+    return NextResponse.json(await update(db, context.params.id, body, user.userId));
   } catch (error) { return response(error); }
 }
 
 export async function DELETE(_request: NextRequest, context: { params: { id: string } }): Promise<Response> {
   try {
     const user = await requireRole("admin");
-    return NextResponse.json(await deletePresupuesto(context.params.id, user.userId));
+    return NextResponse.json(await deletePresupuesto(getAdminDb(), context.params.id, user.userId));
   } catch (error) { return response(error); }
 }

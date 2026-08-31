@@ -4,6 +4,7 @@ import {
   PACIENTE_NO_ENCONTRADO,
   pacientesGetWithHistorial,
 } from "@labo/db/repos/pacientes";
+import { getDb } from "@/lib/db-server";
 import { AuthError, getCurrentUser } from "@/lib/server/auth";
 
 export const runtime = "nodejs";
@@ -64,7 +65,7 @@ export async function GET(
       request.nextUrl.searchParams.get("presupuestosLimit"),
     );
 
-    const historial = await pacientesGetWithHistorial({
+    const historial = await pacientesGetWithHistorial(getDb(), {
       id: context.params.id,
       resultadosLimit,
       presupuestosLimit,

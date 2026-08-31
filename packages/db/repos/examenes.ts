@@ -1,12 +1,9 @@
-import { getSql, withTransaction } from "../client";
+import type { Db } from "../sdk";
 
-/**
- * Errores de dominio del catálogo de títulos (grupos) de exámenes.
- *
- * Se reutilizan en los Route Handlers `/api/examenes/titulos/*` para mapear a
- * códigos HTTP. Coinciden con `packages/convex/examenes.ts` (F1.2.T1 original)
- * y con `DOMAIN_ERROR_MESSAGES` en `@labo/lib/error-messages`.
- */
+// ─────────────────────────────────────────────────────────────────────────────
+// Códigos de error de dominio
+// ─────────────────────────────────────────────────────────────────────────────
+
 export const TITULO_DUPLICADO = "TITULO_DUPLICADO";
 export const TITULO_NO_ENCONTRADO = "TITULO_NO_ENCONTRADO";
 export const TITULO_TIENE_EXAMENES = "TITULO_TIENE_EXAMENES";
@@ -21,70 +18,30 @@ const EXAMEN_ENTITY_TYPE = "examenes";
 const VALIDACION_FALLIDA = "VALIDACION_FALLIDA";
 const EXAMEN_SEARCH_LIMIT = 10;
 
-type PgErrorLike = {
-  code?: string;
-  constraint?: string;
-};
+// ─────────────────────────────────────────────────────────────────────────────
+// Helpers
+// ─────────────────────────────────────────────────────────────────────────────
 
-export interface Titulo {
-  id: string;
-  nombre: string;
-  orden: number;
-  created_at: Date;
-}
-
-export interface TituloCreateInput {
-  nombre: string;
-  orden: number;
-  usuarioId: string;
-}
-
-export interface TituloUpdateInput {
-  id: string;
-  nombre?: string;
-  orden?: number;
-  usuarioId: string;
-}
-
-export interface TituloDeleteInput {
-  id: string;
-  usuarioId: string;
-}
-
-export interface TituloReorderInput {
-  orderedIds: string[];
-  usuarioId: string;
-}
+type PgErrorLike = { code?: string; message?: string; details?: string };
 
 function isPgError(error: unknown): error is PgErrorLike {
   return typeof error === "object" && error !== null;
 }
 
 /**
- * ADR-11: uniqueness declarativa. El `UNIQUE (nombre)` de `examenes_titulos`
- * mapea la violación `23505` a `TITULO_DUPLICADO`.
+ * PostgREST devuelve `code` (postgres error code) + `message` con el nombre del
+ * constraint embebido. Matcheamos ambas señales: `23505` para uniqueness y el
+ * nombre del constraint dentro del message/details.
  */
-function mapUniqueNombreError(error: unknown): never {
-  if (
-    isPgError(error) &&
-    error.code === "23505" &&
-    error.constraint === NOMBRE_UNIQUE_CONSTRAINT
-  ) {
-    throw new Error(TITULO_DUPLICADO);
-  }
-  throw error;
+function isUniqueViolation(err: unknown, constraintName: string): boolean {
+  if (!isPgError(err)) return false;
+  if (err.code !== "23505") return false;
+  const haystack = `${err.message ?? ""} ${err.details ?? ""}`;
+  return haystack.includes(constraintName);
 }
 
-/**
- * FK RESTRICT fallback: si el título tiene exámenes hijos (aunque estén
- * soft-deleted) el DELETE explota con `23503` — mapeamos a `TITULO_TIENE_EXAMENES`
- * para un mensaje accionable.
- */
-function mapForeignKeyError(error: unknown): never {
-  if (isPgError(error) && error.code === "23503") {
-    throw new Error(TITULO_TIENE_EXAMENES);
-  }
-  throw error;
+function isForeignKeyViolation(err: unknown): boolean {
+  return isPgError(err) && err.code === "23503";
 }
 
 function validateNombre(nombre: unknown): string {
@@ -99,337 +56,6 @@ function validateOrden(orden: unknown): number {
     throw new Error(VALIDACION_FALLIDA);
   }
   return orden;
-}
-
-/**
- * Lista todos los títulos ordenados por `orden` ascendente.
- *
- * Lectura pública para cualquier usuario autenticado (operador+); el guard de
- * rol se aplica en el Route Handler.
- */
-export async function titulosList(): Promise<Titulo[]> {
-  const sql = getSql();
-  return sql<Titulo[]>`
-    SELECT id, nombre, orden, created_at
-    FROM examenes_titulos
-    ORDER BY orden ASC, created_at ASC
-  `;
-}
-
-/**
- * Crea un nuevo título (grupo) de exámenes.
- *
- * Solo administradores (guard en el Route Handler). Registra el evento en
- * `audit_log` de forma atómica con el INSERT.
- */
-export async function titulosCreate(input: TituloCreateInput): Promise<Titulo> {
-  const nombre = validateNombre(input.nombre);
-  const orden = validateOrden(input.orden);
-
-  try {
-    return await withTransaction(async (tx) => {
-      const rows = await tx<Titulo[]>`
-        INSERT INTO examenes_titulos (nombre, orden)
-        VALUES (${nombre}, ${orden})
-        RETURNING id, nombre, orden, created_at
-      `;
-      const titulo = rows[0]!;
-
-      await tx`
-        INSERT INTO audit_log (usuario_id, accion, entity_type, entity_id, metadata)
-        VALUES (
-          ${input.usuarioId},
-          ${"examenes_titulos.create"},
-          ${ENTITY_TYPE},
-          ${titulo.id},
-          ${tx.json({ nombre, orden })}
-        )
-      `;
-
-      return titulo;
-    });
-  } catch (error) {
-    mapUniqueNombreError(error);
-  }
-}
-
-/**
- * Actualiza `nombre` y/o `orden` de un título.
- *
- * Solo administradores. Si cambia el nombre, la unicidad la garantiza el
- * constraint declarativo `UNIQUE (nombre)`.
- */
-export async function titulosUpdate(input: TituloUpdateInput): Promise<Titulo> {
-  const patch: { nombre?: string; orden?: number } = {};
-  if (input.nombre !== undefined) patch.nombre = validateNombre(input.nombre);
-  if (input.orden !== undefined) patch.orden = validateOrden(input.orden);
-
-  if (Object.keys(patch).length === 0) {
-    const sql = getSql();
-    const rows = await sql<Titulo[]>`
-      SELECT id, nombre, orden, created_at
-      FROM examenes_titulos
-      WHERE id = ${input.id}
-      LIMIT 1
-    `;
-    const titulo = rows[0];
-    if (!titulo) throw new Error(TITULO_NO_ENCONTRADO);
-    return titulo;
-  }
-
-  try {
-    return await withTransaction(async (tx) => {
-      const existing = await tx<Titulo[]>`
-        SELECT id, nombre, orden, created_at
-        FROM examenes_titulos
-        WHERE id = ${input.id}
-        LIMIT 1
-      `;
-      const anterior = existing[0];
-      if (!anterior) throw new Error(TITULO_NO_ENCONTRADO);
-
-      const columns = Object.keys(patch) as Array<keyof typeof patch>;
-      const rows = await tx<Titulo[]>`
-        UPDATE examenes_titulos
-        SET ${tx(patch, ...columns)}
-        WHERE id = ${input.id}
-        RETURNING id, nombre, orden, created_at
-      `;
-      const titulo = rows[0]!;
-
-      await tx`
-        INSERT INTO audit_log (usuario_id, accion, entity_type, entity_id, metadata)
-        VALUES (
-          ${input.usuarioId},
-          ${"examenes_titulos.update"},
-          ${ENTITY_TYPE},
-          ${titulo.id},
-          ${tx.json({
-            anterior: { nombre: anterior.nombre, orden: anterior.orden },
-            nuevo: patch,
-          })}
-        )
-      `;
-
-      return titulo;
-    });
-  } catch (error) {
-    mapUniqueNombreError(error);
-  }
-}
-
-/**
- * Elimina un título.
- *
- * Solo administradores. Rechaza si tiene exámenes hijos activos (query
- * explícita para mensaje accionable); ante cualquier hijo restante (p.ej.
- * soft-deleted), el FK RESTRICT dispara `23503` que también mapea a
- * `TITULO_TIENE_EXAMENES`.
- */
-export async function titulosDelete(input: TituloDeleteInput): Promise<Titulo> {
-  try {
-    return await withTransaction(async (tx) => {
-      const existing = await tx<Titulo[]>`
-        SELECT id, nombre, orden, created_at
-        FROM examenes_titulos
-        WHERE id = ${input.id}
-        LIMIT 1
-      `;
-      const titulo = existing[0];
-      if (!titulo) throw new Error(TITULO_NO_ENCONTRADO);
-
-      const hijos = await tx<{ count: string }[]>`
-        SELECT COUNT(*)::text AS count
-        FROM examenes
-        WHERE titulo_id = ${input.id} AND activo = true
-      `;
-      const hijosActivos = Number(hijos[0]?.count ?? 0);
-      if (hijosActivos > 0) throw new Error(TITULO_TIENE_EXAMENES);
-
-      await tx`
-        DELETE FROM examenes_titulos
-        WHERE id = ${input.id}
-      `;
-
-      await tx`
-        INSERT INTO audit_log (usuario_id, accion, entity_type, entity_id, metadata)
-        VALUES (
-          ${input.usuarioId},
-          ${"examenes_titulos.delete"},
-          ${ENTITY_TYPE},
-          ${titulo.id},
-          ${tx.json({ nombre: titulo.nombre, orden: titulo.orden })}
-        )
-      `;
-
-      return titulo;
-    });
-  } catch (error) {
-    mapForeignKeyError(error);
-  }
-}
-
-/**
- * Reordena los títulos asignando `orden = índice + 1` a cada ID recibido.
- *
- * Solo administradores. UPDATE batch en una única transacción; cualquier ID
- * inexistente aborta con `TITULO_NO_ENCONTRADO` (rollback completo).
- */
-export async function titulosReorder(
-  input: TituloReorderInput,
-): Promise<string[]> {
-  const ids = input.orderedIds;
-  if (
-    !Array.isArray(ids) ||
-    ids.length === 0 ||
-    ids.some((id) => typeof id !== "string" || id.length === 0)
-  ) {
-    throw new Error(VALIDACION_FALLIDA);
-  }
-
-  await withTransaction(async (tx) => {
-    for (let i = 0; i < ids.length; i++) {
-      const rows = await tx<{ id: string }[]>`
-        UPDATE examenes_titulos
-        SET orden = ${i + 1}
-        WHERE id = ${ids[i]}
-        RETURNING id
-      `;
-      if (!rows[0]) {
-        throw new Error(TITULO_NO_ENCONTRADO);
-      }
-    }
-
-    await tx`
-      INSERT INTO audit_log (usuario_id, accion, entity_type, metadata)
-      VALUES (
-        ${input.usuarioId},
-        ${"examenes_titulos.reorder"},
-        ${ENTITY_TYPE},
-        ${tx.json({ orderedIds: ids })}
-      )
-    `;
-  });
-
-  return ids;
-}
-
-// =============================================================================
-// Exámenes (catálogo dentro de un título)
-// =============================================================================
-
-/**
- * Filas crudas de `examenes`. `precio_usd` es `numeric(12,2)` y postgres.js lo
- * devuelve como string, así que se normaliza a número en `toExamen`.
- */
-interface ExamenRow {
-  id: string;
-  titulo_id: string;
-  nombre: string;
-  precio_usd: string | number;
-  unidad: string | null;
-  valores_referencia: string | null;
-  tipo_analisis: string | null;
-  metodo: string | null;
-  activo: boolean;
-  created_at: Date;
-  updated_at: Date;
-}
-
-export interface Examen {
-  id: string;
-  titulo_id: string;
-  nombre: string;
-  precio_usd: number;
-  unidad: string | null;
-  valores_referencia: string | null;
-  tipo_analisis: string | null;
-  metodo: string | null;
-  activo: boolean;
-  created_at: Date;
-  updated_at: Date;
-}
-
-export interface ExamenSearchItem {
-  id: string;
-  titulo_id: string;
-  nombre: string;
-  precio_usd: number;
-  unidad: string | null;
-  activo: boolean;
-}
-
-export interface ExamenCreateInput {
-  titulo_id: string;
-  nombre: string;
-  precio_usd: number;
-  unidad?: string;
-  valores_referencia?: string;
-  tipo_analisis?: string;
-  metodo?: string;
-  usuarioId: string;
-}
-
-export interface ExamenUpdateInput {
-  id: string;
-  nombre?: string;
-  precio_usd?: number;
-  unidad?: string;
-  valores_referencia?: string;
-  tipo_analisis?: string;
-  metodo?: string;
-  usuarioId: string;
-}
-
-function toExamen(row: ExamenRow): Examen {
-  return {
-    ...row,
-    precio_usd:
-      typeof row.precio_usd === "number" ? row.precio_usd : Number(row.precio_usd),
-  };
-}
-
-function toExamenSearchItem(row: ExamenRow): ExamenSearchItem {
-  return {
-    id: row.id,
-    titulo_id: row.titulo_id,
-    nombre: row.nombre,
-    precio_usd:
-      typeof row.precio_usd === "number" ? row.precio_usd : Number(row.precio_usd),
-    unidad: row.unidad,
-    activo: row.activo,
-  };
-}
-
-/**
- * ADR-11: `UNIQUE (titulo_id, nombre)` de `examenes` mapea el `23505` a
- * `EXAMEN_DUPLICADO_EN_TITULO`. El mismo nombre es válido en OTRO título.
- */
-function mapUniqueExamenError(error: unknown): never {
-  if (
-    isPgError(error) &&
-    error.code === "23505" &&
-    error.constraint === EXAMEN_UNIQUE_CONSTRAINT
-  ) {
-    throw new Error(EXAMEN_DUPLICADO_EN_TITULO);
-  }
-  throw error;
-}
-
-/**
- * Mapeo combinado para `examenesCreate`: duplicado (23505) → `EXAMEN_DUPLICADO_EN_TITULO`,
- * FK inexistente (23503) → `TITULO_NO_ENCONTRADO` (red adicional al check explícito previo).
- */
-function mapExamenCreateError(error: unknown): never {
-  if (isPgError(error)) {
-    if (error.code === "23505" && error.constraint === EXAMEN_UNIQUE_CONSTRAINT) {
-      throw new Error(EXAMEN_DUPLICADO_EN_TITULO);
-    }
-    if (error.code === "23503") {
-      throw new Error(TITULO_NO_ENCONTRADO);
-    }
-  }
-  throw error;
 }
 
 function validateTituloId(tituloId: unknown): string {
@@ -457,146 +83,442 @@ function escapeLikePrefixTerm(raw: string): string {
 }
 
 /**
- * Lista los exámenes ACTIVOS de un título, ordenados por nombre.
- *
- * Lectura pública para cualquier usuario autenticado (operador+); el guard de
- * rol se aplica en el Route Handler. Los soft-deleted (`activo = false`) quedan
- * fuera del listado default.
+ * Audit-log best-effort. Sin transacciones el audit puede fallar después de
+ * que la operación principal committeó — no bloqueamos el resultado, solo
+ * dejamos rastro en consola.
  */
-export async function examenesListByTitulo(input: {
-  titulo_id: string;
-}): Promise<Examen[]> {
-  const tituloId = validateTituloId(input.titulo_id);
-  const sql = getSql();
-  const rows = await sql<ExamenRow[]>`
-    SELECT id, titulo_id, nombre, precio_usd, unidad, valores_referencia, tipo_analisis, metodo,
-           activo, created_at, updated_at
-    FROM examenes
-    WHERE titulo_id = ${tituloId} AND activo = true
-    ORDER BY nombre ASC, created_at ASC
-  `;
-  return rows.map(toExamen);
+async function auditBestEffort(
+  db: Db,
+  row: {
+    usuarioId: string;
+    accion: string;
+    entityType: string;
+    entityId?: string | null;
+    metadata: Record<string, unknown>;
+  },
+): Promise<void> {
+  const { error } = await db.from("audit_log").insert({
+    usuario_id: row.usuarioId,
+    accion: row.accion,
+    entity_type: row.entityType,
+    entity_id: row.entityId ?? null,
+    metadata: row.metadata,
+  });
+  if (error) console.warn(`[audit ${row.accion}]`, error.message);
 }
 
-/**
- * Búsqueda prefix (`ILIKE term || '%'`) sobre `nombre`, top 10, solo activos.
- *
- * El índice B-tree `examenes_by_nombre_search` alcanza para 250+ exámenes;
- * pg_trgm queda como upgrade documentado si se necesita substring search.
- */
-export async function examenesSearch(input: {
-  term: string;
-}): Promise<ExamenSearchItem[]> {
-  const term = typeof input.term === "string" ? input.term.trim() : "";
-  if (term.length === 0) {
-    return [];
+// =============================================================================
+// Títulos (grupos)
+// =============================================================================
+
+export interface Titulo {
+  id: string;
+  nombre: string;
+  orden: number;
+  created_at: string;
+}
+
+export interface TituloCreateInput {
+  nombre: string;
+  orden: number;
+  usuarioId: string;
+}
+
+export interface TituloUpdateInput {
+  id: string;
+  nombre?: string;
+  orden?: number;
+  usuarioId: string;
+}
+
+export interface TituloDeleteInput {
+  id: string;
+  usuarioId: string;
+}
+
+export interface TituloReorderInput {
+  orderedIds: string[];
+  usuarioId: string;
+}
+
+const TITULO_COLS = "id, nombre, orden, created_at";
+
+export async function titulosList(db: Db): Promise<Titulo[]> {
+  const { data, error } = await db
+    .from("examenes_titulos")
+    .select(TITULO_COLS)
+    .order("orden", { ascending: true })
+    .order("created_at", { ascending: true });
+  if (error) throw new Error(`titulosList: ${error.message}`);
+  return (data ?? []) as Titulo[];
+}
+
+export async function titulosCreate(
+  db: Db,
+  input: TituloCreateInput,
+): Promise<Titulo> {
+  const nombre = validateNombre(input.nombre);
+  const orden = validateOrden(input.orden);
+
+  const { data, error } = await db
+    .from("examenes_titulos")
+    .insert({ nombre, orden })
+    .select(TITULO_COLS)
+    .limit(1);
+
+  if (error) {
+    if (isUniqueViolation(error, NOMBRE_UNIQUE_CONSTRAINT)) {
+      throw new Error(TITULO_DUPLICADO);
+    }
+    throw new Error(`titulosCreate: ${error.message}`);
+  }
+  const titulo = data?.[0] as Titulo | undefined;
+  if (!titulo) throw new Error("titulosCreate: sin fila retornada");
+
+  await auditBestEffort(db, {
+    usuarioId: input.usuarioId,
+    accion: "examenes_titulos.create",
+    entityType: ENTITY_TYPE,
+    entityId: titulo.id,
+    metadata: { nombre, orden },
+  });
+
+  return titulo;
+}
+
+export async function titulosUpdate(
+  db: Db,
+  input: TituloUpdateInput,
+): Promise<Titulo> {
+  const patch: { nombre?: string; orden?: number } = {};
+  if (input.nombre !== undefined) patch.nombre = validateNombre(input.nombre);
+  if (input.orden !== undefined) patch.orden = validateOrden(input.orden);
+
+  const existingRes = await db
+    .from("examenes_titulos")
+    .select(TITULO_COLS)
+    .eq("id", input.id)
+    .limit(1);
+  if (existingRes.error) throw new Error(`titulosUpdate: ${existingRes.error.message}`);
+  const anterior = existingRes.data?.[0] as Titulo | undefined;
+  if (!anterior) throw new Error(TITULO_NO_ENCONTRADO);
+
+  if (Object.keys(patch).length === 0) return anterior;
+
+  const { data, error } = await db
+    .from("examenes_titulos")
+    .update(patch)
+    .eq("id", input.id)
+    .select(TITULO_COLS)
+    .limit(1);
+  if (error) {
+    if (isUniqueViolation(error, NOMBRE_UNIQUE_CONSTRAINT)) {
+      throw new Error(TITULO_DUPLICADO);
+    }
+    throw new Error(`titulosUpdate: ${error.message}`);
+  }
+  const titulo = data?.[0] as Titulo | undefined;
+  if (!titulo) throw new Error(TITULO_NO_ENCONTRADO);
+
+  await auditBestEffort(db, {
+    usuarioId: input.usuarioId,
+    accion: "examenes_titulos.update",
+    entityType: ENTITY_TYPE,
+    entityId: titulo.id,
+    metadata: {
+      anterior: { nombre: anterior.nombre, orden: anterior.orden },
+      nuevo: patch,
+    },
+  });
+
+  return titulo;
+}
+
+export async function titulosDelete(
+  db: Db,
+  input: TituloDeleteInput,
+): Promise<Titulo> {
+  const existingRes = await db
+    .from("examenes_titulos")
+    .select(TITULO_COLS)
+    .eq("id", input.id)
+    .limit(1);
+  if (existingRes.error) throw new Error(`titulosDelete: ${existingRes.error.message}`);
+  const titulo = existingRes.data?.[0] as Titulo | undefined;
+  if (!titulo) throw new Error(TITULO_NO_ENCONTRADO);
+
+  const hijosRes = await db
+    .from("examenes")
+    .select("id", { count: "exact", head: true })
+    .eq("titulo_id", input.id)
+    .eq("activo", true);
+  if (hijosRes.error) throw new Error(`titulosDelete: ${hijosRes.error.message}`);
+  if ((hijosRes.count ?? 0) > 0) throw new Error(TITULO_TIENE_EXAMENES);
+
+  const { error: delError } = await db
+    .from("examenes_titulos")
+    .delete()
+    .eq("id", input.id);
+  if (delError) {
+    if (isForeignKeyViolation(delError)) throw new Error(TITULO_TIENE_EXAMENES);
+    throw new Error(`titulosDelete: ${delError.message}`);
   }
 
-  const pattern = `${escapeLikePrefixTerm(term)}%`;
-  const sql = getSql();
-  const rows = await sql<ExamenRow[]>`
-    SELECT id, titulo_id, nombre, precio_usd, unidad, activo
-    FROM examenes
-    WHERE activo = true AND nombre ILIKE ${pattern} ESCAPE '\\'
-    ORDER BY nombre ASC
-    LIMIT ${EXAMEN_SEARCH_LIMIT}
-  `;
-  return rows.map(toExamenSearchItem);
+  await auditBestEffort(db, {
+    usuarioId: input.usuarioId,
+    accion: "examenes_titulos.delete",
+    entityType: ENTITY_TYPE,
+    entityId: titulo.id,
+    metadata: { nombre: titulo.nombre, orden: titulo.orden },
+  });
+
+  return titulo;
 }
 
-/**
- * Retorna un examen por ID (incluye inactivos — necesario para reactivar).
- * Devuelve `null` si no existe; el handler lo mapea a 404.
- */
-export async function examenesGetById(input: {
+export async function titulosReorder(
+  db: Db,
+  input: TituloReorderInput,
+): Promise<string[]> {
+  const ids = input.orderedIds;
+  if (
+    !Array.isArray(ids) ||
+    ids.length === 0 ||
+    ids.some((id) => typeof id !== "string" || id.length === 0)
+  ) {
+    throw new Error(VALIDACION_FALLIDA);
+  }
+
+  for (let i = 0; i < ids.length; i++) {
+    const { data, error } = await db
+      .from("examenes_titulos")
+      .update({ orden: i + 1 })
+      .eq("id", ids[i])
+      .select("id")
+      .limit(1);
+    if (error) throw new Error(`titulosReorder: ${error.message}`);
+    if (!data?.[0]) throw new Error(TITULO_NO_ENCONTRADO);
+  }
+
+  await auditBestEffort(db, {
+    usuarioId: input.usuarioId,
+    accion: "examenes_titulos.reorder",
+    entityType: ENTITY_TYPE,
+    metadata: { orderedIds: ids },
+  });
+
+  return ids;
+}
+
+// =============================================================================
+// Exámenes
+// =============================================================================
+
+interface ExamenRow {
   id: string;
-}): Promise<Examen | null> {
-  const sql = getSql();
-  const rows = await sql<ExamenRow[]>`
-    SELECT id, titulo_id, nombre, precio_usd, unidad, valores_referencia, tipo_analisis, metodo,
-           activo, created_at, updated_at
-    FROM examenes
-    WHERE id = ${input.id}
-    LIMIT 1
-  `;
-  return rows[0] ? toExamen(rows[0]) : null;
+  titulo_id: string;
+  nombre: string;
+  precio_usd: string | number;
+  unidad: string | null;
+  valores_referencia: string | null;
+  tipo_analisis: string;
+  metodo: string | null;
+  observaciones: string | null;
+  activo: boolean;
+  created_at: string;
+  updated_at: string;
 }
 
-/**
- * Crea un examen dentro de un título.
- *
- * Solo administradores. Valida que el `titulo_id` exista (`TITULO_NO_ENCONTRADO`)
- * y deja que el constraint `UNIQUE (titulo_id, nombre)` rechace duplicados
- * (`EXAMEN_DUPLICADO_EN_TITULO`). Registra el evento en `audit_log` de forma
- * atómica con el INSERT.
- */
-export async function examenesCreate(input: ExamenCreateInput): Promise<Examen> {
+export interface Examen {
+  id: string;
+  titulo_id: string;
+  nombre: string;
+  precio_usd: number;
+  unidad: string | null;
+  valores_referencia: string | null;
+  tipo_analisis: string;
+  metodo: string | null;
+  observaciones: string | null;
+  activo: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ExamenSearchItem {
+  id: string;
+  titulo_id: string;
+  nombre: string;
+  precio_usd: number;
+  unidad: string | null;
+  activo: boolean;
+}
+
+export interface ExamenCreateInput {
+  titulo_id: string;
+  nombre: string;
+  precio_usd: number;
+  unidad?: string;
+  valores_referencia?: string;
+  tipo_analisis: string;
+  metodo?: string;
+  observaciones?: string;
+  usuarioId: string;
+}
+
+export interface ExamenUpdateInput {
+  id: string;
+  nombre?: string;
+  precio_usd?: number;
+  unidad?: string;
+  valores_referencia?: string;
+  tipo_analisis?: string;
+  metodo?: string;
+  observaciones?: string;
+  usuarioId: string;
+}
+
+const EXAMEN_COLS =
+  "id, titulo_id, nombre, precio_usd, unidad, valores_referencia, tipo_analisis, metodo, observaciones, activo, created_at, updated_at";
+
+function toExamen(row: ExamenRow): Examen {
+  return {
+    ...row,
+    precio_usd:
+      typeof row.precio_usd === "number" ? row.precio_usd : Number(row.precio_usd),
+  };
+}
+
+function toExamenSearchItem(row: ExamenRow): ExamenSearchItem {
+  return {
+    id: row.id,
+    titulo_id: row.titulo_id,
+    nombre: row.nombre,
+    precio_usd:
+      typeof row.precio_usd === "number" ? row.precio_usd : Number(row.precio_usd),
+    unidad: row.unidad,
+    activo: row.activo,
+  };
+}
+
+export async function examenesListByTitulo(
+  db: Db,
+  input: { titulo_id: string },
+): Promise<Examen[]> {
+  const tituloId = validateTituloId(input.titulo_id);
+  const { data, error } = await db
+    .from("examenes")
+    .select(EXAMEN_COLS)
+    .eq("titulo_id", tituloId)
+    .eq("activo", true)
+    .order("nombre", { ascending: true })
+    .order("created_at", { ascending: true });
+  if (error) throw new Error(`examenesListByTitulo: ${error.message}`);
+  return (data ?? []).map((r) => toExamen(r as ExamenRow));
+}
+
+export async function examenesSearch(
+  db: Db,
+  input: { term: string },
+): Promise<ExamenSearchItem[]> {
+  const term = typeof input.term === "string" ? input.term.trim() : "";
+  if (term.length === 0) return [];
+
+  const pattern = `${escapeLikePrefixTerm(term)}%`;
+  const { data, error } = await db
+    .from("examenes")
+    .select("id, titulo_id, nombre, precio_usd, unidad, activo")
+    .eq("activo", true)
+    .ilike("nombre", pattern)
+    .order("nombre", { ascending: true })
+    .limit(EXAMEN_SEARCH_LIMIT);
+  if (error) throw new Error(`examenesSearch: ${error.message}`);
+  return (data ?? []).map((r) => toExamenSearchItem(r as ExamenRow));
+}
+
+export async function examenesGetById(
+  db: Db,
+  input: { id: string },
+): Promise<Examen | null> {
+  const { data, error } = await db
+    .from("examenes")
+    .select(EXAMEN_COLS)
+    .eq("id", input.id)
+    .limit(1);
+  if (error) throw new Error(`examenesGetById: ${error.message}`);
+  const row = data?.[0] as ExamenRow | undefined;
+  return row ? toExamen(row) : null;
+}
+
+export async function examenesCreate(
+  db: Db,
+  input: ExamenCreateInput,
+): Promise<Examen> {
   const tituloId = validateTituloId(input.titulo_id);
   const nombre = validateNombre(input.nombre);
   const precioUsd = validatePrecioUsd(input.precio_usd);
+  const tipoAnalisis = validateNombre(input.tipo_analisis); // required
   const unidad = trimOrNull(input.unidad);
   const valoresReferencia = trimOrNull(input.valores_referencia);
-  const tipoAnalisis = trimOrNull(input.tipo_analisis);
   const metodo = trimOrNull(input.metodo);
+  const observaciones = trimOrNull(input.observaciones);
 
-  try {
-    return await withTransaction(async (tx) => {
-      const tituloRows = await tx<{ id: string }[]>`
-        SELECT id FROM examenes_titulos WHERE id = ${tituloId} LIMIT 1
-      `;
-      if (!tituloRows[0]) throw new Error(TITULO_NO_ENCONTRADO);
+  const tituloCheck = await db
+    .from("examenes_titulos")
+    .select("id", { head: true, count: "exact" })
+    .eq("id", tituloId);
+  if (tituloCheck.error) throw new Error(`examenesCreate: ${tituloCheck.error.message}`);
+  if ((tituloCheck.count ?? 0) === 0) throw new Error(TITULO_NO_ENCONTRADO);
 
-      const rows = await tx<ExamenRow[]>`
-        INSERT INTO examenes (titulo_id, nombre, precio_usd, unidad, valores_referencia, tipo_analisis, metodo)
-        VALUES (${tituloId}, ${nombre}, ${precioUsd}, ${unidad}, ${valoresReferencia}, ${tipoAnalisis}, ${metodo})
-        RETURNING id, titulo_id, nombre, precio_usd, unidad, valores_referencia, tipo_analisis, metodo,
-                  activo, created_at, updated_at
-      `;
-      const examen = toExamen(rows[0]!);
+  const { data, error } = await db
+    .from("examenes")
+    .insert({
+      titulo_id: tituloId,
+      nombre,
+      precio_usd: precioUsd,
+      unidad,
+      valores_referencia: valoresReferencia,
+      tipo_analisis: tipoAnalisis,
+      metodo,
+      observaciones,
+    })
+    .select(EXAMEN_COLS)
+    .limit(1);
 
-      await tx`
-        INSERT INTO audit_log (usuario_id, accion, entity_type, entity_id, metadata)
-        VALUES (
-          ${input.usuarioId},
-          ${"examenes.create"},
-          ${EXAMEN_ENTITY_TYPE},
-          ${examen.id},
-          ${tx.json({
-            titulo_id: tituloId,
-            nombre,
-            precio_usd: precioUsd,
-            unidad,
-            valores_referencia: valoresReferencia,
-            tipo_analisis: tipoAnalisis,
-            metodo,
-          })}
-        )
-      `;
-
-      return examen;
-    });
-  } catch (error) {
-    mapExamenCreateError(error);
+  if (error) {
+    if (isUniqueViolation(error, EXAMEN_UNIQUE_CONSTRAINT)) {
+      throw new Error(EXAMEN_DUPLICADO_EN_TITULO);
+    }
+    if (isForeignKeyViolation(error)) throw new Error(TITULO_NO_ENCONTRADO);
+    throw new Error(`examenesCreate: ${error.message}`);
   }
+  const row = data?.[0] as ExamenRow | undefined;
+  if (!row) throw new Error("examenesCreate: sin fila retornada");
+  const examen = toExamen(row);
+
+  await auditBestEffort(db, {
+    usuarioId: input.usuarioId,
+    accion: "examenes.create",
+    entityType: EXAMEN_ENTITY_TYPE,
+    entityId: examen.id,
+    metadata: {
+      titulo_id: tituloId,
+      nombre,
+      precio_usd: precioUsd,
+      unidad,
+      valores_referencia: valoresReferencia,
+      tipo_analisis: tipoAnalisis,
+      metodo,
+      observaciones,
+    },
+  });
+
+  return examen;
 }
 
-/**
- * Actualiza `nombre`, `precio_usd`, `unidad` y/o `valores_referencia` de un
- * examen.
- *
- * Solo administradores. ADR-04: el UPDATE sólo toca `examenes` — nunca los
- * snapshots (`resultados_examenes` / `presupuestos_examenes`), que conservan su
- * propia copia de nombre/precio del momento.
- */
-export async function examenesUpdate(input: ExamenUpdateInput): Promise<Examen> {
-  const patch: {
-    nombre?: string;
-    precio_usd?: number;
-    unidad?: string | null;
-    valores_referencia?: string | null;
-    tipo_analisis?: string | null;
-    metodo?: string | null;
-  } = {};
+export async function examenesUpdate(
+  db: Db,
+  input: ExamenUpdateInput,
+): Promise<Examen> {
+  const patch: Record<string, unknown> = {};
   if (input.nombre !== undefined) patch.nombre = validateNombre(input.nombre);
   if (input.precio_usd !== undefined) {
     patch.precio_usd = validatePrecioUsd(input.precio_usd);
@@ -606,161 +528,111 @@ export async function examenesUpdate(input: ExamenUpdateInput): Promise<Examen> 
     patch.valores_referencia = trimOrNull(input.valores_referencia);
   }
   if (input.tipo_analisis !== undefined) {
-    patch.tipo_analisis = trimOrNull(input.tipo_analisis);
+    patch.tipo_analisis = validateNombre(input.tipo_analisis);
   }
-  if (input.metodo !== undefined) {
-    patch.metodo = trimOrNull(input.metodo);
-  }
-
-  if (Object.keys(patch).length === 0) {
-    const existing = await examenesGetById({ id: input.id });
-    if (!existing) throw new Error(EXAMEN_NO_ENCONTRADO);
-    return existing;
+  if (input.metodo !== undefined) patch.metodo = trimOrNull(input.metodo);
+  if (input.observaciones !== undefined) {
+    patch.observaciones = trimOrNull(input.observaciones);
   }
 
-  try {
-    return await withTransaction(async (tx) => {
-      const existing = await tx<ExamenRow[]>`
-        SELECT id, titulo_id, nombre, precio_usd, unidad, valores_referencia, tipo_analisis, metodo,
-               activo, created_at, updated_at
-        FROM examenes
-        WHERE id = ${input.id}
-        LIMIT 1
-      `;
-      const anterior = existing[0];
-      if (!anterior) throw new Error(EXAMEN_NO_ENCONTRADO);
+  const existing = await examenesGetById(db, { id: input.id });
+  if (!existing) throw new Error(EXAMEN_NO_ENCONTRADO);
+  if (Object.keys(patch).length === 0) return existing;
 
-      const columns = Object.keys(patch) as Array<keyof typeof patch>;
-      const rows = await tx<ExamenRow[]>`
-        UPDATE examenes
-        SET ${tx(patch, ...columns)}, updated_at = now()
-        WHERE id = ${input.id}
-        RETURNING id, titulo_id, nombre, precio_usd, unidad, valores_referencia, tipo_analisis, metodo,
-                  activo, created_at, updated_at
-      `;
-      const examen = toExamen(rows[0]!);
+  patch.updated_at = new Date().toISOString();
 
-      await tx`
-        INSERT INTO audit_log (usuario_id, accion, entity_type, entity_id, metadata)
-        VALUES (
-          ${input.usuarioId},
-          ${"examenes.update"},
-          ${EXAMEN_ENTITY_TYPE},
-          ${examen.id},
-          ${tx.json({
-            anterior: {
-              nombre: anterior.nombre,
-              precio_usd: toExamen(anterior).precio_usd,
-              unidad: anterior.unidad,
-              valores_referencia: anterior.valores_referencia,
-              tipo_analisis: anterior.tipo_analisis,
-              metodo: anterior.metodo,
-            },
-            nuevo: patch,
-          })}
-        )
-      `;
-
-      return examen;
-    });
-  } catch (error) {
-    mapUniqueExamenError(error);
+  const { data, error } = await db
+    .from("examenes")
+    .update(patch)
+    .eq("id", input.id)
+    .select(EXAMEN_COLS)
+    .limit(1);
+  if (error) {
+    if (isUniqueViolation(error, EXAMEN_UNIQUE_CONSTRAINT)) {
+      throw new Error(EXAMEN_DUPLICADO_EN_TITULO);
+    }
+    throw new Error(`examenesUpdate: ${error.message}`);
   }
-}
+  const row = data?.[0] as ExamenRow | undefined;
+  if (!row) throw new Error(EXAMEN_NO_ENCONTRADO);
+  const examen = toExamen(row);
 
-/**
- * Soft-delete: marca `activo = false`.
- *
- * Solo administradores. Nunca borra la fila (ADR-04: snapshots dependen del FK).
- */
-export async function examenesDeactivate(input: {
-  id: string;
-  usuarioId: string;
-}): Promise<Examen> {
-  return withTransaction(async (tx) => {
-    const existing = await tx<ExamenRow[]>`
-      SELECT id, titulo_id, nombre, precio_usd, unidad, valores_referencia, tipo_analisis, metodo,
-             activo, created_at, updated_at
-      FROM examenes
-      WHERE id = ${input.id}
-      LIMIT 1
-    `;
-    const anterior = existing[0];
-    if (!anterior) throw new Error(EXAMEN_NO_ENCONTRADO);
-
-    const rows = await tx<ExamenRow[]>`
-      UPDATE examenes
-      SET activo = false, updated_at = now()
-      WHERE id = ${input.id}
-      RETURNING id, titulo_id, nombre, precio_usd, unidad, valores_referencia, tipo_analisis, metodo,
-                activo, created_at, updated_at
-    `;
-    const examen = toExamen(rows[0]!);
-
-    await tx`
-      INSERT INTO audit_log (usuario_id, accion, entity_type, entity_id, metadata)
-      VALUES (
-        ${input.usuarioId},
-        ${"examenes.deactivate"},
-        ${EXAMEN_ENTITY_TYPE},
-        ${examen.id},
-        ${tx.json({ nombre: anterior.nombre, titulo_id: anterior.titulo_id })}
-      )
-    `;
-
-    return examen;
+  await auditBestEffort(db, {
+    usuarioId: input.usuarioId,
+    accion: "examenes.update",
+    entityType: EXAMEN_ENTITY_TYPE,
+    entityId: examen.id,
+    metadata: {
+      anterior: {
+        nombre: existing.nombre,
+        precio_usd: existing.precio_usd,
+        unidad: existing.unidad,
+        valores_referencia: existing.valores_referencia,
+        tipo_analisis: existing.tipo_analisis,
+        metodo: existing.metodo,
+        observaciones: existing.observaciones,
+      },
+      nuevo: patch,
+    },
   });
+
+  return examen;
 }
 
-/**
- * Reactiva un examen previamente soft-deleted (`activo = true`).
- *
- * Solo administradores.
- */
-export async function examenesActivate(input: {
-  id: string;
-  usuarioId: string;
-}): Promise<Examen> {
-  return withTransaction(async (tx) => {
-    const existing = await tx<ExamenRow[]>`
-      SELECT id, titulo_id, nombre, precio_usd, unidad, valores_referencia, tipo_analisis, metodo,
-             activo, created_at, updated_at
-      FROM examenes
-      WHERE id = ${input.id}
-      LIMIT 1
-    `;
-    const anterior = existing[0];
-    if (!anterior) throw new Error(EXAMEN_NO_ENCONTRADO);
+async function setExamenActivo(
+  db: Db,
+  input: { id: string; usuarioId: string },
+  activo: boolean,
+  accion: "examenes.deactivate" | "examenes.activate",
+): Promise<Examen> {
+  const anterior = await examenesGetById(db, { id: input.id });
+  if (!anterior) throw new Error(EXAMEN_NO_ENCONTRADO);
 
-    const rows = await tx<ExamenRow[]>`
-      UPDATE examenes
-      SET activo = true, updated_at = now()
-      WHERE id = ${input.id}
-      RETURNING id, titulo_id, nombre, precio_usd, unidad, valores_referencia, tipo_analisis, metodo,
-                activo, created_at, updated_at
-    `;
-    const examen = toExamen(rows[0]!);
+  const { data, error } = await db
+    .from("examenes")
+    .update({ activo, updated_at: new Date().toISOString() })
+    .eq("id", input.id)
+    .select(EXAMEN_COLS)
+    .limit(1);
+  if (error) throw new Error(`${accion}: ${error.message}`);
+  const row = data?.[0] as ExamenRow | undefined;
+  if (!row) throw new Error(EXAMEN_NO_ENCONTRADO);
+  const examen = toExamen(row);
 
-    await tx`
-      INSERT INTO audit_log (usuario_id, accion, entity_type, entity_id, metadata)
-      VALUES (
-        ${input.usuarioId},
-        ${"examenes.activate"},
-        ${EXAMEN_ENTITY_TYPE},
-        ${examen.id},
-        ${tx.json({ nombre: anterior.nombre, titulo_id: anterior.titulo_id })}
-      )
-    `;
-
-    return examen;
+  await auditBestEffort(db, {
+    usuarioId: input.usuarioId,
+    accion,
+    entityType: EXAMEN_ENTITY_TYPE,
+    entityId: examen.id,
+    metadata: { nombre: anterior.nombre, titulo_id: anterior.titulo_id },
   });
+
+  return examen;
 }
+
+export async function examenesDeactivate(
+  db: Db,
+  input: { id: string; usuarioId: string },
+): Promise<Examen> {
+  return setExamenActivo(db, input, false, "examenes.deactivate");
+}
+
+export async function examenesActivate(
+  db: Db,
+  input: { id: string; usuarioId: string },
+): Promise<Examen> {
+  return setExamenActivo(db, input, true, "examenes.activate");
+}
+
+// =============================================================================
+// Import batch (planilla Excel)
+// =============================================================================
 
 export interface ImportBatchResult {
   titulos_creados: number;
   examenes_creados: number;
   examenes_actualizados: number;
-  duplicados_ignorados: number; // No aplica si hacemos upsert ON CONFLICT DO UPDATE, pero podemos devolver 0 o contarlos
+  duplicados_ignorados: number;
 }
 
 export interface ImportBatchInputRow {
@@ -771,11 +643,13 @@ export interface ImportBatchInputRow {
   valores_referencia?: string;
   tipo_analisis?: string;
   metodo?: string;
+  observaciones?: string;
 }
 
 export async function examenesImportBatch(
+  db: Db,
   rows: ImportBatchInputRow[],
-  usuarioId: string
+  usuarioId: string,
 ): Promise<ImportBatchResult> {
   if (rows.length === 0) {
     return {
@@ -786,112 +660,110 @@ export async function examenesImportBatch(
     };
   }
 
-  return withTransaction(async (tx) => {
-    let titulosCreados = 0;
-    let examenesCreados = 0;
-    let examenesActualizados = 0;
+  let titulosCreados = 0;
+  let examenesCreados = 0;
+  let examenesActualizados = 0;
 
-    // Primero resolvemos todos los títulos para tener sus IDs
-    const titulosMap = new Map<string, string>(); // nombre -> id
+  // 1) Cargar títulos existentes
+  const titulosMap = new Map<string, string>();
+  const titulosRes = await db
+    .from("examenes_titulos")
+    .select("id, nombre, orden")
+    .order("orden", { ascending: true });
+  if (titulosRes.error) {
+    throw new Error(`examenesImportBatch: ${titulosRes.error.message}`);
+  }
+  let nextOrden = 0;
+  for (const t of (titulosRes.data ?? []) as Array<{
+    id: string;
+    nombre: string;
+    orden: number;
+  }>) {
+    titulosMap.set(t.nombre.toLowerCase().trim(), t.id);
+    if (t.orden > nextOrden) nextOrden = t.orden;
+  }
+  nextOrden += 1;
 
-    // Obtener los títulos existentes
-    const titulosExistentes = await tx<Titulo[]>`
-      SELECT id, nombre FROM examenes_titulos
-    `;
-    for (const t of titulosExistentes) {
-      titulosMap.set(t.nombre.toLowerCase().trim(), t.id);
+  // 2) Crear títulos que falten
+  for (const row of rows) {
+    const nomTitulo = row.titulo.trim();
+    const key = nomTitulo.toLowerCase();
+    if (titulosMap.has(key)) continue;
+
+    const ins = await db
+      .from("examenes_titulos")
+      .insert({ nombre: nomTitulo, orden: nextOrden })
+      .select("id, nombre")
+      .limit(1);
+    if (ins.error) throw new Error(`examenesImportBatch titulo: ${ins.error.message}`);
+    const created = ins.data?.[0] as { id: string } | undefined;
+    if (!created) throw new Error("examenesImportBatch: no se creó título");
+    titulosMap.set(key, created.id);
+    nextOrden++;
+    titulosCreados++;
+
+    await auditBestEffort(db, {
+      usuarioId,
+      accion: "examenes_titulos.import_create",
+      entityType: ENTITY_TYPE,
+      entityId: created.id,
+      metadata: { nombre: nomTitulo },
+    });
+  }
+
+  // 3) Upsert de exámenes uno a uno (PostgREST upsert acepta onConflict)
+  for (const row of rows) {
+    const tituloId = titulosMap.get(row.titulo.trim().toLowerCase());
+    if (!tituloId) continue;
+
+    // Chequeo previo para saber si es insert o update (PostgREST no lo dice)
+    const existingRes = await db
+      .from("examenes")
+      .select("id")
+      .eq("titulo_id", tituloId)
+      .eq("nombre", row.nombre.trim())
+      .limit(1);
+    const existed = (existingRes.data?.length ?? 0) > 0;
+
+    const payload = {
+      titulo_id: tituloId,
+      nombre: row.nombre.trim(),
+      precio_usd: row.precio_usd,
+      unidad: row.unidad ?? null,
+      valores_referencia: row.valores_referencia ?? null,
+      tipo_analisis: row.tipo_analisis?.trim() || "Otro",
+      metodo: row.metodo ?? null,
+      observaciones: row.observaciones ?? null,
+      activo: true,
+      updated_at: new Date().toISOString(),
+    };
+
+    const { error } = await db
+      .from("examenes")
+      .upsert(payload, { onConflict: "titulo_id,nombre" });
+    if (error) {
+      throw new Error(`examenesImportBatch examen: ${error.message}`);
     }
 
-    const nextOrdenResult = await tx<{max_orden: number}[]>`
-      SELECT COALESCE(MAX(orden), 0) as max_orden FROM examenes_titulos
-    `;
-    let nextOrden = Number(nextOrdenResult[0]?.max_orden ?? 0) + 1;
+    if (existed) examenesActualizados++;
+    else examenesCreados++;
+  }
 
-    // Crear los títulos que falten
-    for (const row of rows) {
-      const nomTitulo = row.titulo.trim();
-      const lowerNom = nomTitulo.toLowerCase();
-      if (!titulosMap.has(lowerNom)) {
-        const newTitulo = await tx<Titulo[]>`
-          INSERT INTO examenes_titulos (nombre, orden)
-          VALUES (${nomTitulo}, ${nextOrden++})
-          RETURNING id, nombre
-        `;
-        titulosMap.set(lowerNom, newTitulo[0]!.id);
-        titulosCreados++;
-        
-        await tx`
-          INSERT INTO audit_log (usuario_id, accion, entity_type, entity_id, metadata)
-          VALUES (
-            ${usuarioId},
-            ${"examenes_titulos.import_create"},
-            ${ENTITY_TYPE},
-            ${newTitulo[0]!.id},
-            ${tx.json({ nombre: nomTitulo })}
-          )
-        `;
-      }
-    }
-
-    // Insertar o actualizar exámenes
-    // Postgres upsert: ON CONFLICT (titulo_id, nombre) DO UPDATE
-    for (const row of rows) {
-      const tituloId = titulosMap.get(row.titulo.trim().toLowerCase())!;
-      const result = await tx<ExamenRow[]>`
-        INSERT INTO examenes (titulo_id, nombre, precio_usd, unidad, valores_referencia, tipo_analisis, metodo, activo)
-        VALUES (
-          ${tituloId}, 
-          ${row.nombre.trim()}, 
-          ${row.precio_usd}, 
-          ${row.unidad ?? null}, 
-          ${row.valores_referencia ?? null},
-          ${row.tipo_analisis ?? null},
-          ${row.metodo ?? null},
-          true
-        )
-        ON CONFLICT ON CONSTRAINT examenes_titulo_nombre_unique DO UPDATE SET
-          precio_usd = EXCLUDED.precio_usd,
-          unidad = EXCLUDED.unidad,
-          valores_referencia = EXCLUDED.valores_referencia,
-          tipo_analisis = EXCLUDED.tipo_analisis,
-          metodo = EXCLUDED.metodo,
-          activo = true,
-          updated_at = now()
-        RETURNING id, created_at, updated_at
-      `;
-
-      const ex = result[0]!;
-      // Si created_at == updated_at, fue insert. Si no, fue update. 
-      // (postgres.js devuelve Dates, we can compare timestamps roughly, or just check if updated_at > created_at by some margin. 
-      // Actually, un insert fresh tiene created_at === updated_at o cercano).
-      const isUpdate = ex.updated_at.getTime() > ex.created_at.getTime() + 1000;
-      if (isUpdate) {
-        examenesActualizados++;
-      } else {
-        examenesCreados++;
-      }
-    }
-    
-    await tx`
-      INSERT INTO audit_log (usuario_id, accion, entity_type, metadata)
-      VALUES (
-        ${usuarioId},
-        ${"examenes.import_batch"},
-        ${EXAMEN_ENTITY_TYPE},
-        ${tx.json({ 
-          titulos_creados: titulosCreados, 
-          examenes_creados: examenesCreados, 
-          examenes_actualizados: examenesActualizados 
-        })}
-      )
-    `;
-
-    return {
+  await auditBestEffort(db, {
+    usuarioId,
+    accion: "examenes.import_batch",
+    entityType: EXAMEN_ENTITY_TYPE,
+    metadata: {
       titulos_creados: titulosCreados,
       examenes_creados: examenesCreados,
       examenes_actualizados: examenesActualizados,
-      duplicados_ignorados: 0,
-    };
+    },
   });
-}
 
+  return {
+    titulos_creados: titulosCreados,
+    examenes_creados: examenesCreados,
+    examenes_actualizados: examenesActualizados,
+    duplicados_ignorados: 0,
+  };
+}

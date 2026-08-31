@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { getSql } from "@labo/db/client";
 import { AuthError, getCurrentUser } from "@/lib/server/auth";
-import { createClient } from "@insforge/sdk";
+import { uploadCsv, getSignedDownloadUrl } from "@labo/lib/csv-export";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -171,43 +171,14 @@ export async function POST(request: NextRequest): Promise<Response> {
 
     const csvString = writeCsv(allPacientes, columns);
 
-    const baseUrl = process.env.INSFORGE_URL || "https://insforge.rvlaboratorio.com";
-    const anonKey = process.env.INSFORGE_ANON_KEY;
-
-    if (!anonKey) {
-      return bad(500, "CONFIG_STORAGE_MISSING");
-    }
-
-    const insforge = createClient({
-      baseUrl,
-      anonKey,
-    });
-
     const now = new Date();
     const yearMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
     const filename = `exports/${yearMonth}/pacientes-${Date.now()}.csv`;
 
-    const blob = new Blob([csvString], { type: "text/csv;charset=utf-8" });
+    const key = await uploadCsv(csvString, filename);
+    const signedUrl = getSignedDownloadUrl(key);
 
-    const { error: uploadError } = await insforge.storage
-      .from("exports")
-      .upload(filename, blob);
-
-    if (uploadError) {
-      console.error("Failed to upload CSV to InsForge storage:", uploadError);
-      return bad(500, "UPLOAD_FAILED");
-    }
-
-    const { data: signedData, error: signedError } = await insforge.storage
-      .from("exports")
-      .createSignedUrl(filename, 3600);
-
-    if (signedError || !signedData?.signedUrl) {
-      console.error("Failed to generate signed URL:", signedError);
-      return bad(500, "SIGNED_URL_FAILED");
-    }
-
-    return NextResponse.json({ url: signedData.signedUrl });
+    return NextResponse.json({ url: signedUrl });
   } catch (error) {
     console.error("Export error:", error);
     const { status, error: code } = toStatus(error);

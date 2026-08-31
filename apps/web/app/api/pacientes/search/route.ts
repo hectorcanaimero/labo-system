@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 
 import { pacientesSearch } from "@labo/db/repos/pacientes";
+import { getDb } from "@/lib/db-server";
 import { AuthError, getCurrentUser } from "@/lib/server/auth";
 
 export const runtime = "nodejs";
@@ -39,7 +40,7 @@ export async function GET(request: NextRequest): Promise<Response> {
     await requireOperadorMinimo();
 
     const term = request.nextUrl.searchParams.get("term")?.trim() ?? "";
-    const items = await pacientesSearch({ term });
+    const items = await pacientesSearch(getDb(), { term });
 
     return NextResponse.json(items);
   } catch (error) {

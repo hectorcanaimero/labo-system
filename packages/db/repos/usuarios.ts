@@ -1,4 +1,4 @@
-import type { Sql } from "postgres";
+import type { Db } from "../sdk";
 
 export type UserRole = "admin" | "operador";
 
@@ -9,8 +9,11 @@ export interface Usuario {
   nombre: string;
   role: UserRole;
   activo: boolean;
-  created_at: Date;
+  created_at: string;
 }
+
+const USUARIO_COLS =
+  "id, auth_user_id, email, nombre, role, activo, created_at";
 
 export interface SyncUsuarioInput {
   authUserId: string;
@@ -19,73 +22,96 @@ export interface SyncUsuarioInput {
   role?: UserRole;
 }
 
-/**
- * Devuelve la fila `usuarios` vinculada a un `auth_user_id` de InsForge Auth.
- * Retorna `null` si no existe (todavía no se sincronizó).
- */
 export async function getByAuthUserId(
-  sql: Sql,
+  db: Db,
   authUserId: string,
 ): Promise<Usuario | null> {
-  const rows = await sql<Usuario[]>`
-    SELECT id, auth_user_id, email, nombre, role, activo, created_at
-    FROM usuarios
-    WHERE auth_user_id = ${authUserId}
-    LIMIT 1
-  `;
-  return rows[0] ?? null;
+  const { data, error } = await db
+    .from("usuarios")
+    .select(USUARIO_COLS)
+    .eq("auth_user_id", authUserId)
+    .limit(1);
+  if (error) throw new Error(`usuarios.getByAuthUserId: ${error.message}`);
+  return (data?.[0] as Usuario) ?? null;
 }
 
-export async function getByEmail(
-  sql: Sql,
-  email: string,
-): Promise<Usuario | null> {
-  const rows = await sql<Usuario[]>`
-    SELECT id, auth_user_id, email, nombre, role, activo, created_at
-    FROM usuarios
-    WHERE lower(email) = lower(${email})
-    LIMIT 1
-  `;
-  return rows[0] ?? null;
+export async function getByEmail(db: Db, email: string): Promise<Usuario | null> {
+  const { data, error } = await db
+    .from("usuarios")
+    .select(USUARIO_COLS)
+    .ilike("email", email)
+    .limit(1);
+  if (error) throw new Error(`usuarios.getByEmail: ${error.message}`);
+  return (data?.[0] as Usuario) ?? null;
 }
 
 /**
- * Upsert idempotente por `auth_user_id`. Si la fila no existe la crea con
- * `role` default `operador` (ARCH §7.2). Si existe y el email cambió en
- * InsForge, actualiza el email de dominio para mantener consistencia.
+ * Sincroniza el perfil de dominio con el user de InsForge Auth.
  *
- * Se llama post-login exitoso (F0.2.T8) y post-alta desde invitación (F0.2.T7).
- * `role` default en INSERT respeta el CHECK constraint del schema.
+ * - Si NO existe: INSERT con `role` default `operador` (o el que llegue en input).
+ * - Si EXISTE: solo actualiza `email`/`nombre` si cambiaron en Auth. **NUNCA
+ *   pisa el `role`** (evita que un admin sea degradado a operador en cada
+ *   login).
+ *
+ * Pre-relink: si el email existe con OTRO auth_user_id (rotación de id en
+ * Auth), actualiza el vínculo antes del upsert para no chocar con UNIQUE email.
  */
 export async function syncFromAuth(
-  sql: Sql,
+  db: Db,
   input: SyncUsuarioInput,
 ): Promise<Usuario> {
   const nombre = input.nombre?.trim().length ? input.nombre.trim() : input.email;
+
+  // Relink: si el email ya existe con OTRO auth_user_id, actualizar antes.
+  await db
+    .from("usuarios")
+    .update({ auth_user_id: input.authUserId })
+    .ilike("email", input.email)
+    .neq("auth_user_id", input.authUserId);
+
+  // ¿Ya existe?
+  const existing = await getByAuthUserId(db, input.authUserId);
+
+  if (existing) {
+    // Actualizar solo campos que cambiaron. Nunca tocamos `role`.
+    const patch: Record<string, unknown> = {};
+    if (existing.email !== input.email) patch.email = input.email;
+    if (existing.nombre !== nombre) patch.nombre = nombre;
+
+    if (Object.keys(patch).length === 0) return existing;
+
+    const { data, error } = await db
+      .from("usuarios")
+      .update(patch)
+      .eq("id", existing.id)
+      .select(USUARIO_COLS)
+      .limit(1);
+    if (error) throw new Error(`usuarios.syncFromAuth (update): ${error.message}`);
+    const row = data?.[0] as Usuario | undefined;
+    return row ?? existing;
+  }
+
+  // No existía: INSERT con role default o el que venga en input.
   const role = input.role ?? "operador";
+  const { data, error } = await db
+    .from("usuarios")
+    .insert({
+      auth_user_id: input.authUserId,
+      email: input.email,
+      nombre,
+      role,
+    })
+    .select(USUARIO_COLS)
+    .limit(1);
 
-  // Relink: si el email existe con OTRO auth_user_id (rotación de id en
-  // InsForge: borrado+recreado, merge de cuentas), actualizamos el vínculo
-  // antes del upsert — si no, el INSERT pega contra usuarios_email_unique.
-  await sql`
-    UPDATE usuarios
-    SET auth_user_id = ${input.authUserId}
-    WHERE lower(email) = lower(${input.email})
-      AND auth_user_id <> ${input.authUserId}
-  `;
-
-  const rows = await sql<Usuario[]>`
-    INSERT INTO usuarios (auth_user_id, email, nombre, role)
-    VALUES (${input.authUserId}, ${input.email}, ${nombre}, ${role})
-    ON CONFLICT (auth_user_id) DO UPDATE
-      SET email = EXCLUDED.email
-    RETURNING id, auth_user_id, email, nombre, role, activo, created_at
-  `;
-  return rows[0]!;
+  if (error) throw new Error(`usuarios.syncFromAuth (insert): ${error.message}`);
+  const row = data?.[0] as Usuario | undefined;
+  if (!row) throw new Error("usuarios.syncFromAuth: sin fila retornada");
+  return row;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Audit log helpers (F0.2.T8: eventos de auth)
+// Audit log helpers
 // ─────────────────────────────────────────────────────────────────────────────
 
 export type AuthAction =
@@ -101,59 +127,44 @@ export interface AuthAuditInput {
   metadata?: Record<string, unknown>;
 }
 
-/**
- * Inserta una fila en `audit_log` para eventos de auth.
- *
- * - `usuarioId` es la FK a `usuarios(id)` (no al `auth_user_id`); en fallos de
- *   login puede ser NULL si el email no matchea ningún usuario.
- * - `email_intent` va en `metadata` (spec F0.2.T8) para poder correlacionar
- *   intentos fallidos por email sin exponer la existencia del usuario.
- */
 export async function logAuthEvent(
-  sql: Sql,
+  db: Db,
   input: AuthAuditInput,
 ): Promise<void> {
-  const metadata = {
+  const metadata: Record<string, unknown> = {
     ...(input.metadata ?? {}),
-    ...(input.emailIntent ? { email_intent: input.emailIntent } : {}),
+    ...(input.emailIntent
+      ? { email_intent: input.emailIntent.toLowerCase() }
+      : {}),
   };
-  await sql`
-    INSERT INTO audit_log (usuario_id, accion, entity_type, entity_id, metadata)
-    VALUES (
-      ${input.usuarioId},
-      ${input.action},
-      ${"auth"},
-      ${input.usuarioId},
-      ${sql.json(metadata)}
-    )
-  `;
+  const { error } = await db.from("audit_log").insert({
+    usuario_id: input.usuarioId,
+    accion: input.action,
+    entity_type: "auth",
+    entity_id: input.usuarioId,
+    metadata,
+  });
+  if (error) console.error("usuarios.logAuthEvent:", error.message);
 }
 
-/**
- * Rate limit lógico spec F0.2.T8: >5 fallos en 15min por email → bloquear.
- *
- * Consulta `audit_log` por `auth.login_failed` cuyo `metadata->>email_intent`
- * matchee el email (case-insensitive) en la ventana. No usa `authRateLimits`
- * nativo de InsForge porque el bloqueo es por email (no por auth_user_id, que
- * no existe cuando el login falla).
- */
 export async function countRecentLoginFailures(
-  sql: Sql,
+  db: Db,
   email: string,
   windowMs: number,
 ): Promise<number> {
-  const rows = await sql<{ count: string }[]>`
-    SELECT COUNT(*)::text AS count
-    FROM audit_log
-    WHERE accion = 'auth.login_failed'
-      AND created_at > now() - (${windowMs} || ' milliseconds')::interval
-      AND lower(metadata->>'email_intent') = lower(${email})
-  `;
-  return Number(rows[0]?.count ?? 0);
+  const cutoff = new Date(Date.now() - windowMs).toISOString();
+  const { count, error } = await db
+    .from("audit_log")
+    .select("id", { count: "exact", head: true })
+    .eq("accion", "auth.login_failed")
+    .gte("created_at", cutoff)
+    .eq("metadata->>email_intent", email.toLowerCase());
+  if (error) throw new Error(`usuarios.countLoginFailures: ${error.message}`);
+  return count ?? 0;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Invitaciones de usuario (F0.2.T7)
+// Invitaciones (F0.2.T7)
 // ─────────────────────────────────────────────────────────────────────────────
 
 export interface UserInvitation {
@@ -162,10 +173,13 @@ export interface UserInvitation {
   role: UserRole;
   token_hash: string;
   invited_by: string;
-  expires_at: Date;
+  expires_at: string;
   accepted: boolean;
-  created_at: Date;
+  created_at: string;
 }
+
+const INVITATION_COLS =
+  "id, email, role, token_hash, invited_by, expires_at, accepted, created_at";
 
 export interface CreateInvitationInput {
   email: string;
@@ -176,37 +190,48 @@ export interface CreateInvitationInput {
 }
 
 export async function createInvitation(
-  sql: Sql,
+  db: Db,
   input: CreateInvitationInput,
 ): Promise<UserInvitation> {
-  const rows = await sql<UserInvitation[]>`
-    INSERT INTO user_invitations (email, role, token_hash, invited_by, expires_at)
-    VALUES (${input.email}, ${input.role}, ${input.tokenHash}, ${input.invitedBy}, ${input.expiresAt})
-    RETURNING id, email, role, token_hash, invited_by, expires_at, accepted, created_at
-  `;
-  return rows[0]!;
+  const { data, error } = await db
+    .from("user_invitations")
+    .insert({
+      email: input.email,
+      role: input.role,
+      token_hash: input.tokenHash,
+      invited_by: input.invitedBy,
+      expires_at: input.expiresAt.toISOString(),
+    })
+    .select(INVITATION_COLS)
+    .limit(1);
+  if (error) throw new Error(`usuarios.createInvitation: ${error.message}`);
+  const row = data?.[0] as UserInvitation | undefined;
+  if (!row) throw new Error("usuarios.createInvitation: sin fila retornada");
+  return row;
 }
 
 export async function getInvitationByTokenHash(
-  sql: Sql,
+  db: Db,
   tokenHash: string,
 ): Promise<UserInvitation | null> {
-  const rows = await sql<UserInvitation[]>`
-    SELECT id, email, role, token_hash, invited_by, expires_at, accepted, created_at
-    FROM user_invitations
-    WHERE token_hash = ${tokenHash}
-    LIMIT 1
-  `;
-  return rows[0] ?? null;
+  const { data, error } = await db
+    .from("user_invitations")
+    .select(INVITATION_COLS)
+    .eq("token_hash", tokenHash)
+    .limit(1);
+  if (error) throw new Error(`usuarios.getInvitationByTokenHash: ${error.message}`);
+  return (data?.[0] as UserInvitation) ?? null;
 }
 
 export async function markInvitationAccepted(
-  sql: Sql,
+  db: Db,
   id: string,
 ): Promise<void> {
-  await sql`
-    UPDATE user_invitations SET accepted = true WHERE id = ${id}
-  `;
+  const { error } = await db
+    .from("user_invitations")
+    .update({ accepted: true })
+    .eq("id", id);
+  if (error) throw new Error(`usuarios.markInvitationAccepted: ${error.message}`);
 }
 
 export type PendingInvitation = Pick<
@@ -215,52 +240,62 @@ export type PendingInvitation = Pick<
 >;
 
 export async function listPendingInvitations(
-  sql: Sql,
+  db: Db,
 ): Promise<PendingInvitation[]> {
-  return sql<PendingInvitation[]>`
-    SELECT id, email, role, expires_at, created_at
-    FROM user_invitations
-    WHERE NOT accepted AND expires_at > now()
-    ORDER BY created_at DESC
-  `;
+  const nowIso = new Date().toISOString();
+  const { data, error } = await db
+    .from("user_invitations")
+    .select("id, email, role, expires_at, created_at")
+    .eq("accepted", false)
+    .gt("expires_at", nowIso)
+    .order("created_at", { ascending: false });
+  if (error) throw new Error(`usuarios.listPendingInvitations: ${error.message}`);
+  return (data ?? []) as PendingInvitation[];
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Gestión de usuarios (F9 — listado y administración de roles)
+// Gestión de usuarios (F9)
 // ─────────────────────────────────────────────────────────────────────────────
 
-export async function listAll(sql: Sql): Promise<Usuario[]> {
-  return sql<Usuario[]>`
-    SELECT id, auth_user_id, email, nombre, role, activo, created_at
-    FROM usuarios
-    ORDER BY created_at ASC
-  `;
+export async function listAll(db: Db): Promise<Usuario[]> {
+  const { data, error } = await db
+    .from("usuarios")
+    .select(USUARIO_COLS)
+    .order("created_at", { ascending: true });
+  if (error) throw new Error(`usuarios.listAll: ${error.message}`);
+  return (data ?? []) as Usuario[];
 }
 
 export async function updateRole(
-  sql: Sql,
+  db: Db,
   id: string,
   role: UserRole,
 ): Promise<Usuario> {
-  const rows = await sql<Usuario[]>`
-    UPDATE usuarios
-    SET role = ${role}
-    WHERE id = ${id}
-    RETURNING id, auth_user_id, email, nombre, role, activo, created_at
-  `;
-  return rows[0]!;
+  const { data, error } = await db
+    .from("usuarios")
+    .update({ role })
+    .eq("id", id)
+    .select(USUARIO_COLS)
+    .limit(1);
+  if (error) throw new Error(`usuarios.updateRole: ${error.message}`);
+  const row = data?.[0] as Usuario | undefined;
+  if (!row) throw new Error("usuarios.updateRole: sin fila retornada");
+  return row;
 }
 
 export async function setActivo(
-  sql: Sql,
+  db: Db,
   id: string,
   activo: boolean,
 ): Promise<Usuario> {
-  const rows = await sql<Usuario[]>`
-    UPDATE usuarios
-    SET activo = ${activo}
-    WHERE id = ${id}
-    RETURNING id, auth_user_id, email, nombre, role, activo, created_at
-  `;
-  return rows[0]!;
+  const { data, error } = await db
+    .from("usuarios")
+    .update({ activo })
+    .eq("id", id)
+    .select(USUARIO_COLS)
+    .limit(1);
+  if (error) throw new Error(`usuarios.setActivo: ${error.message}`);
+  const row = data?.[0] as Usuario | undefined;
+  if (!row) throw new Error("usuarios.setActivo: sin fila retornada");
+  return row;
 }

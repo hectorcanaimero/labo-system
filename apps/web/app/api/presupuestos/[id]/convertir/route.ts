@@ -4,9 +4,10 @@ import {
   PACIENTE_LIBRE_REQUIERE_FICHA,
   PRESUPUESTO_NO_APROBADO,
   PRESUPUESTO_NO_ENCONTRADO,
-  presupuestosConvertToResultado,
+  convertToOrden,
 } from '@labo/db/repos/presupuestos';
 import { AuthError, getCurrentUser } from '@/lib/server/auth';
+import { getAdminDb } from '@/lib/db-server';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -26,7 +27,9 @@ function toStatus(error: unknown): { status: number; error: string } {
   }
 
   const code = error instanceof Error ? error.message : 'ERROR_GENERICO';
-  if (code === PRESUPUESTO_NO_ENCONTRADO) return { status: 404, error: code };
+  if (code === PRESUPUESTO_NO_ENCONTRADO || code === 'PACIENTE_NO_ENCONTRADO') {
+    return { status: 404, error: code };
+  }
   if (code === PRESUPUESTO_NO_APROBADO || code === PACIENTE_LIBRE_REQUIERE_FICHA) {
     return { status: 400, error: code };
   }
@@ -38,7 +41,7 @@ function isUuid(value: unknown): value is string {
 }
 
 export async function POST(
-  _request: NextRequest,
+  request: NextRequest,
   { params }: { params: { id: string } }
 ): Promise<Response> {
   try {
@@ -48,7 +51,19 @@ export async function POST(
     }
     if (!isUuid(params.id)) return bad(400, 'VALIDACION_FALLIDA');
 
-    return NextResponse.json(await presupuestosConvertToResultado(params.id, user.userId));
+    const body = (await request.json().catch(() => null)) as
+      | { paciente_id?: unknown }
+      | null;
+    const assignPacienteId =
+      body?.paciente_id !== undefined && isUuid(body.paciente_id)
+        ? body.paciente_id
+        : undefined;
+
+    return NextResponse.json(
+      await convertToOrden(getAdminDb(), params.id, user.userId, {
+        assignPacienteId,
+      }),
+    );
   } catch (error) {
     const mapped = toStatus(error);
     return bad(mapped.status, mapped.error);

@@ -3,10 +3,27 @@
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { FileText, NotebookTabs, PencilLine, ReceiptText } from "lucide-react";
+import {
+  ArrowRight,
+  FileText,
+  NotebookTabs,
+  PencilLine,
+  ReceiptText,
+} from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { EmptyState } from "@labo/ui/feedback";
+import { OrdenEstadoBadge } from "@labo/ui/ordenes/OrdenEstadoBadge";
+import { PresupuestoEstadoBadge } from "@labo/ui/presupuestos/PresupuestoEstadoBadge";
+import type { EstadoOrden } from "@labo/lib/schemas/orden";
+import type { EstadoPresupuesto } from "@labo/lib/schemas/presupuesto";
 import { calcularEdadDesglosada } from "@labo/lib/edad";
 
 import {
@@ -77,8 +94,6 @@ interface FichaTabsProps {
   data: PacienteFichaData;
 }
 
-type TabKey = "resultados" | "presupuestos";
-
 function formatDate(value: string | null): string {
   if (!value) return "—";
   return new Intl.DateTimeFormat("es-VE", {
@@ -95,187 +110,241 @@ function formatCurrency(value: number, currency: "USD" | "VES"): string {
   }).format(value);
 }
 
+function sexoLabel(sexo: "M" | "F" | "O" | null): string {
+  if (sexo === "M") return "Masculino";
+  if (sexo === "F") return "Femenino";
+  if (sexo === "O") return "Otro";
+  return "No especificado";
+}
+
 export function FichaTabs({ data }: FichaTabsProps) {
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState<TabKey>("resultados");
   const [isEditOpen, setIsEditOpen] = useState(false);
 
-  const ficha = useMemo(() => {
+  const meta = useMemo(() => {
     const edadInfo = calcularEdadDesglosada(new Date(data.paciente.fecha_nacimiento));
-    const edadContent = edadInfo ? (
-      <div className="flex flex-col gap-1 items-start">
-        <span>{edadInfo.textoFormateado}</span>
-        {edadInfo.anos < 18 && (
-          <span className="inline-block rounded-full bg-blue-50 px-2 py-0.5 text-[10px] font-semibold tracking-wide text-blue-700 dark:bg-blue-950 dark:text-blue-300">
-            {edadInfo.etapa.toUpperCase()}
-          </span>
-        )}
-      </div>
-    ) : (
-      `${data.paciente.edad} años`
-    );
-
-    return [
-      { label: "Cédula", value: data.paciente.cedula },
-      { label: "Edad", value: edadContent },
-      { label: "Nacimiento", value: formatDate(data.paciente.fecha_nacimiento) },
-      { label: "Sexo", value: data.paciente.sexo ?? "No especificado" },
-      { label: "Teléfono", value: data.paciente.telefono ?? "—" },
-      { label: "Correo", value: data.paciente.email ?? "—" },
-      { label: "Dirección", value: data.paciente.direccion ?? "—" },
-    ];
+    return {
+      edad: edadInfo,
+      cedula: data.paciente.cedula,
+      nacimiento: formatDate(data.paciente.fecha_nacimiento),
+      sexo: sexoLabel(data.paciente.sexo),
+      telefono: data.paciente.telefono,
+      email: data.paciente.email,
+      direccion: data.paciente.direccion,
+    };
   }, [data.paciente]);
 
   return (
-    <div className="flex flex-col gap-6">
-      <section className="rounded-xl border border-border bg-card p-6 shadow-sm">
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-          <div className="grid gap-4 sm:grid-cols-2 lg:flex-1 lg:grid-cols-3">
-            {ficha.map((item) => (
-              <div key={item.label} className="rounded-lg border border-border bg-background/60 p-4">
-                <p className="text-xs uppercase tracking-wide text-muted-foreground">{item.label}</p>
-                <p className="mt-1 text-sm font-medium text-foreground">{item.value}</p>
+    <div className="flex flex-col gap-4">
+      {/* Metadata card */}
+      <Card className="shadow-none">
+        <CardHeader className="flex flex-row items-start justify-between space-y-0 border-b border-border py-3">
+          <div className="flex flex-col gap-1">
+            <CardTitle className="text-sm font-semibold">Ficha clínica</CardTitle>
+            {meta.edad ? (
+              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                <span>{meta.edad.textoFormateado}</span>
+                {meta.edad.anos < 18 ? (
+                  <span className="rounded bg-sky-100 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-sky-800 dark:bg-sky-950 dark:text-sky-300">
+                    {meta.edad.etapa}
+                  </span>
+                ) : null}
               </div>
-            ))}
+            ) : null}
           </div>
-
-          <div className="flex shrink-0 justify-end">
-            <Button type="button" onClick={() => setIsEditOpen(true)}>
-              <PencilLine className="h-4 w-4" />
-              Editar
-            </Button>
-          </div>
-        </div>
-      </section>
-
-      <section className="rounded-xl border border-border bg-card shadow-sm">
-        <div className="flex flex-wrap gap-2 border-b border-border p-4">
           <Button
             type="button"
-            variant={activeTab === "resultados" ? "default" : "outline"}
-            onClick={() => setActiveTab("resultados")}
+            size="sm"
+            variant="outline"
+            className="h-8"
+            onClick={() => setIsEditOpen(true)}
           >
-            <NotebookTabs className="h-4 w-4" />
-            Resultados ({data.resultados.length})
+            <PencilLine className="h-3.5 w-3.5" />
+            Editar
           </Button>
-          <Button
-            type="button"
-            variant={activeTab === "presupuestos" ? "default" : "outline"}
-            onClick={() => setActiveTab("presupuestos")}
-          >
-            <ReceiptText className="h-4 w-4" />
-            Presupuestos ({data.presupuestos.length})
-          </Button>
-        </div>
+        </CardHeader>
+        <CardContent className="p-4">
+          <dl className="grid grid-cols-1 gap-x-4 gap-y-2 text-xs sm:grid-cols-2 lg:grid-cols-3">
+            <MetaRow label="Cédula" value={meta.cedula} mono />
+            <MetaRow label="Nacimiento" value={meta.nacimiento} mono />
+            <MetaRow label="Sexo" value={meta.sexo} />
+            <MetaRow label="Teléfono" value={meta.telefono ?? "—"} mono />
+            <MetaRow label="Correo" value={meta.email ?? "—"} />
+            <MetaRow label="Dirección" value={meta.direccion ?? "—"} />
+          </dl>
+        </CardContent>
+      </Card>
 
-        <div className="p-4">
-          {activeTab === "resultados" ? (
-            data.resultados.length === 0 ? (
-              <EmptyState
-                compact
-                title="Sin resultados"
-                description="Todavía no hay resultados asociados a este paciente."
-                icon={<FileText className="h-5 w-5" />}
-              />
-            ) : (
-              <div className="space-y-4">
-                {data.resultados.map((resultado) => (
-                  <article key={resultado.id} className="rounded-lg border border-border p-4">
-                    <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
-                      <div>
-                        <h3 className="font-semibold text-foreground">Resultado #{resultado.id.slice(0, 8)}</h3>
-                        <p className="text-sm text-muted-foreground">
-                          Muestra: {formatDate(resultado.fecha_muestra)} · Entrega: {formatDate(resultado.fecha_resultado)}
-                        </p>
-                        <p className="text-sm text-muted-foreground">
-                          Estado: <span className="font-medium text-foreground">{resultado.estado}</span>
-                        </p>
-                        {resultado.medico_solicitante ? (
-                          <p className="text-sm text-muted-foreground">
-                            Médico solicitante: {resultado.medico_solicitante}
-                          </p>
-                        ) : null}
+      {/* Tabs */}
+      <Tabs defaultValue="resultados" className="flex flex-col gap-3">
+        <TabsList className="w-fit">
+          <TabsTrigger value="resultados" className="gap-1.5">
+            <NotebookTabs className="h-3.5 w-3.5" />
+            Órdenes
+            <span className="ml-1 font-mono text-[11px] tabular-nums text-muted-foreground">
+              {data.resultados.length}
+            </span>
+          </TabsTrigger>
+          <TabsTrigger value="presupuestos" className="gap-1.5">
+            <ReceiptText className="h-3.5 w-3.5" />
+            Presupuestos
+            <span className="ml-1 font-mono text-[11px] tabular-nums text-muted-foreground">
+              {data.presupuestos.length}
+            </span>
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="resultados" className="mt-0">
+          {data.resultados.length === 0 ? (
+            <Card className="shadow-none">
+              <CardContent className="p-6">
+                <EmptyState
+                  compact
+                  title="Sin órdenes"
+                  description="Todavía no hay órdenes asociadas a este paciente."
+                  icon={<FileText className="h-5 w-5" />}
+                />
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="flex flex-col gap-2">
+              {data.resultados.map((resultado) => (
+                <Card key={resultado.id} className="shadow-none">
+                  <CardHeader className="flex flex-row items-start justify-between space-y-0 border-b border-border py-2.5">
+                    <div className="flex flex-col gap-1">
+                      <div className="flex items-center gap-2">
+                        <OrdenEstadoBadge estado={resultado.estado as EstadoOrden} />
+                        <span className="font-mono text-[11px] tabular-nums text-muted-foreground">
+                          #{resultado.id.slice(0, 8)}
+                        </span>
                       </div>
-
-                      <Link href={`/resultados/${resultado.id}`} className="text-sm font-medium text-primary hover:underline">
-                        Ver resultado
-                      </Link>
+                      <p className="text-xs text-muted-foreground">
+                        Muestra{" "}
+                        <span className="font-mono tabular-nums text-foreground">
+                          {formatDate(resultado.fecha_muestra)}
+                        </span>
+                        {" · "}
+                        Entrega{" "}
+                        <span className="font-mono tabular-nums text-foreground">
+                          {formatDate(resultado.fecha_resultado)}
+                        </span>
+                        {resultado.medico_solicitante ? (
+                          <>
+                            {" · "}
+                            <span className="italic">{resultado.medico_solicitante}</span>
+                          </>
+                        ) : null}
+                      </p>
                     </div>
-
-                    <div className="mt-4 grid gap-3 md:grid-cols-2">
+                    <Link
+                      href={`/resultados/${resultado.id}`}
+                      className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline"
+                    >
+                      Abrir <ArrowRight className="h-3 w-3" />
+                    </Link>
+                  </CardHeader>
+                  <CardContent className="p-3">
+                    <ul className="grid gap-1 sm:grid-cols-2">
                       {resultado.examenes.map((examen) => (
-                        <div key={examen.id} className="rounded-md border border-border bg-muted/20 p-3">
-                          <p className="font-medium text-foreground">{examen.nombre_snap}</p>
-                          <p className="text-sm text-muted-foreground">
-                            Valor: {examen.valor}
-                            {examen.unidad_snap ? ` ${examen.unidad_snap}` : ""}
-                          </p>
-                          {examen.valores_referencia_snap ? (
-                            <p className="text-xs text-muted-foreground">
-                              Referencia: {examen.valores_referencia_snap}
-                            </p>
-                          ) : null}
-                          {examen.observacion ? (
-                            <p className="mt-1 text-xs text-muted-foreground">
-                              Observación: {examen.observacion}
-                            </p>
-                          ) : null}
-                        </div>
+                        <li
+                          key={examen.id}
+                          className="flex items-baseline justify-between gap-2 rounded border border-border bg-muted/20 px-2.5 py-1.5"
+                        >
+                          <span className="min-w-0 truncate text-xs font-medium text-foreground">
+                            {examen.nombre_snap}
+                          </span>
+                          <span className="shrink-0 font-mono text-xs tabular-nums text-muted-foreground">
+                            {examen.valor || "—"}
+                            {examen.unidad_snap ? (
+                              <span className="ml-1 text-[10px]">{examen.unidad_snap}</span>
+                            ) : null}
+                          </span>
+                        </li>
                       ))}
-                    </div>
-
+                    </ul>
                     {resultado.observaciones ? (
-                      <p className="mt-4 text-sm text-muted-foreground">
-                        Observaciones: {resultado.observaciones}
+                      <p className="mt-2 border-t border-border pt-2 text-xs italic text-muted-foreground">
+                        {resultado.observaciones}
                       </p>
                     ) : null}
-                  </article>
-                ))}
-              </div>
-            )
-          ) : data.presupuestos.length === 0 ? (
-            <EmptyState
-              compact
-              title="Sin presupuestos"
-              description="Este paciente todavía no tiene presupuestos cargados."
-              icon={<ReceiptText className="h-5 w-5" />}
-            />
-          ) : (
-            <div className="space-y-4">
-              {data.presupuestos.map((presupuesto) => (
-                <article key={presupuesto.id} className="rounded-lg border border-border p-4">
-                  <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
-                    <div>
-                      <h3 className="font-semibold text-foreground">Presupuesto #{presupuesto.id.slice(0, 8)}</h3>
-                      <p className="text-sm text-muted-foreground">
-                        Creado: {formatDate(presupuesto.created_at)} · Estado: <span className="font-medium text-foreground">{presupuesto.estado}</span>
-                      </p>
-                      <p className="text-sm text-muted-foreground">
-                        Total USD: {formatCurrency(presupuesto.total_usd, "USD")} · Total Bs: {formatCurrency(presupuesto.total_bs, "VES")}
-                      </p>
-                    </div>
-
-                    <Link href={`/presupuestos/${presupuesto.id}`} className="text-sm font-medium text-primary hover:underline">
-                      Ver presupuesto
-                    </Link>
-                  </div>
-
-                  <div className="mt-4 grid gap-3 md:grid-cols-2">
-                    {presupuesto.lineas.map((linea) => (
-                      <div key={linea.id} className="rounded-md border border-border bg-muted/20 p-3">
-                        <p className="font-medium text-foreground">{linea.nombre_snap}</p>
-                        <p className="text-sm text-muted-foreground">
-                          Precio: {formatCurrency(linea.precio_snap, "USD")}
-                        </p>
-                      </div>
-                    ))}
-                  </div>
-                </article>
+                  </CardContent>
+                </Card>
               ))}
             </div>
           )}
-        </div>
-      </section>
+        </TabsContent>
+
+        <TabsContent value="presupuestos" className="mt-0">
+          {data.presupuestos.length === 0 ? (
+            <Card className="shadow-none">
+              <CardContent className="p-6">
+                <EmptyState
+                  compact
+                  title="Sin presupuestos"
+                  description="Este paciente todavía no tiene presupuestos cargados."
+                  icon={<ReceiptText className="h-5 w-5" />}
+                />
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="flex flex-col gap-2">
+              {data.presupuestos.map((presupuesto) => (
+                <Card key={presupuesto.id} className="shadow-none">
+                  <CardHeader className="flex flex-row items-start justify-between space-y-0 border-b border-border py-2.5">
+                    <div className="flex flex-col gap-1">
+                      <div className="flex items-center gap-2">
+                        <PresupuestoEstadoBadge
+                          estado={presupuesto.estado as EstadoPresupuesto}
+                        />
+                        <span className="font-mono text-[11px] tabular-nums text-muted-foreground">
+                          #{presupuesto.id.slice(0, 8)}
+                        </span>
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        Creado{" "}
+                        <span className="font-mono tabular-nums text-foreground">
+                          {formatDate(presupuesto.created_at)}
+                        </span>
+                        {" · "}
+                        <span className="font-mono tabular-nums text-foreground">
+                          {formatCurrency(presupuesto.total_usd, "USD")}
+                        </span>
+                        {" / "}
+                        <span className="font-mono tabular-nums text-foreground">
+                          {formatCurrency(presupuesto.total_bs, "VES")}
+                        </span>
+                      </p>
+                    </div>
+                    <Link
+                      href={`/presupuestos/${presupuesto.id}`}
+                      className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline"
+                    >
+                      Abrir <ArrowRight className="h-3 w-3" />
+                    </Link>
+                  </CardHeader>
+                  <CardContent className="p-3">
+                    <ul className="grid gap-1 sm:grid-cols-2">
+                      {presupuesto.lineas.map((linea) => (
+                        <li
+                          key={linea.id}
+                          className="flex items-baseline justify-between gap-2 rounded border border-border bg-muted/20 px-2.5 py-1.5"
+                        >
+                          <span className="min-w-0 truncate text-xs font-medium text-foreground">
+                            {linea.nombre_snap}
+                          </span>
+                          <span className="shrink-0 font-mono text-xs tabular-nums text-muted-foreground">
+                            {formatCurrency(linea.precio_snap, "USD")}
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
+        </TabsContent>
+      </Tabs>
 
       <PacienteFormDialog
         paciente={data.paciente}
@@ -291,6 +360,27 @@ export function FichaTabs({ data }: FichaTabsProps) {
           router.refresh();
         }}
       />
+    </div>
+  );
+}
+
+function MetaRow({
+  label,
+  value,
+  mono,
+}: {
+  label: string;
+  value: React.ReactNode;
+  mono?: boolean;
+}) {
+  return (
+    <div className="flex items-baseline gap-2">
+      <dt className="shrink-0 text-muted-foreground">{label}:</dt>
+      <dd
+        className={`min-w-0 truncate text-foreground ${mono ? "font-mono tabular-nums" : ""}`}
+      >
+        {value}
+      </dd>
     </div>
   );
 }

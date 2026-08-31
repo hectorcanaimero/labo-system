@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 
 import { titulosCreate, titulosList, titulosReorder } from "@labo/db/repos/examenes";
 import { AuthError, getCurrentUser, requireRole } from "@/lib/server/auth";
+import { getAdminDb } from "@/lib/db-server";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -43,7 +44,7 @@ export async function GET(): Promise<Response> {
   try {
     await requireOperadorMinimo();
 
-    const titulos = await titulosList();
+    const titulos = await titulosList(getAdminDb());
     return NextResponse.json(titulos);
   } catch (error) {
     const { status, error: code } = toStatus(error);
@@ -60,7 +61,7 @@ export async function POST(request: NextRequest): Promise<Response> {
       return bad(400, "VALIDACION_FALLIDA");
     }
 
-    const titulo = await titulosCreate({
+    const titulo = await titulosCreate(getAdminDb(), {
       nombre: body.nombre as string,
       orden: body.orden as number,
       usuarioId: user.userId,
@@ -81,7 +82,7 @@ export async function PATCH(request: NextRequest): Promise<Response> {
       return bad(400, "VALIDACION_FALLIDA");
     }
 
-    const orderedIds = await titulosReorder({
+    const orderedIds = await titulosReorder(getAdminDb(), {
       orderedIds: body.orderedIds as string[],
       usuarioId: user.userId,
     });

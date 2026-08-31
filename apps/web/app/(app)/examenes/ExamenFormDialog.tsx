@@ -5,6 +5,7 @@ import { FlaskConical, Loader2, PencilLine, Plus, X } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { toHumanError } from '@labo/lib/error-messages';
+import { TIPO_ANALISIS_VALUES } from '@labo/lib/schemas/examen';
 
 interface ExamenDraft {
   id: string;
@@ -15,6 +16,7 @@ interface ExamenDraft {
   valores_referencia: string | null;
   tipo_analisis: string | null;
   metodo: string | null;
+  observaciones: string | null;
   activo: boolean;
 }
 
@@ -55,6 +57,7 @@ export function ExamenFormDialog({
   const [valoresReferencia, setValoresReferencia] = useState('');
   const [tipoAnalisis, setTipoAnalisis] = useState('');
   const [metodo, setMetodo] = useState('');
+  const [observaciones, setObservaciones] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
@@ -73,6 +76,7 @@ export function ExamenFormDialog({
     setValoresReferencia(examen?.valores_referencia ?? '');
     setTipoAnalisis(examen?.tipo_analisis ?? '');
     setMetodo(examen?.metodo ?? '');
+    setObservaciones(examen?.observaciones ?? '');
     setErrorMessage(null);
   }, [examen, open]);
 
@@ -100,6 +104,11 @@ export function ExamenFormDialog({
       return;
     }
 
+    if (tipoAnalisis.trim().length === 0) {
+      setErrorMessage('Elegí un tipo de análisis.');
+      return;
+    }
+
     setSubmitting(true);
     setErrorMessage(null);
 
@@ -117,8 +126,9 @@ export function ExamenFormDialog({
                 precio_usd: Number(parsedPrecio.toFixed(2)),
                 unidad,
                 valores_referencia: valoresReferencia,
-                tipo_analisis: tipoAnalisis.trim() || null,
+                tipo_analisis: tipoAnalisis.trim(),
                 metodo: metodo.trim() || null,
+                observaciones: observaciones.trim() || null,
               }
             : {
                 titulo_id: tituloId,
@@ -126,8 +136,9 @@ export function ExamenFormDialog({
                 precio_usd: Number(parsedPrecio.toFixed(2)),
                 unidad,
                 valores_referencia: valoresReferencia,
-                tipo_analisis: tipoAnalisis.trim() || null,
+                tipo_analisis: tipoAnalisis.trim(),
                 metodo: metodo.trim() || null,
+                observaciones: observaciones.trim() || null,
               }
         ),
       });
@@ -197,7 +208,7 @@ export function ExamenFormDialog({
 
           <div className="flex flex-col gap-2">
             <label htmlFor="examen-precio" className="text-sm font-medium">
-              Precio USD
+              Precio base (USD)
             </label>
             <input
               id="examen-precio"
@@ -231,25 +242,22 @@ export function ExamenFormDialog({
           <div className="flex flex-col gap-2">
             <label htmlFor="examen-tipo-analisis" className="text-sm font-medium">
               Tipo de análisis
+              <span className="ml-1 text-destructive">*</span>
             </label>
-            <input
+            <select
               id="examen-tipo-analisis"
-              type="text"
               value={tipoAnalisis}
               onChange={(event) => setTipoAnalisis(event.target.value)}
               disabled={submitting}
-              list="tipos-analisis-list"
-              placeholder="Ej. Sangre, Orina"
-              className="flex h-11 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-            />
-            <datalist id="tipos-analisis-list">
-              <option value="Sangre" />
-              <option value="Orina" />
-              <option value="Heces" />
-              <option value="Hematología" />
-              <option value="Química sanguínea" />
-              <option value="Inmunología" />
-            </datalist>
+              className="flex h-11 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              <option value="">Seleccionar tipo...</option>
+              {TIPO_ANALISIS_VALUES.map((tipo) => (
+                <option key={tipo} value={tipo}>
+                  {tipo}
+                </option>
+              ))}
+            </select>
           </div>
 
           <div className="flex flex-col gap-2 md:col-span-2">
@@ -278,7 +286,7 @@ export function ExamenFormDialog({
 
           <div className="flex flex-col gap-2 md:col-span-2">
             <label htmlFor="examen-referencia" className="text-sm font-medium">
-              Valores de referencia
+              Valores normales
             </label>
             <textarea
               id="examen-referencia"
@@ -289,6 +297,24 @@ export function ExamenFormDialog({
               rows={4}
               className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
             />
+          </div>
+
+          <div className="flex flex-col gap-2 md:col-span-2">
+            <label htmlFor="examen-observaciones" className="text-sm font-medium">
+              Observaciones
+            </label>
+            <textarea
+              id="examen-observaciones"
+              value={observaciones}
+              onChange={(event) => setObservaciones(event.target.value)}
+              disabled={submitting}
+              placeholder="Ej. Requiere ayuno de 8 horas. Muestra en tubo con EDTA."
+              rows={3}
+              className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+            />
+            <p className="text-xs text-muted-foreground">
+              Notas para el paciente o el operador. Opcional.
+            </p>
           </div>
 
           {errorMessage ? (

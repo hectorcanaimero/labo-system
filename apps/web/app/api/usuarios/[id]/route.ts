@@ -1,8 +1,8 @@
 import { NextResponse, type NextRequest } from "next/server";
 
-import { getSql } from "@labo/db/client";
 import { setActivo, updateRole, type UserRole } from "@labo/db/repos/usuarios";
 import { AuthError, getCurrentUser } from "@/lib/server/auth";
+import { getAdminDb } from "@/lib/db-server";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -57,14 +57,14 @@ export async function PATCH(
       );
     }
 
-    const sql = getSql();
+    const db = getAdminDb();
     let updated: { id: string; role: UserRole; activo: boolean } | undefined;
 
     if (nextRole !== undefined) {
-      updated = await updateRole(sql, params.id, nextRole);
+      updated = await updateRole(db, params.id, nextRole);
     }
     if (nextActivo !== undefined) {
-      updated = await setActivo(sql, params.id, nextActivo);
+      updated = await setActivo(db, params.id, nextActivo);
     }
 
     if (!updated) {

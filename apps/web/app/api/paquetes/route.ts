@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 
 import { create, list, PAQUETE_DUPLICADO } from "@labo/db/repos/paquetes";
 import { AuthError, getCurrentUser, requireRole } from "@/lib/server/auth";
+import { getAdminDb } from "@/lib/db-server";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -39,7 +40,7 @@ function toStatus(error: unknown): { status: number; error: string } {
 export async function GET(): Promise<Response> {
   try {
     await requireOperadorMinimo();
-    return NextResponse.json(await list());
+    return NextResponse.json(await list(getAdminDb()));
   } catch (error) {
     const { status, error: code } = toStatus(error);
     return bad(status, code);
@@ -55,7 +56,7 @@ export async function POST(request: NextRequest): Promise<Response> {
       return bad(400, "VALIDACION_FALLIDA");
     }
 
-    const paquete = await create(body);
+    const paquete = await create(getAdminDb(), body);
     return NextResponse.json(paquete, { status: 201 });
   } catch (error) {
     const { status, error: code } = toStatus(error);

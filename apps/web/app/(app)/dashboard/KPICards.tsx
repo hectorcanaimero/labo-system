@@ -1,8 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Users, FlaskConical, FileText, DollarSign } from "lucide-react";
-import { SkeletonKPI } from "@labo/ui/feedback";
+import { DollarSign, FileText, FlaskConical, Users } from "lucide-react";
+
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
 import { toHumanError } from "@labo/lib/error-messages";
 
 export interface DashboardKPIs {
@@ -19,7 +21,7 @@ interface KPICardsProps {
 const POLL_INTERVAL_MS = 30_000;
 
 function formatCurrency(value: number): string {
-  return `$ ${value.toLocaleString("es-VE", {
+  return `$${value.toLocaleString("es-VE", {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   })}`;
@@ -37,7 +39,10 @@ export function KPICards({ initialKPIs }: KPICardsProps) {
         const res = await fetch("/api/dashboard", {
           headers: { accept: "application/json" },
         });
-        if (res.status === 401) { window.location.href = "/login"; return; }
+        if (res.status === 401) {
+          window.location.href = "/login";
+          return;
+        }
         if (!res.ok) {
           const payload = await res.json().catch(() => null);
           throw new Error(payload?.error ?? `REQUEST_FAILED_${res.status}`);
@@ -49,7 +54,9 @@ export function KPICards({ initialKPIs }: KPICardsProps) {
       }
     }
 
-    const timer = setInterval(() => { void poll(); }, POLL_INTERVAL_MS);
+    const timer = setInterval(() => {
+      void poll();
+    }, POLL_INTERVAL_MS);
     return () => {
       cancelled = true;
       clearInterval(timer);
@@ -62,61 +69,57 @@ export function KPICards({ initialKPIs }: KPICardsProps) {
       value: kpis.pacientesMes.toString(),
       suffix: "este mes",
       icon: Users,
-      color: "text-blue-600",
-      bg: "bg-blue-50",
     },
     {
-      label: "Resultados completados",
+      label: "Órdenes entregadas",
       value: kpis.resultadosMes.toString(),
       suffix: "este mes",
       icon: FlaskConical,
-      color: "text-emerald-600",
-      bg: "bg-emerald-50",
     },
     {
-      label: "Presupuestos aprobados",
+      label: "Presupuestos cerrados",
       value: kpis.presupuestosMes.toString(),
       suffix: "este mes",
       icon: FileText,
-      color: "text-violet-600",
-      bg: "bg-violet-50",
     },
     {
       label: "Ingresos estimados",
       value: formatCurrency(kpis.ingresosEstimadosUsd),
       suffix: "USD este mes",
       icon: DollarSign,
-      color: "text-amber-600",
-      bg: "bg-amber-50",
     },
   ] as const;
 
   return (
     <div className="flex flex-col gap-3">
       {error ? (
-        <p className="rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+        <p className="rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-xs text-destructive">
           {error}
         </p>
       ) : null}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
         {cards.map((card) => {
           const Icon = card.icon;
           return (
-            <div
-              key={card.label}
-              className="rounded-xl border border-border bg-card p-5 shadow-sm"
-            >
-              <div className="flex items-start justify-between">
-                <div className="min-w-0">
-                  <p className="text-xs font-medium text-muted-foreground">{card.label}</p>
-                  <p className="mt-1 truncate text-2xl font-bold text-foreground">{card.value}</p>
-                  <p className="mt-0.5 text-xs text-muted-foreground">{card.suffix}</p>
-                </div>
-                <div className={`shrink-0 rounded-lg p-2 ${card.bg}`}>
-                  <Icon className={`h-5 w-5 ${card.color}`} />
-                </div>
-              </div>
-            </div>
+            <Card key={card.label} className="shadow-none">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-xs font-medium text-muted-foreground">
+                  {card.label}
+                </CardTitle>
+                <Icon
+                  className="h-4 w-4 text-muted-foreground/60"
+                  aria-hidden
+                />
+              </CardHeader>
+              <CardContent>
+                <p className="font-mono text-2xl font-semibold tabular-nums tracking-tight text-foreground">
+                  {card.value}
+                </p>
+                <p className="mt-1 text-[11px] uppercase tracking-wide text-muted-foreground">
+                  {card.suffix}
+                </p>
+              </CardContent>
+            </Card>
           );
         })}
       </div>
@@ -126,11 +129,17 @@ export function KPICards({ initialKPIs }: KPICardsProps) {
 
 export function KPICardsSkeleton() {
   return (
-    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
       {Array.from({ length: 4 }).map((_, i) => (
-        <div key={i} className="rounded-xl border border-border bg-card p-5 shadow-sm">
-          <SkeletonKPI />
-        </div>
+        <Card key={i} className="shadow-none">
+          <CardHeader className="pb-2">
+            <Skeleton className="h-3 w-24" />
+          </CardHeader>
+          <CardContent>
+            <Skeleton className="h-8 w-20" />
+            <Skeleton className="mt-2 h-3 w-16" />
+          </CardContent>
+        </Card>
       ))}
     </div>
   );

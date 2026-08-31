@@ -87,8 +87,9 @@ CREATE TABLE IF NOT EXISTS examenes (
   precio_usd          numeric(12, 2) NOT NULL CHECK (precio_usd >= 0),
   unidad              text,
   valores_referencia  text,
-  tipo_analisis       text,
+  tipo_analisis       text           NOT NULL,
   metodo              text,
+  observaciones       text,
   activo              boolean        NOT NULL DEFAULT true,
   created_at          timestamptz    NOT NULL DEFAULT now(),
   updated_at          timestamptz    NOT NULL DEFAULT now(),
@@ -119,6 +120,17 @@ CREATE TABLE IF NOT EXISTS paquetes_examenes (
 
 CREATE INDEX IF NOT EXISTS paquetes_examenes_by_paquete ON paquetes_examenes (paquete_id, orden);
 
+-- Grupos (títulos) incluidos por referencia dinámica en un paquete. Al armar
+-- un presupuesto se expanden a los exámenes vigentes del grupo.
+CREATE TABLE IF NOT EXISTS paquetes_titulos (
+  paquete_id uuid    NOT NULL REFERENCES paquetes         (id) ON DELETE CASCADE,
+  titulo_id  uuid    NOT NULL REFERENCES examenes_titulos (id) ON DELETE RESTRICT,
+  orden      integer NOT NULL DEFAULT 0,
+  PRIMARY KEY (paquete_id, titulo_id)
+);
+
+CREATE INDEX IF NOT EXISTS paquetes_titulos_by_paquete ON paquetes_titulos (paquete_id, orden);
+
 -- ─────────────────────────────────────────────────────────────────────────────
 -- Presupuestos
 --   ADR-05: XOR paciente_id vs paciente_nombre_libre.
@@ -126,6 +138,7 @@ CREATE INDEX IF NOT EXISTS paquetes_examenes_by_paquete ON paquetes_examenes (pa
 -- ─────────────────────────────────────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS presupuestos (
   id                     uuid           PRIMARY KEY DEFAULT gen_random_uuid(),
+  numero_correlativo     serial         NOT NULL UNIQUE,
   paciente_id            uuid           REFERENCES pacientes (id) ON DELETE RESTRICT,
   paciente_nombre_libre  text,
   descuento_pct          numeric(5, 2)  NOT NULL DEFAULT 0 CHECK (descuento_pct BETWEEN 0 AND 100),
@@ -141,11 +154,11 @@ CREATE TABLE IF NOT EXISTS presupuestos (
                                           'Aprobado',
                                           'Rechazado',
                                           'Cancelado',
-                                          'Convertido'
+                                          'Cerrado'
                                         )),
   motivo_rechazo         text,
   fecha_estado           timestamptz    NOT NULL DEFAULT now(),
-  resultado_id           uuid,  -- FK agregada abajo (ciclo con resultados)
+  orden_id               uuid,  -- FK agregada abajo (ciclo con ordenes)
   created_at             timestamptz    NOT NULL DEFAULT now(),
   created_by             uuid           NOT NULL,
   CONSTRAINT presupuestos_motivo_rechazo_check CHECK (
@@ -165,39 +178,49 @@ CREATE INDEX IF NOT EXISTS presupuestos_by_estado   ON presupuestos (estado, cre
 CREATE INDEX IF NOT EXISTS presupuestos_by_fecha    ON presupuestos (created_at DESC);
 
 -- ─────────────────────────────────────────────────────────────────────────────
--- Resultados
---   Estados: Pendiente / Completado.
---   origen_presupuesto_id: nullable — permite crear resultado sin presupuesto previo.
+-- Ordenes (antes "resultados")
+--   Pipeline operativo del laboratorio: Registrada → Muestra tomada →
+--     En proceso → Validando → Entregada; Anulada (terminal).
+--   origen_presupuesto_id: nullable — permite crear orden sin presupuesto previo.
+--   Paciente OBLIGATORIO (a diferencia del presupuesto, que admite libre).
 -- ─────────────────────────────────────────────────────────────────────────────
-CREATE TABLE IF NOT EXISTS resultados (
+CREATE TABLE IF NOT EXISTS ordenes (
   id                    uuid        PRIMARY KEY DEFAULT gen_random_uuid(),
   paciente_id           uuid        NOT NULL REFERENCES pacientes (id) ON DELETE RESTRICT,
   fecha_muestra         timestamptz NOT NULL,
   fecha_resultado       timestamptz,
   medico_solicitante    text,
-  estado                text        NOT NULL DEFAULT 'Pendiente'
-                                    CHECK (estado IN ('Pendiente', 'Completado')),
+  estado                text        NOT NULL DEFAULT 'Registrada'
+                                    CONSTRAINT ordenes_estado_check
+                                    CHECK (estado IN (
+                                      'Registrada',
+                                      'Muestra tomada',
+                                      'En proceso',
+                                      'Validando',
+                                      'Entregada',
+                                      'Anulada'
+                                    )),
   observaciones         text,
   origen_presupuesto_id uuid        REFERENCES presupuestos (id) ON DELETE SET NULL,
   created_at            timestamptz NOT NULL DEFAULT now(),
   created_by            uuid        NOT NULL
 );
 
-CREATE INDEX IF NOT EXISTS resultados_by_paciente ON resultados (paciente_id, created_at DESC);
-CREATE INDEX IF NOT EXISTS resultados_by_fecha    ON resultados (fecha_muestra DESC);
-CREATE INDEX IF NOT EXISTS resultados_by_estado   ON resultados (estado, created_at DESC);
+CREATE INDEX IF NOT EXISTS ordenes_by_paciente ON ordenes (paciente_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS ordenes_by_fecha    ON ordenes (fecha_muestra DESC);
+CREATE INDEX IF NOT EXISTS ordenes_by_estado   ON ordenes (estado, created_at DESC);
 
--- FK circular: presupuestos.resultado_id → resultados.id
+-- FK circular: presupuestos.orden_id → ordenes.id
 ALTER TABLE presupuestos
-  ADD CONSTRAINT presupuestos_resultado_fk
-  FOREIGN KEY (resultado_id) REFERENCES resultados (id) ON DELETE SET NULL;
+  ADD CONSTRAINT presupuestos_orden_fk
+  FOREIGN KEY (orden_id) REFERENCES ordenes (id) ON DELETE SET NULL;
 
 -- ─────────────────────────────────────────────────────────────────────────────
--- resultados_examenes (líneas con snapshot — ADR-04)
+-- ordenes_examenes (líneas con snapshot — ADR-04)
 -- ─────────────────────────────────────────────────────────────────────────────
-CREATE TABLE IF NOT EXISTS resultados_examenes (
+CREATE TABLE IF NOT EXISTS ordenes_examenes (
   id                       uuid           PRIMARY KEY DEFAULT gen_random_uuid(),
-  resultado_id             uuid           NOT NULL REFERENCES resultados (id) ON DELETE CASCADE,
+  orden_id                 uuid           NOT NULL REFERENCES ordenes (id) ON DELETE CASCADE,
   examen_id                uuid           NOT NULL REFERENCES examenes  (id) ON DELETE RESTRICT,
   nombre_snap              text           NOT NULL,
   precio_snap              numeric(12, 2) NOT NULL CHECK (precio_snap >= 0),
@@ -210,7 +233,7 @@ CREATE TABLE IF NOT EXISTS resultados_examenes (
   orden                    integer        NOT NULL DEFAULT 0
 );
 
-CREATE INDEX IF NOT EXISTS resultados_examenes_by_resultado ON resultados_examenes (resultado_id, orden);
+CREATE INDEX IF NOT EXISTS ordenes_examenes_by_orden ON ordenes_examenes (orden_id, orden);
 
 -- ─────────────────────────────────────────────────────────────────────────────
 -- presupuestos_examenes (líneas con snapshot — ADR-04)

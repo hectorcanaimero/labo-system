@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { getKPIs, getResultadosPorMes, getRecentActivity } from "@labo/db/repos/dashboard";
 import { AuthError, getCurrentUser } from "@/lib/server/auth";
+import { getAdminDb } from "@/lib/db-server";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -34,10 +35,11 @@ export async function GET(request: NextRequest): Promise<Response> {
     const months = parseInt(url.searchParams.get("months") ?? "6", 10);
     const limit = parseInt(url.searchParams.get("limit") ?? "5", 10);
 
+    const db = getAdminDb();
     const [kpis, resultadosPorMes, activity] = await Promise.all([
-      getKPIs(),
-      getResultadosPorMes(months),
-      getRecentActivity(limit)
+      getKPIs(db),
+      getResultadosPorMes(db, months),
+      getRecentActivity(db, limit),
     ]);
 
     return NextResponse.json({ kpis, resultadosPorMes, activity });

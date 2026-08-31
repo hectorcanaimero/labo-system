@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 
 import { deactivate, getById, update } from "@labo/db/repos/pacientes";
+import { getDb } from "@/lib/db-server";
 import { AuthError, getCurrentUser } from "@/lib/server/auth";
 
 export const runtime = "nodejs";
@@ -50,7 +51,7 @@ export async function GET(
   try {
     await requireOperadorMinimo();
 
-    const paciente = await getById(context.params.id);
+    const paciente = await getById(getDb(), context.params.id);
     if (!paciente) {
       return bad(404, "PACIENTE_NO_ENCONTRADO");
     }
@@ -74,7 +75,7 @@ export async function PATCH(
       return bad(400, "VALIDACION_FALLIDA");
     }
 
-    const paciente = await update(context.params.id, body);
+    const paciente = await update(getDb(), context.params.id, body);
     return NextResponse.json(paciente);
   } catch (error) {
     const { status, error: code } = toStatus(error);
@@ -89,7 +90,7 @@ export async function DELETE(
   try {
     await requireOperadorMinimo();
 
-    const result = await deactivate(context.params.id);
+    const result = await deactivate(getDb(), context.params.id);
     return NextResponse.json(result);
   } catch (error) {
     const { status, error: code } = toStatus(error);

@@ -8,6 +8,7 @@ import {
   update,
 } from "@labo/db/repos/paquetes";
 import { AuthError, getCurrentUser, requireRole } from "@/lib/server/auth";
+import { getAdminDb } from "@/lib/db-server";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -51,7 +52,7 @@ export async function GET(
   try {
     await requireOperadorMinimo();
 
-    const paquete = await getById(context.params.id);
+    const paquete = await getById(getAdminDb(), context.params.id);
     if (!paquete) {
       return bad(404, PAQUETE_NO_ENCONTRADO);
     }
@@ -75,7 +76,7 @@ export async function PATCH(
       return bad(400, "VALIDACION_FALLIDA");
     }
 
-    const paquete = await update(context.params.id, body);
+    const paquete = await update(getAdminDb(), context.params.id, body);
     return NextResponse.json(paquete);
   } catch (error) {
     const { status, error: code } = toStatus(error);
@@ -89,7 +90,7 @@ export async function DELETE(
 ): Promise<Response> {
   try {
     await requireRole("admin");
-    return NextResponse.json(await deletePaquete(context.params.id));
+    return NextResponse.json(await deletePaquete(getAdminDb(), context.params.id));
   } catch (error) {
     const { status, error: code } = toStatus(error);
     return bad(status, code);

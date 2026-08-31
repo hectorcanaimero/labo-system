@@ -1,8 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { getSql } from "@labo/db/client";
-import { AuthError, getCurrentUser, AUTH_COOKIE_NAMES } from "@/lib/server/auth";
+import { AuthError, getCurrentUser } from "@/lib/server/auth";
 import { writeCsv, uploadCsv, getSignedDownloadUrl } from "@labo/lib/csv-export";
-import { cookies } from "next/headers";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -159,11 +158,8 @@ export async function POST(request: NextRequest): Promise<Response> {
     const yearMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
     const filename = `exports/${yearMonth}/resultados-${Date.now()}.csv`;
 
-    const jar = cookies();
-    const accessToken = jar.get(AUTH_COOKIE_NAMES.access)?.value;
-
-    const key = await uploadCsv(csvString, filename, accessToken);
-    const signedUrl = await getSignedDownloadUrl(key, accessToken);
+    const key = await uploadCsv(csvString, filename);
+    const signedUrl = getSignedDownloadUrl(key);
 
     return NextResponse.json({ url: signedUrl });
   } catch (error) {

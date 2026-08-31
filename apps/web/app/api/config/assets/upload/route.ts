@@ -1,16 +1,24 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { cookies } from "next/headers";
-import crypto from "crypto";
+import crypto from "node:crypto";
 
-import { requireRole, AUTH_COOKIE_NAMES, AuthError } from "@/lib/server/auth";
+import { requireRole, AuthError } from "@/lib/server/auth";
 import {
   ASSET_TIPO_INVALIDO,
   validateAssetFile,
 } from "@labo/lib/schemas/config";
-import { getUploadStrategy } from "@labo/lib/storage";
+import { saveObject } from "@labo/lib/storage-local";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+
+const MIME_TO_EXT: Record<string, string> = {
+  "image/png": "png",
+  "image/jpeg": "jpg",
+  "image/jpg": "jpg",
+  "image/gif": "gif",
+  "image/svg+xml": "svg",
+  "image/webp": "webp",
+};
 
 function bad(status: number, error: string): Response {
   return NextResponse.json({ error }, { status });
@@ -18,62 +26,34 @@ function bad(status: number, error: string): Response {
 
 export async function POST(request: NextRequest): Promise<Response> {
   try {
-    // 1. Verificar rol Admin
     await requireRole("admin");
 
-    // 2. Parsear request body
-    const body = (await request.json().catch(() => null)) as {
-      type?: string;
-      filename?: string;
-      contentType?: string;
-      size?: number;
-    } | null;
+    const form = await request.formData().catch(() => null);
+    if (!form) return bad(400, "VALIDACION_FALLIDA");
 
-    if (!body || !body.type || !body.filename || !body.contentType || body.size === undefined) {
+    const type = form.get("type");
+    const file = form.get("file");
+
+    if (typeof type !== "string" || !(file instanceof File)) {
       return bad(400, "VALIDACION_FALLIDA");
     }
 
-    const { type, filename, contentType, size } = body;
-
-    // 3. Validar tipo de asset
     if (type !== "logo" && type !== "firma" && type !== "sello") {
       return bad(400, ASSET_TIPO_INVALIDO);
     }
 
-    // 4. Validar archivo (MIME y tamaño)
-    const fileError = validateAssetFile({ type: contentType, size });
-    if (fileError) {
-      return bad(400, fileError);
-    }
+    const fileError = validateAssetFile({ type: file.type, size: file.size });
+    if (fileError) return bad(400, fileError);
 
-    // 5. Generar key del objeto: assets/{tipo}/{uuid}.{ext}
-    const mimeToExt: Record<string, string> = {
-      "image/png": "png",
-      "image/jpeg": "jpg",
-      "image/jpg": "jpg",
-      "image/gif": "gif",
-      "image/svg+xml": "svg",
-      "image/webp": "webp",
-    };
-    const extension = mimeToExt[contentType] || filename.split(".").pop() || "png";
+    const extension =
+      MIME_TO_EXT[file.type] || file.name.split(".").pop() || "png";
     const uuid = crypto.randomUUID();
     const key = `assets/${type}/${uuid}.${extension}`;
 
-    // 6. Pedir la upload strategy a InsForge
-    const accessToken = cookies().get(AUTH_COOKIE_NAMES.access)?.value;
-    const strategy = await getUploadStrategy(
-      "assets",
-      key,
-      contentType,
-      size,
-      accessToken
-    );
+    const buffer = Buffer.from(await file.arrayBuffer());
+    await saveObject("assets", key, buffer);
 
-    // 7. Retornar la estrategia y la key generada
-    return NextResponse.json({
-      strategy,
-      key,
-    });
+    return NextResponse.json({ key, size: file.size, mimeType: file.type });
   } catch (error) {
     if (error instanceof AuthError) {
       return bad(error.code === "UNAUTHENTICATED" ? 401 : 403, error.code);

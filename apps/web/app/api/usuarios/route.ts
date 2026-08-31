@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
 
-import { getSql } from "@labo/db/client";
 import { listAll } from "@labo/db/repos/usuarios";
 import { AuthError, getCurrentUser } from "@/lib/server/auth";
+import { getAdminDb } from "@/lib/db-server";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -17,8 +17,7 @@ export async function GET(): Promise<Response> {
       return NextResponse.json({ error: "UNAUTHORIZED" }, { status: 403 });
     }
 
-    const sql = getSql();
-    const usuarios = await listAll(sql);
+    const usuarios = await listAll(getAdminDb());
 
     return NextResponse.json({ usuarios });
   } catch (error) {

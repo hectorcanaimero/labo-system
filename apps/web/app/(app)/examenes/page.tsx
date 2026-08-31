@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 
 import { titulosList } from "@labo/db/repos/examenes";
 import { AuthError, getCurrentUser } from "@/lib/server/auth";
+import { getAdminDb } from "@/lib/db-server";
 
 import { TitulosNavigator } from "./TitulosNavigator";
 
@@ -28,7 +29,7 @@ async function requireAdminOrRedirect(): Promise<void> {
 export default async function ExamenesPage() {
   await requireAdminOrRedirect();
 
-  const titulos = await titulosList();
+  const titulos = await titulosList(getAdminDb());
   const initialTitulos: TituloListItem[] = titulos.map((titulo) => ({
     id: titulo.id,
     nombre: titulo.nombre,

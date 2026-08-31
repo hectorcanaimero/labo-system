@@ -9,6 +9,7 @@ import {
   updateEstado,
 } from "@labo/db/repos/resultados";
 import { AuthError, getCurrentUser, requireRole } from "@/lib/server/auth";
+import { getAdminDb } from "@/lib/db-server";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -52,7 +53,7 @@ export async function GET(_request: NextRequest, { params }: { params: { id: str
   try {
     await requireOperador();
     if (!isUuid(params.id)) return bad(400, "VALIDACION_FALLIDA");
-    const resultado = await getById(params.id);
+    const resultado = await getById(getAdminDb(), params.id);
     return resultado ? NextResponse.json(resultado) : bad(404, RESULTADO_NO_ENCONTRADO);
   } catch (error) {
     const mapped = toStatus(error);
@@ -66,9 +67,10 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
     if (!isUuid(params.id)) return bad(400, "VALIDACION_FALLIDA");
     const body = await request.json().catch(() => null) as unknown;
     if (!hasValidPatchIds(body)) return bad(400, "VALIDACION_FALLIDA");
+    const db = getAdminDb();
     const resultado = Object.keys(body).length === 1 && "estado" in body
-      ? await updateEstado(params.id, body.estado, user.userId)
-      : await update(params.id, body, user.userId);
+      ? await updateEstado(db, params.id, body.estado, user.userId)
+      : await update(db, params.id, body, user.userId);
     return NextResponse.json(resultado);
   } catch (error) {
     const mapped = toStatus(error);
@@ -80,7 +82,7 @@ export async function DELETE(_request: NextRequest, { params }: { params: { id: 
   try {
     const user = await requireRole("admin");
     if (!isUuid(params.id)) return bad(400, "VALIDACION_FALLIDA");
-    return NextResponse.json(await deleteResultado(params.id, user.userId));
+    return NextResponse.json(await deleteResultado(getAdminDb(), params.id, user.userId));
   } catch (error) {
     const mapped = toStatus(error);
     return bad(mapped.status, mapped.error);

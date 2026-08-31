@@ -1,13 +1,13 @@
 import { NextResponse } from "next/server";
 import crypto from "crypto";
 
-import { getSql } from "@labo/db/client";
 import {
   createInvitation,
   listPendingInvitations,
   type UserRole,
 } from "@labo/db/repos/usuarios";
 import { getCurrentUser, AuthError } from "@/lib/server/auth";
+import { getAdminDb } from "@/lib/db-server";
 import { sendEmail } from "@labo/lib/server/email";
 
 const INVITE_TTL_DAYS = 7;
@@ -72,8 +72,7 @@ export async function POST(req: Request): Promise<NextResponse> {
       Date.now() + INVITE_TTL_DAYS * 24 * 60 * 60 * 1000,
     );
 
-    const sql = getSql();
-    await createInvitation(sql, {
+    await createInvitation(getAdminDb(), {
       email,
       role,
       tokenHash,
@@ -107,8 +106,7 @@ export async function GET(): Promise<NextResponse> {
       return NextResponse.json({ error: "UNAUTHORIZED" }, { status: 403 });
     }
 
-    const sql = getSql();
-    const invitations = await listPendingInvitations(sql);
+    const invitations = await listPendingInvitations(getAdminDb());
 
     return NextResponse.json({ invitations });
   } catch (err) {

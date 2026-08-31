@@ -7,6 +7,7 @@ import {
   setExamenes,
 } from "@labo/db/repos/paquetes";
 import { AuthError, getCurrentUser, requireRole } from "@/lib/server/auth";
+import { getAdminDb } from "@/lib/db-server";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -48,7 +49,7 @@ export async function GET(
 ): Promise<Response> {
   try {
     await requireOperadorMinimo();
-    return NextResponse.json(await getExamenes(context.params.id));
+    return NextResponse.json(await getExamenes(getAdminDb(), context.params.id));
   } catch (error) {
     const { status, error: code } = toStatus(error);
     return bad(status, code);
@@ -69,7 +70,9 @@ export async function PUT(
       return bad(400, "VALIDACION_FALLIDA");
     }
 
-    return NextResponse.json(await setExamenes(context.params.id, body.examenIds));
+    return NextResponse.json(
+      await setExamenes(getAdminDb(), context.params.id, body.examenIds),
+    );
   } catch (error) {
     const { status, error: code } = toStatus(error);
     return bad(status, code);

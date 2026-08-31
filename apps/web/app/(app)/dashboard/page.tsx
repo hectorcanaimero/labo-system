@@ -1,10 +1,17 @@
 import dynamic from "next/dynamic";
 import type { Metadata } from "next";
-import { getKPIs, getResultadosPorMes, getRecentActivity } from "@labo/db/repos/dashboard";
+
+import {
+  getKPIs,
+  getRecentActivity,
+  getResultadosPorMes,
+} from "@labo/db/repos/dashboard";
+import { getAdminDb } from "@/lib/db-server";
+
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { KPICards } from "./KPICards";
-import { RecentActivity } from "./RecentActivity";
 import { QuickLinks } from "./QuickLinks";
-import type { RecentActivityData } from "./RecentActivity";
+import { RecentActivity, type RecentActivityData } from "./RecentActivity";
 
 export const metadata: Metadata = {
   title: "Dashboard — RV Laboratorio",
@@ -13,7 +20,7 @@ export const metadata: Metadata = {
 const ResultadosChart = dynamic(() => import("./ResultadosChart"), {
   ssr: false,
   loading: () => (
-    <div className="flex h-60 items-center justify-center text-sm text-muted-foreground">
+    <div className="flex h-60 items-center justify-center text-xs text-muted-foreground">
       Cargando gráfico…
     </div>
   ),
@@ -25,13 +32,13 @@ function toIso(d: Date | string | null | undefined): string {
 }
 
 export default async function DashboardPage() {
+  const db = getAdminDb();
   const [kpis, resultadosPorMes, rawActivity] = await Promise.all([
-    getKPIs(),
-    getResultadosPorMes(6),
-    getRecentActivity(5),
+    getKPIs(db),
+    getResultadosPorMes(db, 6),
+    getRecentActivity(db, 5),
   ]);
 
-  // Serialize Date objects to ISO strings for Client Components
   const activity: RecentActivityData = {
     resultados: rawActivity.resultados.map((r) => ({
       ...r,
@@ -45,25 +52,28 @@ export default async function DashboardPage() {
   };
 
   return (
-    <main className="mx-auto flex max-w-7xl flex-col gap-6 p-6">
-      <div>
-        <span className="inline-flex items-center rounded-full bg-primary/10 px-3 py-1 text-xs font-medium text-primary">
-          Panel
-        </span>
-        <h1 className="mt-2 text-2xl font-bold tracking-tight text-foreground">Dashboard</h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Resumen de actividad del laboratorio
+    <main className="mx-auto flex max-w-[100rem] flex-col gap-4">
+      <header className="flex flex-col gap-1 border-b border-border pb-3">
+        <h1 className="text-xl font-semibold tracking-tight text-foreground">
+          Dashboard
+        </h1>
+        <p className="text-xs text-muted-foreground">
+          Resumen operativo del laboratorio — se actualiza cada 30 segundos.
         </p>
-      </div>
+      </header>
 
       <KPICards initialKPIs={kpis} />
 
-      <div className="rounded-xl border border-border bg-card p-6 shadow-sm">
-        <h2 className="mb-4 text-sm font-semibold text-foreground">
-          Resultados — últimos 6 meses
-        </h2>
-        <ResultadosChart initialData={resultadosPorMes} />
-      </div>
+      <Card className="shadow-none">
+        <CardHeader className="border-b border-border py-3">
+          <CardTitle className="text-sm font-semibold">
+            Órdenes entregadas — últimos 6 meses
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="p-4">
+          <ResultadosChart initialData={resultadosPorMes} />
+        </CardContent>
+      </Card>
 
       <RecentActivity initialActivity={activity} />
 

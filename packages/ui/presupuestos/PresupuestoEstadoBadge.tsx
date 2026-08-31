@@ -12,7 +12,7 @@ const STYLES: Readonly<Record<EstadoPresupuesto, string>> = {
   Aprobado: "bg-emerald-100 text-emerald-800",
   Rechazado: "bg-red-100 text-red-800",
   Cancelado: "bg-zinc-200 text-zinc-700",
-  Convertido: "bg-violet-100 text-violet-800",
+  Cerrado: "bg-violet-100 text-violet-800",
 };
 
 export function PresupuestoEstadoBadge({ estado, className }: PresupuestoEstadoBadgeProps) {

@@ -1,94 +1,69 @@
-import { getSql, withTransaction } from '@labo/db/client';
-import { scrapeBcv, scrapeDolarToday } from '@labo/lib/scrape/bcv';
-import type { ScrapeResult } from '@labo/lib/scrape/bcv';
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse, type NextRequest } from "next/server";
 
-export const runtime = 'nodejs';
-export const dynamic = 'force-dynamic';
+import { setFromScraper } from "@labo/db/repos/tasa";
+import { scrapeBcv, scrapeDolarToday } from "@labo/lib/scrape/bcv";
+import type { ScrapeResult } from "@labo/lib/scrape/bcv";
+import { getAdminDb } from "@/lib/db-server";
 
-const ACCION_EXITO = 'cron.scrape-bcv';
-const ACCION_FALLO = 'cron.scrape-bcv.failed';
-const ENTITY_TYPE = 'tasa_cambio_bcv';
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+
+const ACCION_FALLO = "cron.scrape-bcv.failed";
+const ENTITY_TYPE = "tasa_cambio_bcv";
 
 /**
- * F3.3.T1 — Scraper BCV disparado por crontab del VPS (ADR-11).
+ * Cron BCV — dispara desde Coolify Scheduled Task cada 30 min:
+ *   curl -X POST -H "x-cron-secret: $CRON_SECRET" https://.../api/cron/scrape-bcv
  *
- * POST /api/cron/scrape-bcv  (header `x-cron-secret: <CRON_SECRET>`)
- *
- * Flujo: primario bcv.org.ve (retry 1+2, backoff 1s/3s) → fallback DolarAPI
- * (fuente "dolartoday") → INSERT en `tasa_cambio_bcv` + audit_log. Fallo total:
- * audit_log warning y respuesta 200 (sin lanzar), para no disparar reintentos
- * del crontab; la alerta de tasa vieja es responsabilidad de F3.3.T4.
+ * Patrón external-indicators (guayana-news):
+ *   - Primario bcv.org.ve; fallback DolarAPI si falla.
+ *   - Fail-closed: si ambos fallan, se registra audit warning pero NO se
+ *     borra la última tasa (last-known-good).
+ *   - Respuesta 200 aún en fallo, para que el crontab no reintente.
  */
-
 function errorCode(err: unknown): string {
-  if (typeof err === 'object' && err !== null && 'code' in err) {
+  if (typeof err === "object" && err !== null && "code" in err) {
     const code = (err as { code?: unknown }).code;
-    if (typeof code === 'string') return code;
+    if (typeof code === "string") return code;
   }
-  return 'unknown';
+  return "unknown";
 }
 
 function errorMessage(err: unknown): string {
   return err instanceof Error ? err.message : String(err);
 }
 
-async function persist(result: ScrapeResult): Promise<string> {
-  return withTransaction(async (tx) => {
-    const rows = await tx<{ id: string }[]>`
-      INSERT INTO tasa_cambio_bcv (tasa, fecha, fuente, scraped_at)
-      VALUES (${result.tasa}, ${result.fecha}, ${result.fuente}, ${result.scraped_at})
-      RETURNING id
-    `;
-    const id = rows[0].id;
-
-    await tx`
-      INSERT INTO audit_log (accion, entity_type, entity_id, metadata)
-      VALUES (
-        ${ACCION_EXITO},
-        ${ENTITY_TYPE},
-        ${id},
-        ${tx.json({ tasa: result.tasa, fuente: result.fuente })}
-      )
-    `;
-
-    return id;
-  });
-}
-
-async function auditWarning(primaryError: unknown, fallbackError: unknown): Promise<void> {
+async function auditWarning(
+  primaryError: unknown,
+  fallbackError: unknown,
+): Promise<void> {
   try {
-    const sql = getSql();
-    await sql`
-      INSERT INTO audit_log (accion, entity_type, metadata)
-      VALUES (
-        ${ACCION_FALLO},
-        ${ENTITY_TYPE},
-        ${sql.json({
-          primary_code: errorCode(primaryError),
-          primary_message: errorMessage(primaryError),
-          fallback_code: errorCode(fallbackError),
-          fallback_message: errorMessage(fallbackError),
-        })}
-      )
-    `;
+    const db = getAdminDb();
+    await db.from("audit_log").insert({
+      accion: ACCION_FALLO,
+      entity_type: ENTITY_TYPE,
+      metadata: {
+        primary_code: errorCode(primaryError),
+        primary_message: errorMessage(primaryError),
+        fallback_code: errorCode(fallbackError),
+        fallback_message: errorMessage(fallbackError),
+      },
+    });
   } catch (err) {
-    // No lanzar: si el propio audit falla (DB caída), el cron no debe romper.
-    console.error('No se pudo escribir el audit_log de fallo de scrape-bcv:', err);
+    console.error("audit_log fallback failed:", err);
   }
 }
 
 export async function POST(request: NextRequest): Promise<Response> {
   const cronSecret = process.env.CRON_SECRET;
   if (!cronSecret) {
-    console.error('CRON_SECRET no está configurado en el entorno.');
-    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+    console.error("CRON_SECRET no configurado.");
+    return NextResponse.json({ error: "server_misconfigured" }, { status: 500 });
   }
 
-  const reqSecret = request.headers.get('x-cron-secret');
+  const reqSecret = request.headers.get("x-cron-secret");
   if (!reqSecret || reqSecret !== cronSecret) {
-    console.warn('Intento no autorizado de ejecutar el cron scrape-bcv.');
-    return new Response('Unauthorized', { status: 401 });
+    return new Response("Unauthorized", { status: 401 });
   }
 
   let result: ScrapeResult | null = null;
@@ -99,7 +74,7 @@ export async function POST(request: NextRequest): Promise<Response> {
     result = await scrapeBcv();
   } catch (err) {
     primaryError = err;
-    console.error('Primario bcv.org.ve falló:', errorMessage(err));
+    console.error("bcv.org.ve falló:", errorMessage(err));
   }
 
   if (!result) {
@@ -107,7 +82,7 @@ export async function POST(request: NextRequest): Promise<Response> {
       result = await scrapeDolarToday();
     } catch (err) {
       fallbackError = err;
-      console.error('Fallback DolarAPI falló:', errorMessage(err));
+      console.error("Fallback DolarAPI falló:", errorMessage(err));
     }
   }
 
@@ -116,24 +91,44 @@ export async function POST(request: NextRequest): Promise<Response> {
     return NextResponse.json(
       {
         success: false,
-        error: 'bcv_scrape_failed',
+        error: "bcv_scrape_failed",
         primary_code: errorCode(primaryError),
         fallback_code: errorCode(fallbackError),
       },
-      { status: 200 }
+      { status: 200 },
     );
   }
 
   try {
-    const id = await persist(result);
-    return NextResponse.json({ success: true, id, fuente: result.fuente, tasa: result.tasa });
+    const outcome = await setFromScraper(getAdminDb(), {
+      tasa: result.tasa,
+      fuente: result.fuente,
+      fecha: result.fecha.toISOString(),
+      scrapedAt: result.scraped_at.toISOString(),
+    });
+
+    if (outcome.skipped) {
+      return NextResponse.json({
+        success: false,
+        skipped: true,
+        reason: outcome.reason,
+        tasa: result.tasa,
+        fuente: result.fuente,
+      });
+    }
+
+    return NextResponse.json({
+      success: true,
+      id: outcome.id,
+      tasa: result.tasa,
+      fuente: result.fuente,
+    });
   } catch (err) {
-    // Fallo de persistencia: registrar warning y no lanzar.
-    console.error('Persistencia de tasa falló:', err);
-    await auditWarning(err, 'persist_failed');
+    console.error("Persistencia de tasa falló:", err);
+    await auditWarning(err, "persist_failed");
     return NextResponse.json(
-      { success: false, error: 'persist_failed', details: errorMessage(err) },
-      { status: 200 }
+      { success: false, error: "persist_failed", details: errorMessage(err) },
+      { status: 200 },
     );
   }
 }

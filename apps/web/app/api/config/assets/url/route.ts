@@ -1,10 +1,10 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { cookies } from "next/headers";
 
-import { getCurrentUser, AUTH_COOKIE_NAMES, AuthError } from "@/lib/server/auth";
+import { getCurrentUser, AuthError } from "@/lib/server/auth";
+import { getAdminDb } from "@/lib/db-server";
 import { ASSET_TIPO_INVALIDO } from "@labo/lib/schemas/config";
 import { get } from "@labo/db/repos/config";
-import { createSignedDownloadUrl } from "@labo/lib/storage";
+import { signDownloadUrl } from "@labo/lib/storage-local";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -15,10 +15,8 @@ function bad(status: number, error: string): Response {
 
 export async function GET(request: NextRequest): Promise<Response> {
   try {
-    // 1. Verificar autenticación (cualquier rol)
     await getCurrentUser();
 
-    // 2. Obtener parámetro 'type' de la query
     const { searchParams } = new URL(request.url);
     const type = searchParams.get("type");
 
@@ -26,20 +24,17 @@ export async function GET(request: NextRequest): Promise<Response> {
       return bad(400, ASSET_TIPO_INVALIDO);
     }
 
-    // 3. Buscar configuración
-    const config = await get();
-    if (!config) {
-      return NextResponse.json({ url: null });
-    }
+    const config = await get(getAdminDb());
+    if (!config) return NextResponse.json({ url: null });
 
     const objectKey = config[`${type}_object_key` as const];
-    if (!objectKey) {
-      return NextResponse.json({ url: null });
-    }
+    if (!objectKey) return NextResponse.json({ url: null });
 
-    // 4. Generar URL firmada válida por 1 hora (3600 segundos)
-    const accessToken = cookies().get(AUTH_COOKIE_NAMES.access)?.value;
-    const signedUrl = await createSignedDownloadUrl("assets", objectKey, 3600, accessToken);
+    const signedUrl = signDownloadUrl({
+      bucket: "assets",
+      key: objectKey,
+      expiresInSeconds: 3600,
+    });
 
     return NextResponse.json({ url: signedUrl });
   } catch (error) {

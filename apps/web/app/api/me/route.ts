@@ -1,13 +1,14 @@
 import { cookies } from "next/headers";
 import { NextResponse, type NextRequest } from "next/server";
 
-import { getSql } from "@labo/db/client";
 import {
   countRecentLoginFailures,
-  getByEmail,
+  getByEmail as getUsuarioByEmail,
   logAuthEvent,
   syncFromAuth,
+  type UserRole,
 } from "@labo/db/repos/usuarios";
+import { getAdminDb } from "@/lib/db-server";
 import { AUTH_COOKIE_NAMES, tryGetCurrentUser } from "@/lib/server/auth";
 
 export const runtime = "nodejs";
@@ -17,40 +18,8 @@ const RATE_LIMIT_WINDOW_MS = 15 * 60 * 1000;
 const RATE_LIMIT_MAX_FAILURES = 5;
 const SESSION_MAX_AGE_S = 8 * 60 * 60;
 
-/**
- * `/api/me` es el endpoint de sesión del laboratorio (F0.2.T8).
- *
- * Contrato:
- *  - `GET`    → perfil actual `{ id, authUserId, email, nombre, role }` o 401.
- *  - `POST`   → login email+password (rate limited + audit); setea cookies
- *               httpOnly del access/refresh token de InsForge Auth.
- *  - `DELETE` → logout: revoca sesión en InsForge, limpia cookies, audit.
- *
- * Se centraliza acá para: (a) mantener el file-scope acotado del task, (b) que
- * el rate limit y el audit vivan del lado servidor (imposibles de saltar por
- * cliente), (c) evitar dos endpoints casi idénticos.
- */
-
 // ─────────────────────────────────────────────────────────────────────────────
-// GET — perfil actual
-// ─────────────────────────────────────────────────────────────────────────────
-
-export async function GET(): Promise<Response> {
-  const user = await tryGetCurrentUser();
-  if (!user) {
-    return NextResponse.json({ error: "UNAUTHENTICATED" }, { status: 401 });
-  }
-  return NextResponse.json({
-    id: user.userId,
-    authUserId: user.authUserId,
-    email: user.email,
-    nombre: user.nombre,
-    role: user.role,
-  });
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// POST — login
+// HTTP surface
 // ─────────────────────────────────────────────────────────────────────────────
 
 interface LoginBody {
@@ -66,16 +35,19 @@ interface InsforgeLoginResponse {
     refresh_token?: string;
     expires_in?: number;
   };
-  user?: { id?: string; email?: string; name?: string };
+  user?: {
+    id?: string;
+    email?: string;
+    name?: string;
+    profile?: { name?: string };
+  };
   error?: { message?: string; code?: string };
 }
 
 function readInsforgeBaseUrl(): string {
   const url = process.env.INSFORGE_URL?.trim();
   if (!url || url.length === 0) {
-    throw new Error(
-      "[/api/me] INSFORGE_URL no está definida. Requerida para autenticación.",
-    );
+    throw new Error("[/api/me] INSFORGE_URL requerida para autenticación.");
   }
   return url.replace(/\/+$/, "");
 }
@@ -113,6 +85,22 @@ function clearSessionCookies(): void {
   jar.delete(AUTH_COOKIE_NAMES.refresh);
 }
 
+// GET — perfil actual
+export async function GET(): Promise<Response> {
+  const user = await tryGetCurrentUser();
+  if (!user) {
+    return NextResponse.json({ error: "UNAUTHENTICATED" }, { status: 401 });
+  }
+  return NextResponse.json({
+    id: user.userId,
+    authUserId: user.authUserId,
+    email: user.email,
+    nombre: user.nombre,
+    role: user.role,
+  });
+}
+
+// POST — login
 export async function POST(request: NextRequest): Promise<Response> {
   const body = (await request.json().catch(() => null)) as LoginBody | null;
   const email = typeof body?.email === "string" ? body.email.trim() : "";
@@ -121,35 +109,30 @@ export async function POST(request: NextRequest): Promise<Response> {
     return bad(400, "INVALID_INPUT");
   }
 
-  const sql = getSql();
+  const db = getAdminDb();
 
-  // Rate limit lógico: 5 fallos por email en 15min (spec F0.2.T8).
-  const recentFailures = await countRecentLoginFailures(
-    sql,
-    email,
-    RATE_LIMIT_WINDOW_MS,
-  );
+  // Rate limit: 5 fallos por email en 15min.
+  const recentFailures = await countRecentLoginFailures(db, email, RATE_LIMIT_WINDOW_MS);
   if (recentFailures >= RATE_LIMIT_MAX_FAILURES) {
-    const existing = await getByEmail(sql, email);
-    await logAuthEvent(sql, {
+    const existing = await getUsuarioByEmail(db, email);
+    await logAuthEvent(db, {
       usuarioId: existing?.id ?? null,
       action: "auth.login_blocked",
       emailIntent: email,
     });
-    // Mensaje genérico — no revelar bloqueo específico.
     return bad(401, "INVALID_CREDENTIALS");
   }
 
   const baseUrl = readInsforgeBaseUrl();
-  // Contract real InsForge: POST /api/auth/sessions con { method: "password" }.
-  // client_type=server → accessToken/refreshToken en el body (no cookie propia).
+  // Sesión InsForge Cloud: POST /api/auth/sessions con { email, password }.
+  // client_type=server → tokens en body (no cookies del backend).
   const authRes = await fetch(`${baseUrl}/api/auth/sessions?client_type=server`, {
     method: "POST",
     headers: {
       "content-type": "application/json",
       Accept: "application/json",
     },
-    body: JSON.stringify({ method: "password", email, password }),
+    body: JSON.stringify({ email, password }),
     cache: "no-store",
   });
 
@@ -158,8 +141,8 @@ export async function POST(request: NextRequest): Promise<Response> {
   const refreshToken = payload.refreshToken ?? payload.session?.refresh_token;
 
   if (!authRes.ok || !accessToken || !payload.user?.id) {
-    const existing = await getByEmail(sql, email);
-    await logAuthEvent(sql, {
+    const existing = await getUsuarioByEmail(db, email);
+    await logAuthEvent(db, {
       usuarioId: existing?.id ?? null,
       action: "auth.login_failed",
       emailIntent: email,
@@ -171,14 +154,13 @@ export async function POST(request: NextRequest): Promise<Response> {
     return bad(401, "INVALID_CREDENTIALS");
   }
 
-  // Sync perfil de dominio y setea cookies de sesión.
-  const usuario = await syncFromAuth(sql, {
+  const usuario = await syncFromAuth(db, {
     authUserId: payload.user.id,
     email: payload.user.email ?? email,
-    nombre: payload.user.name,
+    nombre: payload.user.profile?.name ?? payload.user.name,
   });
   setSessionCookies(accessToken, refreshToken);
-  await logAuthEvent(sql, {
+  await logAuthEvent(db, {
     usuarioId: usuario.id,
     action: "auth.login",
     metadata: { user_agent: request.headers.get("user-agent") ?? undefined },
@@ -193,18 +175,13 @@ export async function POST(request: NextRequest): Promise<Response> {
   });
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
 // DELETE — logout
-// ─────────────────────────────────────────────────────────────────────────────
-
 export async function DELETE(): Promise<Response> {
   const user = await tryGetCurrentUser();
   const jar = cookies();
   const token = jar.get(AUTH_COOKIE_NAMES.access)?.value;
   if (token) {
     const baseUrl = readInsforgeBaseUrl();
-    // Best-effort revoke en InsForge; el clear de cookies local es la fuente
-    // real de "no autenticado" para el resto del stack.
     await fetch(`${baseUrl}/api/auth/sessions/current`, {
       method: "DELETE",
       headers: { Authorization: `Bearer ${token}` },
@@ -213,8 +190,7 @@ export async function DELETE(): Promise<Response> {
   }
   clearSessionCookies();
   if (user) {
-    const sql = getSql();
-    await logAuthEvent(sql, {
+    await logAuthEvent(getAdminDb(), {
       usuarioId: user.userId,
       action: "auth.logout",
     });
@@ -227,5 +203,5 @@ export interface MeResponse {
   authUserId: string;
   email: string;
   nombre: string;
-  role: "admin" | "operador";
+  role: UserRole;
 }

@@ -2,6 +2,7 @@ import { notFound, redirect } from "next/navigation";
 
 import { getById } from "@labo/db/repos/paquetes";
 import { AuthError, getCurrentUser } from "@/lib/server/auth";
+import { getAdminDb } from "@/lib/db-server";
 import { PaqueteBuilder, type PaqueteBuilderData } from "../PaqueteBuilder";
 
 async function requireOperador() {
@@ -17,7 +18,7 @@ async function requireOperador() {
 
 export default async function PaqueteDetailPage({ params }: { params: { id: string } }) {
   const user = await requireOperador();
-  const paquete = await getById(params.id);
+  const paquete = await getById(getAdminDb(), params.id);
   if (!paquete) notFound();
 
   const initialData: PaqueteBuilderData = {
@@ -25,7 +26,9 @@ export default async function PaqueteDetailPage({ params }: { params: { id: stri
     nombre: paquete.nombre,
     descripcion: paquete.descripcion,
     precio_base: paquete.precio_base,
+    precio_calculado: paquete.precio_calculado,
     examenes: paquete.examenes,
+    titulos: paquete.titulos,
   };
   return <PaqueteBuilder initialData={initialData} canEdit={user.role === "admin"} />;
 }

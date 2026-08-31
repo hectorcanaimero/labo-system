@@ -9,6 +9,7 @@ import {
   type ResultadoFilters,
 } from "@labo/db/repos/resultados";
 import { AuthError, getCurrentUser } from "@/lib/server/auth";
+import { getAdminDb } from "@/lib/db-server";
 import { ESTADO_RESULTADO, type EstadoResultado } from "@labo/lib/schemas/resultado";
 
 export const runtime = "nodejs";
@@ -99,9 +100,10 @@ export async function GET(request: NextRequest): Promise<Response> {
     const page = parsePositiveInteger(params.get("page"), 1);
     const limit = parsePositiveInteger(params.get("limit"), 20);
     if (!parsedFilters || page === null || limit === null) return bad(400, "VALIDACION_FALLIDA");
+    const db = getAdminDb();
     const term = params.get("term");
-    if (term !== null) return NextResponse.json(await search({ term, filters: parsedFilters }));
-    return NextResponse.json(await list({
+    if (term !== null) return NextResponse.json(await search(db, { term, filters: parsedFilters }));
+    return NextResponse.json(await list(db, {
       page,
       limit,
       filters: parsedFilters,
@@ -117,7 +119,7 @@ export async function POST(request: NextRequest): Promise<Response> {
     const user = await requireOperador();
     const body = await request.json().catch(() => null) as unknown;
     if (!hasValidReferencedIds(body)) return bad(400, "VALIDACION_FALLIDA");
-    return NextResponse.json(await create(body, user.userId), { status: 201 });
+    return NextResponse.json(await create(getAdminDb(), body, user.userId), { status: 201 });
   } catch (error) {
     const mapped = toStatus(error);
     return bad(mapped.status, mapped.error);

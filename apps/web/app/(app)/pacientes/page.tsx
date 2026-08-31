@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 
 import { list } from "@labo/db/repos/pacientes";
+import { getDb } from "@/lib/db-server";
 import { AuthError, getCurrentUser } from "@/lib/server/auth";
 
 import { PacientesList, type PaginatedPacientesResponse } from "./PacientesList";
@@ -24,7 +25,7 @@ async function requireOperadorOrRedirect(): Promise<void> {
 export default async function PacientesPage() {
   await requireOperadorOrRedirect();
 
-  const result = await list({ page: 1, limit: PAGE_LIMIT });
+  const result = await list(getDb(), { page: 1, limit: PAGE_LIMIT });
 
   const initialData: PaginatedPacientesResponse = {
     ...result,
@@ -37,14 +38,20 @@ export default async function PacientesPage() {
   };
 
   return (
-    <div className="mx-auto flex max-w-6xl flex-col gap-6">
-      <div className="flex flex-col gap-2">
-        <h1 className="text-3xl font-bold tracking-tight">Pacientes</h1>
-        <p className="text-sm text-muted-foreground">
-          Buscá, registrá y mantené la ficha clínica base con acceso rápido a
-          resultados y presupuestos.
+    <div className="mx-auto flex max-w-7xl flex-col gap-4">
+      <header className="flex flex-col gap-1 border-b border-border pb-3">
+        <div className="flex items-baseline gap-3">
+          <h1 className="text-xl font-semibold tracking-tight text-foreground">
+            Pacientes
+          </h1>
+          <span className="font-mono text-sm tabular-nums text-muted-foreground">
+            {initialData.total}
+          </span>
+        </div>
+        <p className="text-xs text-muted-foreground">
+          Ficha clínica base con acceso rápido a órdenes y presupuestos.
         </p>
-      </div>
+      </header>
 
       <PacientesList initialData={initialData} pageSize={PAGE_LIMIT} />
     </div>

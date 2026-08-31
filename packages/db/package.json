@@ -8,6 +8,7 @@
   "exports": {
     ".": "./client.ts",
     "./client": "./client.ts",
+    "./sdk": "./sdk.ts",
     "./repos/*": "./repos/*.ts",
     "./schema.sql": "./schema.sql",
     "./migrations/*": "./migrations/*"
@@ -16,9 +17,12 @@
     "lint": "eslint . --ext .ts,.tsx --no-error-on-unmatched-pattern",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "migrate": "psql \"$DATABASE_URL\" -v ON_ERROR_STOP=1 -f migrations/0001_init.sql"
+    "migrate": "node scripts/migrate.mjs",
+    "migrate:status": "node scripts/migrate-status.mjs",
+    "seed": "node scripts/seed.mjs"
   },
   "dependencies": {
+    "@insforge/sdk": "^1.5.2",
     "@labo/lib": "workspace:*",
     "postgres": "^3.4.5"
   },

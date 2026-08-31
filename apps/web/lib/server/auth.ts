@@ -2,13 +2,13 @@ import { cookies } from 'next/headers';
 import { z } from 'zod';
 
 import { createClient, InsForgeError } from '@insforge/sdk';
-import { getSql } from '@labo/db/client';
 import {
   getByAuthUserId,
   syncFromAuth,
   type UserRole,
   type Usuario,
 } from '@labo/db/repos/usuarios';
+import { getAdminDb } from '@/lib/db-server';
 
 /**
  * Auth server helpers (ADR-11, F0.2.T8).
@@ -120,13 +120,13 @@ export async function getCurrentUser(): Promise<CurrentUser> {
   const authUser = await fetchInsforgeUser(token);
   if (!authUser?.id || !authUser.email) throw new AuthError('UNAUTHENTICATED');
 
-  const sql = getSql();
+  const db = getAdminDb();
   const displayName =
     authUser.user_metadata?.name?.trim() || authUser.name?.trim() || authUser.email;
 
-  let usuario: Usuario | null = await getByAuthUserId(sql, authUser.id);
+  let usuario: Usuario | null = await getByAuthUserId(db, authUser.id);
   if (!usuario) {
-    usuario = await syncFromAuth(sql, {
+    usuario = await syncFromAuth(db, {
       authUserId: authUser.id,
       email: authUser.email,
       nombre: displayName,

@@ -1,6 +1,7 @@
 import { Document, Page, StyleSheet, Text, View } from "@react-pdf/renderer";
 
 import { formatBs, formatUsd } from "@labo/lib/bs-format";
+import { formatNumeroPresupuesto } from "@labo/lib/numero-presupuesto";
 
 import { PDFFooter } from "./components/PDFFooter";
 import { PDFHeader } from "./components/PDFHeader";
@@ -29,6 +30,7 @@ export interface PresupuestoPDFLinea {
 /** Structural view of presupuestos.getForPDF, independent from the DB package (ADR-08). */
 export interface PresupuestoPDFData {
   id: string;
+  numero_correlativo: number;
   paciente_id: string | null;
   paciente_nombre_libre: string | null;
   paciente_nombre: string | null;
@@ -38,7 +40,7 @@ export interface PresupuestoPDFData {
   total_usd: number;
   total_bs: number;
   estado: string;
-  created_at: Date;
+  created_at: Date | string;
   lineas: PresupuestoPDFLinea[];
   config?: PresupuestoPDFConfig | null;
 }
@@ -192,10 +194,11 @@ const styles = StyleSheet.create({
   },
 });
 
-function formatDate(value: Date): string {
-  const day = String(value.getUTCDate()).padStart(2, "0");
-  const month = String(value.getUTCMonth() + 1).padStart(2, "0");
-  return `${day}/${month}/${value.getUTCFullYear()}`;
+function formatDate(value: Date | string): string {
+  const d = value instanceof Date ? value : new Date(value);
+  const day = String(d.getUTCDate()).padStart(2, "0");
+  const month = String(d.getUTCMonth() + 1).padStart(2, "0");
+  return `${day}/${month}/${d.getUTCFullYear()}`;
 }
 
 function patientDisplay(data: PresupuestoPDFData): { name: string; meta: string | null } {
@@ -239,7 +242,9 @@ export function PresupuestoPDF({ data }: PresupuestoPDFProps) {
         </View>
 
         <View style={styles.metadata}>
-          <Text style={styles.metadataText}>Presupuesto: {data.id}</Text>
+          <Text style={styles.metadataText}>
+            Presupuesto Nº {formatNumeroPresupuesto(data.numero_correlativo, data.created_at)}
+          </Text>
           <Text style={styles.metadataText}>Fecha: {formatDate(data.created_at)}</Text>
           <Text style={styles.metadataText}>Estado: {data.estado}</Text>
         </View>

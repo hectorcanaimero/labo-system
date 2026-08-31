@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { create, list, search } from "@labo/db/repos/presupuestos";
 import { AuthError, getCurrentUser } from "@/lib/server/auth";
+import { getAdminDb } from "@/lib/db-server";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -18,12 +19,13 @@ export async function GET(request: NextRequest): Promise<Response> {
     if (user.role !== "admin" && user.role !== "operador") throw new AuthError("UNAUTHORIZED");
     const params = request.nextUrl.searchParams;
     const term = params.get("term")?.trim();
-    if (term) return NextResponse.json(await search({ term }));
+    const db = getAdminDb();
+    if (term) return NextResponse.json(await search(db, { term }));
     const page = Number(params.get("page") ?? 1);
     const limit = Number(params.get("limit") ?? 20);
-    return NextResponse.json(await list({ page, limit, filters: {
+    return NextResponse.json(await list(db, { page, limit, filters: {
       paciente_id: params.get("paciente_id") ?? undefined,
-      estado: (params.get("estado") as "Borrador" | "Aprobado" | "Convertido" | null) ?? undefined,
+      estado: (params.get("estado") as "Borrador" | "Aprobado" | "Cerrado" | null) ?? undefined,
       desde: params.get("desde") ?? undefined,
       hasta: params.get("hasta") ?? undefined,
     } }));
@@ -36,6 +38,6 @@ export async function POST(request: NextRequest): Promise<Response> {
     if (user.role !== "admin" && user.role !== "operador") throw new AuthError("UNAUTHORIZED");
     const body = await request.json().catch(() => null);
     if (!body || typeof body !== "object") return NextResponse.json({ error: "VALIDACION_FALLIDA" }, { status: 400 });
-    return NextResponse.json(await create(body, user.userId), { status: 201 });
+    return NextResponse.json(await create(getAdminDb(), body, user.userId), { status: 201 });
   } catch (error) { return response(error); }
 }

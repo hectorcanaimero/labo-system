@@ -1,8 +1,8 @@
 import { redirect } from "next/navigation";
 
-import { getSql } from "@labo/db/client";
 import { listAll } from "@labo/db/repos/usuarios";
 import { AuthError, getCurrentUser } from "@/lib/server/auth";
+import { getAdminDb } from "@/lib/db-server";
 
 import { UsuariosList, type UsuarioItem } from "./UsuariosList";
 
@@ -26,25 +26,31 @@ export default async function UsuariosPage() {
     throw error;
   }
 
-  const usuarios = await listAll(getSql());
+  const usuarios = await listAll(getAdminDb());
   const initialUsuarios: UsuarioItem[] = usuarios.map((u) => ({
     id: u.id,
     email: u.email,
     nombre: u.nombre,
     role: u.role,
     activo: u.activo,
-    created_at: u.created_at.toISOString(),
+    created_at: u.created_at,
   }));
 
   return (
-    <div className="mx-auto flex max-w-5xl flex-col gap-6">
-      <div className="flex flex-col gap-2">
-        <h1 className="text-3xl font-bold tracking-tight">Usuarios</h1>
-        <p className="text-sm text-muted-foreground">
-          Gestioná los accesos al sistema: invitá operadores o administradores,
-          cambiá roles y controlá quién está activo.
+    <div className="mx-auto flex max-w-7xl flex-col gap-4">
+      <header className="flex flex-col gap-1 border-b border-border pb-3">
+        <div className="flex items-baseline gap-3">
+          <h1 className="text-xl font-semibold tracking-tight text-foreground">
+            Usuarios
+          </h1>
+          <span className="font-mono text-sm tabular-nums text-muted-foreground">
+            {initialUsuarios.length}
+          </span>
+        </div>
+        <p className="text-xs text-muted-foreground">
+          Gestioná accesos: invitá operadores o admins, cambiá roles y controlá actividad.
         </p>
-      </div>
+      </header>
 
       <UsuariosList currentUserId={user.userId} initialUsuarios={initialUsuarios} />
     </div>

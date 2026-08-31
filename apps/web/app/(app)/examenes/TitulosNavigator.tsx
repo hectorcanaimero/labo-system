@@ -7,7 +7,9 @@ import {
   ChevronUp,
   FileSpreadsheet,
   FlaskConical,
+  Info,
   Loader2,
+  MoreHorizontal,
   PencilLine,
   Plus,
   Search,
@@ -15,7 +17,27 @@ import {
 } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
-import { cn } from '@/lib/utils';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 import { toHumanError } from '@labo/lib/error-messages';
 import { EmptyState, SkeletonText } from '@labo/ui/feedback';
 import { HighlightedText } from '@labo/ui/text/HighlightedText';
@@ -38,6 +60,7 @@ interface ExamenItem {
   valores_referencia: string | null;
   tipo_analisis: string | null;
   metodo: string | null;
+  observaciones: string | null;
   activo: boolean;
 }
 
@@ -665,80 +688,110 @@ export function TitulosNavigator({ initialTitulos }: TitulosNavigatorProps) {
                     ) : null}
 
                     {examenesState.items.length > 0 ? (
-                      <div className="flex flex-col gap-3">
-                        {examenesState.items.map((examen) => {
-                          const isBusyExamen = busyExamenId === examen.id;
-                          return (
-                            <div
-                              key={examen.id}
-                              className="flex flex-col gap-3 rounded-lg border border-border px-4 py-3 lg:flex-row lg:items-start lg:justify-between"
-                            >
-                              <div className="min-w-0 flex-1">
-                                <div className="flex flex-wrap items-center gap-2">
-                                  <h4 className="text-sm font-semibold text-foreground">
-                                    <HighlightedText
-                                      text={examen.nombre}
-                                      term={debouncedSearchTerm}
-                                    />
-                                  </h4>
-                                </div>
-                                {examen.unidad || examen.tipo_analisis || examen.metodo ? (
-                                  <div className="flex flex-wrap gap-2 mt-1.5">
-                                    {examen.tipo_analisis ? (
-                                      <span className="rounded bg-primary/10 px-2 py-0.5 text-[11px] font-medium text-primary">
-                                        {examen.tipo_analisis}
-                                      </span>
-                                    ) : null}
-                                    {examen.metodo ? (
-                                      <span className="rounded bg-secondary px-2 py-0.5 text-[11px] font-medium text-secondary-foreground">
-                                        {examen.metodo}
-                                      </span>
-                                    ) : null}
-                                    {examen.unidad ? (
-                                      <span className="rounded bg-muted px-2 py-0.5 text-[11px] text-muted-foreground">
-                                        Unidad: {examen.unidad}
-                                      </span>
-                                    ) : null}
-                                  </div>
-                                ) : null}
-                                <p className="mt-2 text-sm font-medium text-foreground">
-                                  {formatUsd(examen.precio_usd)}
-                                </p>
-                                <p
-                                  className={cn(
-                                    'mt-1 text-sm text-muted-foreground',
-                                    examen.valores_referencia ? 'block' : 'hidden'
-                                  )}
-                                >
-                                  {examen.valores_referencia}
-                                </p>
-                              </div>
-
-                              <div className="flex flex-wrap items-center gap-2">
-                                <Button
-                                  type="button"
-                                  variant="outline"
-                                  size="sm"
-                                  onClick={() => handleOpenEditExamen(titulo, examen)}
-                                >
-                                  <PencilLine />
-                                  Editar
-                                </Button>
-                                <Button
-                                  type="button"
-                                  variant="outline"
-                                  size="sm"
-                                  onClick={() => void handleDeleteExamen(examen)}
-                                  disabled={isBusyExamen}
-                                >
-                                  {isBusyExamen ? <Loader2 className="animate-spin" /> : <Trash2 />}
-                                  Desactivar
-                                </Button>
-                              </div>
-                            </div>
-                          );
-                        })}
-                      </div>
+                      <TooltipProvider delayDuration={200}>
+                        <div className="rounded-md border border-border overflow-hidden">
+                          <Table>
+                            <TableHeader>
+                              <TableRow className="bg-muted/40 hover:bg-muted/40">
+                                <TableHead className="h-9 py-1.5">Nombre</TableHead>
+                                <TableHead className="h-9 py-1.5">Tipo</TableHead>
+                                <TableHead className="h-9 py-1.5">Método</TableHead>
+                                <TableHead className="h-9 py-1.5">Unidad</TableHead>
+                                <TableHead className="h-9 py-1.5 text-right">Precio</TableHead>
+                                <TableHead className="h-9 py-1.5">Valores normales</TableHead>
+                                <TableHead className="h-9 w-9 py-1.5 text-center">Obs.</TableHead>
+                                <TableHead className="h-9 w-9 py-1.5" />
+                              </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                              {examenesState.items.map((examen) => {
+                                const isBusyExamen = busyExamenId === examen.id;
+                                return (
+                                  <TableRow key={examen.id} className="h-9">
+                                    <TableCell className="py-1.5 font-medium text-foreground">
+                                      <HighlightedText
+                                        text={examen.nombre}
+                                        term={debouncedSearchTerm}
+                                      />
+                                    </TableCell>
+                                    <TableCell className="py-1.5 text-muted-foreground">
+                                      {examen.tipo_analisis ?? '—'}
+                                    </TableCell>
+                                    <TableCell className="py-1.5 text-muted-foreground">
+                                      {examen.metodo ?? '—'}
+                                    </TableCell>
+                                    <TableCell className="py-1.5 text-muted-foreground">
+                                      {examen.unidad ?? '—'}
+                                    </TableCell>
+                                    <TableCell className="py-1.5 text-right font-mono tabular-nums">
+                                      {formatUsd(examen.precio_usd)}
+                                    </TableCell>
+                                    <TableCell className="max-w-[240px] truncate py-1.5 text-muted-foreground">
+                                      {examen.valores_referencia ?? '—'}
+                                    </TableCell>
+                                    <TableCell className="py-1.5 text-center">
+                                      {examen.observaciones ? (
+                                        <Tooltip>
+                                          <TooltipTrigger asChild>
+                                            <button
+                                              type="button"
+                                              className="inline-flex items-center justify-center text-muted-foreground hover:text-foreground"
+                                              aria-label="Ver observaciones"
+                                            >
+                                              <Info className="h-4 w-4" />
+                                            </button>
+                                          </TooltipTrigger>
+                                          <TooltipContent className="max-w-xs">
+                                            {examen.observaciones}
+                                          </TooltipContent>
+                                        </Tooltip>
+                                      ) : (
+                                        <span className="text-muted-foreground/40">—</span>
+                                      )}
+                                    </TableCell>
+                                    <TableCell className="py-1.5 text-right">
+                                      <DropdownMenu>
+                                        <DropdownMenuTrigger asChild>
+                                          <Button
+                                            type="button"
+                                            variant="ghost"
+                                            size="icon"
+                                            className="h-7 w-7"
+                                            disabled={isBusyExamen}
+                                            aria-label="Acciones"
+                                          >
+                                            {isBusyExamen ? (
+                                              <Loader2 className="h-4 w-4 animate-spin" />
+                                            ) : (
+                                              <MoreHorizontal className="h-4 w-4" />
+                                            )}
+                                          </Button>
+                                        </DropdownMenuTrigger>
+                                        <DropdownMenuContent align="end" className="w-40">
+                                          <DropdownMenuItem
+                                            onClick={() => handleOpenEditExamen(titulo, examen)}
+                                          >
+                                            <PencilLine className="h-4 w-4" />
+                                            Editar
+                                          </DropdownMenuItem>
+                                          <DropdownMenuSeparator />
+                                          <DropdownMenuItem
+                                            className="text-destructive focus:text-destructive"
+                                            onClick={() => void handleDeleteExamen(examen)}
+                                          >
+                                            <Trash2 className="h-4 w-4" />
+                                            Desactivar
+                                          </DropdownMenuItem>
+                                        </DropdownMenuContent>
+                                      </DropdownMenu>
+                                    </TableCell>
+                                  </TableRow>
+                                );
+                              })}
+                            </TableBody>
+                          </Table>
+                        </div>
+                      </TooltipProvider>
                     ) : null}
                   </div>
                 ) : null}

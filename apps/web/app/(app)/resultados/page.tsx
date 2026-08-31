@@ -2,10 +2,14 @@ import { redirect } from "next/navigation";
 
 import { list } from "@labo/db/repos/resultados";
 import { AuthError, getCurrentUser } from "@/lib/server/auth";
+import { getAdminDb } from "@/lib/db-server";
 
-import { ResultadosList, type PaginatedResultadosResponse } from "./ResultadosList";
+import { OrdenesShell } from "./OrdenesShell";
+import type { PaginatedResultadosResponse } from "./ResultadosList";
+import type { OrdenPipelineItem } from "./OrdenesPipelineSection";
 
 const PAGE_LIMIT = 20;
+const KANBAN_LIMIT = 200;
 
 async function requireOperadorOrRedirect(): Promise<void> {
   try {
@@ -24,31 +28,41 @@ async function requireOperadorOrRedirect(): Promise<void> {
 export default async function ResultadosPage() {
   await requireOperadorOrRedirect();
 
-  const result = await list({ page: 1, limit: PAGE_LIMIT });
+  const db = getAdminDb();
+  const [pipelineResult, listResult] = await Promise.all([
+    list(db, { page: 1, limit: KANBAN_LIMIT }),
+    list(db, { page: 1, limit: PAGE_LIMIT }),
+  ]);
 
-  const initialData: PaginatedResultadosResponse = {
-    ...result,
-    items: result.items.map((item) => ({
+  const pipelineItems: OrdenPipelineItem[] = pipelineResult.items.map((item) => ({
+    id: item.id,
+    estado: item.estado,
+    paciente_nombre: item.paciente_nombre,
+    paciente_apellido: item.paciente_apellido,
+    paciente_cedula: item.paciente_cedula,
+    fecha_muestra: item.fecha_muestra,
+    fecha_resultado: item.fecha_resultado ?? null,
+    medico_solicitante: item.medico_solicitante,
+    examenes_count: item.examenes_count,
+  }));
+
+  const initialTablaData: PaginatedResultadosResponse = {
+    ...listResult,
+    items: listResult.items.map((item) => ({
       ...item,
-      fecha_muestra: item.fecha_muestra.toISOString(),
-      fecha_resultado: item.fecha_resultado?.toISOString() ?? null,
-      created_at: item.created_at.toISOString(),
+      fecha_muestra: item.fecha_muestra,
+      fecha_resultado: item.fecha_resultado ?? null,
+      created_at: item.created_at,
     })),
   };
 
   return (
-    <div className="mx-auto flex max-w-6xl flex-col gap-6">
-      <div className="flex flex-col gap-2">
-        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-primary">
-          Operación clínica
-        </p>
-        <h1 className="text-3xl font-bold tracking-tight">Resultados</h1>
-        <p className="text-sm text-muted-foreground">
-          Gestioná resultados clínicos, cargá líneas desde paquetes y descargá la ficha PDF lista para entregar.
-        </p>
-      </div>
-
-      <ResultadosList initialData={initialData} pageSize={PAGE_LIMIT} />
+    <div className="mx-auto flex max-w-[100rem] flex-col">
+      <OrdenesShell
+        pipelineItems={pipelineItems}
+        initialTablaData={initialTablaData}
+        tablaPageSize={PAGE_LIMIT}
+      />
     </div>
   );
 }

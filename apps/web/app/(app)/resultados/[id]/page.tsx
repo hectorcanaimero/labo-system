@@ -2,6 +2,7 @@ import { notFound, redirect } from "next/navigation";
 
 import { getById as getPacienteById } from "@labo/db/repos/pacientes";
 import { getById } from "@labo/db/repos/resultados";
+import { getAdminDb, getDb } from "@/lib/db-server";
 import { AuthError, getCurrentUser } from "@/lib/server/auth";
 
 import { ResultadoDetalle } from "./ResultadoDetalle";
@@ -23,10 +24,10 @@ async function requireOperadorOrRedirect(): Promise<{ role: string }> {
 
 export default async function ResultadoDetallePage({ params }: { params: { id: string } }) {
   const { role } = await requireOperadorOrRedirect();
-  const resultado = await getById(params.id);
+  const resultado = await getById(getAdminDb(), params.id);
   if (!resultado) notFound();
 
-  const paciente = await getPacienteById(resultado.paciente_id);
+  const paciente = await getPacienteById(getDb(), resultado.paciente_id);
   if (!paciente) notFound();
 
   return (
@@ -36,12 +37,12 @@ export default async function ResultadoDetallePage({ params }: { params: { id: s
         initialData={{
           id: resultado.id,
           paciente_id: resultado.paciente_id,
-          fecha_muestra: resultado.fecha_muestra.toISOString(),
-          fecha_resultado: resultado.fecha_resultado?.toISOString() ?? null,
+          fecha_muestra: resultado.fecha_muestra,
+          fecha_resultado: resultado.fecha_resultado ?? null,
           medico_solicitante: resultado.medico_solicitante,
           estado: resultado.estado,
           observaciones: resultado.observaciones,
-          created_at: resultado.created_at.toISOString(),
+          created_at: resultado.created_at,
           patient: {
             id: paciente.id,
             nombre: paciente.nombre,

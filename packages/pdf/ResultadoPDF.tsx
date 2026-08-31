@@ -25,15 +25,15 @@ export interface ExamenPDFRow {
 
 export interface ResultadoPDFData {
   estado: string;
-  fecha_muestra: Date;
-  fecha_resultado: Date | null;
+  fecha_muestra: Date | string;
+  fecha_resultado: Date | string | null;
   medico_solicitante: string | null;
   observaciones: string | null;
   paciente: {
     nombre: string;
     apellido: string;
     cedula: string;
-    fecha_nacimiento: Date;
+    fecha_nacimiento: Date | string;
     sexo: "M" | "F" | "O" | null;
   };
   examenes: ExamenPDFRow[];
@@ -178,18 +178,20 @@ const styles = StyleSheet.create({
   },
 });
 
-function formatDate(value: Date): string {
-  const day = String(value.getUTCDate()).padStart(2, "0");
-  const month = String(value.getUTCMonth() + 1).padStart(2, "0");
-  return `${day}/${month}/${value.getUTCFullYear()}`;
+function formatDate(value: Date | string): string {
+  const d = value instanceof Date ? value : new Date(value);
+  const day = String(d.getUTCDate()).padStart(2, "0");
+  const month = String(d.getUTCMonth() + 1).padStart(2, "0");
+  return `${day}/${month}/${d.getUTCFullYear()}`;
 }
 
-function ageAt(birthDate: Date, referenceDate: Date): number {
-  let age = referenceDate.getUTCFullYear() - birthDate.getUTCFullYear();
+function ageAt(birthDate: Date | string, referenceDate: Date | string): number {
+  const b = birthDate instanceof Date ? birthDate : new Date(birthDate);
+  const r = referenceDate instanceof Date ? referenceDate : new Date(referenceDate);
+  let age = r.getUTCFullYear() - b.getUTCFullYear();
   const beforeBirthday =
-    referenceDate.getUTCMonth() < birthDate.getUTCMonth() ||
-    (referenceDate.getUTCMonth() === birthDate.getUTCMonth() &&
-      referenceDate.getUTCDate() < birthDate.getUTCDate());
+    r.getUTCMonth() < b.getUTCMonth() ||
+    (r.getUTCMonth() === b.getUTCMonth() && r.getUTCDate() < b.getUTCDate());
   if (beforeBirthday) age -= 1;
   return Math.max(0, age);
 }

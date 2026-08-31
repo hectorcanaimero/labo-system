@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 
 import { titulosDelete, titulosUpdate } from "@labo/db/repos/examenes";
 import { AuthError, requireRole } from "@/lib/server/auth";
+import { getAdminDb } from "@/lib/db-server";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -44,7 +45,7 @@ export async function PATCH(
       return bad(400, "VALIDACION_FALLIDA");
     }
 
-    const titulo = await titulosUpdate({
+    const titulo = await titulosUpdate(getAdminDb(), {
       id: context.params.id,
       nombre: body.nombre as string | undefined,
       orden: body.orden as number | undefined,
@@ -64,7 +65,7 @@ export async function DELETE(
   try {
     const user = await requireRole("admin");
 
-    const titulo = await titulosDelete({
+    const titulo = await titulosDelete(getAdminDb(), {
       id: context.params.id,
       usuarioId: user.userId,
     });

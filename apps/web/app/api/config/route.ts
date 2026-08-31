@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 
 import { get, update } from "@labo/db/repos/config";
 import { AuthError, getCurrentUser, requireRole } from "@/lib/server/auth";
+import { getAdminDb } from "@/lib/db-server";
 import { NOMBRE_REQUERIDO, RIF_INVALIDO, DIRECCION_REQUERIDA } from "@labo/lib/schemas/config";
 
 export const runtime = "nodejs";
@@ -38,7 +39,7 @@ function toStatus(error: unknown): { status: number; error: string } {
 export async function GET(): Promise<Response> {
   try {
     await getCurrentUser();
-    const config = await get();
+    const config = await get(getAdminDb());
     return NextResponse.json(config);
   } catch (error) {
     const { status, error: code } = toStatus(error);
@@ -60,7 +61,7 @@ export async function PUT(request: NextRequest): Promise<Response> {
       return bad(400, "VALIDACION_FALLIDA");
     }
 
-    const config = await update(body, user.userId);
+    const config = await update(getAdminDb(), body, user.userId);
     return NextResponse.json(config);
   } catch (error) {
     const { status, error: code } = toStatus(error);

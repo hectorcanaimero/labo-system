@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 
 import { list } from "@labo/db/repos/presupuestos";
 import { AuthError, getCurrentUser } from "@/lib/server/auth";
+import { getAdminDb } from "@/lib/db-server";
 
 import { PresupuestosList, type PaginatedPresupuestosResponse } from "./PresupuestosList";
 
@@ -24,28 +25,33 @@ async function requireOperadorOrRedirect(): Promise<void> {
 export default async function PresupuestosPage() {
   await requireOperadorOrRedirect();
 
-  const result = await list({ page: 1, limit: PAGE_LIMIT });
+  const result = await list(getAdminDb(), { page: 1, limit: PAGE_LIMIT });
 
   const initialData: PaginatedPresupuestosResponse = {
     ...result,
     items: result.items.map((item) => ({
       ...item,
-      created_at: item.created_at.toISOString(),
+      orden_id: item.orden_id,
+      created_at: item.created_at,
       lineas: item.lineas.map((linea) => ({ ...linea })),
     })),
   };
 
   return (
-    <div className="mx-auto flex max-w-6xl flex-col gap-6">
-      <div className="flex flex-col gap-2">
-        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-primary">
-          Operación clínica
+    <div className="mx-auto flex max-w-[100rem] flex-col gap-4">
+      <header className="flex flex-col gap-1 border-b border-border pb-3">
+        <div className="flex items-baseline gap-3">
+          <h1 className="text-xl font-semibold tracking-tight text-foreground">
+            Presupuestos
+          </h1>
+          <span className="font-mono text-sm tabular-nums text-muted-foreground">
+            {result.total}
+          </span>
+        </div>
+        <p className="text-xs text-muted-foreground">
+          Pipeline comercial — cotizá, enviá al cliente, aprobá y generá órdenes.
         </p>
-        <h1 className="text-3xl font-bold tracking-tight">Presupuestos</h1>
-        <p className="text-sm text-muted-foreground">
-          Cotizá estudios en USD y Bs con tasa BCV, aprobá presupuestos y convertilos en resultados clínicos.
-        </p>
-      </div>
+      </header>
 
       <PresupuestosList initialData={initialData} pageSize={PAGE_LIMIT} />
     </div>

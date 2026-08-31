@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { parseExamenesXlsx } from "@labo/lib/xlsx-import";
 import { examenesImportBatch } from "@labo/db/repos/examenes";
 import { AuthError, requireRole } from "@/lib/server/auth";
+import { getAdminDb } from "@/lib/db-server";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -49,7 +50,7 @@ export async function POST(request: NextRequest): Promise<Response> {
     };
 
     if (valid.length > 0) {
-      result = await examenesImportBatch(valid, user.userId);
+      result = await examenesImportBatch(getAdminDb(), valid, user.userId);
     }
 
     return NextResponse.json({

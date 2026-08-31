@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import {
   Loader2,
+  MoreHorizontal,
   PencilLine,
   Plus,
   Search,
@@ -12,6 +13,21 @@ import {
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { toHumanError } from "@labo/lib/error-messages";
 import { EmptyState, SkeletonTable } from "@labo/ui/feedback";
 import { ExportButton } from "@labo/ui/exports/ExportButton";
@@ -50,6 +66,13 @@ function formatDate(value: string): string {
     dateStyle: "medium",
     timeZone: "UTC",
   }).format(new Date(value));
+}
+
+function formatSexo(sexo: "M" | "F" | "O" | null | undefined): string {
+  if (sexo === "M") return "Masculino";
+  if (sexo === "F") return "Femenino";
+  if (sexo === "O") return "Otro";
+  return "—";
 }
 
 async function readApiError(response: Response): Promise<Error> {
@@ -257,38 +280,38 @@ export function PacientesList({ initialData, pageSize }: PacientesListProps) {
   const showEmptyState = !loadingList && !loadingSearch && visibleItems.length === 0;
 
   return (
-    <div className="flex flex-col gap-4">
-      <div className="flex flex-col gap-3 rounded-xl border border-border bg-card p-4 shadow-sm md:flex-row md:items-center md:justify-between">
-        <div className="relative w-full max-w-xl">
-          <Search className="absolute left-3 top-3.5 h-4 w-4 text-muted-foreground/70" />
+    <div className="flex flex-col gap-3">
+      {/* Filter bar densa */}
+      <div className="flex flex-wrap items-center gap-2 rounded-md border border-border bg-muted/20 p-2">
+        <div className="relative min-w-[260px] flex-1">
+          <Search className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-muted-foreground/70" />
           <input
             type="search"
             value={searchTerm}
             onChange={(event) => setSearchTerm(event.target.value)}
-            placeholder="Buscar por nombre, apellido o cédula"
-            className="flex h-11 w-full rounded-md border border-input bg-background py-2 pl-9 pr-10 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+            placeholder="Buscar por nombre, apellido o cédula…"
+            className="flex h-8 w-full rounded-md border border-input bg-background py-1 pl-8 pr-8 text-xs ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1"
           />
           {loadingSearch ? (
-            <Loader2 className="absolute right-3 top-3.5 h-4 w-4 animate-spin text-muted-foreground" />
+            <Loader2 className="absolute right-2.5 top-2.5 h-3.5 w-3.5 animate-spin text-muted-foreground" />
           ) : null}
         </div>
-
-        <div className="flex items-center gap-2 shrink-0">
+        <div className="ml-auto flex items-center gap-2">
           <ExportButton actionName="pacientes" filters={{ term: debouncedSearchTerm }} />
-          <Button type="button" onClick={() => setIsCreateOpen(true)} className="shrink-0">
-            <Plus className="h-4 w-4" />
+          <Button type="button" size="sm" className="h-8" onClick={() => setIsCreateOpen(true)}>
+            <Plus className="h-3.5 w-3.5" />
             Nuevo paciente
           </Button>
         </div>
       </div>
 
       {errorMessage ? (
-        <p className="rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+        <p className="rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-xs text-destructive">
           {errorMessage}
         </p>
       ) : null}
 
-      <div className="rounded-xl border border-border bg-card shadow-sm">
+      <div className="overflow-hidden rounded-md border border-border">
         {loadingList && !isSearching ? (
           <div className="p-4">
             <SkeletonTable rows={6} cols={5} />
@@ -305,7 +328,7 @@ export function PacientesList({ initialData, pageSize }: PacientesListProps) {
               icon={<UserRound className="h-6 w-6" />}
               action={
                 !isSearching ? (
-                  <Button type="button" onClick={() => setIsCreateOpen(true)}>
+                  <Button type="button" size="sm" onClick={() => setIsCreateOpen(true)}>
                     <Plus className="h-4 w-4" />
                     Nuevo paciente
                   </Button>
@@ -315,115 +338,136 @@ export function PacientesList({ initialData, pageSize }: PacientesListProps) {
           </div>
         ) : (
           <>
-            <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-border text-sm">
-                <thead className="bg-muted/40 text-left text-muted-foreground">
-                  <tr>
-                    <th className="px-4 py-3 font-medium">Paciente</th>
-                    <th className="px-4 py-3 font-medium">Cédula</th>
-                    <th className="px-4 py-3 font-medium">Nacimiento</th>
-                    <th className="px-4 py-3 font-medium">Edad</th>
-                    <th className="px-4 py-3 text-right font-medium">Acciones</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-border">
-                  {visibleItems.map((paciente) => (
-                    <tr key={paciente.id} className="hover:bg-muted/30">
-                      <td className="px-4 py-3">
-                        <div className="flex flex-col">
-                          <Link
-                            href={`/pacientes/${paciente.id}`}
-                            className="font-medium text-foreground hover:underline"
-                          >
-                            {paciente.nombre} {paciente.apellido}
-                          </Link>
-                          <span className="text-xs text-muted-foreground">
-                            Ficha clínica e historial
-                          </span>
-                        </div>
-                      </td>
-                      <td className="px-4 py-3 text-muted-foreground">{paciente.cedula}</td>
-                      <td className="px-4 py-3 text-muted-foreground">
+            <Table>
+              <TableHeader>
+                <TableRow className="bg-muted/40 hover:bg-muted/40">
+                  <TableHead className="h-9 py-1.5">Paciente</TableHead>
+                  <TableHead className="h-9 py-1.5">Cédula</TableHead>
+                  <TableHead className="h-9 py-1.5">Nacimiento</TableHead>
+                  <TableHead className="h-9 py-1.5">Sexo</TableHead>
+                  <TableHead className="h-9 py-1.5">Edad</TableHead>
+                  <TableHead className="h-9 w-9 py-1.5" />
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {visibleItems.map((paciente) => {
+                  const info = calcularEdadDesglosada(new Date(paciente.fecha_nacimiento));
+                  const isPediatric = info && info.anos < 18;
+                  return (
+                    <TableRow key={paciente.id} className="h-9">
+                      <TableCell className="py-1.5 font-medium text-foreground">
+                        <Link
+                          href={`/pacientes/${paciente.id}`}
+                          className="hover:underline"
+                        >
+                          {paciente.nombre} {paciente.apellido}
+                        </Link>
+                      </TableCell>
+                      <TableCell className="py-1.5 font-mono text-xs tabular-nums text-muted-foreground">
+                        {paciente.cedula}
+                      </TableCell>
+                      <TableCell className="py-1.5 font-mono text-xs tabular-nums text-muted-foreground">
                         {formatDate(paciente.fecha_nacimiento)}
-                      </td>
-                      <td className="px-4 py-3 text-muted-foreground">
-                        {(() => {
-                          const info = calcularEdadDesglosada(new Date(paciente.fecha_nacimiento));
-                          if (!info) return "N/A";
-                          const isPediatric = info.anos < 18;
-                          return (
-                            <div className="flex flex-col gap-1 items-start">
-                              <span>{info.textoFormateado}</span>
-                              {isPediatric && (
-                                <span className="inline-block rounded-full bg-blue-50 px-2 py-0.5 text-[10px] font-semibold tracking-wide text-blue-700 dark:bg-blue-950 dark:text-blue-300">
-                                  {info.etapa.toUpperCase()}
-                                </span>
-                              )}
-                            </div>
-                          );
-                        })()}
-                      </td>
-                      <td className="px-4 py-3">
-                        <div className="flex justify-end gap-2">
-                          <Button
-                            type="button"
-                            variant="outline"
-                            size="sm"
-                            onClick={() => setEditingPaciente(paciente)}
-                          >
-                            <PencilLine className="h-4 w-4" />
-                            Editar
-                          </Button>
-                          {!isSearching ? (
+                      </TableCell>
+                      <TableCell className="py-1.5 text-muted-foreground">
+                        {formatSexo(paciente.sexo)}
+                      </TableCell>
+                      <TableCell className="py-1.5 text-muted-foreground">
+                        {info ? (
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-xs">{info.textoFormateado}</span>
+                            {isPediatric ? (
+                              <span className="rounded bg-sky-100 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-sky-800 dark:bg-sky-950 dark:text-sky-300">
+                                {info.etapa}
+                              </span>
+                            ) : null}
+                          </div>
+                        ) : (
+                          "N/A"
+                        )}
+                      </TableCell>
+                      <TableCell className="py-1.5 text-right">
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
                             <Button
                               type="button"
-                              variant="outline"
-                              size="sm"
-                              onClick={() => void handleDeactivate(paciente)}
+                              variant="ghost"
+                              size="icon"
+                              className="h-7 w-7"
+                              aria-label="Acciones"
                             >
-                              <Trash2 className="h-4 w-4" />
-                              Desactivar
+                              <MoreHorizontal className="h-4 w-4" />
                             </Button>
-                          ) : null}
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end" className="w-40">
+                            <DropdownMenuItem asChild>
+                              <Link href={`/pacientes/${paciente.id}`}>
+                                <UserRound className="h-4 w-4" />
+                                Ver ficha
+                              </Link>
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => setEditingPaciente(paciente)}>
+                              <PencilLine className="h-4 w-4" />
+                              Editar
+                            </DropdownMenuItem>
+                            {!isSearching ? (
+                              <>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem
+                                  className="text-destructive focus:text-destructive"
+                                  onClick={() => void handleDeactivate(paciente)}
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                  Desactivar
+                                </DropdownMenuItem>
+                              </>
+                            ) : null}
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
 
             {!isSearching ? (
-              <div className="flex flex-col gap-3 border-t border-border px-4 py-3 md:flex-row md:items-center md:justify-between">
-                <p className="text-sm text-muted-foreground">
-                  Mostrando página <span className="font-medium text-foreground">{data.page}</span>
+              <div className="flex flex-col gap-2 border-t border-border bg-muted/20 px-3 py-2 text-xs md:flex-row md:items-center md:justify-between">
+                <p className="font-mono tabular-nums text-muted-foreground">
+                  Página{" "}
+                  <span className="font-semibold text-foreground">{data.page}</span>
                   {data.totalPages > 0 ? (
                     <>
-                      {" "}de <span className="font-medium text-foreground">{data.totalPages}</span>
+                      {" "}/{" "}
+                      <span className="font-semibold text-foreground">
+                        {data.totalPages}
+                      </span>
                     </>
                   ) : null}
                   {" · "}
-                  <span className="font-medium text-foreground">{data.total}</span> pacientes
+                  <span className="font-semibold text-foreground">{data.total}</span> pacientes
                 </p>
 
-                <div className="flex gap-2">
+                <div className="flex gap-1">
                   <Button
                     type="button"
                     variant="outline"
                     size="sm"
+                    className="h-7 text-xs"
                     disabled={page <= 1 || loadingList}
                     onClick={() => setPage((current) => Math.max(1, current - 1))}
                   >
-                    Anterior
+                    ← Anterior
                   </Button>
                   <Button
                     type="button"
                     variant="outline"
                     size="sm"
+                    className="h-7 text-xs"
                     disabled={data.totalPages === 0 || page >= data.totalPages || loadingList}
                     onClick={() => setPage((current) => current + 1)}
                   >
-                    Siguiente
+                    Siguiente →
                   </Button>
                 </div>
               </div>

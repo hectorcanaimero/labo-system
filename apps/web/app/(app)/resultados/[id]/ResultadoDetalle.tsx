@@ -24,7 +24,7 @@ interface ResultadoDetalleProps {
     fecha_muestra: string;
     fecha_resultado: string | null;
     medico_solicitante: string | null;
-    estado: "Pendiente" | "Completado";
+    estado: "Registrada" | "Muestra tomada" | "En proceso" | "Validando" | "Entregada" | "Anulada";
     observaciones: string | null;
     created_at: string;
     patient: {

@@ -2,6 +2,7 @@ import { notFound, redirect } from "next/navigation";
 
 import { getById } from "@labo/db/repos/presupuestos";
 import { AuthError, getCurrentUser } from "@/lib/server/auth";
+import { getAdminDb } from "@/lib/db-server";
 
 import { PresupuestoDetalle } from "./PresupuestoDetalle";
 
@@ -22,7 +23,7 @@ async function requireOperadorOrRedirect(): Promise<{ role: string }> {
 
 export default async function PresupuestoDetallePage({ params }: { params: { id: string } }) {
   const { role } = await requireOperadorOrRedirect();
-  const presupuesto = await getById(params.id);
+  const presupuesto = await getById(getAdminDb(), params.id);
   if (!presupuesto) notFound();
 
   return (
@@ -31,6 +32,7 @@ export default async function PresupuestoDetallePage({ params }: { params: { id:
         role={role}
         initialData={{
           id: presupuesto.id,
+          numero_correlativo: presupuesto.numero_correlativo,
           paciente_id: presupuesto.paciente_id,
           paciente_nombre_libre: presupuesto.paciente_nombre_libre,
           paciente_nombre: presupuesto.paciente_nombre,
@@ -41,8 +43,8 @@ export default async function PresupuestoDetallePage({ params }: { params: { id:
           total_usd: presupuesto.total_usd,
           total_bs: presupuesto.total_bs,
           estado: presupuesto.estado,
-          resultado_id: presupuesto.resultado_id,
-          created_at: presupuesto.created_at.toISOString(),
+          orden_id: presupuesto.orden_id,
+          created_at: presupuesto.created_at,
           lineas: presupuesto.lineas.map((linea) => ({
             id: linea.id,
             examen_id: linea.examen_id,

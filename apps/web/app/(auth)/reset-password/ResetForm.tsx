@@ -6,6 +6,8 @@ import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
 
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
 const ERROR_MESSAGES: Record<string, string> = {
   INVALID_CODE: "Código incorrecto. Verificá e intentá de nuevo.",
@@ -14,9 +16,6 @@ const ERROR_MESSAGES: Record<string, string> = {
   PASSWORD_TOO_SHORT: "La contraseña debe tener al menos 8 caracteres.",
   RESET_FAILED: "No se pudo restablecer la contraseña. Intentá de nuevo.",
 };
-
-const inputClassName =
-  "flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50";
 
 interface Props {
   email: string;
@@ -32,16 +31,15 @@ export function ResetForm({ email }: Props) {
 
   if (!email) {
     return (
-      <div className="flex flex-col items-center gap-4 text-center">
-        <p className="text-sm text-muted-foreground">
-          Link inválido o expirado. Por favor, solicitá un nuevo link de
-          recuperación.
+      <div className="flex flex-col items-center gap-3 text-center">
+        <p className="text-xs text-muted-foreground">
+          Link inválido o expirado. Solicitá un nuevo código de recuperación.
         </p>
         <Link
           href="/forgot-password"
-          className="text-sm font-medium underline underline-offset-4"
+          className="text-xs font-medium underline underline-offset-4 hover:text-foreground"
         >
-          Solicitar nuevo link
+          Solicitar nuevo código
         </Link>
       </div>
     );
@@ -91,17 +89,17 @@ export function ResetForm({ email }: Props) {
   };
 
   return (
-    <form onSubmit={onSubmit} className="flex flex-col gap-4" noValidate>
-      <p className="text-sm text-muted-foreground">
+    <form onSubmit={onSubmit} className="flex flex-col gap-3" noValidate>
+      <p className="text-xs text-muted-foreground">
         Ingresá el código de 6 dígitos que enviamos a{" "}
-        <span className="font-medium text-foreground">{email}</span>.
+        <span className="font-mono tabular-nums text-foreground">{email}</span>.
       </p>
 
-      <div className="flex flex-col gap-2">
-        <label htmlFor="code" className="text-sm font-medium leading-none">
-          Código de verificación
-        </label>
-        <input
+      <div className="flex flex-col gap-1.5">
+        <Label htmlFor="code" className="text-xs">
+          Código
+        </Label>
+        <Input
           id="code"
           name="code"
           type="text"
@@ -113,15 +111,15 @@ export function ResetForm({ email }: Props) {
           }
           disabled={submitting}
           placeholder="123456"
-          className={`${inputClassName} text-center tracking-[0.5em]`}
+          className="h-9 text-center font-mono text-lg tracking-[0.4em] tabular-nums"
         />
       </div>
 
-      <div className="flex flex-col gap-2">
-        <label htmlFor="password" className="text-sm font-medium leading-none">
+      <div className="flex flex-col gap-1.5">
+        <Label htmlFor="password" className="text-xs">
           Nueva contraseña
-        </label>
-        <input
+        </Label>
+        <Input
           id="password"
           name="password"
           type="password"
@@ -130,15 +128,15 @@ export function ResetForm({ email }: Props) {
           onChange={(event) => setPassword(event.target.value)}
           disabled={submitting}
           placeholder="Mínimo 8 caracteres"
-          className={inputClassName}
+          className="h-9 text-sm"
         />
       </div>
 
-      <div className="flex flex-col gap-2">
-        <label htmlFor="confirm" className="text-sm font-medium leading-none">
+      <div className="flex flex-col gap-1.5">
+        <Label htmlFor="confirm" className="text-xs">
           Confirmar contraseña
-        </label>
-        <input
+        </Label>
+        <Input
           id="confirm"
           name="confirm"
           type="password"
@@ -147,27 +145,23 @@ export function ResetForm({ email }: Props) {
           onChange={(event) => setConfirm(event.target.value)}
           disabled={submitting}
           placeholder="Repetí la contraseña"
-          className={inputClassName}
+          className="h-9 text-sm"
         />
       </div>
 
       {error ? (
         <div
           role="alert"
-          className="flex items-center gap-2 rounded-md bg-destructive/10 p-3 text-sm font-medium text-destructive"
+          className="rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-xs font-medium text-destructive"
         >
-          <span
-            aria-hidden="true"
-            className="block h-2 w-2 shrink-0 rounded-full bg-destructive"
-          />
-          <span>{error}</span>
+          {error}
         </div>
       ) : null}
 
-      <Button type="submit" disabled={submitting} className="mt-2 w-full">
+      <Button type="submit" size="sm" disabled={submitting} className="mt-1 h-9 w-full">
         {submitting ? (
           <>
-            <Loader2 className="h-4 w-4 animate-spin" />
+            <Loader2 className="h-3.5 w-3.5 animate-spin" />
             Guardando…
           </>
         ) : (
@@ -177,7 +171,7 @@ export function ResetForm({ email }: Props) {
 
       <Link
         href="/forgot-password"
-        className="text-center text-sm text-muted-foreground underline underline-offset-4"
+        className="text-center text-xs text-muted-foreground underline underline-offset-4 hover:text-foreground"
       >
         No recibí el código — reenviar
       </Link>

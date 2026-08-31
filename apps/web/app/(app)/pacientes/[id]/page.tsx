@@ -3,6 +3,7 @@ import { notFound, redirect } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 
 import { pacientesGetWithHistorial } from "@labo/db/repos/pacientes";
+import { getDb } from "@/lib/db-server";
 import { AuthError, getCurrentUser } from "@/lib/server/auth";
 
 import { FichaTabs, type PacienteFichaData } from "./FichaTabs";
@@ -29,7 +30,7 @@ export default async function PacienteDetallePage({ params }: PacienteDetallePag
   await requireOperadorOrRedirect();
 
   try {
-    const historial = await pacientesGetWithHistorial({ id: params.id });
+    const historial = await pacientesGetWithHistorial(getDb(), { id: params.id });
 
     const fichaData: PacienteFichaData = {
       paciente: {
@@ -51,25 +52,24 @@ export default async function PacienteDetallePage({ params }: PacienteDetallePag
     };
 
     return (
-      <div className="mx-auto flex max-w-6xl flex-col gap-6">
-        <div className="flex flex-col gap-3">
+      <div className="mx-auto flex max-w-7xl flex-col gap-4">
+        <header className="flex flex-col gap-2 border-b border-border pb-3">
           <Link
             href="/pacientes"
-            className="inline-flex w-fit items-center gap-2 text-sm text-muted-foreground transition hover:text-foreground"
+            className="inline-flex w-fit items-center gap-1.5 text-xs text-muted-foreground transition-colors hover:text-foreground"
           >
-            <ArrowLeft className="h-4 w-4" />
-            Volver a pacientes
+            <ArrowLeft className="h-3.5 w-3.5" />
+            Pacientes
           </Link>
-
-          <div>
-            <h1 className="text-3xl font-bold tracking-tight">
+          <div className="flex items-baseline gap-3">
+            <h1 className="text-xl font-semibold tracking-tight text-foreground">
               {fichaData.paciente.nombre} {fichaData.paciente.apellido}
             </h1>
-            <p className="text-sm text-muted-foreground">
-              Ficha clínica, edad calculada e historial reciente de actividad.
-            </p>
+            <span className="font-mono text-sm tabular-nums text-muted-foreground">
+              {fichaData.paciente.cedula}
+            </span>
           </div>
-        </div>
+        </header>
 
         <FichaTabs data={fichaData} />
       </div>

@@ -16,19 +16,28 @@ import {
 } from "@dnd-kit/core";
 import type { DragEndEvent, DragStartEvent } from "@dnd-kit/core";
 import {
+  ArrowRight,
+  FileText,
+  LayoutGrid,
+  List,
+  MoreVertical,
   Plus,
   Search,
-  FileText,
-  Calendar,
-  Filter,
-  MoreVertical,
   X,
-  ArrowRight,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { ESTADO_PRESUPUESTO, type EstadoPresupuesto } from "@labo/lib/schemas/presupuesto";
 import { toHumanError } from "@labo/lib/error-messages";
+import { formatNumeroPresupuesto } from "@labo/lib/numero-presupuesto";
 import { EmptyState, SkeletonTable } from "@labo/ui/feedback";
 import { ExportButton } from "@labo/ui/exports/ExportButton";
 import { notifyError, notifySuccess } from "@labo/ui/feedback/toast";
@@ -43,6 +52,7 @@ import {
 
 export interface PresupuestoListItem {
   id: string;
+  numero_correlativo: number;
   paciente_id: string | null;
   paciente_nombre_libre: string | null;
   paciente_nombre: string | null;
@@ -53,7 +63,7 @@ export interface PresupuestoListItem {
   total_usd: number;
   total_bs: number;
   estado: EstadoPresupuesto;
-  resultado_id: string | null;
+  orden_id: string | null;
   created_at: string;
   lineas: unknown[];
 }
@@ -310,14 +320,14 @@ function AccionesRapidasModal({
                     setModo("motivo");
                     return;
                   }
-                  if (destino === "Convertido") {
+                  if (destino === "Cerrado") {
                     setModo("convertir");
                     return;
                   }
                   onConfirmarEstado(card, destino, "");
                 }}
               >
-                <span>{destino === "Convertido" ? "Convertir en resultado clínico" : destino}</span>
+                <span>{destino === "Cerrado" ? "Convertir en orden de laboratorio" : destino}</span>
                 <ArrowRight className="h-4 w-4" />
               </Button>
             ))}
@@ -532,6 +542,8 @@ export function PresupuestosList({ initialData, pageSize }: PresupuestosListProp
     () =>
       visibleItems.map((item) => ({
         id: item.id,
+        numeroCorrelativo: item.numero_correlativo,
+        numeroLegible: formatNumeroPresupuesto(item.numero_correlativo, item.created_at),
         estado: item.estado,
         pacienteLabel: pacienteNombre(item),
         fechaLabel: formatDate(item.created_at),
@@ -591,12 +603,12 @@ export function PresupuestosList({ initialData, pageSize }: PresupuestosListProp
     setAcciones(null);
 
     try {
-      const result = await requestJson<{ resultado_id: string }>(
+      const result = await requestJson<{ orden_id: string }>(
         `/api/presupuestos/${card.id}/convertir`,
         { method: "POST" },
       );
-      notifySuccess("Presupuesto convertido en resultado clínico.");
-      router.push(`/resultados/${result.resultado_id}`);
+      notifySuccess("Presupuesto cerrado y orden creada.");
+      router.push(`/resultados/${result.orden_id}`);
     } catch (error) {
       notifyError(error);
     } finally {
@@ -640,7 +652,7 @@ export function PresupuestosList({ initialData, pageSize }: PresupuestosListProp
       setAcciones({ mode: "motivo", card });
       return;
     }
-    if (objetivo === "Convertido") {
+    if (objetivo === "Cerrado") {
       setAcciones({ mode: "convertir", card });
       return;
     }
@@ -648,110 +660,102 @@ export function PresupuestosList({ initialData, pageSize }: PresupuestosListProp
   }
 
   return (
-    <div className="flex flex-col gap-4">
-      {/* Search & Filter bar */}
-      <div className="flex flex-col gap-3 rounded-xl border border-border bg-card p-4 shadow-sm">
-        <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-          <div className="relative w-full max-w-xl">
-            <Search className="absolute left-3 top-3.5 h-4 w-4 text-muted-foreground/70" />
-            <input
-              type="search"
-              value={searchTerm}
-              onChange={(event) => setSearchTerm(event.target.value)}
-              placeholder="Buscar por paciente o código"
-              className="flex h-11 w-full rounded-md border border-input bg-background py-2 pl-9 pr-10 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-            />
-          </div>
-
-          <div className="flex items-center gap-2 shrink-0">
-            <div
-              role="group"
-              aria-label="Formato de la lista"
-              className="inline-flex h-10 items-center rounded-md border border-input bg-background p-1"
-            >
-              {(["tabla", "kanban"] as const).map((opcion) => (
-                <button
-                  key={opcion}
-                  type="button"
-                  aria-pressed={vista === opcion}
-                  onClick={() => cambiarVista(opcion)}
-                  className={`h-8 rounded px-3 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
-                    vista === opcion
-                      ? "bg-primary text-primary-foreground"
-                      : "text-muted-foreground hover:text-foreground"
-                  }`}
-                >
-                  {opcion === "tabla" ? "Tabla" : "Kanban"}
-                </button>
-              ))}
-            </div>
-            <ExportButton actionName="presupuestos" filters={{ desde, hasta, estado }} />
-            <Link href="/presupuestos/nuevo">
-              <Button type="button" className="shrink-0 h-11">
-                <Plus className="h-4 w-4 mr-2" />
-                Nuevo presupuesto
-              </Button>
-            </Link>
-          </div>
+    <div className="flex flex-col gap-3">
+      {/* Filter bar densa: todo en una fila */}
+      <div className="flex flex-wrap items-center gap-2 rounded-md border border-border bg-muted/20 p-2">
+        <div className="relative min-w-[240px] flex-1">
+          <Search className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-muted-foreground/70" />
+          <input
+            type="search"
+            value={searchTerm}
+            onChange={(event) => setSearchTerm(event.target.value)}
+            placeholder="Buscar por paciente o código…"
+            className="flex h-8 w-full rounded-md border border-input bg-background py-1 pl-8 pr-3 text-xs ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1"
+          />
         </div>
 
-        {/* Detailed filters */}
-        <div className="grid grid-cols-1 gap-3 border-t border-border pt-3 sm:grid-cols-3">
-          <div className="flex flex-col gap-1">
-            <label className="text-xs font-medium text-muted-foreground">Desde</label>
-            <div className="relative">
-              <Calendar className="absolute left-3 top-3 h-4 w-4 text-muted-foreground/50" />
-              <input
-                type="date"
-                value={desde}
-                onChange={(e) => setDesde(e.target.value)}
-                className="flex h-10 w-full rounded-md border border-input bg-background py-2 pl-9 pr-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-              />
-            </div>
-          </div>
+        <input
+          type="date"
+          value={desde}
+          onChange={(e) => setDesde(e.target.value)}
+          aria-label="Desde"
+          className="h-8 rounded-md border border-input bg-background px-2 text-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        />
+        <span className="text-xs text-muted-foreground">→</span>
+        <input
+          type="date"
+          value={hasta}
+          onChange={(e) => setHasta(e.target.value)}
+          aria-label="Hasta"
+          className="h-8 rounded-md border border-input bg-background px-2 text-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        />
 
-          <div className="flex flex-col gap-1">
-            <label className="text-xs font-medium text-muted-foreground">Hasta</label>
-            <div className="relative">
-              <Calendar className="absolute left-3 top-3 h-4 w-4 text-muted-foreground/50" />
-              <input
-                type="date"
-                value={hasta}
-                onChange={(e) => setHasta(e.target.value)}
-                className="flex h-10 w-full rounded-md border border-input bg-background py-2 pl-9 pr-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-              />
-            </div>
-          </div>
+        <select
+          value={estado}
+          onChange={(e) => setEstado(e.target.value)}
+          aria-label="Estado"
+          className="h-8 appearance-none rounded-md border border-input bg-background px-2 text-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        >
+          <option value="">Todos los estados</option>
+          {ESTADO_PRESUPUESTO.map((opcion) => (
+            <option key={opcion} value={opcion}>
+              {opcion}
+            </option>
+          ))}
+        </select>
 
-          <div className="flex flex-col gap-1">
-            <label className="text-xs font-medium text-muted-foreground">Estado</label>
-            <div className="relative">
-              <Filter className="absolute left-3 top-3 h-4 w-4 text-muted-foreground/50" />
-              <select
-                value={estado}
-                onChange={(e) => setEstado(e.target.value)}
-                className="flex h-10 w-full rounded-md border border-input bg-background py-2 pl-9 pr-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring appearance-none"
+        <div className="ml-auto flex items-center gap-2">
+          {/* Toggle Kanban ↔ Tabla */}
+          <div
+            role="tablist"
+            aria-label="Cambiar vista"
+            className="inline-flex overflow-hidden rounded-md border border-border bg-background"
+          >
+            {(["tabla", "kanban"] as const).map((opcion) => (
+              <button
+                key={opcion}
+                type="button"
+                role="tab"
+                aria-selected={vista === opcion}
+                onClick={() => cambiarVista(opcion)}
+                className={`inline-flex h-8 items-center gap-1.5 px-3 text-xs font-medium transition-colors ${
+                  opcion !== "tabla" ? "border-l border-border" : ""
+                } ${
+                  vista === opcion
+                    ? "bg-primary text-primary-foreground"
+                    : "text-muted-foreground hover:bg-muted"
+                }`}
               >
-                <option value="">Todos los estados</option>
-                {ESTADO_PRESUPUESTO.map((opcion) => (
-                  <option key={opcion} value={opcion}>
-                    {opcion}
-                  </option>
-                ))}
-              </select>
-            </div>
+                {opcion === "tabla" ? (
+                  <>
+                    <List className="h-3.5 w-3.5" /> Tabla
+                  </>
+                ) : (
+                  <>
+                    <LayoutGrid className="h-3.5 w-3.5" /> Kanban
+                  </>
+                )}
+              </button>
+            ))}
           </div>
+
+          <ExportButton actionName="presupuestos" filters={{ desde, hasta, estado }} />
+          <Link href="/presupuestos/nuevo">
+            <Button type="button" size="sm" className="h-8">
+              <Plus className="h-3.5 w-3.5" />
+              Nuevo presupuesto
+            </Button>
+          </Link>
         </div>
       </div>
 
       {errorMessage ? (
-        <p className="rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+        <p className="rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-xs text-destructive">
           {errorMessage}
         </p>
       ) : null}
 
-      {/* Main List */}
-      <div className="rounded-xl border border-border bg-card shadow-sm">
+      <div className="overflow-hidden rounded-md border border-border">
         {loadingList ? (
           <div className="p-4">
             <SkeletonTable rows={6} cols={6} />
@@ -764,8 +768,8 @@ export function PresupuestosList({ initialData, pageSize }: PresupuestosListProp
               icon={<FileText className="h-6 w-6" />}
               action={
                 <Link href="/presupuestos/nuevo">
-                  <Button type="button">
-                    <Plus className="h-4 w-4 mr-2" />
+                  <Button type="button" size="sm">
+                    <Plus className="h-4 w-4" />
                     Nuevo presupuesto
                   </Button>
                 </Link>
@@ -775,7 +779,7 @@ export function PresupuestosList({ initialData, pageSize }: PresupuestosListProp
         ) : (
           <>
             {vista === "kanban" ? (
-              <div className="border-t border-border p-3">
+              <div className="p-3">
                 <DndContext
                   sensors={sensors}
                   collisionDetection={closestCorners}
@@ -812,85 +816,92 @@ export function PresupuestosList({ initialData, pageSize }: PresupuestosListProp
                 </DndContext>
               </div>
             ) : (
-              <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-border text-sm">
-                  <thead className="bg-muted/40 text-left text-muted-foreground">
-                    <tr>
-                      <th className="px-4 py-3 font-medium">Paciente</th>
-                      <th className="px-4 py-3 font-medium">Fecha</th>
-                      <th className="px-4 py-3 font-medium">Estado</th>
-                      <th className="px-4 py-3 font-medium">Total USD</th>
-                      <th className="px-4 py-3 font-medium">Total Bs</th>
-                      <th className="px-4 py-3 text-right font-medium">Acciones</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-border">
-                    {visibleItems.map((presupuesto) => {
-                      const pacienteName = pacienteNombre(presupuesto);
-
-                      return (
-                        <tr key={presupuesto.id} className="hover:bg-muted/30">
-                          <td className="px-4 py-3 font-medium text-foreground">
-                            <Link
-                              href={`/presupuestos/${presupuesto.id}`}
-                              className="hover:underline"
+              <Table>
+                <TableHeader>
+                  <TableRow className="bg-muted/40 hover:bg-muted/40">
+                    <TableHead className="h-9 py-1.5">Paciente</TableHead>
+                    <TableHead className="h-9 py-1.5">Fecha</TableHead>
+                    <TableHead className="h-9 py-1.5">Estado</TableHead>
+                    <TableHead className="h-9 w-28 py-1.5 text-right">Total USD</TableHead>
+                    <TableHead className="h-9 w-28 py-1.5 text-right">Total Bs</TableHead>
+                    <TableHead className="h-9 w-9 py-1.5" />
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {visibleItems.map((presupuesto) => {
+                    const pacienteName = pacienteNombre(presupuesto);
+                    return (
+                      <TableRow key={presupuesto.id} className="h-9">
+                        <TableCell className="py-1.5 font-medium text-foreground">
+                          <Link
+                            href={`/presupuestos/${presupuesto.id}`}
+                            className="hover:underline"
+                          >
+                            {pacienteName}
+                          </Link>
+                        </TableCell>
+                        <TableCell className="py-1.5 font-mono text-xs tabular-nums text-muted-foreground">
+                          {formatDate(presupuesto.created_at)}
+                        </TableCell>
+                        <TableCell className="py-1.5">
+                          <PresupuestoEstadoBadge estado={presupuesto.estado} />
+                        </TableCell>
+                        <TableCell className="py-1.5 text-right font-mono tabular-nums text-muted-foreground">
+                          {formatCurrency(presupuesto.total_usd, "$")}
+                        </TableCell>
+                        <TableCell className="py-1.5 text-right font-mono tabular-nums text-muted-foreground">
+                          {formatCurrency(presupuesto.total_bs, "Bs")}
+                        </TableCell>
+                        <TableCell className="py-1.5 text-right">
+                          <Link href={`/presupuestos/${presupuesto.id}`}>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              className="h-7 text-xs"
                             >
-                              {pacienteName}
-                            </Link>
-                          </td>
-                          <td className="px-4 py-3 text-muted-foreground">
-                            {formatDate(presupuesto.created_at)}
-                          </td>
-                          <td className="px-4 py-3">
-                            <PresupuestoEstadoBadge estado={presupuesto.estado} />
-                          </td>
-                          <td className="px-4 py-3 text-muted-foreground font-mono">
-                            {formatCurrency(presupuesto.total_usd, "$")}
-                          </td>
-                          <td className="px-4 py-3 text-muted-foreground font-mono">
-                            {formatCurrency(presupuesto.total_bs, "Bs")}
-                          </td>
-                          <td className="px-4 py-3 text-right">
-                            <Link href={`/presupuestos/${presupuesto.id}`}>
-                              <Button type="button" variant="outline" size="sm">
-                                Ver Detalle
-                              </Button>
-                            </Link>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
+                              Detalle
+                            </Button>
+                          </Link>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
             )}
 
             {/* Pagination footer */}
-            <div className="flex flex-col gap-3 border-t border-border px-4 py-3 md:flex-row md:items-center md:justify-between">
-              <p className="text-sm text-muted-foreground">
-                Mostrando página <span className="font-medium text-foreground">{data.page}</span> de{" "}
-                <span className="font-medium text-foreground">{data.totalPages}</span> ·{" "}
-                <span className="font-medium text-foreground">{data.total}</span> presupuestos
+            <div className="flex flex-col gap-2 border-t border-border bg-muted/20 px-3 py-2 text-xs md:flex-row md:items-center md:justify-between">
+              <p className="font-mono tabular-nums text-muted-foreground">
+                Página{" "}
+                <span className="font-semibold text-foreground">{data.page}</span> /{" "}
+                <span className="font-semibold text-foreground">{data.totalPages || 1}</span>
+                {" · "}
+                <span className="font-semibold text-foreground">{data.total}</span>{" "}
+                presupuestos
               </p>
 
-              <div className="flex gap-2">
+              <div className="flex gap-1">
                 <Button
                   type="button"
                   variant="outline"
                   size="sm"
+                  className="h-7 text-xs"
                   disabled={page <= 1 || loadingList}
                   onClick={() => setPage((current) => Math.max(1, current - 1))}
                 >
-                  Anterior
+                  ← Anterior
                 </Button>
                 <Button
                   type="button"
                   variant="outline"
                   size="sm"
+                  className="h-7 text-xs"
                   disabled={data.totalPages === 0 || page >= data.totalPages || loadingList}
                   onClick={() => setPage((current) => current + 1)}
                 >
-                  Siguiente
+                  Siguiente →
                 </Button>
               </div>
             </div>

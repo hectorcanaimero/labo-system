@@ -7,7 +7,7 @@ import {
   getForPDF,
 } from "@labo/db/repos/presupuestos";
 import { get as getLaboratorioConfig } from "@labo/db/repos/config";
-import { createSignedDownloadUrl } from "@labo/lib/storage";
+import { readObject } from "@labo/lib/storage-local";
 import { AuthError, getCurrentUser } from "@/lib/server/auth";
 import PresupuestoPDF from "@labo/pdf/PresupuestoPDF";
 import { renderToStream, type DocumentProps } from "@react-pdf/renderer";
@@ -15,14 +15,13 @@ import { NextResponse, type NextRequest } from "next/server";
 import { createElement, type ReactElement } from "react";
 
 import { pdfAssetCache } from "@/lib/asset-cache";
-import { getDb, getSessionAccessToken } from "@/lib/db-server";
+import { getAdminDb, getDb } from "@/lib/db-server";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const ASSET_BUCKET = "assets";
-const SIGNED_URL_TTL_SECONDS = 60 * 60;
 const LAB_NAME_REQUIRED = "NOMBRE_LABORATORIO_REQUERIDO";
 
 // PNG 1×1 transparente: fallback para que el PDF siga renderizando si un asset
@@ -30,7 +29,20 @@ const LAB_NAME_REQUIRED = "NOMBRE_LABORATORIO_REQUERIDO";
 const EMBEDDED_TRANSPARENT_PNG =
   "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=";
 const MAX_ASSET_BYTES = 5 * 1024 * 1024;
-const ASSET_FETCH_TIMEOUT_MS = 10_000;
+
+const MIME_BY_EXT: Record<string, string> = {
+  png: "image/png",
+  jpg: "image/jpeg",
+  jpeg: "image/jpeg",
+  gif: "image/gif",
+  svg: "image/svg+xml",
+  webp: "image/webp",
+};
+
+function mimeForKey(key: string): string {
+  const ext = key.split(".").pop()?.toLowerCase() ?? "";
+  return MIME_BY_EXT[ext] ?? "image/png";
+}
 
 type RouteParams = {
   params: {
@@ -61,30 +73,11 @@ async function requirePdfAccess() {
  */
 async function resolveAssetDataUri(objectKey: string): Promise<string> {
   return pdfAssetCache.getOrSet(objectKey, async () => {
-    const accessToken = getSessionAccessToken();
-    const url = await createSignedDownloadUrl(
-      ASSET_BUCKET,
-      objectKey,
-      SIGNED_URL_TTL_SECONDS,
-      accessToken ?? undefined,
-    );
-
-    const response = await fetch(url, {
-      cache: "no-store",
-      signal: AbortSignal.timeout(ASSET_FETCH_TIMEOUT_MS),
-    });
-    if (!response.ok) {
-      throw new Error(`Asset download failed with HTTP ${response.status}`);
-    }
-
-    const contentType =
-      response.headers.get("content-type")?.split(";", 1)[0]?.trim() || "image/png";
-    const bytes = new Uint8Array(await response.arrayBuffer());
-    if (bytes.byteLength > MAX_ASSET_BYTES) {
+    const buf = await readObject(ASSET_BUCKET, objectKey);
+    if (buf.byteLength > MAX_ASSET_BYTES) {
       throw new Error(`Asset exceeds ${MAX_ASSET_BYTES} bytes`);
     }
-
-    return `data:${contentType};base64,${Buffer.from(bytes).toString("base64")}`;
+    return `data:${mimeForKey(objectKey)};base64,${buf.toString("base64")}`;
   });
 }
 
@@ -108,7 +101,7 @@ function assertPdfConfig(nombre: string | null | undefined): void {
 }
 
 async function resolvePdfConfig() {
-  const config = await getLaboratorioConfig();
+  const config = await getLaboratorioConfig(getAdminDb());
   if (!config) {
     return null;
   }
@@ -172,7 +165,7 @@ export async function GET(_request: NextRequest, { params }: RouteParams): Promi
       return bad(400, "VALIDACION_FALLIDA");
     }
 
-    const data = await getForPDF(params.id);
+    const data = await getForPDF(getAdminDb(), params.id);
     if (!data) {
       return bad(404, PRESUPUESTO_NO_ENCONTRADO);
     }

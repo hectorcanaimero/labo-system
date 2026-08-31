@@ -1,10 +1,10 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { cookies } from "next/headers";
 
-import { requireRole, AUTH_COOKIE_NAMES, AuthError } from "@/lib/server/auth";
+import { requireRole, AuthError } from "@/lib/server/auth";
+import { getAdminDb } from "@/lib/db-server";
 import { ASSET_TIPO_INVALIDO } from "@labo/lib/schemas/config";
 import { get, updateAssetKey } from "@labo/db/repos/config";
-import { deleteObject } from "@labo/lib/storage";
+import { deleteObject } from "@labo/lib/storage-local";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -36,23 +36,19 @@ export async function POST(request: NextRequest): Promise<Response> {
     }
 
     // 4. Obtener configuración actual para identificar si hay un reemplazo de asset
-    const currentConfig = await get();
+    const db = getAdminDb();
+    const currentConfig = await get(db);
     const oldKey = currentConfig ? currentConfig[`${type}_object_key` as const] : null;
 
-    const accessToken = cookies().get(AUTH_COOKIE_NAMES.access)?.value;
-
-    // 5. Si hay un asset anterior y es distinto del nuevo, borrarlo de Storage
     if (oldKey && oldKey !== key) {
       try {
-        await deleteObject("assets", oldKey, accessToken);
+        await deleteObject("assets", oldKey);
       } catch (delError) {
-        // Logueamos pero no bloqueamos el update de la base de datos si falla por borrado
-        console.error(`[assets/set] Error deleting old object ${oldKey} from storage:`, delError);
+        console.error(`[assets/set] Error deleting old object ${oldKey}:`, delError);
       }
     }
 
-    // 6. Actualizar la clave en la base de datos (laboratorio_config)
-    const updatedConfig = await updateAssetKey(type as "logo" | "firma" | "sello", key, user.userId);
+    const updatedConfig = await updateAssetKey(db, type as "logo" | "firma" | "sello", key, user.userId);
 
     // 7. Retornar configuración actualizada
     return NextResponse.json(updatedConfig);

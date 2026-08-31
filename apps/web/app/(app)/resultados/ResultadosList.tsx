@@ -2,12 +2,22 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { Calendar, FileText, Filter, Plus, Search } from "lucide-react";
+import { FileText, Plus, Search } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { toHumanError } from "@labo/lib/error-messages";
 import { EmptyState, SkeletonTable } from "@labo/ui/feedback";
 import { ExportButton } from "@labo/ui/exports/ExportButton";
+import { OrdenEstadoBadge } from "@labo/ui/ordenes/OrdenEstadoBadge";
+import { ESTADO_ORDEN, type EstadoOrden } from "@labo/lib/schemas/orden";
 
 export interface ResultadoListItem {
   id: string;
@@ -18,7 +28,7 @@ export interface ResultadoListItem {
   fecha_muestra: string;
   fecha_resultado: string | null;
   medico_solicitante: string | null;
-  estado: "Pendiente" | "Completado";
+  estado: "Registrada" | "Muestra tomada" | "En proceso" | "Validando" | "Entregada" | "Anulada";
   observaciones: string | null;
   origen_presupuesto_id: string | null;
   created_at: string;
@@ -143,83 +153,62 @@ export function ResultadosList({ initialData, pageSize }: ResultadosListProps) {
   const showEmptyState = !loadingList && visibleItems.length === 0;
 
   return (
-    <div className="flex flex-col gap-4">
-      <div className="flex flex-col gap-3 rounded-xl border border-border bg-card p-4 shadow-sm">
-        <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-          <div className="relative w-full max-w-xl">
-            <Search className="absolute left-3 top-3.5 h-4 w-4 text-muted-foreground/70" />
-            <input
-              type="search"
-              value={searchTerm}
-              onChange={(event) => setSearchTerm(event.target.value)}
-              placeholder="Buscar por paciente, cédula o fecha"
-              className="flex h-11 w-full rounded-md border border-input bg-background py-2 pl-9 pr-10 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-            />
-          </div>
-
-          <div className="flex items-center gap-2 shrink-0">
-            <ExportButton actionName="resultados" filters={{ desde, hasta, estado }} />
-            <Link href="/resultados/nuevo">
-              <Button type="button" className="h-11 shrink-0">
-                <Plus className="mr-2 h-4 w-4" />
-                Nuevo resultado
-              </Button>
-            </Link>
-          </div>
+    <div className="flex flex-col gap-3">
+      {/* Filter bar densa — todo en una fila */}
+      <div className="flex flex-wrap items-center gap-2 rounded-md border border-border bg-muted/20 p-2">
+        <div className="relative min-w-[220px] flex-1">
+          <Search className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-muted-foreground/70" />
+          <input
+            type="search"
+            value={searchTerm}
+            onChange={(event) => setSearchTerm(event.target.value)}
+            placeholder="Buscar por paciente, cédula o fecha…"
+            className="flex h-8 w-full rounded-md border border-input bg-background py-1 pl-8 pr-3 text-xs ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1"
+          />
         </div>
 
-        <div className="grid grid-cols-1 gap-3 border-t border-border pt-3 sm:grid-cols-3">
-          <div className="flex flex-col gap-1">
-            <label className="text-xs font-medium text-muted-foreground">Desde</label>
-            <div className="relative">
-              <Calendar className="absolute left-3 top-3 h-4 w-4 text-muted-foreground/50" />
-              <input
-                type="date"
-                value={desde}
-                onChange={(e) => setDesde(e.target.value)}
-                className="flex h-10 w-full rounded-md border border-input bg-background py-2 pl-9 pr-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-              />
-            </div>
-          </div>
+        <input
+          type="date"
+          value={desde}
+          onChange={(e) => setDesde(e.target.value)}
+          aria-label="Desde"
+          className="h-8 rounded-md border border-input bg-background px-2 text-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        />
+        <span className="text-xs text-muted-foreground">→</span>
+        <input
+          type="date"
+          value={hasta}
+          onChange={(e) => setHasta(e.target.value)}
+          aria-label="Hasta"
+          className="h-8 rounded-md border border-input bg-background px-2 text-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        />
 
-          <div className="flex flex-col gap-1">
-            <label className="text-xs font-medium text-muted-foreground">Hasta</label>
-            <div className="relative">
-              <Calendar className="absolute left-3 top-3 h-4 w-4 text-muted-foreground/50" />
-              <input
-                type="date"
-                value={hasta}
-                onChange={(e) => setHasta(e.target.value)}
-                className="flex h-10 w-full rounded-md border border-input bg-background py-2 pl-9 pr-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-              />
-            </div>
-          </div>
+        <select
+          value={estado}
+          onChange={(e) => setEstado(e.target.value)}
+          aria-label="Estado"
+          className="h-8 appearance-none rounded-md border border-input bg-background px-2 text-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        >
+          <option value="">Todos los estados</option>
+          {ESTADO_ORDEN.map((e) => (
+            <option key={e} value={e}>
+              {e}
+            </option>
+          ))}
+        </select>
 
-          <div className="flex flex-col gap-1">
-            <label className="text-xs font-medium text-muted-foreground">Estado</label>
-            <div className="relative">
-              <Filter className="absolute left-3 top-3 h-4 w-4 text-muted-foreground/50" />
-              <select
-                value={estado}
-                onChange={(e) => setEstado(e.target.value)}
-                className="flex h-10 w-full appearance-none rounded-md border border-input bg-background py-2 pl-9 pr-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-              >
-                <option value="">Todos los estados</option>
-                <option value="Pendiente">Pendiente</option>
-                <option value="Completado">Completado</option>
-              </select>
-            </div>
-          </div>
+        <div className="ml-auto flex items-center gap-2">
+          <ExportButton actionName="resultados" filters={{ desde, hasta, estado }} />
         </div>
       </div>
 
       {errorMessage ? (
-        <p className="rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+        <p className="rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-xs text-destructive">
           {errorMessage}
         </p>
       ) : null}
 
-      <div className="rounded-xl border border-border bg-card shadow-sm">
+      <div className="overflow-hidden rounded-md border border-border">
         {loadingList ? (
           <div className="p-4">
             <SkeletonTable rows={6} cols={6} />
@@ -227,14 +216,14 @@ export function ResultadosList({ initialData, pageSize }: ResultadosListProps) {
         ) : showEmptyState ? (
           <div className="p-6">
             <EmptyState
-              title="No encontramos resultados"
-              description="Ajustá los filtros o cargá un nuevo resultado para comenzar."
+              title="No encontramos órdenes"
+              description="Ajustá los filtros o cargá una nueva orden para comenzar."
               icon={<FileText className="h-6 w-6" />}
               action={
                 <Link href="/resultados/nuevo">
-                  <Button type="button">
-                    <Plus className="mr-2 h-4 w-4" />
-                    Nuevo resultado
+                  <Button type="button" size="sm">
+                    <Plus className="h-4 w-4" />
+                    Nueva orden
                   </Button>
                 </Link>
               }
@@ -242,84 +231,92 @@ export function ResultadosList({ initialData, pageSize }: ResultadosListProps) {
           </div>
         ) : (
           <>
-            <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-border text-sm">
-                <thead className="bg-muted/40 text-left text-muted-foreground">
-                  <tr>
-                    <th className="px-4 py-3 font-medium">Paciente</th>
-                    <th className="px-4 py-3 font-medium">Cédula</th>
-                    <th className="px-4 py-3 font-medium">Fecha muestra</th>
-                    <th className="px-4 py-3 font-medium">Entrega</th>
-                    <th className="px-4 py-3 font-medium">Estado</th>
-                    <th className="px-4 py-3 font-medium">Exámenes</th>
-                    <th className="px-4 py-3 text-right font-medium">Acciones</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-border">
-                  {visibleItems.map((resultado) => {
-                    const pacienteName = `${resultado.paciente_nombre || ""} ${resultado.paciente_apellido || ""}`.trim();
-
-                    return (
-                      <tr key={resultado.id} className="hover:bg-muted/30">
-                        <td className="px-4 py-3 font-medium text-foreground">
-                          <Link href={`/resultados/${resultado.id}`} className="hover:underline">
-                            {pacienteName}
-                          </Link>
-                        </td>
-                        <td className="px-4 py-3 text-muted-foreground">{resultado.paciente_cedula}</td>
-                        <td className="px-4 py-3 text-muted-foreground">{formatDate(resultado.fecha_muestra)}</td>
-                        <td className="px-4 py-3 text-muted-foreground">{formatDate(resultado.fecha_resultado)}</td>
-                        <td className="px-4 py-3">
-                          <span
-                            className={`inline-flex items-center rounded-full px-2 py-1 text-xs font-medium ${
-                              resultado.estado === "Pendiente"
-                                ? "bg-amber-100 text-amber-800"
-                                : "bg-emerald-100 text-emerald-800"
-                            }`}
+            <Table>
+              <TableHeader>
+                <TableRow className="bg-muted/40 hover:bg-muted/40">
+                  <TableHead className="h-9 py-1.5">Paciente</TableHead>
+                  <TableHead className="h-9 py-1.5">Cédula</TableHead>
+                  <TableHead className="h-9 py-1.5">F. muestra</TableHead>
+                  <TableHead className="h-9 py-1.5">F. entrega</TableHead>
+                  <TableHead className="h-9 py-1.5">Estado</TableHead>
+                  <TableHead className="h-9 w-16 py-1.5 text-right">Exámenes</TableHead>
+                  <TableHead className="h-9 w-24 py-1.5" />
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {visibleItems.map((resultado) => {
+                  const pacienteName = `${resultado.paciente_nombre || ""} ${resultado.paciente_apellido || ""}`.trim();
+                  return (
+                    <TableRow key={resultado.id} className="h-9">
+                      <TableCell className="py-1.5 font-medium text-foreground">
+                        <Link
+                          href={`/resultados/${resultado.id}`}
+                          className="hover:underline"
+                        >
+                          {pacienteName}
+                        </Link>
+                      </TableCell>
+                      <TableCell className="py-1.5 font-mono text-xs tabular-nums text-muted-foreground">
+                        {resultado.paciente_cedula}
+                      </TableCell>
+                      <TableCell className="py-1.5 font-mono text-xs tabular-nums text-muted-foreground">
+                        {formatDate(resultado.fecha_muestra)}
+                      </TableCell>
+                      <TableCell className="py-1.5 font-mono text-xs tabular-nums text-muted-foreground">
+                        {formatDate(resultado.fecha_resultado)}
+                      </TableCell>
+                      <TableCell className="py-1.5">
+                        <OrdenEstadoBadge estado={resultado.estado as EstadoOrden} />
+                      </TableCell>
+                      <TableCell className="py-1.5 text-right font-mono tabular-nums text-muted-foreground">
+                        {resultado.examenes_count}
+                      </TableCell>
+                      <TableCell className="py-1.5 text-right">
+                        <Link href={`/resultados/${resultado.id}`}>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="h-7 text-xs"
                           >
-                            {resultado.estado}
-                          </span>
-                        </td>
-                        <td className="px-4 py-3 text-muted-foreground">{resultado.examenes_count}</td>
-                        <td className="px-4 py-3 text-right">
-                          <Link href={`/resultados/${resultado.id}`}>
-                            <Button type="button" variant="outline" size="sm">
-                              Ver detalle
-                            </Button>
-                          </Link>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
+                            Detalle
+                          </Button>
+                        </Link>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
 
-            <div className="flex flex-col gap-3 border-t border-border px-4 py-3 md:flex-row md:items-center md:justify-between">
-              <p className="text-sm text-muted-foreground">
-                Mostrando página <span className="font-medium text-foreground">{data.page}</span> de{" "}
-                <span className="font-medium text-foreground">{data.totalPages || 1}</span> ·{" "}
-                <span className="font-medium text-foreground">{data.total}</span> resultados
+            <div className="flex flex-col gap-2 border-t border-border bg-muted/20 px-3 py-2 text-xs md:flex-row md:items-center md:justify-between">
+              <p className="font-mono tabular-nums text-muted-foreground">
+                Página{" "}
+                <span className="font-semibold text-foreground">{data.page}</span> /{" "}
+                <span className="font-semibold text-foreground">{data.totalPages || 1}</span>{" "}
+                · <span className="font-semibold text-foreground">{data.total}</span> total
               </p>
 
-              <div className="flex gap-2">
+              <div className="flex gap-1">
                 <Button
                   type="button"
                   variant="outline"
                   size="sm"
+                  className="h-7 text-xs"
                   disabled={page <= 1 || loadingList}
                   onClick={() => setPage((current) => Math.max(1, current - 1))}
                 >
-                  Anterior
+                  ← Anterior
                 </Button>
                 <Button
                   type="button"
                   variant="outline"
                   size="sm"
+                  className="h-7 text-xs"
                   disabled={data.totalPages === 0 || page >= data.totalPages || loadingList}
                   onClick={() => setPage((current) => current + 1)}
                 >
-                  Siguiente
+                  Siguiente →
                 </Button>
               </div>
             </div>

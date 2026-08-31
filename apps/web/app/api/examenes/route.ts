@@ -6,6 +6,7 @@ import {
   examenesSearch,
 } from "@labo/db/repos/examenes";
 import { AuthError, getCurrentUser, requireRole } from "@/lib/server/auth";
+import { getAdminDb } from "@/lib/db-server";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -51,9 +52,10 @@ export async function GET(request: NextRequest): Promise<Response> {
   try {
     await requireOperadorMinimo();
 
+    const db = getAdminDb();
     const term = request.nextUrl.searchParams.get("term");
     if (term !== null) {
-      const items = await examenesSearch({ term });
+      const items = await examenesSearch(db, { term });
       return NextResponse.json(items);
     }
 
@@ -62,7 +64,7 @@ export async function GET(request: NextRequest): Promise<Response> {
       return bad(400, "VALIDACION_FALLIDA");
     }
 
-    const items = await examenesListByTitulo({ titulo_id: tituloId });
+    const items = await examenesListByTitulo(db, { titulo_id: tituloId });
     return NextResponse.json(items);
   } catch (error) {
     const { status, error: code } = toStatus(error);
@@ -79,12 +81,15 @@ export async function POST(request: NextRequest): Promise<Response> {
       return bad(400, "VALIDACION_FALLIDA");
     }
 
-    const examen = await examenesCreate({
+    const examen = await examenesCreate(getAdminDb(), {
       titulo_id: body.titulo_id as string,
       nombre: body.nombre as string,
       precio_usd: body.precio_usd as number,
       unidad: body.unidad as string | undefined,
       valores_referencia: body.valores_referencia as string | undefined,
+      tipo_analisis: body.tipo_analisis as string,
+      metodo: body.metodo as string | undefined,
+      observaciones: body.observaciones as string | undefined,
       usuarioId: user.userId,
     });
     return NextResponse.json(examen, { status: 201 });

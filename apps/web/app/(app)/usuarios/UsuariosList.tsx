@@ -4,6 +4,15 @@ import { useState } from "react";
 import { Ban, Loader2, RotateCcw, Shield, ShieldCheck } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { InviteUserDialog } from "./InviteUserDialog";
 
 export interface UsuarioItem {
@@ -85,123 +94,139 @@ export function UsuariosList({ currentUserId, initialUsuarios }: UsuariosListPro
   };
 
   return (
-    <div className="flex flex-col gap-6">
-      <InviteUserDialog
-        onSuccess={(msg) => {
-          setError(null);
-          setNotice(msg);
-        }}
-        onError={(msg) => setError(msg)}
-      />
+    <div className="flex flex-col gap-3">
+      <div className="flex flex-wrap items-center justify-end gap-2 rounded-md border border-border bg-muted/20 p-2">
+        <InviteUserDialog
+          onSuccess={(msg) => {
+            setError(null);
+            setNotice(msg);
+          }}
+          onError={(msg) => setError(msg)}
+        />
+      </div>
 
       {error ? (
         <p
           role="alert"
-          className="rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive"
+          className="rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-xs text-destructive"
         >
           {error}
         </p>
       ) : null}
 
       {notice ? (
-        <p className="rounded-md border border-green-600/20 bg-green-600/10 px-3 py-2 text-sm text-green-700">
+        <p className="rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs text-emerald-700 dark:border-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-300">
           {notice}
         </p>
       ) : null}
 
-      <section className="rounded-xl border border-border bg-card shadow-sm">
-        <div className="border-b border-border px-4 py-3">
-          <h2 className="text-base font-semibold tracking-tight">
-            Usuarios registrados ({usuarios.length})
-          </h2>
-        </div>
+      <Card className="shadow-none">
+        <CardContent className="p-0">
+          {usuarios.length === 0 ? (
+            <p className="px-4 py-8 text-center text-xs text-muted-foreground">
+              Todavía no hay usuarios. Invitá al primero para empezar.
+            </p>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow className="bg-muted/40 hover:bg-muted/40">
+                  <TableHead className="h-9 py-1.5">Nombre</TableHead>
+                  <TableHead className="h-9 py-1.5">Email</TableHead>
+                  <TableHead className="h-9 w-40 py-1.5">Rol</TableHead>
+                  <TableHead className="h-9 w-24 py-1.5">Estado</TableHead>
+                  <TableHead className="h-9 w-28 py-1.5">Alta</TableHead>
+                  <TableHead className="h-9 w-32 py-1.5 text-right">
+                    Acciones
+                  </TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {usuarios.map((usuario) => {
+                  const isSelf = usuario.id === currentUserId;
+                  const isBusy = busyId === usuario.id;
 
-        {usuarios.length === 0 ? (
-          <p className="px-4 py-6 text-sm text-muted-foreground">
-            Todavía no hay usuarios. Invitá al primero para empezar.
-          </p>
-        ) : (
-          <ul className="divide-y divide-border">
-            {usuarios.map((usuario) => {
-              const isSelf = usuario.id === currentUserId;
-              const isBusy = busyId === usuario.id;
-
-              return (
-                <li
-                  key={usuario.id}
-                  className="flex flex-col gap-3 px-4 py-4 lg:flex-row lg:items-center lg:justify-between"
-                >
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-2">
-                      <span className="truncate text-sm font-semibold text-foreground">
-                        {usuario.nombre}
-                      </span>
-                      {isSelf ? (
-                        <span className="rounded bg-muted px-2 py-0.5 text-[11px] text-muted-foreground">
-                          Vos
-                        </span>
-                      ) : null}
-                      {!usuario.activo ? (
-                        <span className="rounded bg-destructive/10 px-2 py-0.5 text-[11px] font-medium text-destructive">
-                          Inactivo
-                        </span>
-                      ) : null}
-                    </div>
-                    <p className="mt-0.5 truncate text-xs text-muted-foreground">
-                      {usuario.email}
-                    </p>
-                    <p className="mt-0.5 text-[11px] text-muted-foreground">
-                      Alta: {formatFecha(usuario.created_at)}
-                    </p>
-                  </div>
-
-                  <div className="flex flex-wrap items-center gap-2">
-                    <div className="flex items-center gap-2">
-                      {usuario.role === "admin" ? (
-                        <ShieldCheck className="h-4 w-4 text-primary" />
-                      ) : (
-                        <Shield className="h-4 w-4 text-muted-foreground" />
-                      )}
-                      <select
-                        value={usuario.role}
-                        disabled={isSelf || isBusy}
-                        aria-label={`Rol de ${usuario.nombre}`}
-                        onChange={(event) =>
-                          void handleChangeRole(
-                            usuario,
-                            event.target.value as "admin" | "operador",
-                          )
-                        }
-                        className="h-9 rounded-md border border-input bg-background px-2 text-sm disabled:cursor-not-allowed disabled:opacity-50"
-                      >
-                        <option value="admin">Administrador</option>
-                        <option value="operador">Operador</option>
-                      </select>
-                    </div>
-
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      disabled={isSelf || isBusy}
-                      onClick={() => void handleToggleActivo(usuario)}
-                    >
-                      {isBusy ? (
-                        <Loader2 className="animate-spin" />
-                      ) : usuario.activo ? (
-                        <Ban />
-                      ) : (
-                        <RotateCcw />
-                      )}
-                      {usuario.activo ? "Desactivar" : "Reactivar"}
-                    </Button>
-                  </div>
-                </li>
-              );
-            })}
-          </ul>
-        )}
-      </section>
+                  return (
+                    <TableRow key={usuario.id} className="h-9">
+                      <TableCell className="py-1.5">
+                        <div className="flex items-center gap-1.5">
+                          <span className="font-medium text-foreground">
+                            {usuario.nombre}
+                          </span>
+                          {isSelf ? (
+                            <span className="rounded bg-muted px-1.5 py-0.5 text-[10px] uppercase tracking-wide text-muted-foreground">
+                              Vos
+                            </span>
+                          ) : null}
+                        </div>
+                      </TableCell>
+                      <TableCell className="max-w-[260px] truncate py-1.5 text-xs text-muted-foreground">
+                        {usuario.email}
+                      </TableCell>
+                      <TableCell className="py-1.5">
+                        <div className="flex items-center gap-1.5">
+                          {usuario.role === "admin" ? (
+                            <ShieldCheck className="h-3.5 w-3.5 text-primary" />
+                          ) : (
+                            <Shield className="h-3.5 w-3.5 text-muted-foreground" />
+                          )}
+                          <select
+                            value={usuario.role}
+                            disabled={isSelf || isBusy}
+                            aria-label={`Rol de ${usuario.nombre}`}
+                            onChange={(event) =>
+                              void handleChangeRole(
+                                usuario,
+                                event.target.value as "admin" | "operador",
+                              )
+                            }
+                            className="h-7 rounded-md border border-input bg-background px-2 text-xs disabled:cursor-not-allowed disabled:opacity-50"
+                          >
+                            <option value="admin">Administrador</option>
+                            <option value="operador">Operador</option>
+                          </select>
+                        </div>
+                      </TableCell>
+                      <TableCell className="py-1.5">
+                        {usuario.activo ? (
+                          <span className="inline-flex h-5 items-center rounded bg-emerald-100 px-1.5 text-[10px] font-medium uppercase tracking-wide text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300">
+                            Activo
+                          </span>
+                        ) : (
+                          <span className="inline-flex h-5 items-center rounded bg-zinc-100 px-1.5 text-[10px] font-medium uppercase tracking-wide text-zinc-600 dark:bg-zinc-900 dark:text-zinc-400">
+                            Inactivo
+                          </span>
+                        )}
+                      </TableCell>
+                      <TableCell className="py-1.5 font-mono text-xs tabular-nums text-muted-foreground">
+                        {formatFecha(usuario.created_at)}
+                      </TableCell>
+                      <TableCell className="py-1.5 text-right">
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="h-7 gap-1 text-xs"
+                          disabled={isSelf || isBusy}
+                          onClick={() => void handleToggleActivo(usuario)}
+                        >
+                          {isBusy ? (
+                            <Loader2 className="h-3 w-3 animate-spin" />
+                          ) : usuario.activo ? (
+                            <Ban className="h-3 w-3" />
+                          ) : (
+                            <RotateCcw className="h-3 w-3" />
+                          )}
+                          {usuario.activo ? "Desactivar" : "Reactivar"}
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }

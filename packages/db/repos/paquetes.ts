@@ -1,40 +1,25 @@
-import { getSql, withTransaction } from "../client";
+import type { Db } from "../sdk";
 
 import { paqueteCreate, paqueteUpdate } from "@labo/lib/schemas/paquete";
 
 export const PAQUETE_DUPLICADO = "PAQUETE_DUPLICADO";
 export const PAQUETE_NO_ENCONTRADO = "PAQUETE_NO_ENCONTRADO";
 export const EXAMEN_NO_ENCONTRADO = "EXAMEN_NO_ENCONTRADO";
+export const TITULO_NO_ENCONTRADO = "TITULO_NO_ENCONTRADO";
 
 const VALIDACION_FALLIDA = "VALIDACION_FALLIDA";
 const PAQUETE_UNIQUE_CONSTRAINT = "paquetes_nombre_unique";
 
-type PgErrorLike = {
-  code?: string;
-  constraint?: string;
-};
+// ─────────────────────────────────────────────────────────────────────────────
+// Types
+// ─────────────────────────────────────────────────────────────────────────────
 
 interface PaqueteRow {
   id: string;
   nombre: string;
   descripcion: string | null;
   precio_base: string | number;
-  created_at: Date;
-}
-
-interface PaqueteListRow extends PaqueteRow {
-  examenes_count: string | number;
-}
-
-interface PaqueteExamenRow {
-  id: string;
-  titulo_id: string;
-  nombre: string;
-  precio_usd: string | number;
-  unidad: string | null;
-  valores_referencia: string | null;
-  activo: boolean;
-  orden: number;
+  created_at: string;
 }
 
 export interface Paquete {
@@ -42,11 +27,12 @@ export interface Paquete {
   nombre: string;
   descripcion: string | null;
   precio_base: number;
-  created_at: Date;
+  created_at: string;
 }
 
 export interface PaqueteListItem extends Paquete {
   examenes_count: number;
+  titulos_count: number;
 }
 
 export interface PaqueteExamen {
@@ -60,12 +46,34 @@ export interface PaqueteExamen {
   orden: number;
 }
 
-export interface PaqueteDetail extends Paquete {
-  examenes: PaqueteExamen[];
+export interface PaqueteTitulo {
+  id: string;
+  nombre: string;
+  orden: number;
+  examenes_activos_count: number;
 }
 
-function isPgError(error: unknown): error is PgErrorLike {
-  return typeof error === "object" && error !== null;
+export interface PaqueteDetail extends Paquete {
+  examenes: PaqueteExamen[];
+  titulos: PaqueteTitulo[];
+  precio_calculado: number;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Error helpers
+// ─────────────────────────────────────────────────────────────────────────────
+
+type PgErrorLike = { code?: string; message?: string; details?: string };
+
+function isPgError(err: unknown): err is PgErrorLike {
+  return typeof err === "object" && err !== null;
+}
+
+function isUniqueViolation(err: unknown, constraintName: string): boolean {
+  if (!isPgError(err)) return false;
+  if (err.code !== "23505") return false;
+  const haystack = `${err.message ?? ""} ${err.details ?? ""}`;
+  return haystack.includes(constraintName);
 }
 
 function toDomainValidationError(error: unknown): Error {
@@ -78,46 +86,9 @@ function toDomainValidationError(error: unknown): Error {
       : undefined;
 
   const message =
-    typeof firstIssue?.message === "string"
-      ? firstIssue.message
-      : VALIDACION_FALLIDA;
+    typeof firstIssue?.message === "string" ? firstIssue.message : VALIDACION_FALLIDA;
 
   return new Error(message);
-}
-
-function mapUniquePaqueteError(error: unknown): never {
-  if (
-    isPgError(error) &&
-    error.code === "23505" &&
-    error.constraint === PAQUETE_UNIQUE_CONSTRAINT
-  ) {
-    throw new Error(PAQUETE_DUPLICADO);
-  }
-  throw error;
-}
-
-function mapSetExamenesError(error: unknown): never {
-  if (isPgError(error)) {
-    if (error.code === "23503") {
-      throw new Error(EXAMEN_NO_ENCONTRADO);
-    }
-    if (error.code === "23505") {
-      throw new Error(VALIDACION_FALLIDA);
-    }
-  }
-  throw error;
-}
-
-function toPaqueteListItem(row: PaqueteListRow): PaqueteListItem {
-  return {
-    ...row,
-    precio_base:
-      typeof row.precio_base === "number" ? row.precio_base : Number(row.precio_base),
-    examenes_count:
-      typeof row.examenes_count === "number"
-        ? row.examenes_count
-        : Number(row.examenes_count),
-  };
 }
 
 function toPaquete(row: PaqueteRow): Paquete {
@@ -128,151 +99,289 @@ function toPaquete(row: PaqueteRow): Paquete {
   };
 }
 
-function toPaqueteExamen(row: PaqueteExamenRow): PaqueteExamen {
-  return {
-    ...row,
-    precio_usd:
-      typeof row.precio_usd === "number" ? row.precio_usd : Number(row.precio_usd),
-  };
-}
-
-function parseExamenIds(input: unknown): string[] {
-  if (!Array.isArray(input)) {
-    throw new Error(VALIDACION_FALLIDA);
-  }
-
-  const ids = input.map((value) => {
-    if (typeof value !== "string") {
+function parseIds(input: unknown): string[] {
+  if (!Array.isArray(input)) throw new Error(VALIDACION_FALLIDA);
+  const ids = input.map((v) => {
+    if (typeof v !== "string" || v.trim().length === 0) {
       throw new Error(VALIDACION_FALLIDA);
     }
-
-    const trimmed = value.trim();
-    if (trimmed.length === 0) {
-      throw new Error(VALIDACION_FALLIDA);
-    }
-
-    return trimmed;
+    return v.trim();
   });
-
-  if (new Set(ids).size !== ids.length) {
-    throw new Error(VALIDACION_FALLIDA);
-  }
-
+  if (new Set(ids).size !== ids.length) throw new Error(VALIDACION_FALLIDA);
   return ids;
 }
 
-export async function list(): Promise<PaqueteListItem[]> {
-  const sql = getSql();
-  const rows = await sql<PaqueteListRow[]>`
-    SELECT p.id,
-           p.nombre,
-           p.descripcion,
-           p.precio_base,
-           p.created_at,
-           COUNT(pe.examen_id)::int AS examenes_count
-    FROM paquetes p
-    LEFT JOIN paquetes_examenes pe ON pe.paquete_id = p.id
-    GROUP BY p.id, p.nombre, p.descripcion, p.precio_base, p.created_at
-    ORDER BY p.nombre ASC, p.created_at ASC
-  `;
+// ─────────────────────────────────────────────────────────────────────────────
+// Reads
+// ─────────────────────────────────────────────────────────────────────────────
 
-  return rows.map(toPaqueteListItem);
+export async function list(db: Db): Promise<PaqueteListItem[]> {
+  const paqRes = await db
+    .from("paquetes")
+    .select("id, nombre, descripcion, precio_base, created_at")
+    .order("nombre", { ascending: true });
+  if (paqRes.error) throw new Error(`paquetes.list: ${paqRes.error.message}`);
+  const paquetes = (paqRes.data ?? []) as PaqueteRow[];
+  if (paquetes.length === 0) return [];
+
+  const ids = paquetes.map((p) => p.id);
+
+  const [pxRes, ptRes] = await Promise.all([
+    db.from("paquetes_examenes").select("paquete_id").in("paquete_id", ids),
+    db.from("paquetes_titulos").select("paquete_id").in("paquete_id", ids),
+  ]);
+  if (pxRes.error) throw new Error(`paquetes.list examenes: ${pxRes.error.message}`);
+  if (ptRes.error) throw new Error(`paquetes.list titulos: ${ptRes.error.message}`);
+
+  const examCount = new Map<string, number>();
+  for (const r of (pxRes.data ?? []) as Array<{ paquete_id: string }>) {
+    examCount.set(r.paquete_id, (examCount.get(r.paquete_id) ?? 0) + 1);
+  }
+  const tituloCount = new Map<string, number>();
+  for (const r of (ptRes.data ?? []) as Array<{ paquete_id: string }>) {
+    tituloCount.set(r.paquete_id, (tituloCount.get(r.paquete_id) ?? 0) + 1);
+  }
+
+  return paquetes.map((p) => ({
+    ...toPaquete(p),
+    examenes_count: examCount.get(p.id) ?? 0,
+    titulos_count: tituloCount.get(p.id) ?? 0,
+  }));
 }
 
-export async function getById(id: string): Promise<PaqueteDetail | null> {
-  const sql = getSql();
-  const paqueteRows = await sql<PaqueteRow[]>`
-    SELECT id, nombre, descripcion, precio_base, created_at
-    FROM paquetes
-    WHERE id = ${id}
-    LIMIT 1
-  `;
+async function loadPaqueteExamenes(
+  db: Db,
+  paqueteId: string,
+  onlyActive: boolean,
+): Promise<PaqueteExamen[]> {
+  const linksRes = await db
+    .from("paquetes_examenes")
+    .select("examen_id, orden")
+    .eq("paquete_id", paqueteId)
+    .order("orden", { ascending: true });
+  if (linksRes.error) throw new Error(`paquetes.examenes: ${linksRes.error.message}`);
+  const links = (linksRes.data ?? []) as Array<{ examen_id: string; orden: number }>;
+  if (links.length === 0) return [];
 
-  const paquete = paqueteRows[0];
-  if (!paquete) return null;
+  const ids = links.map((l) => l.examen_id);
+  const examQ = db
+    .from("examenes")
+    .select("id, titulo_id, nombre, precio_usd, unidad, valores_referencia, activo")
+    .in("id", ids);
+  const examRes = onlyActive ? await examQ.eq("activo", true) : await examQ;
+  if (examRes.error) throw new Error(`paquetes.examenes: ${examRes.error.message}`);
 
-  const examenRows = await sql<PaqueteExamenRow[]>`
-    SELECT e.id,
-           e.titulo_id,
-           e.nombre,
-           e.precio_usd,
-           e.unidad,
-           e.valores_referencia,
-           e.activo,
-           pe.orden
-    FROM paquetes_examenes pe
-    INNER JOIN examenes e ON e.id = pe.examen_id
-    WHERE pe.paquete_id = ${id}
-    ORDER BY pe.orden ASC, e.nombre ASC
-  `;
+  const byId = new Map<string, {
+    id: string;
+    titulo_id: string;
+    nombre: string;
+    precio_usd: string | number;
+    unidad: string | null;
+    valores_referencia: string | null;
+    activo: boolean;
+  }>();
+  for (const e of (examRes.data ?? []) as Array<{
+    id: string;
+    titulo_id: string;
+    nombre: string;
+    precio_usd: string | number;
+    unidad: string | null;
+    valores_referencia: string | null;
+    activo: boolean;
+  }>) {
+    byId.set(e.id, e);
+  }
+
+  return links
+    .map((l) => {
+      const e = byId.get(l.examen_id);
+      if (!e) return null;
+      return {
+        id: e.id,
+        titulo_id: e.titulo_id,
+        nombre: e.nombre,
+        precio_usd: typeof e.precio_usd === "number" ? e.precio_usd : Number(e.precio_usd),
+        unidad: e.unidad,
+        valores_referencia: e.valores_referencia,
+        activo: e.activo,
+        orden: l.orden,
+      };
+    })
+    .filter((x): x is PaqueteExamen => x !== null);
+}
+
+async function loadPaqueteTitulos(
+  db: Db,
+  paqueteId: string,
+): Promise<PaqueteTitulo[]> {
+  const linksRes = await db
+    .from("paquetes_titulos")
+    .select("titulo_id, orden")
+    .eq("paquete_id", paqueteId)
+    .order("orden", { ascending: true });
+  if (linksRes.error) throw new Error(`paquetes.titulos: ${linksRes.error.message}`);
+  const links = (linksRes.data ?? []) as Array<{ titulo_id: string; orden: number }>;
+  if (links.length === 0) return [];
+
+  const ids = links.map((l) => l.titulo_id);
+  const [titRes, countRes] = await Promise.all([
+    db.from("examenes_titulos").select("id, nombre").in("id", ids),
+    db.from("examenes").select("titulo_id").in("titulo_id", ids).eq("activo", true),
+  ]);
+  if (titRes.error) throw new Error(`paquetes.titulos: ${titRes.error.message}`);
+  if (countRes.error) throw new Error(`paquetes.titulos: ${countRes.error.message}`);
+
+  const nameById = new Map<string, string>();
+  for (const t of (titRes.data ?? []) as Array<{ id: string; nombre: string }>) {
+    nameById.set(t.id, t.nombre);
+  }
+  const countById = new Map<string, number>();
+  for (const r of (countRes.data ?? []) as Array<{ titulo_id: string }>) {
+    countById.set(r.titulo_id, (countById.get(r.titulo_id) ?? 0) + 1);
+  }
+
+  return links
+    .map((l) => {
+      const nombre = nameById.get(l.titulo_id);
+      if (nombre === undefined) return null;
+      return {
+        id: l.titulo_id,
+        nombre,
+        orden: l.orden,
+        examenes_activos_count: countById.get(l.titulo_id) ?? 0,
+      };
+    })
+    .filter((x): x is PaqueteTitulo => x !== null);
+}
+
+/**
+ * Suma sugerida = suma de precios de exámenes sueltos + suma de exámenes
+ * activos de todos los grupos incluidos. Cuenta cada examen una sola vez
+ * aunque aparezca en ambos (suelto + grupo).
+ */
+async function computePrecioCalculado(
+  db: Db,
+  paqueteId: string,
+): Promise<number> {
+  const linksRes = await db
+    .from("paquetes_examenes")
+    .select("examen_id")
+    .eq("paquete_id", paqueteId);
+  if (linksRes.error) throw new Error(`paquetes.precio: ${linksRes.error.message}`);
+  const sueltosIds = new Set(
+    ((linksRes.data ?? []) as Array<{ examen_id: string }>).map((r) => r.examen_id),
+  );
+
+  const tituloLinksRes = await db
+    .from("paquetes_titulos")
+    .select("titulo_id")
+    .eq("paquete_id", paqueteId);
+  if (tituloLinksRes.error) {
+    throw new Error(`paquetes.precio: ${tituloLinksRes.error.message}`);
+  }
+  const tituloIds = ((tituloLinksRes.data ?? []) as Array<{ titulo_id: string }>).map(
+    (r) => r.titulo_id,
+  );
+
+  let deGrupos: Array<{ id: string; precio_usd: string | number }> = [];
+  if (tituloIds.length > 0) {
+    const grupoRes = await db
+      .from("examenes")
+      .select("id, precio_usd")
+      .in("titulo_id", tituloIds)
+      .eq("activo", true);
+    if (grupoRes.error) throw new Error(`paquetes.precio: ${grupoRes.error.message}`);
+    deGrupos = (grupoRes.data ?? []) as typeof deGrupos;
+  }
+
+  let sueltosPrecios: Array<{ id: string; precio_usd: string | number }> = [];
+  if (sueltosIds.size > 0) {
+    const sueltosRes = await db
+      .from("examenes")
+      .select("id, precio_usd")
+      .in("id", Array.from(sueltosIds))
+      .eq("activo", true);
+    if (sueltosRes.error) throw new Error(`paquetes.precio: ${sueltosRes.error.message}`);
+    sueltosPrecios = (sueltosRes.data ?? []) as typeof sueltosPrecios;
+  }
+
+  const seen = new Set<string>();
+  let total = 0;
+  for (const e of [...deGrupos, ...sueltosPrecios]) {
+    if (seen.has(e.id)) continue;
+    seen.add(e.id);
+    total += Number(e.precio_usd);
+  }
+  return Number(total.toFixed(2));
+}
+
+export async function getById(db: Db, id: string): Promise<PaqueteDetail | null> {
+  const paqRes = await db
+    .from("paquetes")
+    .select("id, nombre, descripcion, precio_base, created_at")
+    .eq("id", id)
+    .limit(1);
+  if (paqRes.error) throw new Error(`paquetes.getById: ${paqRes.error.message}`);
+  const paqRow = paqRes.data?.[0] as PaqueteRow | undefined;
+  if (!paqRow) return null;
+
+  const [examenes, titulos, precioCalculado] = await Promise.all([
+    loadPaqueteExamenes(db, id, false),
+    loadPaqueteTitulos(db, id),
+    computePrecioCalculado(db, id),
+  ]);
 
   return {
-    ...toPaquete(paquete),
-    examenes: examenRows.map(toPaqueteExamen),
+    ...toPaquete(paqRow),
+    examenes,
+    titulos,
+    precio_calculado: precioCalculado,
   };
 }
 
-export async function getExamenes(id: string): Promise<PaqueteExamen[]> {
-  const sql = getSql();
-  const paqueteRows = await sql<{ id: string }[]>`
-    SELECT id
-    FROM paquetes
-    WHERE id = ${id}
-    LIMIT 1
-  `;
-
-  if (!paqueteRows[0]) {
-    throw new Error(PAQUETE_NO_ENCONTRADO);
-  }
-
-  const rows = await sql<PaqueteExamenRow[]>`
-    SELECT e.id,
-           e.titulo_id,
-           e.nombre,
-           e.precio_usd,
-           e.unidad,
-           e.valores_referencia,
-           e.activo,
-           pe.orden
-    FROM paquetes_examenes pe
-    INNER JOIN examenes e ON e.id = pe.examen_id
-    WHERE pe.paquete_id = ${id}
-      AND e.activo = true
-    ORDER BY pe.orden ASC, e.nombre ASC
-  `;
-
-  return rows.map(toPaqueteExamen);
+export async function getExamenes(db: Db, id: string): Promise<PaqueteExamen[]> {
+  const paqRes = await db.from("paquetes").select("id").eq("id", id).limit(1);
+  if (paqRes.error) throw new Error(`paquetes.getExamenes: ${paqRes.error.message}`);
+  if (!paqRes.data?.[0]) throw new Error(PAQUETE_NO_ENCONTRADO);
+  return loadPaqueteExamenes(db, id, true);
 }
 
-export async function create(input: unknown): Promise<Paquete> {
+// ─────────────────────────────────────────────────────────────────────────────
+// Writes
+// ─────────────────────────────────────────────────────────────────────────────
+
+export async function create(db: Db, input: unknown): Promise<Paquete> {
   const parsed = paqueteCreate.safeParse(input);
-  if (!parsed.success) {
-    throw toDomainValidationError(parsed.error);
-  }
+  if (!parsed.success) throw toDomainValidationError(parsed.error);
 
-  const payload = {
-    nombre: parsed.data.nombre,
-    descripcion: parsed.data.descripcion ?? null,
-    precio_base: parsed.data.precio_base,
-  };
+  const { data, error } = await db
+    .from("paquetes")
+    .insert({
+      nombre: parsed.data.nombre,
+      descripcion: parsed.data.descripcion ?? null,
+      precio_base: parsed.data.precio_base,
+    })
+    .select("id, nombre, descripcion, precio_base, created_at")
+    .limit(1);
 
-  const sql = getSql();
-  try {
-    const rows = await sql<PaqueteRow[]>`
-      INSERT INTO paquetes ${sql(payload)}
-      RETURNING id, nombre, descripcion, precio_base, created_at
-    `;
-    return toPaquete(rows[0]!);
-  } catch (error) {
-    mapUniquePaqueteError(error);
+  if (error) {
+    if (isUniqueViolation(error, PAQUETE_UNIQUE_CONSTRAINT)) {
+      throw new Error(PAQUETE_DUPLICADO);
+    }
+    throw new Error(`paquetes.create: ${error.message}`);
   }
+  const row = data?.[0] as PaqueteRow | undefined;
+  if (!row) throw new Error("paquetes.create: sin fila retornada");
+  return toPaquete(row);
 }
 
-export async function update(id: string, input: unknown): Promise<Paquete> {
+export async function update(
+  db: Db,
+  id: string,
+  input: unknown,
+): Promise<Paquete> {
   const parsed = paqueteUpdate.safeParse(input);
-  if (!parsed.success) {
-    throw toDomainValidationError(parsed.error);
-  }
+  if (!parsed.success) throw toDomainValidationError(parsed.error);
 
   const patch: Record<string, unknown> = {};
   if (parsed.data.nombre !== undefined) patch.nombre = parsed.data.nombre;
@@ -282,111 +391,133 @@ export async function update(id: string, input: unknown): Promise<Paquete> {
   if (parsed.data.precio_base !== undefined) patch.precio_base = parsed.data.precio_base;
 
   if (Object.keys(patch).length === 0) {
-    const existing = await getById(id);
+    const existing = await getById(db, id);
     if (!existing) throw new Error(PAQUETE_NO_ENCONTRADO);
     return existing;
   }
 
-  try {
-    const sql = getSql();
-    const columns = Object.keys(patch) as Array<keyof typeof patch>;
-    const rows = await sql<PaqueteRow[]>`
-      UPDATE paquetes
-      SET ${sql(patch, ...columns)}
-      WHERE id = ${id}
-      RETURNING id, nombre, descripcion, precio_base, created_at
-    `;
-
-    const paquete = rows[0];
-    if (!paquete) throw new Error(PAQUETE_NO_ENCONTRADO);
-    return toPaquete(paquete);
-  } catch (error) {
-    mapUniquePaqueteError(error);
+  const { data, error } = await db
+    .from("paquetes")
+    .update(patch)
+    .eq("id", id)
+    .select("id, nombre, descripcion, precio_base, created_at")
+    .limit(1);
+  if (error) {
+    if (isUniqueViolation(error, PAQUETE_UNIQUE_CONSTRAINT)) {
+      throw new Error(PAQUETE_DUPLICADO);
+    }
+    throw new Error(`paquetes.update: ${error.message}`);
   }
+  const row = data?.[0] as PaqueteRow | undefined;
+  if (!row) throw new Error(PAQUETE_NO_ENCONTRADO);
+  return toPaquete(row);
 }
 
-async function deletePaquete(id: string): Promise<Paquete> {
-  const sql = getSql();
-  const rows = await sql<PaqueteRow[]>`
-    DELETE FROM paquetes
-    WHERE id = ${id}
-    RETURNING id, nombre, descripcion, precio_base, created_at
-  `;
+async function deletePaquete(db: Db, id: string): Promise<Paquete> {
+  const before = await db
+    .from("paquetes")
+    .select("id, nombre, descripcion, precio_base, created_at")
+    .eq("id", id)
+    .limit(1);
+  if (before.error) throw new Error(`paquetes.delete: ${before.error.message}`);
+  const row = before.data?.[0] as PaqueteRow | undefined;
+  if (!row) throw new Error(PAQUETE_NO_ENCONTRADO);
 
-  const paquete = rows[0];
-  if (!paquete) throw new Error(PAQUETE_NO_ENCONTRADO);
-  return toPaquete(paquete);
+  const { error } = await db.from("paquetes").delete().eq("id", id);
+  if (error) throw new Error(`paquetes.delete: ${error.message}`);
+  return toPaquete(row);
 }
 
 export { deletePaquete as delete };
 
+/**
+ * Reemplaza el set de exámenes sueltos del paquete. NO toca los grupos
+ * (paquetes_titulos), esa gestión va por `setTitulos`.
+ */
 export async function setExamenes(
+  db: Db,
   id: string,
   examenIdsInput: unknown,
 ): Promise<PaqueteExamen[]> {
-  const examenIds = parseExamenIds(examenIdsInput);
+  const examenIds = parseIds(examenIdsInput);
 
-  try {
-    return await withTransaction(async (tx) => {
-      const paqueteRows = await tx<{ id: string }[]>`
-        SELECT id
-        FROM paquetes
-        WHERE id = ${id}
-        LIMIT 1
-      `;
-      if (!paqueteRows[0]) {
-        throw new Error(PAQUETE_NO_ENCONTRADO);
-      }
+  const paqRes = await db.from("paquetes").select("id").eq("id", id).limit(1);
+  if (paqRes.error) throw new Error(`paquetes.setExamenes: ${paqRes.error.message}`);
+  if (!paqRes.data?.[0]) throw new Error(PAQUETE_NO_ENCONTRADO);
 
-      for (const examenId of examenIds) {
-        const examenRows = await tx<{ id: string }[]>`
-          SELECT id
-          FROM examenes
-          WHERE id = ${examenId}
-            AND activo = true
-          LIMIT 1
-        `;
-        if (!examenRows[0]) {
-          throw new Error(EXAMEN_NO_ENCONTRADO);
-        }
-      }
-
-      await tx`
-        DELETE FROM paquetes_examenes
-        WHERE paquete_id = ${id}
-      `;
-
-      if (examenIds.length > 0) {
-        const values = examenIds.map((examenId, index) => ({
-          paquete_id: id,
-          examen_id: examenId,
-          orden: index + 1,
-        }));
-
-        await tx`
-          INSERT INTO paquetes_examenes ${tx(values, "paquete_id", "examen_id", "orden")}
-        `;
-      }
-
-      const rows = await tx<PaqueteExamenRow[]>`
-        SELECT e.id,
-               e.titulo_id,
-               e.nombre,
-               e.precio_usd,
-               e.unidad,
-               e.valores_referencia,
-               e.activo,
-               pe.orden
-        FROM paquetes_examenes pe
-        INNER JOIN examenes e ON e.id = pe.examen_id
-        WHERE pe.paquete_id = ${id}
-          AND e.activo = true
-        ORDER BY pe.orden ASC, e.nombre ASC
-      `;
-
-      return rows.map(toPaqueteExamen);
-    });
-  } catch (error) {
-    mapSetExamenesError(error);
+  if (examenIds.length > 0) {
+    const activosRes = await db
+      .from("examenes")
+      .select("id")
+      .in("id", examenIds)
+      .eq("activo", true);
+    if (activosRes.error) {
+      throw new Error(`paquetes.setExamenes: ${activosRes.error.message}`);
+    }
+    if ((activosRes.data?.length ?? 0) !== examenIds.length) {
+      throw new Error(EXAMEN_NO_ENCONTRADO);
+    }
   }
+
+  const delRes = await db
+    .from("paquetes_examenes")
+    .delete()
+    .eq("paquete_id", id);
+  if (delRes.error) throw new Error(`paquetes.setExamenes: ${delRes.error.message}`);
+
+  if (examenIds.length > 0) {
+    const values = examenIds.map((examenId, idx) => ({
+      paquete_id: id,
+      examen_id: examenId,
+      orden: idx + 1,
+    }));
+    const insRes = await db.from("paquetes_examenes").insert(values);
+    if (insRes.error) throw new Error(`paquetes.setExamenes: ${insRes.error.message}`);
+  }
+
+  return loadPaqueteExamenes(db, id, true);
+}
+
+/**
+ * Reemplaza el set de GRUPOS (títulos) incluidos por referencia dinámica.
+ */
+export async function setTitulos(
+  db: Db,
+  id: string,
+  tituloIdsInput: unknown,
+): Promise<PaqueteTitulo[]> {
+  const tituloIds = parseIds(tituloIdsInput);
+
+  const paqRes = await db.from("paquetes").select("id").eq("id", id).limit(1);
+  if (paqRes.error) throw new Error(`paquetes.setTitulos: ${paqRes.error.message}`);
+  if (!paqRes.data?.[0]) throw new Error(PAQUETE_NO_ENCONTRADO);
+
+  if (tituloIds.length > 0) {
+    const existRes = await db
+      .from("examenes_titulos")
+      .select("id")
+      .in("id", tituloIds);
+    if (existRes.error) throw new Error(`paquetes.setTitulos: ${existRes.error.message}`);
+    if ((existRes.data?.length ?? 0) !== tituloIds.length) {
+      throw new Error(TITULO_NO_ENCONTRADO);
+    }
+  }
+
+  const delRes = await db
+    .from("paquetes_titulos")
+    .delete()
+    .eq("paquete_id", id);
+  if (delRes.error) throw new Error(`paquetes.setTitulos: ${delRes.error.message}`);
+
+  if (tituloIds.length > 0) {
+    const values = tituloIds.map((tituloId, idx) => ({
+      paquete_id: id,
+      titulo_id: tituloId,
+      orden: idx + 1,
+    }));
+    const insRes = await db.from("paquetes_titulos").insert(values);
+    if (insRes.error) throw new Error(`paquetes.setTitulos: ${insRes.error.message}`);
+  }
+
+  return loadPaqueteTitulos(db, id);
 }

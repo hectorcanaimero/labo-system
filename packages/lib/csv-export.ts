@@ -1,10 +1,10 @@
-import { createClient } from "@insforge/sdk";
+import { saveObject, signDownloadUrl } from "./storage-local";
 
 export function writeCsv(
   rows: Array<Record<string, unknown>>,
   columns: Array<{ key: string; header: string; format?: (val: unknown) => string }>,
 ): string {
-  const BOM = "\uFEFF";
+  const BOM = "﻿";
 
   const headers = columns.map((c) => escapeCsvValue(c.header)).join(",");
 
@@ -34,56 +34,19 @@ function escapeCsvValue(val: unknown): string {
   return str;
 }
 
-function getInsforgeClient(accessToken?: string) {
-  const url = process.env.INSFORGE_URL || process.env.NEXT_PUBLIC_INSFORGE_URL;
-  if (!url) {
-    throw new Error("Missing INSFORGE_URL in environment");
-  }
-
-  const key = process.env.INSFORGE_ANON_KEY || "";
-  const headers: Record<string, string> = {};
-  if (accessToken) {
-    headers["Authorization"] = `Bearer ${accessToken}`;
-  }
-
-  return createClient({
-    baseUrl: url.replace(/\/+$/, ""),
-    anonKey: key,
-    headers,
-  });
+export async function uploadCsv(csv: string, filename: string): Promise<string> {
+  const buffer = Buffer.from(csv, "utf-8");
+  const stored = await saveObject("exports", filename, buffer);
+  return stored.key;
 }
 
-export async function uploadCsv(
-  csv: string,
-  filename: string,
-  accessToken?: string,
-): Promise<string> {
-  const client = getInsforgeClient(accessToken);
-  const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
-
-  const { data, error } = await client.storage
-    .from("exports")
-    .upload(filename, blob);
-
-  if (error) {
-    throw new Error(`Error uploading CSV: ${error.message}`);
-  }
-
-  return data!.key;
-}
-
-export async function getSignedDownloadUrl(
+export function getSignedDownloadUrl(
   objectKey: string,
-  accessToken?: string,
-): Promise<string> {
-  const client = getInsforgeClient(accessToken);
-  const { data, error } = await client.storage
-    .from("exports")
-    .createSignedUrl(objectKey, 3600);
-
-  if (error) {
-    throw new Error(`Error generating signed URL: ${error.message}`);
-  }
-
-  return data!.signedUrl;
+  expiresInSeconds = 3600,
+): string {
+  return signDownloadUrl({
+    bucket: "exports",
+    key: objectKey,
+    expiresInSeconds,
+  });
 }

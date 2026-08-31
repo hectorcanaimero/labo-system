@@ -11,6 +11,16 @@ import {
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { EmptyState, SkeletonTable } from "@labo/ui/feedback";
 
 interface AuditEvent {
@@ -50,9 +60,6 @@ const EMPTY_FILTERS: Filters = {
   hasta: "",
 };
 
-const inputClasses =
-  "h-9 w-full rounded-md border border-input bg-background px-3 text-sm text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1";
-
 function formatDateTime(iso: string): string {
   return new Date(iso).toLocaleString("es-VE", {
     day: "2-digit",
@@ -85,13 +92,15 @@ function FilterInput({
 }) {
   return (
     <label className="flex flex-col gap-1">
-      <span className="text-xs font-medium text-muted-foreground">{label}</span>
-      <input
+      <span className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+        {label}
+      </span>
+      <Input
         type={type}
         value={value}
         placeholder={placeholder}
         onChange={(event) => onChange(event.target.value)}
-        className={inputClasses}
+        className="h-8 text-xs"
       />
     </label>
   );
@@ -157,25 +166,33 @@ export default function AuditPage() {
   );
 
   return (
-    <div className="mx-auto max-w-6xl space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">Auditoría</h1>
-        <p className="text-muted-foreground text-sm">
-          Historial de eventos del sistema. Sólo lectura — registros de
-          auditoría.
+    <div className="mx-auto flex max-w-7xl flex-col gap-4">
+      <header className="flex flex-col gap-1 border-b border-border pb-3">
+        <div className="flex items-baseline gap-3">
+          <h1 className="text-xl font-semibold tracking-tight text-foreground">
+            Auditoría
+          </h1>
+          {data ? (
+            <span className="font-mono text-sm tabular-nums text-muted-foreground">
+              {data.total}
+            </span>
+          ) : null}
+        </div>
+        <p className="text-xs text-muted-foreground">
+          Historial de eventos del sistema — solo lectura.
         </p>
-      </div>
+      </header>
 
-      {/* Filtros */}
+      {/* Filtros densos */}
       <section
         aria-label="Filtros"
-        className="rounded-xl border border-border bg-card p-4 shadow-sm"
+        className="rounded-md border border-border bg-muted/20 p-2"
       >
-        <div className="mb-3 flex items-center gap-2 text-sm font-medium">
-          <Filter className="h-4 w-4" />
+        <div className="mb-2 flex items-center gap-1.5 text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+          <Filter className="h-3 w-3" />
           Filtros
         </div>
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-5">
+        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-5">
           <FilterInput
             label="Usuario"
             value={draft.usuario}
@@ -186,13 +203,13 @@ export default function AuditPage() {
             label="Acción"
             value={draft.accion}
             onChange={(accion) => setDraft((prev) => ({ ...prev, accion }))}
-            placeholder="ej. auth.login"
+            placeholder="auth.login"
           />
           <FilterInput
             label="Entidad"
             value={draft.entity}
             onChange={(entity) => setDraft((prev) => ({ ...prev, entity }))}
-            placeholder="ej. presupuestos"
+            placeholder="presupuestos"
           />
           <FilterInput
             label="Desde"
@@ -207,18 +224,24 @@ export default function AuditPage() {
             type="date"
           />
         </div>
-        <div className="mt-3 flex flex-wrap gap-2">
-          <Button size="sm" onClick={applyFilters} disabled={loading}>
-            <Search className="h-4 w-4" />
+        <div className="mt-2 flex flex-wrap gap-2">
+          <Button
+            size="sm"
+            className="h-8"
+            onClick={applyFilters}
+            disabled={loading}
+          >
+            <Search className="h-3.5 w-3.5" />
             Buscar
           </Button>
           <Button
             size="sm"
-            variant="outline"
+            variant="ghost"
+            className="h-8"
             onClick={clearFilters}
             disabled={loading}
           >
-            <X className="h-4 w-4" />
+            <X className="h-3.5 w-3.5" />
             Limpiar
           </Button>
         </div>
@@ -244,89 +267,97 @@ export default function AuditPage() {
           icon={<ClipboardList className="h-8 w-8" />}
         />
       ) : data ? (
-        <div className="overflow-hidden rounded-xl border border-border bg-card shadow-sm">
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm">
-              <thead className="border-b border-border bg-muted/40 text-xs uppercase tracking-wide text-muted-foreground">
-                <tr>
-                  <th className="px-4 py-3 font-medium">Fecha</th>
-                  <th className="px-4 py-3 font-medium">Usuario</th>
-                  <th className="px-4 py-3 font-medium">Acción</th>
-                  <th className="px-4 py-3 font-medium">Entidad</th>
-                  <th className="px-4 py-3 font-medium">Detalle</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border">
+        <Card className="shadow-none">
+          <CardContent className="p-0">
+            <Table>
+              <TableHeader>
+                <TableRow className="bg-muted/40 hover:bg-muted/40">
+                  <TableHead className="h-9 w-44 py-1.5">Fecha</TableHead>
+                  <TableHead className="h-9 py-1.5">Usuario</TableHead>
+                  <TableHead className="h-9 py-1.5">Acción</TableHead>
+                  <TableHead className="h-9 py-1.5">Entidad</TableHead>
+                  <TableHead className="h-9 py-1.5">Detalle</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
                 {data.items.map((event) => (
-                  <tr key={event.id} className="align-top hover:bg-muted/20">
-                    <td className="whitespace-nowrap px-4 py-3 text-muted-foreground">
+                  <TableRow key={event.id} className="align-top">
+                    <TableCell className="whitespace-nowrap py-1.5 font-mono text-xs tabular-nums text-muted-foreground">
                       {formatDateTime(event.createdAt)}
-                    </td>
-                    <td className="px-4 py-3">
+                    </TableCell>
+                    <TableCell className="py-1.5">
                       {event.usuarioNombre ? (
                         <div>
-                          <div className="font-medium">{event.usuarioNombre}</div>
-                          <div className="text-xs text-muted-foreground">
+                          <div className="text-xs font-medium text-foreground">
+                            {event.usuarioNombre}
+                          </div>
+                          <div className="text-[11px] text-muted-foreground">
                             {event.usuarioEmail}
                           </div>
                         </div>
                       ) : (
-                        <span className="text-muted-foreground">—</span>
+                        <span className="text-xs text-muted-foreground">—</span>
                       )}
-                    </td>
-                    <td className="px-4 py-3">
-                      <code className="rounded bg-muted px-1.5 py-0.5 text-xs">
+                    </TableCell>
+                    <TableCell className="py-1.5">
+                      <code className="rounded bg-muted px-1.5 py-0.5 font-mono text-[11px]">
                         {event.accion}
                       </code>
-                    </td>
-                    <td className="px-4 py-3">
-                      <div className="font-medium">{event.entityType}</div>
+                    </TableCell>
+                    <TableCell className="py-1.5">
+                      <div className="text-xs font-medium text-foreground">
+                        {event.entityType}
+                      </div>
                       {event.entityId ? (
-                        <div className="text-xs text-muted-foreground">
+                        <div className="font-mono text-[11px] tabular-nums text-muted-foreground">
                           {event.entityId}
                         </div>
                       ) : null}
-                    </td>
-                    <td
-                      className="max-w-xs px-4 py-3 text-xs text-muted-foreground"
-                      title={event.metadata ? JSON.stringify(event.metadata) : undefined}
+                    </TableCell>
+                    <TableCell
+                      className="max-w-xs py-1.5 text-[11px] text-muted-foreground"
+                      title={
+                        event.metadata ? JSON.stringify(event.metadata) : undefined
+                      }
                     >
                       {renderMetadata(event.metadata)}
-                    </td>
-                  </tr>
+                    </TableCell>
+                  </TableRow>
                 ))}
-              </tbody>
-            </table>
-          </div>
+              </TableBody>
+            </Table>
 
-          {/* Paginación */}
-          <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border px-4 py-3 text-sm">
-            <span className="text-muted-foreground">
-              {data.total} evento{data.total === 1 ? "" : "s"} · página {data.page}{" "}
-              de {data.totalPages || 1}
-            </span>
-            <div className="flex items-center gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                disabled={data.page <= 1}
-                onClick={() => setPage((prev) => Math.max(1, prev - 1))}
-              >
-                <ChevronLeft className="h-4 w-4" />
-                Anterior
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                disabled={data.page >= data.totalPages}
-                onClick={() => setPage((prev) => prev + 1)}
-              >
-                Siguiente
-                <ChevronRight className="h-4 w-4" />
-              </Button>
+            {/* Paginación compacta */}
+            <div className="flex flex-wrap items-center justify-between gap-2 border-t border-border px-3 py-2 text-xs">
+              <span className="font-mono tabular-nums text-muted-foreground">
+                Página {data.page}/{data.totalPages || 1} · {data.total}{" "}
+                {data.total === 1 ? "evento" : "eventos"}
+              </span>
+              <div className="flex items-center gap-1">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-7 gap-1 text-xs"
+                  disabled={data.page <= 1}
+                  onClick={() => setPage((prev) => Math.max(1, prev - 1))}
+                >
+                  <ChevronLeft className="h-3 w-3" />
+                  Anterior
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-7 gap-1 text-xs"
+                  disabled={data.page >= data.totalPages}
+                  onClick={() => setPage((prev) => prev + 1)}
+                >
+                  Siguiente
+                  <ChevronRight className="h-3 w-3" />
+                </Button>
+              </div>
             </div>
-          </div>
-        </div>
+          </CardContent>
+        </Card>
       ) : null}
     </div>
   );

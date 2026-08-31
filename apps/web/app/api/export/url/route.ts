@@ -1,16 +1,13 @@
 import { NextResponse } from "next/server";
-import { cookies } from "next/headers";
-import { getCurrentUser, AUTH_COOKIE_NAMES, AuthError } from "@/lib/server/auth";
+import { getCurrentUser, AuthError } from "@/lib/server/auth";
 import { getSignedDownloadUrl } from "@labo/lib/csv-export";
 
 export const dynamic = "force-dynamic";
 
 export async function GET(request: Request) {
   try {
-    // 1. Verify user is authenticated
     await getCurrentUser();
 
-    // 2. Parse key from URL
     const url = new URL(request.url);
     const key = url.searchParams.get("key");
 
@@ -21,14 +18,8 @@ export async function GET(request: Request) {
       );
     }
 
-    // 3. Get access token from cookies for InsForge client
-    const jar = cookies();
-    const accessToken = jar.get(AUTH_COOKIE_NAMES.access)?.value;
+    const signedUrl = getSignedDownloadUrl(key);
 
-    // 4. Get signed URL
-    const signedUrl = await getSignedDownloadUrl(key, accessToken);
-
-    // 5. Return it with Cache-Control
     return NextResponse.json(
       { url: signedUrl },
       {
