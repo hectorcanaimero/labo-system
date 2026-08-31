@@ -1,5 +1,8 @@
+import { redirect } from "next/navigation";
+
 import { get as getConfig } from "@labo/db/repos/config";
 import { getLatest } from "@labo/db/repos/tasa";
+import { AuthError, getCurrentUser } from "@/lib/server/auth";
 import { getAdminDb } from "@/lib/db-server";
 
 import { ConfigForm, type ConfigPreloaded, type TasaPreloaded } from "./ConfigForm";
@@ -7,6 +10,18 @@ import { ConfigForm, type ConfigPreloaded, type TasaPreloaded } from "./ConfigFo
 export const dynamic = "force-dynamic";
 
 export default async function ConfigPage() {
+  try {
+    const user = await getCurrentUser();
+    if (user.role !== "admin") {
+      redirect("/dashboard?reason=sin-permisos");
+    }
+  } catch (error) {
+    if (error instanceof AuthError) {
+      redirect(error.code === "UNAUTHENTICATED" ? "/" : "/dashboard?reason=sin-permisos");
+    }
+    throw error;
+  }
+
   const db = getAdminDb();
   const config = await getConfig(db);
   const latest = await getLatest(db);

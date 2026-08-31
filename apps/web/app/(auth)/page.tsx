@@ -1,10 +1,19 @@
+import { redirect } from "next/navigation";
+
+import { tryGetCurrentUser } from "@/lib/server/auth";
+
 import { LoginForm } from "./login/LoginForm";
+
+export const dynamic = "force-dynamic";
 
 interface Props {
   searchParams: { reset?: string };
 }
 
-export default function LoginPage({ searchParams }: Props) {
+export default async function LoginPage({ searchParams }: Props) {
+  const user = await tryGetCurrentUser();
+  if (user) redirect("/dashboard");
+
   const resetOk = searchParams.reset === "ok";
 
   return (
