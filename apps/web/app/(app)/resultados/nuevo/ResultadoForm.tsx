@@ -10,6 +10,7 @@ import {
   Plus,
   Save,
   Search,
+  Sparkles,
   Trash2,
   UserRound,
 } from "lucide-react";
@@ -179,6 +180,52 @@ export function ResultadoForm({ mode, initialData, onSaved, onCancelEdit }: Resu
   const [packageError, setPackageError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiError, setAiError] = useState<string | null>(null);
+  const [aiNotice, setAiNotice] = useState<string | null>(null);
+  const aiEnabled = process.env.NEXT_PUBLIC_AI_OBSERVACIONES_ENABLED === "true";
+
+  async function handleSugerirObservacion(): Promise<void> {
+    const texto = observaciones.trim();
+    if (!texto) {
+      setAiError("Escribe primero un borrador para que el asistente lo mejore.");
+      return;
+    }
+    setAiError(null);
+    setAiNotice(null);
+    setAiLoading(true);
+    try {
+      const res = await fetch("/api/ai/observaciones", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ texto }),
+      });
+      const data = (await res.json().catch(() => ({}))) as {
+        sugerencia?: string;
+        error?: string;
+        message?: string;
+        retry_after_sec?: number;
+      };
+      if (!res.ok || !data.sugerencia) {
+        if (res.status === 429) {
+          setAiError(
+            `Demasiadas solicitudes. Intenta nuevamente en ${data.retry_after_sec ?? 30}s.`,
+          );
+        } else if (data.error === "AI_DISABLED") {
+          setAiError("El asistente está deshabilitado en este entorno.");
+        } else {
+          setAiError(data.message ?? "No se pudo generar la sugerencia. Intenta de nuevo.");
+        }
+        return;
+      }
+      setObservaciones(data.sugerencia);
+      setAiNotice("Sugerencia aplicada. Revisa y edita antes de guardar.");
+    } catch (err) {
+      setAiError(err instanceof Error ? err.message : "Error de red al contactar el asistente.");
+    } finally {
+      setAiLoading(false);
+    }
+  }
 
   const estado = useMemo(() => inferEstado(fechaResultado), [fechaResultado]);
   const canSubmit = Boolean(selectedPaciente?.id || initialData?.paciente_id) && Boolean(fechaMuestra) && lineas.length > 0;
@@ -395,16 +442,52 @@ export function ResultadoForm({ mode, initialData, onSaved, onCancelEdit }: Resu
           />
         </label>
 
-        <label className="space-y-2 text-sm font-medium lg:col-span-2">
-          <span>Observaciones generales</span>
+        <div className="space-y-2 text-sm font-medium lg:col-span-2">
+          <div className="flex items-center justify-between gap-2">
+            <label htmlFor="observaciones-generales" className="cursor-pointer">
+              Observaciones generales
+            </label>
+            {aiEnabled ? (
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={handleSugerirObservacion}
+                disabled={aiLoading || !observaciones.trim()}
+                className="h-8 gap-1.5 px-2 text-xs font-medium"
+                title="Reescribe el borrador en registro técnico venezolano"
+              >
+                {aiLoading ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                ) : (
+                  <Sparkles className="h-3.5 w-3.5" />
+                )}
+                {aiLoading ? "Sugiriendo…" : "Sugerir redacción"}
+              </Button>
+            ) : null}
+          </div>
           <textarea
+            id="observaciones-generales"
             rows={4}
             value={observaciones}
-            onChange={(event) => setObservaciones(event.target.value)}
+            onChange={(event) => {
+              setObservaciones(event.target.value);
+              if (aiError) setAiError(null);
+              if (aiNotice) setAiNotice(null);
+            }}
             placeholder="Notas para el informe, hallazgos o aclaratorias."
             className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
           />
-        </label>
+          {aiError ? (
+            <p className="text-xs font-normal text-destructive">{aiError}</p>
+          ) : aiNotice ? (
+            <p className="text-xs font-normal text-muted-foreground">{aiNotice}</p>
+          ) : aiEnabled ? (
+            <p className="text-xs font-normal text-muted-foreground">
+              El asistente reescribe tu borrador en registro técnico. La revisión final la haces tú.
+            </p>
+          ) : null}
+        </div>
       </section>
 
       <section className="rounded-2xl border border-border bg-card p-6 shadow-sm">

@@ -42,6 +42,7 @@ export default async function ResultadoDetallePage({ params }: { params: { id: s
           medico_solicitante: resultado.medico_solicitante,
           estado: resultado.estado,
           observaciones: resultado.observaciones,
+          origen_presupuesto_id: resultado.origen_presupuesto_id ?? null,
           created_at: resultado.created_at,
           patient: {
             id: paciente.id,

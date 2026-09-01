@@ -5,6 +5,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   ArrowLeft,
+  ClipboardList,
   Download,
   FileText,
   PencilLine,
@@ -26,6 +27,7 @@ interface ResultadoDetalleProps {
     medico_solicitante: string | null;
     estado: "Registrada" | "Muestra tomada" | "En proceso" | "Validando" | "Entregada" | "Anulada";
     observaciones: string | null;
+    origen_presupuesto_id: string | null;
     created_at: string;
     patient: {
       id: string;
@@ -204,9 +206,24 @@ export function ResultadoDetalle({ role, initialData }: ResultadoDetalleProps) {
       </section>
 
       <section className="rounded-2xl border border-border bg-card shadow-sm">
-        <div className="border-b border-border p-6">
-          <h2 className="text-lg font-semibold">Detalle de exámenes</h2>
-          <p className="text-sm text-muted-foreground">Valores observados, unidades y referencias guardadas en el snapshot del resultado.</p>
+        <div className="flex flex-col gap-3 border-b border-border p-6 md:flex-row md:items-start md:justify-between">
+          <div>
+            <h2 className="text-lg font-semibold">Detalle de exámenes</h2>
+            <p className="text-sm text-muted-foreground">Valores observados, unidades y referencias guardadas en el snapshot del resultado.</p>
+          </div>
+          {initialData.origen_presupuesto_id ? (
+            <Link
+              href={`/presupuestos/${initialData.origen_presupuesto_id}`}
+              className="inline-flex items-center gap-2 self-start rounded-full border border-border bg-muted/40 px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+              title="Ver el presupuesto que originó esta orden"
+            >
+              <ClipboardList className="h-3.5 w-3.5" />
+              Precargados desde presupuesto
+              <span className="font-mono text-[10px] text-muted-foreground/70">
+                #{initialData.origen_presupuesto_id.slice(0, 8)}
+              </span>
+            </Link>
+          ) : null}
         </div>
 
         <div className="p-6">
@@ -218,30 +235,35 @@ export function ResultadoDetalle({ role, initialData }: ResultadoDetalleProps) {
               icon={<FileText className="h-5 w-5" />}
             />
           ) : (
-            <div className="grid gap-4 md:grid-cols-2">
-              {initialData.examenes.map((examen, index) => (
-                <article key={`${examen.examen_id}-${index}`} className="rounded-xl border border-border bg-background/60 p-4">
-                  <div className="flex items-start justify-between gap-4">
-                    <div>
-                      <h3 className="font-semibold text-foreground">{examen.nombre_snap}</h3>
-                      <p className="mt-1 text-sm text-muted-foreground">
-                        Valor: <span className="font-medium text-foreground">{examen.valor || "—"}</span>
-                        {examen.unidad_snap ? ` ${examen.unidad_snap}` : ""}
-                      </p>
-                    </div>
-                    <span className="rounded-full bg-muted px-2.5 py-1 text-xs font-medium text-muted-foreground">
-                      #{index + 1}
-                    </span>
-                  </div>
-
-                  {examen.valores_referencia_snap ? (
-                    <p className="mt-3 text-xs text-muted-foreground">Referencia: {examen.valores_referencia_snap}</p>
-                  ) : null}
-                  {examen.observacion ? (
-                    <p className="mt-2 text-sm text-muted-foreground">Observación: {examen.observacion}</p>
-                  ) : null}
-                </article>
-              ))}
+            <div className="overflow-x-auto rounded-xl border border-border">
+              <table className="min-w-full divide-y divide-border text-sm">
+                <thead className="bg-muted/40 text-left text-muted-foreground">
+                  <tr>
+                    <th className="w-12 px-4 py-3 text-center font-medium">#</th>
+                    <th className="px-4 py-3 font-medium">Examen</th>
+                    <th className="px-4 py-3 font-medium">Valor</th>
+                    <th className="px-4 py-3 font-medium">Unidad</th>
+                    <th className="px-4 py-3 font-medium">Referencia</th>
+                    <th className="px-4 py-3 font-medium">Observación</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border">
+                  {initialData.examenes.map((examen, index) => (
+                    <tr key={`${examen.examen_id}-${index}`} className="align-top">
+                      <td className="px-4 py-3 text-center text-xs text-muted-foreground">{index + 1}</td>
+                      <td className="px-4 py-3 font-medium text-foreground">{examen.nombre_snap}</td>
+                      <td className="px-4 py-3 font-medium text-foreground">{examen.valor || "—"}</td>
+                      <td className="px-4 py-3 text-muted-foreground">{examen.unidad_snap || "—"}</td>
+                      <td className="px-4 py-3 text-xs text-muted-foreground">
+                        {examen.valores_referencia_snap || "—"}
+                      </td>
+                      <td className="px-4 py-3 text-muted-foreground">
+                        {examen.observacion || "—"}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           )}
         </div>
