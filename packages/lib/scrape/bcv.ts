@@ -1,18 +1,18 @@
 // Adquisición de la tasa USD/VES desde DolarAPI Venezuela.
 //
-// Endpoint: https://ve.dolarapi.com/v1/dolares
-//   [
-//     { fuente: "oficial",  nombre: "Dólar",    promedio: 791.67,  fechaActualizacion: "..." },
-//     { fuente: "paralelo", nombre: "Paralelo", promedio: 922.97,  fechaActualizacion: "..." }
-//   ]
+// Endpoints directos (un objeto por llamada, sin array):
+//   https://ve.dolarapi.com/v1/dolares/oficial
+//   https://ve.dolarapi.com/v1/dolares/paralelo
+//
+// { moneda, fuente, nombre, compra, venta, promedio, fechaActualizacion }
 //
 // Reemplaza el scraping directo de bcv.org.ve (cadena TLS incompleta + selector
-// frágil). DolarAPI expone la MISMA tasa que publica BCV bajo `fuente=oficial`,
-// con TLS válido y JSON estable — `fetch` nativo alcanza.
+// frágil). DolarAPI expone la MISMA tasa que publica BCV bajo `oficial`, con
+// TLS válido y JSON estable — `fetch` nativo alcanza.
 //
 // Estrategia (patrón external-indicators de guayana-news):
-//   - scrapeBcv() -> busca la entrada `oficial` (equivale a la tasa BCV)
-//   - scrapeDolarToday() -> fallback: busca la entrada `paralelo`
+//   - scrapeBcv() -> GET /oficial (equivale a la tasa BCV)
+//   - scrapeDolarToday() -> fallback: GET /paralelo
 //   - Retries acotados en timeout/5xx, backoff 1s / 3s
 //   - Sanity check de rango; fail-closed si falta el campo o es inválido
 //   - La persistencia guarda `fuente: "bcv"` para oficial y `"dolartoday"` para
@@ -20,7 +20,7 @@
 
 export const STALE_MS = 24 * 60 * 60 * 1000;
 
-const DOLAR_API_URL = "https://ve.dolarapi.com/v1/dolares";
+const DOLAR_API_BASE = "https://ve.dolarapi.com/v1/dolares";
 const REQUEST_TIMEOUT_MS = 10_000;
 const RETRY_DELAYS_MS = [1_000, 3_000];
 
@@ -76,8 +76,8 @@ async function withRetry<T>(
   throw lastError;
 }
 
-async function fetchDolarApi(): Promise<DolarApiEntry[]> {
-  const res = await fetch(DOLAR_API_URL, {
+async function fetchDolarEntry(fuente: "oficial" | "paralelo"): Promise<DolarApiEntry> {
+  const res = await fetch(`${DOLAR_API_BASE}/${fuente}`, {
     headers: { Accept: "application/json" },
     signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
   });
@@ -88,12 +88,12 @@ async function fetchDolarApi(): Promise<DolarApiEntry[]> {
     });
   }
   const json = (await res.json()) as unknown;
-  if (!Array.isArray(json)) {
-    throw Object.assign(new Error("dolarapi.parse_error: respuesta no es array"), {
+  if (!json || typeof json !== "object" || Array.isArray(json)) {
+    throw Object.assign(new Error("dolarapi.parse_error: respuesta no es objeto"), {
       code: "dolarapi_parse_error",
     });
   }
-  return json as DolarApiEntry[];
+  return json as DolarApiEntry;
 }
 
 /**
@@ -134,27 +134,17 @@ function todayVe(): Date {
   );
 }
 
-function pickEntry(entries: DolarApiEntry[], fuente: string): DolarApiEntry | null {
-  return entries.find((e) => e.fuente?.toLowerCase() === fuente) ?? null;
-}
-
 /**
  * Tasa OFICIAL (equivalente a BCV) via DolarAPI. Retries acotados.
  * Códigos:
  *   - `dolarapi_http_error` → 5xx/429/403/timeout
- *   - `dolarapi_parse_error` → JSON inválido o `oficial` ausente
+ *   - `dolarapi_parse_error` → JSON inválido / no es objeto
  *   - `tasa_invalida` → `promedio` fuera de rango o no numérico
  */
 export async function scrapeBcv({
   now = () => new Date(),
 }: { now?: () => Date } = {}): Promise<ScrapeResult> {
-  const entries = await withRetry(() => fetchDolarApi());
-  const oficial = pickEntry(entries, "oficial");
-  if (!oficial) {
-    throw Object.assign(new Error("dolarapi.parse_error: entrada 'oficial' ausente"), {
-      code: "dolarapi_parse_error",
-    });
-  }
+  const oficial = await withRetry(() => fetchDolarEntry("oficial"));
   const tasa = parseTasa(oficial.promedio);
   const fecha = parseFecha(oficial.fechaActualizacion) ?? todayVe();
   logEvent("oficial.parse.ok", { tasa, fecha_valor: oficial.fechaActualizacion ?? null });
@@ -162,19 +152,13 @@ export async function scrapeBcv({
 }
 
 /**
- * Fallback PARALELO via DolarAPI (misma llamada). Se usa sólo si `oficial` falló.
+ * Fallback PARALELO via DolarAPI. Se usa sólo si `oficial` falló.
  * La `fuente` persistida es `"dolartoday"` por compat con el CHECK del schema.
  */
 export async function scrapeDolarToday({
   now = () => new Date(),
 }: { now?: () => Date } = {}): Promise<ScrapeResult> {
-  const entries = await withRetry(() => fetchDolarApi());
-  const paralelo = pickEntry(entries, "paralelo");
-  if (!paralelo) {
-    throw Object.assign(new Error("dolarapi.parse_error: entrada 'paralelo' ausente"), {
-      code: "dolarapi_parse_error",
-    });
-  }
+  const paralelo = await withRetry(() => fetchDolarEntry("paralelo"));
   const tasa = parseTasa(paralelo.promedio);
   const fecha = parseFecha(paralelo.fechaActualizacion) ?? todayVe();
   logEvent("paralelo.parse.ok", { tasa, fecha_valor: paralelo.fechaActualizacion ?? null });

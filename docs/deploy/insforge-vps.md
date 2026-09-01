@@ -137,42 +137,48 @@ curl -X POST https://insforge.rvlaboratorio.com/api/cron/cleanup-exports \
 
 Si el secret es incorrecto o no se provee, el servidor responderá con un código de estado `401 Unauthorized`.
 
-### 2. Scrape diario de la tasa BCV (09:00 VET / 13:00 UTC)
+### 2. Scrape horario de la tasa BCV (06:00 → 20:00 VET, cada hora)
 
-Dispara el scraper `POST /api/cron/scrape-bcv` (ADR-11: crontab del VPS → Route
-Handler). El handler scrapea `bcv.org.ve`, con fallback a DolarAPI (`fuente:
-"dolartoday"`), persiste en `tasa_cambio_bcv` y deja traza en `audit_log`. Un
-fallo total devuelve `200` con `success: false` (para no disparar reintentos del
-crontab); la alerta de tasa vieja la cubre F3.3.T4.
+Dispara el scraper `POST /api/cron/scrape-bcv` (Coolify Scheduled Task → Route
+Handler). El handler consulta DolarAPI (`ve.dolarapi.com/v1/dolares/oficial`)
+con fallback a `/paralelo` (`fuente: "dolartoday"`), persiste en
+`tasa_cambio_bcv` y deja traza en `audit_log`. Un fallo total devuelve `200`
+con `success: false` (para no disparar reintentos); la alerta de tasa vieja
+la cubre F3.3.T4.
 
-- **Frecuencia**: Diario a las 13:00 UTC = 09:00 VET (Venezuela es UTC−4 fijo,
-  sin horario de verano).
-- **Línea de crontab recomendada**:
-  ```bash
-  0 13 * * * curl -X POST https://insforge.rvlaboratorio.com/api/cron/scrape-bcv -H "x-cron-secret: TU_CRON_SECRET_AQUI" -s > /dev/null
-  ```
+- **Frecuencia**: Cada hora en punto, de 06:00 a 20:00 VET (15 disparos/día).
+  Venezuela es UTC−4 fijo, sin horario de verano → en UTC son las 10:00 a 00:00
+  (medianoche del día siguiente).
+- **Expresión cron** (según TZ del contenedor):
+  - Contenedor en UTC (default de la imagen Node): `0 10-23,0 * * *`
+  - Contenedor con `TZ=America/Caracas`: `0 6-20 * * *`
 
-#### Paso a paso para activarla en el VPS
+#### Paso a paso para activarla en Coolify
 
-1. Entrar por SSH al VPS.
-2. Editar el crontab del usuario que corre el stack (`root` o el user del deploy):
-   ```bash
-   crontab -e
-   ```
-   Si preferís no abrir el editor, podés agregar la línea de forma idempotente:
-   ```bash
-   crontab -l 2>/dev/null | grep -q "api/cron/scrape-bcv" || \
-     (crontab -l 2>/dev/null; echo '0 13 * * * curl -X POST https://insforge.rvlaboratorio.com/api/cron/scrape-bcv -H "x-cron-secret: TU_CRON_SECRET_AQUI" -s > /dev/null') | crontab -
-   ```
-3. Guardar y verificar que quedó activa:
-   ```bash
-   crontab -l | grep scrape-bcv
-   ```
+1. Ir a la aplicación `labo-web` en el panel de Coolify.
+2. Solapa **Scheduled Tasks** → **+ Add**.
+3. Completar:
+   - **Name**: `scrape-bcv-hourly`
+   - **Command** (ajustar `PORT` al que exponga tu servicio en Coolify — por
+     defecto `next start` usa 3000, pero Coolify puede inyectar otro vía la env
+     `PORT`):
+     ```bash
+     curl -X POST http://localhost:${PORT:-3000}/api/cron/scrape-bcv -H "x-cron-secret: $CRON_SECRET" -s -o /dev/null -w "%{http_code}\n"
+     ```
+     (corre dentro del contenedor → `localhost` evita salir por Cloudflare y no
+     depende del certificado TLS público)
+   - **Frequency**: `0 10-23,0 * * *` (asumiendo contenedor en UTC — es lo
+     default). Si seteás `TZ=America/Caracas` en las env vars del servicio, usá
+     `0 6-20 * * *`.
+4. Guardar. Coolify recrea el contenedor y arma la tarea programada.
+5. Verificar en la solapa **Scheduled Tasks** que aparece "Last Run" al pasar
+   la próxima hora en punto.
 
-> El `curl` no requiere la app levantada a nivel local: pega contra el dominio
-> público (`https://insforge.rvlaboratorio.com`) proxeado por Cloudflare. Si el
-> contenedor de la web app estuviera caído, el cron fallará silenciosamente
-> (mitigado por `restart: unless-stopped` + alerta de uptime, F4).
+> El `curl` corre dentro del contenedor de la web, así que `CRON_SECRET` se
+> resuelve desde las env vars del propio servicio — no hay que exponerlo en el
+> comando. Si preferís pegar contra el dominio público, cambiá el `localhost` por
+> `https://insforge.rvlaboratorio.com` (más lento y depende de Cloudflare, pero
+> sirve para testear que el path externo esté sano).
 
 #### Pruebas de ejecución manual
 
