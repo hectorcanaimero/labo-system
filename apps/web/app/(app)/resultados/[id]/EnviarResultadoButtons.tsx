@@ -28,6 +28,8 @@ const MENSAJES_ERROR: Record<string, string> = {
   PACIENTE_SIN_EMAIL: "El paciente no tiene un correo cargado.",
   ORDEN_NO_ENCONTRADA: "No se encontró la orden.",
   UNAUTHORIZED: "No tenés permisos para enviar resultados.",
+  ENLACES_TABLA_FALTANTE:
+    "Falta aplicar la migración 0014 en este entorno. Avisá a soporte técnico.",
 };
 
 export function EnviarResultadoButtons({
@@ -50,12 +52,18 @@ export function EnviarResultadoButtons({
         body: JSON.stringify({ canal }),
       });
       const body = (await response.json().catch(() => null)) as
-        | { whatsappUrl?: string; enviadoA?: string; error?: string }
+        | { whatsappUrl?: string; enviadoA?: string; error?: string; detalle?: string }
         | null;
 
       if (!response.ok) {
+        // Sin `detalle` el operador sólo ve "no se pudo" y hay que ir al VPS a
+        // leer logs para saber por qué. Lo mostramos cuando el backend lo manda.
+        const conocido = MENSAJES_ERROR[body?.error ?? ""];
         throw new Error(
-          MENSAJES_ERROR[body?.error ?? ""] ?? "No se pudo enviar el resultado.",
+          conocido ??
+            (body?.detalle
+              ? `No se pudo enviar el resultado: ${body.detalle}`
+              : "No se pudo enviar el resultado."),
         );
       }
 

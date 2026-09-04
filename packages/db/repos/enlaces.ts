@@ -13,6 +13,33 @@ import type { Db } from "../sdk";
 
 export const ENLACE_NO_ENCONTRADO = "ENLACE_NO_ENCONTRADO";
 
+/**
+ * La tabla no existe todavía: falta aplicar la migración 0014 en ese entorno.
+ * Se distingue del resto de errores para que el endpoint pueda decir QUÉ hacer
+ * en vez de un 500 opaco.
+ */
+export const ENLACES_TABLA_FALTANTE = "ENLACES_TABLA_FALTANTE";
+
+/**
+ * PostgREST reporta la tabla ausente de dos formas según si el error viene del
+ * planner (`42P01 undefined_table`) o del schema cache (`PGRST205`, típico
+ * cuando la migración corrió pero el cache no se recargó).
+ */
+function esTablaFaltante(error: { code?: string; message?: string }): boolean {
+  const code = error.code ?? "";
+  if (code === "42P01" || code === "PGRST205") return true;
+  const message = (error.message ?? "").toLowerCase();
+  return (
+    message.includes("enlaces_resultado") &&
+    (message.includes("does not exist") || message.includes("schema cache"))
+  );
+}
+
+function fallar(scope: string, error: { code?: string; message?: string }): never {
+  if (esTablaFaltante(error)) throw new Error(ENLACES_TABLA_FALTANTE);
+  throw new Error(`${scope}: ${error.message ?? "error desconocido"}`);
+}
+
 const ENLACE_COLS = "id, slug, orden_id, expira_en, created_at, created_by";
 
 /** Vigencia por defecto del enlace. */
@@ -48,7 +75,7 @@ export async function crearOReutilizar(
     .gt("expira_en", ahora.toISOString())
     .order("expira_en", { ascending: false })
     .limit(1);
-  if (vigente.error) throw new Error(`enlaces.crearOReutilizar: ${vigente.error.message}`);
+  if (vigente.error) fallar("enlaces.crearOReutilizar", vigente.error);
 
   const existente = (vigente.data?.[0] as EnlaceResultado | undefined) ?? null;
   if (existente) return existente;
@@ -64,7 +91,7 @@ export async function crearOReutilizar(
     })
     .select(ENLACE_COLS)
     .limit(1);
-  if (ins.error) throw new Error(`enlaces.crearOReutilizar insert: ${ins.error.message}`);
+  if (ins.error) fallar("enlaces.crearOReutilizar insert", ins.error);
 
   const creado = (ins.data?.[0] as EnlaceResultado | undefined) ?? null;
   if (!creado) throw new Error("enlaces.crearOReutilizar: insert sin retorno");
@@ -82,7 +109,7 @@ export async function getBySlug(db: Db, slug: string): Promise<EnlaceResultado |
     .select(ENLACE_COLS)
     .eq("slug", slug)
     .limit(1);
-  if (error) throw new Error(`enlaces.getBySlug: ${error.message}`);
+  if (error) fallar("enlaces.getBySlug", error);
 
   const row = (data?.[0] as EnlaceResultado | undefined) ?? null;
   if (!row) return null;
