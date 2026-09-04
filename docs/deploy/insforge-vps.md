@@ -109,6 +109,30 @@ La estrategia de acceso (presigned vs direct upload) es **dinámica** según
 `S3_USE_PRESIGNED_URLS`: el cliente debe leer la respuesta del backend y no
 asumir una forma fija.
 
+### Storage local en el servicio `labo-web` (GUR-16)
+
+Los buckets los sirve `packages/lib/storage-local.ts` desde el filesystem del
+contenedor de Next.js. **Dos env vars obligatorias en Coolify**; si faltan, el
+upload de logo / firma / sello falla:
+
+| Variable                 | Default              | Qué pasa si falta                                                                 |
+| ------------------------ | -------------------- | --------------------------------------------------------------------------------- |
+| `STORAGE_ROOT`           | `<cwd>/.storage`     | El default vive dentro del build → **los assets se pierden en cada redeploy**       |
+| `STORAGE_SIGNING_SECRET` | — (obligatoria)      | `signDownloadUrl` lanza → `GET /api/config/assets/url` responde 500 y no hay preview |
+
+```bash
+# Generar el secreto (mínimo 32 caracteres)
+openssl rand -hex 32
+```
+
+En producción montar un **volumen persistente** en Coolify (p.ej. `/data/storage`)
+y apuntar `STORAGE_ROOT` ahí. En dev local alcanza con el default o
+`STORAGE_ROOT=./.storage`.
+
+Diagnóstico rápido: el uploader de `/config` ahora muestra el error que devuelve
+el Route Handler (`EACCES`, `ENOENT`, `UNAUTHORIZED`, `ASSET_MIME_INVALIDO`…),
+así que el motivo real se lee directo en pantalla.
+
 ## Messaging (SMTP)
 
 Configurado con Resend:
@@ -280,6 +304,14 @@ warm-up re-implementada en la Edge Function.
 Template completo en [`.env.example`](../../.env.example): `INSFORGE_URL`,
 `NEXT_PUBLIC_INSFORGE_URL`, `INSFORGE_ANON_KEY`, `DATABASE_URL` (solo alcanzable
 desde el VPS o por túnel SSH) y `CRON_SECRET`.
+
+Faltan en ese template (pendiente de agregarlas ahí) y son necesarias para el
+upload de logo / firma / sello — ver [Storage local](#storage-local-en-el-servicio-labo-web-gur-16):
+
+```bash
+STORAGE_ROOT=/data/storage          # volumen persistente montado en Coolify
+STORAGE_SIGNING_SECRET=             # openssl rand -hex 32 (mínimo 32 chars)
+```
 
 ## Checklist F0.0.T1
 

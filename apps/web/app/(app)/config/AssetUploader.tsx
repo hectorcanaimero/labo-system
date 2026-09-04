@@ -13,6 +13,21 @@ interface AssetUploaderProps {
   onError: (error: string) => void;
 }
 
+/**
+ * Devuelve el `error` que mandó el Route Handler. Sin esto el usuario ve
+ * siempre "No se pudo subir el archivo" y el motivo real (EACCES en
+ * STORAGE_ROOT, UNAUTHORIZED, ASSET_MIME_INVALIDO...) queda solo en el server.
+ */
+async function readApiError(res: Response): Promise<string> {
+  try {
+    const body = (await res.json()) as { error?: unknown };
+    if (typeof body?.error === "string" && body.error) return body.error;
+  } catch {
+    // respuesta sin JSON — caemos al status
+  }
+  return `HTTP ${res.status}`;
+}
+
 export function AssetUploader({ type, label, description, onSuccess, onError }: AssetUploaderProps) {
   const [uploading, setUploading] = useState(false);
   const [localPreview, setLocalPreview] = useState<string | null>(null);
@@ -24,16 +39,24 @@ export function AssetUploader({ type, label, description, onSuccess, onError }: 
     let cancelled = false;
     setLoadingAsset(true);
     fetch(`/api/config/assets/url?type=${type}`)
-      .then((res) => (res.ok ? res.json() : null))
+      .then(async (res) => {
+        // Un 500 acá (típico: STORAGE_SIGNING_SECRET sin configurar) dejaba el
+        // preview vacío en silencio y parecía que el upload no había andado.
+        if (!res.ok) throw new Error(await readApiError(res));
+        return res.json();
+      })
       .then((data: { url?: string | null } | null) => {
         if (cancelled) return;
         setCurrentAssetUrl(data && typeof data.url === "string" ? data.url : null);
         setLoadingAsset(false);
       })
-      .catch(() => {
+      .catch((err: unknown) => {
         if (cancelled) return;
         setCurrentAssetUrl(null);
         setLoadingAsset(false);
+        onError(
+          `No se pudo cargar el ${label} actual: ${err instanceof Error ? err.message : "error desconocido"}`,
+        );
       });
     return () => {
       cancelled = true;
@@ -70,7 +93,9 @@ export function AssetUploader({ type, label, description, onSuccess, onError }: 
         body: form,
       });
       if (!uploadRes.ok) {
-        throw new Error("No se pudo subir el archivo.");
+        throw new Error(
+          `No se pudo subir el archivo: ${await readApiError(uploadRes)}`,
+        );
       }
       const { key } = (await uploadRes.json()) as { key: string };
 
@@ -80,7 +105,9 @@ export function AssetUploader({ type, label, description, onSuccess, onError }: 
         body: JSON.stringify({ type, key }),
       });
       if (!setRes.ok) {
-        throw new Error("No se pudo asociar el archivo a la configuración.");
+        throw new Error(
+          `No se pudo asociar el archivo a la configuración: ${await readApiError(setRes)}`,
+        );
       }
 
       setCurrentAssetUrl(objectUrl);

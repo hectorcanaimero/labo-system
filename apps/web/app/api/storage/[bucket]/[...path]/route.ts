@@ -1,5 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
-import type { Readable } from "node:stream";
+import { Readable } from "node:stream";
 
 import {
   objectExists,
@@ -53,7 +53,6 @@ export async function GET(
   }
 
   const nodeStream = openReadStream(bucket, key) as unknown as Readable;
-  // @ts-expect-error — Web Streams desde Node stream (Node 18+)
   const webStream = Readable.toWeb(nodeStream) as ReadableStream;
 
   return new Response(webStream, {
