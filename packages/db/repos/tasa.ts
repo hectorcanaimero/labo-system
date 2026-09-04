@@ -107,7 +107,8 @@ export async function setManual(
  * Persistencia desde scraper (BCV o fallback). Aplica guardas del patrón
  * external-indicators de guayana-news:
  *   - fail-closed: si `tasa` es inválida, tira (no persiste).
- *   - anti-outlier: variación > `MAX_CHANGE_RATIO` vs LKG => rechaza.
+ *   - anti-outlier: variación > `MAX_CHANGE_RATIO` vs LKG => rechaza, salvo que
+ *     el LKG esté stale (>24h) — ver comentario en el cuerpo.
  *   - last-known-good: nunca se escribe `null` ni se borra la tasa previa.
  *
  * Retorna `{ id, skipped: false }` si insertó, o `{ id: null, skipped: true, reason }`
@@ -122,7 +123,11 @@ export async function setFromScraper(
   }
 
   const previous = await getLatest(db);
-  if (previous && previous.tasa > 0 && MAX_CHANGE_RATIO > 0) {
+  // ponytail: la guarda anti-outlier se desactiva cuando el LKG está stale (>24h).
+  // Sin esto la guarda se auto-bloquea: si el rechazo no escribe nada, el LKG viejo
+  // queda fijo y TODO scrape posterior vuelve a caer fuera de rango, para siempre.
+  // Una tasa que no se actualiza hace más de un día ya no es una referencia confiable.
+  if (previous && !previous.stale && previous.tasa > 0 && MAX_CHANGE_RATIO > 0) {
     const ratio = Math.abs(input.tasa - previous.tasa) / previous.tasa;
     if (ratio > MAX_CHANGE_RATIO) {
       return {

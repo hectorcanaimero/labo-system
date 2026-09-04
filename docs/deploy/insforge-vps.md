@@ -196,7 +196,16 @@ Respuestas esperadas:
 - `200` con `{"success":true,"id":"...","fuente":"bcv","tasa":...}` → scrape OK.
 - `200` con `{"success":false,"error":"bcv_scrape_failed",...}` → ambas fuentes
   fallaron; quedó un warning en `audit_log`.
-- `401 Unauthorized` → secret faltante o incorrecto.
+- `200` con `{"success":false,"skipped":true,"reason":"variacion_..."}` → el
+  scrape anduvo pero la guarda anti-outlier rechazó el valor: la variación
+  contra la última tasa guardada supera `BCV_MAX_CHANGE_RATIO` (default `0.5`).
+  Desde GUR-14 la guarda se ignora si la última tasa tiene más de 24h, así que
+  esto se destraba solo; si aparece con una tasa fresca, revisar el valor o
+  subir `BCV_MAX_CHANGE_RATIO`. Deja traza en `audit_log`
+  (`cron.scrape-bcv.failed`, `primary_code: "rejected_outlier"`).
+- `401 Unauthorized` → secret faltante o incorrecto. Verificar que `CRON_SECRET`
+  esté seteado en las env vars del servicio en Coolify.
+- `500 server_misconfigured` → falta `CRON_SECRET` en el contenedor.
 
 Para verificar que corrió, revisar el `audit_log` (acciones
 `cron.scrape-bcv` / `cron.scrape-bcv.failed`) y la tabla `tasa_cambio_bcv`
