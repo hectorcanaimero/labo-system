@@ -60,6 +60,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<HeaderUser | null>(null);
   const [loading, setLoading] = useState(true);
   const [loggingOut, setLoggingOut] = useState(false);
+  const [exchangeRate, setExchangeRate] = useState<number | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -98,6 +99,33 @@ export default function AppLayout({ children }: { children: ReactNode }) {
       cancelled = true;
     };
   }, [router]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadExchangeRate() {
+      try {
+        const res = await fetch("/api/tasa/latest", {
+          cache: "no-store",
+        });
+
+        if (!res.ok) return;
+
+        const data = await res.json();
+        if (cancelled || !data?.tasa) return;
+
+        setExchangeRate(Number(data.tasa));
+      } catch {
+        // ponytail: silently fail, exchange rate is nice-to-have
+      }
+    }
+
+    loadExchangeRate();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   async function handleLogout() {
     setLoggingOut(true);
@@ -146,6 +174,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
             loggingOut={loggingOut}
             leading={<SidebarTrigger />}
             onLogout={handleLogout}
+            exchangeRate={exchangeRate}
           />
           <main className="flex-1 p-6">{children}</main>
         </div>

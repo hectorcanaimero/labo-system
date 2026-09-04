@@ -13,6 +13,7 @@ export interface HeaderProps {
   loading?: boolean;
   loggingOut?: boolean;
   onLogout?: () => void;
+  exchangeRate?: number | null;
 }
 
 export function Header({
@@ -21,6 +22,7 @@ export function Header({
   loading = false,
   loggingOut = false,
   onLogout,
+  exchangeRate,
 }: HeaderProps) {
   const name = user?.name?.trim() ?? "";
   const initial = name.charAt(0).toUpperCase() || "?";
@@ -30,6 +32,11 @@ export function Header({
       {leading}
       <div className="flex-1" />
       <div className="flex items-center gap-3">
+        {exchangeRate && exchangeRate > 0 ? (
+          <div className="hidden text-sm font-medium text-foreground sm:block">
+            Bs. {exchangeRate.toFixed(2)} / USD
+          </div>
+        ) : null}
         {loading ? (
           <div className="flex items-center gap-3" aria-hidden="true">
             <div className="h-8 w-8 animate-pulse rounded-full bg-muted" />
