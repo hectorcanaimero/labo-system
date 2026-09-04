@@ -277,7 +277,7 @@ Al cierre del primer mes:
 ### P: BCV stale por > 2 días
 
 1. Revisar `docker logs` del contenedor web → ¿POST /api/cron/scrape-bcv?
-2. `curl -X POST https://insforge.rvlaboratorio.com/api/cron/scrape-bcv -H "x-cron-secret: ..."` → test manual.
+2. `curl -X POST https://rvlaboratorio.com/api/cron/scrape-bcv -H "x-cron-secret: ..."` → test manual.
 3. Revisar crontab del VPS: `crontab -l | grep scrape-bcv`.
 4. Si bcv.org.ve está down → usar fallback DolarAPI (ya está wired).
 5. Alerta a Admin: "Tasa manual por 2d máximo, luego se reactiva automático".
