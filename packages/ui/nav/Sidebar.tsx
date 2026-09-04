@@ -63,6 +63,15 @@ export function SidebarProvider({ children }: { children: ReactNode }) {
     }
   }, [collapsed, hydrated]);
 
+  // Sincronizar clase CSS en el body para ajustar el layout
+  useEffect(() => {
+    if (collapsed) {
+      document.body.classList.add("sidebar-collapsed");
+    } else {
+      document.body.classList.remove("sidebar-collapsed");
+    }
+  }, [collapsed]);
+
   const toggle = useCallback(() => {
     // En desktop (md) colapsa/expande el ancho; en mobile abre/cierra el off-canvas.
     if (typeof window !== "undefined" && window.matchMedia("(min-width: 768px)").matches) {
@@ -138,7 +147,7 @@ export interface SidebarProps {
 }
 
 export function Sidebar({ items, activeHref, brand, brandIcon }: SidebarProps) {
-  const { open, setOpen, collapsed } = useSidebar();
+  const { open, setOpen, collapsed, toggle } = useSidebar();
   return (
     <>
       {open ? (
@@ -150,7 +159,7 @@ export function Sidebar({ items, activeHref, brand, brandIcon }: SidebarProps) {
       ) : null}
       <aside
         className={cn(
-          "fixed inset-y-0 left-0 z-40 flex w-64 shrink-0 flex-col border-r bg-card text-card-foreground transition-[width,transform] duration-200 ease-out md:static md:translate-x-0",
+          "fixed inset-y-0 left-0 z-40 flex w-64 shrink-0 flex-col border-r bg-card text-card-foreground transition-[width,transform] duration-200 ease-out md:translate-x-0",
           open ? "translate-x-0" : "-translate-x-full",
           collapsed ? "md:w-16" : "md:w-64",
         )}
@@ -191,6 +200,32 @@ export function Sidebar({ items, activeHref, brand, brandIcon }: SidebarProps) {
             );
           })}
         </nav>
+
+        {/* Botón collapse circular sobre el borde - solo visible en desktop */}
+        <button
+          type="button"
+          onClick={toggle}
+          aria-label={collapsed ? "Expandir sidebar" : "Colapsar sidebar"}
+          className={cn(
+            "absolute top-20 -right-3 z-50 hidden h-6 w-6 items-center justify-center rounded-full border border-input bg-background text-foreground shadow-md transition-all hover:scale-110 hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring md:flex",
+          )}
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="12"
+            height="12"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2.5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            aria-hidden="true"
+            className={cn("transition-transform", collapsed ? "rotate-180" : "")}
+          >
+            <path d="m15 18-6-6 6-6" />
+          </svg>
+        </button>
       </aside>
     </>
   );

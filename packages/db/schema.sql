@@ -317,3 +317,20 @@ CREATE TABLE IF NOT EXISTS migration_map (
 );
 
 CREATE INDEX IF NOT EXISTS migration_map_by_wp ON migration_map (wp_table, wp_id);
+
+-- ─────────────────────────────────────────────────────────────────────────────
+-- enlaces_resultado (acortador de links — GUR-18)
+--   Slug corto y aleatorio (10 chars base62): la URL ES la credencial con la
+--   que el paciente abre `/r/{slug}`, por eso no se deriva del id de la orden.
+--   `expira_en` acota la ventana de exposición de datos clínicos.
+-- ─────────────────────────────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS enlaces_resultado (
+  id         uuid        PRIMARY KEY DEFAULT gen_random_uuid(),
+  slug       text        NOT NULL UNIQUE,
+  orden_id   uuid        NOT NULL REFERENCES ordenes (id) ON DELETE CASCADE,
+  expira_en  timestamptz NOT NULL,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  created_by uuid        NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS enlaces_resultado_by_orden ON enlaces_resultado (orden_id, expira_en DESC);
