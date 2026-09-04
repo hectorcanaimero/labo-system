@@ -1,5 +1,14 @@
 # Deploy InsForge en VPS
 
+> ⚠️ **DESACTUALIZADO — producción ya NO usa InsForge self-hosted.**
+> Hoy corre sobre **InsForge Cloud** (`INSFORGE_URL` en Coolify apunta a
+> `https://<instancia>.us-east.insforge.app`), y `insforge.rvlaboratorio.com`
+> no responde. Todo lo de esta doc que hable del stack Docker Compose, puertos
+> o `docker-compose.override.yml` es histórico. Lo que **sí** sigue vigente es
+> la sección [Tareas Programadas (Cron)](#tareas-programadas-cron): los cron
+> pegan contra los Route Handlers de **Next.js**, que corren en Coolify
+> (`labo-web` → `https://rvlaboratorio.com`), no contra InsForge.
+
 > ADR-11: pivot Convex → InsForge self-hosted. Alcance funcional intacto,
 > otra plataforma. Esta doc describe la instancia de producción y cómo operarla.
 
@@ -7,10 +16,10 @@
 
 | Qué             | Valor                                        |
 | --------------- | -------------------------------------------- |
-| URL             | `https://insforge.rvlaboratorio.com`         |
-| Dashboard       | `https://insforge.rvlaboratorio.com/dashboard` |
+| URL             | `https://insforge.rvlaboratorio.com` (dado de baja) |
+| Dashboard       | `https://insforge.rvlaboratorio.com/dashboard` (dado de baja) |
 | Versión         | `2.3.1` (`Insforge OSS Backend`)             |
-| Hosting         | VPS propio, Docker Compose                   |
+| Hosting         | VPS propio, Docker Compose (dado de baja)    |
 | Edge            | Cloudflare proxyeando el dominio             |
 
 ## Health check
@@ -124,13 +133,13 @@ Borra automáticamente del bucket privado `exports` los archivos vencidos (con u
 - **Frecuencia**: Semanal (Todos los domingos a las 03:00 UTC / 23:00 VET del sábado).
 - **Línea de crontab recomendada**:
   ```bash
-  0 3 * * 0 curl -X POST https://insforge.rvlaboratorio.com/api/cron/cleanup-exports -H "x-cron-secret: TU_CRON_SECRET_AQUI" -s > /dev/null
+  0 3 * * 0 curl -X POST https://rvlaboratorio.com/api/cron/cleanup-exports -H "x-cron-secret: TU_CRON_SECRET_AQUI" -s > /dev/null
   ```
 
 ### Pruebas de ejecución manual
 Para forzar o testear el funcionamiento del cleanup manualmente, ejecutá el siguiente comando desde la consola:
 ```bash
-curl -X POST https://insforge.rvlaboratorio.com/api/cron/cleanup-exports \
+curl -X POST https://rvlaboratorio.com/api/cron/cleanup-exports \
   -H "x-cron-secret: TU_CRON_SECRET_AQUI" \
   -i
 ```
@@ -177,7 +186,7 @@ la cubre F3.3.T4.
 > El `curl` corre dentro del contenedor de la web, así que `CRON_SECRET` se
 > resuelve desde las env vars del propio servicio — no hay que exponerlo en el
 > comando. Si preferís pegar contra el dominio público, cambiá el `localhost` por
-> `https://insforge.rvlaboratorio.com` (más lento y depende de Cloudflare, pero
+> `https://rvlaboratorio.com` (más lento y depende de Cloudflare, pero
 > sirve para testear que el path externo esté sano).
 
 #### Pruebas de ejecución manual
@@ -186,7 +195,7 @@ Para forzar o testear el scrape manualmente, ejecutá desde cualquier máquina c
 acceso al dominio:
 
 ```bash
-curl -X POST https://insforge.rvlaboratorio.com/api/cron/scrape-bcv \
+curl -X POST https://rvlaboratorio.com/api/cron/scrape-bcv \
   -H "x-cron-secret: TU_CRON_SECRET_AQUI" \
   -i
 ```
@@ -196,7 +205,16 @@ Respuestas esperadas:
 - `200` con `{"success":true,"id":"...","fuente":"bcv","tasa":...}` → scrape OK.
 - `200` con `{"success":false,"error":"bcv_scrape_failed",...}` → ambas fuentes
   fallaron; quedó un warning en `audit_log`.
-- `401 Unauthorized` → secret faltante o incorrecto.
+- `200` con `{"success":false,"skipped":true,"reason":"variacion_..."}` → el
+  scrape anduvo pero la guarda anti-outlier rechazó el valor: la variación
+  contra la última tasa guardada supera `BCV_MAX_CHANGE_RATIO` (default `0.5`).
+  Desde GUR-14 la guarda se ignora si la última tasa tiene más de 24h, así que
+  esto se destraba solo; si aparece con una tasa fresca, revisar el valor o
+  subir `BCV_MAX_CHANGE_RATIO`. Deja traza en `audit_log`
+  (`cron.scrape-bcv.failed`, `primary_code: "rejected_outlier"`).
+- `401 Unauthorized` → secret faltante o incorrecto. Verificar que `CRON_SECRET`
+  esté seteado en las env vars del servicio en Coolify.
+- `500 server_misconfigured` → falta `CRON_SECRET` en el contenedor.
 
 Para verificar que corrió, revisar el `audit_log` (acciones
 `cron.scrape-bcv` / `cron.scrape-bcv.failed`) y la tabla `tasa_cambio_bcv`

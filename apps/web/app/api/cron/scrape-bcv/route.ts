@@ -108,6 +108,14 @@ export async function POST(request: NextRequest): Promise<Response> {
     });
 
     if (outcome.skipped) {
+      // El rechazo por outlier no dejaba traza: el cron corría cada hora, devolvía
+      // 200 y la tasa nunca se movía, sin nada que mirar en audit_log.
+      await auditWarning(
+        Object.assign(new Error(outcome.reason ?? "rejected_outlier"), {
+          code: "rejected_outlier",
+        }),
+        `tasa_intentada=${result.tasa} fuente=${result.fuente}`,
+      );
       return NextResponse.json({
         success: false,
         skipped: true,
