@@ -167,12 +167,12 @@ export default function AppLayout({ children }: { children: ReactNode }) {
             />
           }
         />
-        <div className="flex min-h-screen flex-1 flex-col md:min-w-0">
+        <div className="flex min-h-screen flex-1 flex-col transition-[margin] duration-200 ease-out md:ml-64 md:min-w-0 [.sidebar-collapsed_&]:md:ml-16">
           <Header
             user={user}
             loading={loading}
             loggingOut={loggingOut}
-            leading={<SidebarTrigger />}
+            leading={<SidebarTrigger className="md:hidden" />}
             onLogout={handleLogout}
             exchangeRate={exchangeRate}
           />
