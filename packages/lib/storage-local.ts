@@ -20,7 +20,12 @@ export interface SignedUrlOptions {
 }
 
 function getRoot(): string {
-  return process.env.STORAGE_ROOT || "/data/storage";
+  // ponytail: el default anterior era "/data/storage" — un path absoluto que
+  // no existe ni es escribible en el container de Coolify (ni en dev local),
+  // así que todo upload de logo/firma/sello moría con EACCES/ENOENT.
+  // Ceiling: `.storage` vive dentro del build → se pierde en cada redeploy.
+  // En prod montar un volumen persistente y apuntar STORAGE_ROOT ahí.
+  return process.env.STORAGE_ROOT || path.join(process.cwd(), ".storage");
 }
 
 function getSecret(): string {
