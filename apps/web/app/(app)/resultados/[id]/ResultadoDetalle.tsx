@@ -15,6 +15,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@labo/ui/feedback";
 
+import { EnviarResultadoButtons } from "./EnviarResultadoButtons";
 import { ResultadoForm } from "../nuevo/ResultadoForm";
 
 interface ResultadoDetalleProps {
@@ -162,6 +163,11 @@ export function ResultadoDetalle({ role, initialData }: ResultadoDetalleProps) {
               <Download className="h-4 w-4" />
               Descargar PDF
             </Button>
+            <EnviarResultadoButtons
+              ordenId={initialData.id}
+              telefono={initialData.patient.telefono}
+              email={initialData.patient.email}
+            />
             {isAdmin ? (
               <Button type="button" variant="destructive" onClick={() => void deleteResultado()} disabled={deleting}>
                 <Trash2 className="h-4 w-4" />
