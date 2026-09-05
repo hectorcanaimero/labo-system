@@ -40,9 +40,10 @@ export function EnviarResultadoButtons({
   const [enviando, setEnviando] = useState<Canal | null>(null);
 
   async function enviar(canal: Canal): Promise<void> {
-    // El popup de WhatsApp se abre sincrónicamente y se navega al recibir la
-    // URL: si esperáramos al fetch, Safari/Firefox lo bloquean.
-    const ventana = canal === "whatsapp" ? window.open("", "_blank", "noopener,noreferrer") : null;
+    // El popup se abre sincrónicamente y se navega al recibir la URL: si
+    // esperáramos al fetch, Safari/Firefox lo bloquean. Aplica a WhatsApp
+    // siempre, y a email cuando el backend devuelve un `mailto:` de fallback.
+    const ventana = window.open("", "_blank", "noopener,noreferrer");
 
     try {
       setEnviando(canal);
@@ -52,7 +53,13 @@ export function EnviarResultadoButtons({
         body: JSON.stringify({ canal }),
       });
       const body = (await response.json().catch(() => null)) as
-        | { whatsappUrl?: string; enviadoA?: string; error?: string; detalle?: string }
+        | {
+            whatsappUrl?: string;
+            mailtoUrl?: string;
+            enviadoA?: string;
+            error?: string;
+            detalle?: string;
+          }
         | null;
 
       if (!response.ok) {
@@ -67,13 +74,19 @@ export function EnviarResultadoButtons({
         );
       }
 
-      if (canal === "whatsapp" && body?.whatsappUrl) {
-        if (ventana) ventana.location.href = body.whatsappUrl;
-        else window.open(body.whatsappUrl, "_blank", "noopener,noreferrer");
-        notifySuccess("WhatsApp abierto con el mensaje listo para enviar.");
+      const handoff = body?.whatsappUrl ?? body?.mailtoUrl;
+      if (handoff) {
+        if (ventana) ventana.location.href = handoff;
+        else window.open(handoff, "_blank", "noopener,noreferrer");
+        notifySuccess(
+          body?.whatsappUrl
+            ? "WhatsApp abierto con el mensaje listo para enviar."
+            : "Se abrió tu cliente de correo con el mensaje listo para enviar.",
+        );
         return;
       }
 
+      ventana?.close();
       notifySuccess(`Resultado enviado a ${body?.enviadoA ?? "el paciente"}.`);
     } catch (reason) {
       ventana?.close();
