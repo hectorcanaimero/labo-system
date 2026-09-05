@@ -109,7 +109,7 @@ function buildTasaStaleAlert(input: SendTasaStaleAlertInput): {
  *   403 "Custom email service is not available for free plan..."
  *   401 "Sending emails requires an authenticated user"
  */
-function esEmailNoDisponible(message: string): boolean {
+export function esEmailNoDisponible(message: string): boolean {
   const m = message.toLowerCase();
   return (
     m.includes('not available for free plan') ||
