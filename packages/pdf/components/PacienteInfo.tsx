@@ -1,5 +1,7 @@
 import { StyleSheet, Text, View } from "@react-pdf/renderer";
 
+import { PDF_COLORS, PDF_FONT } from "../theme";
+
 export interface PacienteInfoData {
   nombre: string;
   apellido: string;
@@ -10,44 +12,48 @@ export interface PacienteInfoData {
 export interface PacienteInfoProps {
   paciente: PacienteInfoData;
   edad: number;
+  /** Fecha de toma de muestra, ya formateada. */
   fecha: string;
+  /** Fecha de emisión del resultado, ya formateada, o null. */
+  fechaResultado?: string | null;
+  medico?: string | null;
 }
 
 const styles = StyleSheet.create({
   container: {
-    marginBottom: 16,
-    marginTop: 4,
     borderWidth: 1,
-    borderColor: "#DCDCDC",
-    borderRadius: 4,
-    overflow: "hidden",
-  },
-  row: {
+    borderColor: PDF_COLORS.border,
+    borderRadius: 3,
+    marginBottom: 12,
     flexDirection: "row",
+    flexWrap: "wrap",
+  },
+  cell: {
+    width: "25%",
     paddingVertical: 6,
-    paddingHorizontal: 10,
+    paddingHorizontal: 9,
   },
-  rowOdd: {
-    backgroundColor: "#E6E6E6",
+  cellWide: {
+    width: "50%",
   },
-  rowEven: {
-    backgroundColor: "#DCDCDC",
-  },
-  field: {
-    flex: 1,
-    paddingRight: 8,
+  cellTop: {
+    borderBottomColor: PDF_COLORS.border,
+    borderBottomWidth: 1,
   },
   label: {
-    color: "#0E9090",
-    fontFamily: "Helvetica-Bold",
-    fontSize: 7.5,
+    color: PDF_COLORS.muted,
+    fontSize: 6.5,
+    letterSpacing: 0.3,
     marginBottom: 2,
     textTransform: "uppercase",
   },
   value: {
-    color: "#0f172a",
+    color: PDF_COLORS.ink,
+    fontFamily: PDF_FONT.bold,
     fontSize: 9,
-    fontFamily: "Helvetica-Bold",
+  },
+  valueLarge: {
+    fontSize: 10.5,
   },
 });
 
@@ -57,47 +63,49 @@ const SEX_LABELS: Record<NonNullable<PacienteInfoData["sexo"]>, string> = {
   O: "Otro",
 };
 
-function getEtapaClinica(edad: number): string {
-  if (edad < 1) return "Lactante"; // Or Neonatal
+export function getEtapaClinica(edad: number): string {
+  if (edad < 1) return "Lactante";
   if (edad < 12) return "Pediátrico";
   if (edad < 18) return "Adolescente";
   if (edad < 60) return "Adulto";
-  return "Tercera Edad";
+  return "Adulto mayor";
 }
 
-export function PacienteInfo({ paciente, edad, fecha }: PacienteInfoProps) {
-  const etapaClinica = getEtapaClinica(edad);
-  const edadDisplay = edad === 0 ? "Menor a 1 año" : `${edad} años`;
-  
+interface FieldProps {
+  label: string;
+  value: string;
+  wide?: boolean;
+  top?: boolean;
+  large?: boolean;
+}
+
+function Field({ label, value, wide, top, large }: FieldProps) {
+  return (
+    <View style={[styles.cell, wide ? styles.cellWide : {}, top ? styles.cellTop : {}]}>
+      <Text style={styles.label}>{label}</Text>
+      <Text style={[styles.value, large ? styles.valueLarge : {}]}>{value}</Text>
+    </View>
+  );
+}
+
+/** Ficha del paciente: dos filas de cuatro columnas, con el nombre destacado. */
+export function PacienteInfo({ paciente, edad, fecha, fechaResultado, medico }: PacienteInfoProps) {
+  const edadDisplay = edad === 0 ? "Menor de 1 año" : `${edad} años`;
   return (
     <View style={styles.container}>
-      <View style={[styles.row, styles.rowEven]}>
-        <View style={[styles.field, { flex: 2 }]}>
-          <Text style={styles.label}>Paciente</Text>
-          <Text style={styles.value}>{paciente.nombre} {paciente.apellido}</Text>
-        </View>
-        <View style={styles.field}>
-          <Text style={styles.label}>Cédula</Text>
-          <Text style={styles.value}>{paciente.cedula}</Text>
-        </View>
-        <View style={styles.field}>
-          <Text style={styles.label}>Sexo</Text>
-          <Text style={styles.value}>{paciente.sexo ? SEX_LABELS[paciente.sexo] : "No indicado"}</Text>
-        </View>
-      </View>
-      <View style={[styles.row, styles.rowOdd]}>
-        <View style={[styles.field, { flex: 2 }]}>
-          <Text style={styles.label}>Edad / Etapa Clínica</Text>
-          <Text style={styles.value}>{edadDisplay} ({etapaClinica})</Text>
-        </View>
-        <View style={styles.field}>
-          <Text style={styles.label}>Fecha de Muestra</Text>
-          <Text style={styles.value}>{fecha}</Text>
-        </View>
-        <View style={styles.field}>
-          {/* Placeholder for alignment if needed, or something else */}
-        </View>
-      </View>
+      <Field
+        label="Paciente"
+        value={`${paciente.nombre} ${paciente.apellido}`.trim()}
+        wide
+        top
+        large
+      />
+      <Field label="Cédula" value={paciente.cedula} top />
+      <Field label="Sexo" value={paciente.sexo ? SEX_LABELS[paciente.sexo] : "No indicado"} top />
+      <Field label="Edad" value={`${edadDisplay} · ${getEtapaClinica(edad)}`} />
+      <Field label="Fecha de muestra" value={fecha} />
+      <Field label="Fecha de resultado" value={fechaResultado ?? "—"} />
+      <Field label="Médico solicitante" value={medico?.trim() || "—"} />
     </View>
   );
 }

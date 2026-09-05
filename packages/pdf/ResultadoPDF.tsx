@@ -2,14 +2,16 @@ import { Document, Page, StyleSheet, Text, View } from "@react-pdf/renderer";
 
 import { ExamenesTable, type ExamenTableRow } from "./components/ExamenesTable";
 import { PacienteInfo } from "./components/PacienteInfo";
+import { PDFFirma } from "./components/PDFFirma";
 import { PDFFooter } from "./components/PDFFooter";
 import { PDFHeader } from "./components/PDFHeader";
+import { PDF_COLORS, PDF_FONT, PDF_PAGE, formatDateDMY, type LaboratorioPDFConfig } from "./theme";
 
 export interface ResultadoPDFProps {
   data: ResultadoPDFData;
 }
 
-/** Structural view of resultados.getForPDF, kept independent from the DB package (ADR-08). */
+/** Structural view of ordenes.getForPDF, kept independent from the DB package (ADR-08). */
 export interface ExamenPDFRow {
   id: string;
   nombre_snap: string;
@@ -24,6 +26,8 @@ export interface ExamenPDFRow {
 }
 
 export interface ResultadoPDFData {
+  /** Id de la orden; se imprime abreviado como referencia del informe. */
+  id?: string;
   estado: string;
   fecha_muestra: Date | string;
   fecha_resultado: Date | string | null;
@@ -37,19 +41,7 @@ export interface ResultadoPDFData {
     sexo: "M" | "F" | "O" | null;
   };
   examenes: ExamenPDFRow[];
-  config: {
-    nombre: string;
-    direccion: string;
-    rif: string | null;
-    colegio_bioanalistas: string | null;
-    mpps: string | null;
-    telefono: string | null;
-    email: string | null;
-    logo_url: string | null;
-    firma_url: string | null;
-    sello_url: string | null;
-    pdf_pie_pagina: string | null;
-  } | null;
+  config: LaboratorioPDFConfig | null;
 }
 
 /** Grupo residual para líneas cuyo examen ya no existe en el catálogo (sin título). */
@@ -119,71 +111,63 @@ function toExamenesTableRow(examen: ExamenPDFRow): ExamenTableRow {
 
 const FALLBACK_LAB_NAME = "Laboratorio clínico";
 
+export const AVISO_RESULTADO =
+  "Los resultados de este informe deben ser interpretados por el médico tratante en el contexto clínico del paciente. " +
+  "Documento confidencial, de uso exclusivo para fines médicos.";
+
 const styles = StyleSheet.create({
   page: {
-    color: "#0f172a",
-    fontFamily: "Helvetica",
+    color: PDF_COLORS.text,
+    fontFamily: PDF_FONT.regular,
     fontSize: 9,
-    paddingBottom: 70, // extra space for footer
-    paddingHorizontal: 36,
-    paddingTop: 30,
-  },
-  metadata: {
-    borderBottomColor: "#DCDCDC",
-    borderBottomWidth: 1,
-    flexDirection: "row",
-    justifyContent: "space-between",
-    marginBottom: 10,
-    paddingBottom: 7,
-  },
-  metadataText: {
-    color: "#475569",
-    fontSize: 8,
+    paddingTop: PDF_PAGE.paddingTop,
+    paddingHorizontal: PDF_PAGE.paddingHorizontal,
+    paddingBottom: PDF_PAGE.paddingBottom,
   },
   groupTitle: {
-    color: "#0E9090",
-    fontFamily: "Helvetica-Bold",
-    fontSize: 10,
-    marginTop: 10,
+    backgroundColor: PDF_COLORS.brandTint,
+    borderLeftColor: PDF_COLORS.brand,
+    borderLeftWidth: 3,
+    color: PDF_COLORS.brandDark,
+    fontFamily: PDF_FONT.bold,
+    fontSize: 9.5,
+    letterSpacing: 0.4,
+    marginTop: 8,
     marginBottom: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
     textTransform: "uppercase",
   },
   tipoSubtitle: {
-    color: "#475569",
-    fontFamily: "Helvetica-Bold",
-    fontSize: 8.5,
-    marginTop: 6,
+    color: PDF_COLORS.muted,
+    fontFamily: PDF_FONT.bold,
+    fontSize: 8,
+    letterSpacing: 0.3,
+    marginTop: 4,
     marginBottom: 2,
+    paddingHorizontal: 6,
     textTransform: "uppercase",
   },
   notes: {
-    backgroundColor: "#E6E6E6",
-    borderColor: "#DCDCDC",
-    borderRadius: 4,
+    borderColor: PDF_COLORS.border,
+    borderRadius: 3,
     borderWidth: 1,
-    marginTop: 10,
-    marginBottom: 10,
+    marginTop: 8,
     padding: 8,
   },
   notesLabel: {
-    color: "#0E9090",
-    fontFamily: "Helvetica-Bold",
-    fontSize: 7.5,
+    color: PDF_COLORS.brandDark,
+    fontFamily: PDF_FONT.bold,
+    fontSize: 7,
+    letterSpacing: 0.3,
     marginBottom: 3,
     textTransform: "uppercase",
   },
   notesText: {
     fontSize: 8.5,
-    lineHeight: 1.3,
+    lineHeight: 1.35,
   },
 });
-
-function formatDate(value: Date | string): string {
-  const d = value instanceof Date ? value : new Date(value);
-  const day = String(d.getUTCDate()).padStart(2, "0");
-  const month = String(d.getUTCMonth() + 1).padStart(2, "0");
-  return `${day}/${month}/${d.getUTCFullYear()}`;
-}
 
 function ageAt(birthDate: Date | string, referenceDate: Date | string): number {
   const b = birthDate instanceof Date ? birthDate : new Date(birthDate);
@@ -196,18 +180,32 @@ function ageAt(birthDate: Date | string, referenceDate: Date | string): number {
   return Math.max(0, age);
 }
 
+function referencia(id: string | undefined): string | null {
+  if (!id) return null;
+  return id.split("-")[0]?.toUpperCase() ?? null;
+}
+
+/**
+ * Informe de resultados. Cabecera y pie fijos en todas las páginas; el bloque
+ * de firma y sello (de la configuración) cierra el documento en la última.
+ */
 export function ResultadoPDF({ data }: ResultadoPDFProps) {
   const config = data.config;
   const laboratoryName = config?.nombre.trim() || FALLBACK_LAB_NAME;
-
-  // Jerarquía: Título (grupo) -> Tipo de Análisis -> exámenes.
   const grupos = agruparExamenes(data.examenes);
+  const ref = referencia(data.id);
+  const fechaEmision = formatDateDMY(data.fecha_resultado ?? new Date());
+
+  const meta = [
+    ...(ref ? [{ label: "Nº", value: ref }] : []),
+    { label: "Fecha", value: formatDateDMY(data.fecha_muestra) },
+  ];
 
   return (
     <Document
       author={laboratoryName}
       subject="Informe de resultados de laboratorio"
-      title={`Resultado - ${data.paciente.nombre} ${data.paciente.apellido}`}
+      title={`Resultados - ${data.paciente.nombre} ${data.paciente.apellido}`}
     >
       <Page size="A4" style={styles.page}>
         <PDFHeader
@@ -219,46 +217,55 @@ export function ResultadoPDF({ data }: ResultadoPDFProps) {
           mpps={config?.mpps ?? null}
           telefono={config?.telefono ?? null}
           email={config?.email ?? null}
+          titulo="Informe de resultados"
+          meta={meta}
         />
+
         <PacienteInfo
           edad={ageAt(data.paciente.fecha_nacimiento, data.fecha_muestra)}
-          fecha={formatDate(data.fecha_muestra)}
+          fecha={formatDateDMY(data.fecha_muestra)}
+          fechaResultado={data.fecha_resultado ? formatDateDMY(data.fecha_resultado) : null}
+          medico={data.medico_solicitante}
           paciente={data.paciente}
         />
-        <View style={styles.metadata}>
-          <Text style={styles.metadataText}>Estado: {data.estado}</Text>
-          {data.medico_solicitante ? (
-            <Text style={styles.metadataText}>Médico: {data.medico_solicitante}</Text>
-          ) : null}
-          {data.fecha_resultado ? (
-            <Text style={styles.metadataText}>Fecha de resultado: {formatDate(data.fecha_resultado)}</Text>
-          ) : null}
-        </View>
 
         {grupos.map((grupo) => (
           <View key={grupo.titulo}>
-            {grupo.secciones.map((seccion, indiceSeccion) => (
-              <View wrap={false} key={seccion.tipo ?? "__directas__"}>
-                {indiceSeccion === 0 ? (
-                  <Text style={styles.groupTitle}>{grupo.titulo}</Text>
+            <Text minPresenceAhead={60} style={styles.groupTitle}>
+              {grupo.titulo}
+            </Text>
+            {grupo.secciones.map((seccion) => (
+              <View key={seccion.tipo ?? "__directas__"}>
+                {seccion.tipo ? (
+                  <Text minPresenceAhead={40} style={styles.tipoSubtitle}>
+                    {seccion.tipo}
+                  </Text>
                 ) : null}
-                {seccion.tipo ? <Text style={styles.tipoSubtitle}>{seccion.tipo}</Text> : null}
                 <ExamenesTable rows={seccion.examenes.map(toExamenesTableRow)} />
               </View>
             ))}
           </View>
         ))}
 
-        {data.observaciones ? (
+        {data.observaciones?.trim() ? (
           <View wrap={false} style={styles.notes}>
-            <Text style={styles.notesLabel}>Observaciones generales</Text>
-            <Text style={styles.notesText}>{data.observaciones}</Text>
+            <Text style={styles.notesLabel}>Observaciones</Text>
+            <Text style={styles.notesText}>{data.observaciones.trim()}</Text>
           </View>
         ) : null}
-        <PDFFooter
+
+        <PDFFirma
           firma={config?.firma_url ?? null}
-          pieDePagina={config?.pdf_pie_pagina ?? null}
           sello={config?.sello_url ?? null}
+          nombre={laboratoryName}
+          colegioBioanalistas={config?.colegio_bioanalistas ?? null}
+          mpps={config?.mpps ?? null}
+        />
+
+        <PDFFooter
+          aviso={AVISO_RESULTADO}
+          emision={`Emitido el ${fechaEmision}`}
+          pieDePagina={config?.pdf_pie_pagina ?? null}
         />
       </Page>
     </Document>

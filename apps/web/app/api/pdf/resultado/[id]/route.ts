@@ -3,42 +3,20 @@ import "server-only";
 import { Readable } from "node:stream";
 
 import { getForPDF, RESULTADO_NO_ENCONTRADO } from "@labo/db/repos/resultados";
-import { readObject } from "@labo/lib/storage-local";
 import { AuthError, getCurrentUser } from "@/lib/server/auth";
 import ResultadoPDF from "@labo/pdf/ResultadoPDF";
 import { renderToStream, type DocumentProps } from "@react-pdf/renderer";
 import { NextResponse, type NextRequest } from "next/server";
 import { createElement, type ReactElement } from "react";
 
-import { pdfAssetCache } from "@/lib/asset-cache";
+import { resolvePdfAsset } from "@/lib/pdf-assets";
 import { getAdminDb, getDb } from "@/lib/db-server";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-const ASSET_BUCKET = "assets";
 const LAB_NAME_REQUIRED = "NOMBRE_LABORATORIO_REQUERIDO";
-
-// PNG 1×1 transparente: fallback para que el PDF siga renderizando si un asset
-// (logo/firma/sello) no puede descargarse (bloqueo de red, objeto borrado, etc).
-const EMBEDDED_TRANSPARENT_PNG =
-  "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=";
-const MAX_ASSET_BYTES = 5 * 1024 * 1024;
-
-const MIME_BY_EXT: Record<string, string> = {
-  png: "image/png",
-  jpg: "image/jpeg",
-  jpeg: "image/jpeg",
-  gif: "image/gif",
-  svg: "image/svg+xml",
-  webp: "image/webp",
-};
-
-function mimeForKey(key: string): string {
-  const ext = key.split(".").pop()?.toLowerCase() ?? "";
-  return MIME_BY_EXT[ext] ?? "image/png";
-}
 
 type RouteParams = {
   params: {
@@ -60,35 +38,6 @@ async function requirePdfAccess() {
     throw new AuthError("UNAUTHORIZED");
   }
   return user;
-}
-
-/**
- * Descarga el asset desde su URL firmada/pública y lo embebe como data URI
- * (base64), de modo que `@react-pdf/renderer` no tenga que resolver la URL en
- * tiempo de render (evita bloqueos de red y reintentos dentro del renderizador).
- */
-async function resolveAssetDataUri(objectKey: string): Promise<string> {
-  return pdfAssetCache.getOrSet(objectKey, async () => {
-    const buf = await readObject(ASSET_BUCKET, objectKey);
-    if (buf.byteLength > MAX_ASSET_BYTES) {
-      throw new Error(`Asset exceeds ${MAX_ASSET_BYTES} bytes`);
-    }
-    return `data:${mimeForKey(objectKey)};base64,${buf.toString("base64")}`;
-  });
-}
-
-/**
- * Resuelve un asset a data URI sin romper la generación del PDF: si la descarga
- * falla, degrada a un PNG transparente (el documento se emite igual, sin el
- * asset). Contrato: `AssetUrlResolver` retorna `Promise<string>`.
- */
-async function resolveAssetUrl(objectKey: string): Promise<string> {
-  try {
-    return await resolveAssetDataUri(objectKey);
-  } catch (error) {
-    console.error(`[pdf:resultado] No se pudo embeber el asset "${objectKey}":`, error);
-    return EMBEDDED_TRANSPARENT_PNG;
-  }
 }
 
 function assertPdfConfig(nombre: string | null | undefined): void {
@@ -129,7 +78,7 @@ export async function GET(_request: NextRequest, { params }: RouteParams): Promi
       return bad(400, "VALIDACION_FALLIDA");
     }
 
-    const data = await getForPDF(getAdminDb(), params.id, resolveAssetUrl);
+    const data = await getForPDF(getAdminDb(), params.id, resolvePdfAsset);
     if (!data) {
       return bad(404, RESULTADO_NO_ENCONTRADO);
     }
