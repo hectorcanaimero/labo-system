@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { DollarSign, FileText, FlaskConical, Users } from "lucide-react";
+import { Banknote, DollarSign, FileText, FlaskConical, Users } from "lucide-react";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -14,8 +14,25 @@ export interface DashboardKPIs {
   ingresosEstimadosUsd: number;
 }
 
+export interface DashboardTasa {
+  tasa: number;
+  fuente: string;
+  scraped_at: string;
+  stale: boolean;
+}
+
 interface KPICardsProps {
   initialKPIs: DashboardKPIs;
+  tasa?: DashboardTasa | null;
+}
+
+function formatTasaFecha(iso: string): string {
+  return new Intl.DateTimeFormat("es-VE", {
+    day: "2-digit",
+    month: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(new Date(iso));
 }
 
 const POLL_INTERVAL_MS = 30_000;
@@ -27,7 +44,7 @@ function formatCurrency(value: number): string {
   })}`;
 }
 
-export function KPICards({ initialKPIs }: KPICardsProps) {
+export function KPICards({ initialKPIs, tasa }: KPICardsProps) {
   const [kpis, setKPIs] = useState(initialKPIs);
   const [error, setError] = useState<string | null>(null);
 
@@ -97,7 +114,7 @@ export function KPICards({ initialKPIs }: KPICardsProps) {
           {error}
         </p>
       ) : null}
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
         {cards.map((card) => {
           const Icon = card.icon;
           return (
@@ -122,6 +139,42 @@ export function KPICards({ initialKPIs }: KPICardsProps) {
             </Card>
           );
         })}
+
+        <Card className="shadow-none">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-xs font-medium text-muted-foreground">
+              Tasa BCV
+            </CardTitle>
+            <Banknote className="h-4 w-4 text-muted-foreground/60" aria-hidden />
+          </CardHeader>
+          <CardContent>
+            {tasa ? (
+              <>
+                <p className="font-mono text-2xl font-semibold tabular-nums tracking-tight text-foreground">
+                  Bs. {tasa.tasa.toFixed(2)}
+                </p>
+                <p className="mt-1 flex items-center gap-1.5 text-[11px] uppercase tracking-wide text-muted-foreground">
+                  <span
+                    className={`h-1.5 w-1.5 shrink-0 rounded-full ${tasa.stale ? "bg-amber-500" : "bg-emerald-500"}`}
+                    aria-hidden
+                  />
+                  <span className="font-mono normal-case">{formatTasaFecha(tasa.scraped_at)}</span>
+                  · {tasa.fuente === "manual" ? "manual" : "BCV"}
+                  {tasa.stale ? " · desactualizada" : ""}
+                </p>
+              </>
+            ) : (
+              <>
+                <p className="font-mono text-2xl font-semibold tabular-nums tracking-tight text-muted-foreground">
+                  —
+                </p>
+                <p className="mt-1 text-[11px] uppercase tracking-wide text-muted-foreground">
+                  Sin tasa cargada
+                </p>
+              </>
+            )}
+          </CardContent>
+        </Card>
       </div>
     </div>
   );
@@ -129,8 +182,8 @@ export function KPICards({ initialKPIs }: KPICardsProps) {
 
 export function KPICardsSkeleton() {
   return (
-    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
-      {Array.from({ length: 4 }).map((_, i) => (
+    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+      {Array.from({ length: 5 }).map((_, i) => (
         <Card key={i} className="shadow-none">
           <CardHeader className="pb-2">
             <Skeleton className="h-3 w-24" />

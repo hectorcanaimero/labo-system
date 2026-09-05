@@ -5,6 +5,7 @@ import { AuthError, getCurrentUser } from "@/lib/server/auth";
 import { getAdminDb } from "@/lib/db-server";
 
 import { PresupuestosList, type PaginatedPresupuestosResponse } from "./PresupuestosList";
+import { PageHeader } from "@/components/layout/PageHeader";
 
 const PAGE_LIMIT = 20;
 
@@ -39,19 +40,11 @@ export default async function PresupuestosPage() {
 
   return (
     <div className="mx-auto flex max-w-[100rem] flex-col gap-4">
-      <header className="flex flex-col gap-1 border-b border-border pb-3">
-        <div className="flex items-baseline gap-3">
-          <h1 className="text-xl font-semibold tracking-tight text-foreground">
-            Presupuestos
-          </h1>
-          <span className="font-mono text-sm tabular-nums text-muted-foreground">
-            {result.total}
-          </span>
-        </div>
-        <p className="text-xs text-muted-foreground">
-          Pipeline comercial — cotizá, enviá al cliente, aprobá y generá órdenes.
-        </p>
-      </header>
+      <PageHeader
+        title="Presupuestos"
+        count={result.total}
+        description="Pipeline comercial — cotizá, enviá al cliente, aprobá y generá órdenes."
+      />
 
       <PresupuestosList initialData={initialData} pageSize={PAGE_LIMIT} />
     </div>

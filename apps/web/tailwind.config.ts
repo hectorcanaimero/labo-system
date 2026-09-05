@@ -9,6 +9,7 @@ const config: Config = {
     "../../packages/ui/nav/**/*.{ts,tsx}",
     "../../packages/ui/text/**/*.{ts,tsx}",
     "../../packages/ui/feedback/**/*.{ts,tsx}",
+    "../../packages/ui/layout/**/*.{ts,tsx}",
   ],
   theme: {
     container: {
@@ -53,6 +54,19 @@ const config: Config = {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
         },
+        brand: {
+          DEFAULT: "hsl(var(--brand))",
+          foreground: "hsl(var(--brand-foreground))",
+        },
+        sidebar: "hsl(var(--sidebar))",
+      },
+      fontFamily: {
+        sans: ["var(--font-sans)", "Inter", "ui-sans-serif", "system-ui", "sans-serif"],
+        mono: ["var(--font-mono)", "ui-monospace", "SFMono-Regular", "Menlo", "monospace"],
+      },
+      minWidth: {
+        5: "1.25rem",
+        7: "1.75rem",
       },
       borderRadius: {
         lg: "var(--radius)",

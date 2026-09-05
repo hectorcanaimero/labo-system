@@ -2,50 +2,61 @@
 @tailwind components;
 @tailwind utilities;
 
+/*
+ * Tokens según design-system/labo-system/MASTER.md.
+ * Paleta zinc monocromática + un solo acento azul (`brand`) para links,
+ * ítems activos y focus. `accent` se mantiene gris para los hovers de shadcn.
+ */
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
-    --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
+    --background: 0 0% 98%;            /* #FAFAFA */
+    --foreground: 240 10% 3.9%;        /* #09090B */
+    --card: 0 0% 100%;                 /* #FFFFFF */
+    --card-foreground: 240 10% 3.9%;
     --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
-    --primary: 222.2 47.4% 11.2%;
-    --primary-foreground: 210 40% 98%;
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 222.2 84% 4.9%;
-    --radius: 0.5rem;
+    --popover-foreground: 240 10% 3.9%;
+    --primary: 240 5.9% 10%;           /* #18181B */
+    --primary-foreground: 0 0% 98%;
+    --secondary: 240 4.8% 95.9%;       /* #F4F4F5 */
+    --secondary-foreground: 240 5.9% 10%;
+    --muted: 240 4.8% 95.9%;
+    --muted-foreground: 240 3.8% 46.1%; /* #71717A */
+    --accent: 240 4.8% 94%;
+    --accent-foreground: 240 5.9% 10%;
+    --brand: 221 83% 53%;              /* #2563EB */
+    --brand-foreground: 0 0% 100%;
+    --destructive: 0 72% 51%;          /* #DC2626 */
+    --destructive-foreground: 0 0% 98%;
+    --border: 240 5.9% 90%;            /* #E4E4E7 */
+    --input: 240 5.9% 90%;
+    --ring: 221 83% 53%;
+    --sidebar: 240 4.8% 97%;
+    --radius: 0.375rem;
   }
 
   .dark {
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
-    --card: 222.2 84% 4.9%;
-    --card-foreground: 210 40% 98%;
-    --popover: 222.2 84% 4.9%;
-    --popover-foreground: 210 40% 98%;
-    --primary: 210 40% 98%;
-    --primary-foreground: 222.2 47.4% 11.2%;
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 212.7 26.8% 83.9%;
+    --background: 240 6% 7%;
+    --foreground: 0 0% 95%;
+    --card: 240 5% 9%;
+    --card-foreground: 0 0% 95%;
+    --popover: 240 5% 9%;
+    --popover-foreground: 0 0% 95%;
+    --primary: 0 0% 95%;
+    --primary-foreground: 240 5.9% 10%;
+    --secondary: 240 4% 14%;
+    --secondary-foreground: 0 0% 95%;
+    --muted: 240 4% 14%;
+    --muted-foreground: 240 5% 62%;
+    --accent: 240 4% 16%;
+    --accent-foreground: 0 0% 95%;
+    --brand: 217 91% 65%;
+    --brand-foreground: 240 6% 7%;
+    --destructive: 0 63% 45%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 240 4% 16%;
+    --input: 240 4% 18%;
+    --ring: 217 91% 65%;
+    --sidebar: 240 6% 6%;
   }
 }
 
@@ -53,7 +64,21 @@
   * {
     @apply border-border;
   }
+  html {
+    color-scheme: light;
+  }
+  html.dark {
+    color-scheme: dark;
+  }
   body {
     @apply bg-background text-foreground;
+    font-feature-settings: "cv11", "ss01", "ss03";
+    text-rendering: optimizeLegibility;
+  }
+  ::selection {
+    @apply bg-brand/20;
+  }
+  kbd {
+    @apply inline-flex h-5 min-w-5 items-center justify-center rounded border border-border bg-muted px-1 font-mono text-[10px] font-medium text-muted-foreground;
   }
 }

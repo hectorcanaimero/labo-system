@@ -1,3 +1,5 @@
+import { PageHeader } from "@/components/layout/PageHeader";
+
 import { ImportWizard } from "./ImportWizard";
 
 export const metadata = {
@@ -6,13 +8,13 @@ export const metadata = {
 
 export default function ImportExamenesPage() {
   return (
-    <div className="container mx-auto py-8">
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold">Importar Exámenes (XLSX)</h1>
-        <p className="text-gray-600 mt-1">
-          Sube un archivo Excel para crear o actualizar el catálogo masivamente.
-        </p>
-      </div>
+    <div className="mx-auto flex max-w-6xl flex-col gap-4">
+      <PageHeader
+        title="Importar exámenes"
+        count="XLSX"
+        description="Subí un archivo Excel para crear o actualizar el catálogo masivamente."
+        back={{ href: "/examenes", label: "Exámenes" }}
+      />
 
       <ImportWizard />
     </div>

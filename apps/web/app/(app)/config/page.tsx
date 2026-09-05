@@ -6,6 +6,7 @@ import { AuthError, getCurrentUser } from "@/lib/server/auth";
 import { getAdminDb } from "@/lib/db-server";
 
 import { ConfigForm, type ConfigPreloaded, type TasaPreloaded } from "./ConfigForm";
+import { PageHeader } from "@/components/layout/PageHeader";
 
 export const dynamic = "force-dynamic";
 
@@ -51,14 +52,10 @@ export default async function ConfigPage() {
 
   return (
     <div className="mx-auto flex max-w-7xl flex-col gap-4">
-      <header className="flex flex-col gap-1 border-b border-border pb-3">
-        <h1 className="text-xl font-semibold tracking-tight text-foreground">
-          Configuración
-        </h1>
-        <p className="text-xs text-muted-foreground">
-          Identidad del laboratorio, contacto, assets y tasa de cambio.
-        </p>
-      </header>
+      <PageHeader
+        title="Configuración"
+        description="Identidad del laboratorio, contacto, assets y tasa de cambio."
+      />
       <ConfigForm preloadedConfig={preloadedConfig} preloadedTasa={preloadedTasa} />
     </div>
   );

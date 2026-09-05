@@ -4,6 +4,8 @@ import { list } from "@labo/db/repos/pacientes";
 import { getDb } from "@/lib/db-server";
 import { AuthError, getCurrentUser } from "@/lib/server/auth";
 
+import { PageHeader } from "@/components/layout/PageHeader";
+
 import { PacientesList, type PaginatedPacientesResponse } from "./PacientesList";
 
 const PAGE_LIMIT = 20;
@@ -39,19 +41,11 @@ export default async function PacientesPage() {
 
   return (
     <div className="mx-auto flex max-w-7xl flex-col gap-4">
-      <header className="flex flex-col gap-1 border-b border-border pb-3">
-        <div className="flex items-baseline gap-3">
-          <h1 className="text-xl font-semibold tracking-tight text-foreground">
-            Pacientes
-          </h1>
-          <span className="font-mono text-sm tabular-nums text-muted-foreground">
-            {initialData.total}
-          </span>
-        </div>
-        <p className="text-xs text-muted-foreground">
-          Ficha clínica base con acceso rápido a órdenes y presupuestos.
-        </p>
-      </header>
+      <PageHeader
+        title="Pacientes"
+        count={initialData.total}
+        description="Ficha clínica base con acceso rápido a órdenes y presupuestos."
+      />
 
       <PacientesList initialData={initialData} pageSize={PAGE_LIMIT} />
     </div>

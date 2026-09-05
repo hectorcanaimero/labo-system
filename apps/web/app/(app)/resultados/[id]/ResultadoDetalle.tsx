@@ -4,7 +4,6 @@ import Link from "next/link";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import {
-  ArrowLeft,
   ClipboardList,
   Download,
   FileText,
@@ -17,6 +16,7 @@ import { EmptyState } from "@labo/ui/feedback";
 
 import { EnviarResultadoButtons } from "./EnviarResultadoButtons";
 import { ResultadoForm } from "../nuevo/ResultadoForm";
+import { PageHeader } from "@/components/layout/PageHeader";
 
 interface ResultadoDetalleProps {
   role: string;
@@ -100,12 +100,12 @@ export function ResultadoDetalle({ role, initialData }: ResultadoDetalleProps) {
 
   if (isEditing) {
     return (
-      <div className="flex flex-col gap-6">
-        <div className="flex flex-col gap-2">
-          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-primary">Edición</p>
-          <h1 className="text-3xl font-bold tracking-tight">Editar resultado</h1>
-          <p className="text-sm text-muted-foreground">Actualizá valores, observaciones y fechas manteniendo los snapshots del resultado.</p>
-        </div>
+      <div className="flex flex-col gap-4">
+        <PageHeader
+          title="Editar orden"
+          description="Actualizá valores, observaciones y fechas manteniendo los snapshots del resultado."
+          back={{ href: "/resultados", label: "Órdenes" }}
+        />
 
         <ResultadoForm
           mode="edit"
@@ -130,37 +130,20 @@ export function ResultadoDetalle({ role, initialData }: ResultadoDetalleProps) {
   }
 
   return (
-    <div className="flex flex-col gap-6">
-      <div className="flex items-center justify-between">
-        <Link href="/resultados" className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground">
-          <ArrowLeft className="h-4 w-4" />
-          Volver a resultados
-        </Link>
-      </div>
-
-      {error ? (
-        <p className="rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
-          {error}
-        </p>
-      ) : null}
-
-      <section className="rounded-2xl border border-border bg-card p-6 shadow-sm">
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-primary">Ficha de resultado</p>
-            <h1 className="mt-2 text-3xl font-bold tracking-tight">
-              {initialData.patient.nombre} {initialData.patient.apellido}
-            </h1>
-            <p className="mt-2 text-sm text-muted-foreground">Cédula: {initialData.patient.cedula}</p>
-          </div>
-
-          <div className="flex flex-wrap gap-2">
-            <Button type="button" variant="outline" onClick={() => setIsEditing(true)}>
-              <PencilLine className="h-4 w-4" />
+    <div className="flex flex-col gap-4">
+      <PageHeader
+        title={`${initialData.patient.nombre} ${initialData.patient.apellido}`}
+        count={initialData.patient.cedula}
+        description="Ficha de la orden: estado, fechas, contacto y exámenes."
+        back={{ href: "/resultados", label: "Órdenes" }}
+        actions={
+          <>
+            <Button type="button" size="sm" variant="outline" onClick={() => setIsEditing(true)}>
+              <PencilLine className="h-3.5 w-3.5" />
               Editar
             </Button>
-            <Button type="button" onClick={() => window.open(`/api/pdf/resultado/${initialData.id}`, "_blank", "noopener,noreferrer") }>
-              <Download className="h-4 w-4" />
+            <Button type="button" size="sm" onClick={() => window.open(`/api/pdf/resultado/${initialData.id}`, "_blank", "noopener,noreferrer") }>
+              <Download className="h-3.5 w-3.5" />
               Descargar PDF
             </Button>
             <EnviarResultadoButtons
@@ -169,28 +152,36 @@ export function ResultadoDetalle({ role, initialData }: ResultadoDetalleProps) {
               email={initialData.patient.email}
             />
             {isAdmin ? (
-              <Button type="button" variant="destructive" onClick={() => void deleteResultado()} disabled={deleting}>
-                <Trash2 className="h-4 w-4" />
+              <Button type="button" size="sm" variant="destructive" onClick={() => void deleteResultado()} disabled={deleting}>
+                <Trash2 className="h-3.5 w-3.5" />
                 {deleting ? "Eliminando…" : "Eliminar"}
               </Button>
             ) : null}
-          </div>
-        </div>
+          </>
+        }
+      />
 
-        <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-          <div className="rounded-xl border border-border bg-background/70 p-4">
+      {error ? (
+        <p className="rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-xs text-destructive">
+          {error}
+        </p>
+      ) : null}
+
+      <section className="rounded-md border border-border bg-card p-4">
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+          <div className="rounded-md border border-border bg-background p-3">
             <p className="text-xs uppercase tracking-wide text-muted-foreground">Estado</p>
             <p className="mt-1 text-sm font-medium text-foreground">{initialData.estado}</p>
           </div>
-          <div className="rounded-xl border border-border bg-background/70 p-4">
+          <div className="rounded-md border border-border bg-background p-3">
             <p className="text-xs uppercase tracking-wide text-muted-foreground">Fecha de muestra</p>
             <p className="mt-1 text-sm font-medium text-foreground">{formatDate(initialData.fecha_muestra)}</p>
           </div>
-          <div className="rounded-xl border border-border bg-background/70 p-4">
+          <div className="rounded-md border border-border bg-background p-3">
             <p className="text-xs uppercase tracking-wide text-muted-foreground">Fecha de resultado</p>
             <p className="mt-1 text-sm font-medium text-foreground">{formatDate(initialData.fecha_resultado)}</p>
           </div>
-          <div className="rounded-xl border border-border bg-background/70 p-4">
+          <div className="rounded-md border border-border bg-background p-3">
             <p className="text-xs uppercase tracking-wide text-muted-foreground">Médico solicitante</p>
             <p className="mt-1 text-sm font-medium text-foreground">{initialData.medico_solicitante || "No especificado"}</p>
           </div>
@@ -198,12 +189,12 @@ export function ResultadoDetalle({ role, initialData }: ResultadoDetalleProps) {
 
         {(initialData.patient.telefono || initialData.patient.email || initialData.observaciones) ? (
           <div className="mt-4 grid gap-4 md:grid-cols-2">
-            <div className="rounded-xl border border-border bg-background/70 p-4">
+            <div className="rounded-md border border-border bg-background p-3">
               <p className="text-xs uppercase tracking-wide text-muted-foreground">Contacto paciente</p>
               <p className="mt-1 text-sm text-foreground">{initialData.patient.telefono || "Sin teléfono"}</p>
               <p className="text-sm text-muted-foreground">{initialData.patient.email || "Sin correo"}</p>
             </div>
-            <div className="rounded-xl border border-border bg-background/70 p-4">
+            <div className="rounded-md border border-border bg-background p-3">
               <p className="text-xs uppercase tracking-wide text-muted-foreground">Observaciones generales</p>
               <p className="mt-1 text-sm text-foreground">{initialData.observaciones || "Sin observaciones."}</p>
             </div>
@@ -211,7 +202,7 @@ export function ResultadoDetalle({ role, initialData }: ResultadoDetalleProps) {
         ) : null}
       </section>
 
-      <section className="rounded-2xl border border-border bg-card shadow-sm">
+      <section className="rounded-md border border-border bg-card">
         <div className="flex flex-col gap-3 border-b border-border p-6 md:flex-row md:items-start md:justify-between">
           <div>
             <h2 className="text-lg font-semibold">Detalle de exámenes</h2>
@@ -241,7 +232,7 @@ export function ResultadoDetalle({ role, initialData }: ResultadoDetalleProps) {
               icon={<FileText className="h-5 w-5" />}
             />
           ) : (
-            <div className="overflow-x-auto rounded-xl border border-border">
+            <div className="overflow-x-auto rounded-md border border-border">
               <table className="min-w-full divide-y divide-border text-sm">
                 <thead className="bg-muted/40 text-left text-muted-foreground">
                   <tr>
