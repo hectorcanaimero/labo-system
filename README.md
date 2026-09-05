@@ -49,6 +49,56 @@ pnpm typecheck
 pnpm test
 ```
 
+## Flujo de deployment (Staging → Production)
+
+El repositorio usa un flujo de dos ambientes con branch protection:
+
+### Branch Strategy
+
+- **`staged`** (default branch) → ambiente de staging
+- **`main`** → ambiente de producción
+
+### Workflow
+
+1. **Desarrollo:** Crear feature branch desde `staged`
+   ```bash
+   git checkout staged
+   git pull
+   git checkout -b feature/nueva-funcionalidad
+   ```
+
+2. **PR a Staging:** Abrir PR hacia `staged` (default)
+   - CI/E2E corren automáticamente
+   - Merge cuando esté listo
+
+3. **Deploy a Staging:** Al hacer merge a `staged`
+   - Deploy automático a ambiente de staging vía Coolify
+   - Testing y validación en staging
+
+4. **Promoción a Producción:** Cuando staging está validado
+   ```bash
+   # Abrir PR de staged → main
+   gh pr create --base main --head staged --title "Release: [descripción]"
+   ```
+   - Branch protection en `main` requiere:
+     - ✅ CI checks (lint, typecheck, test, build)
+     - ✅ Solo PRs desde `staged`
+   - Merge a `main` → deploy automático a producción
+
+### Configuración de Coolify
+
+**Staging Environment:**
+- Branch: `staged`
+- Environment: `staging`
+- URL: [configurar en Coolify]
+
+**Production Environment:**
+- Branch: `main`
+- Environment: `production`
+- URL: [configurar en Coolify]
+
+Ver `.coolify` para configuración actual.
+
 ## Estructura del monorepo
 
 La topología de paquetes está fijada en ARCH ADR-08:
