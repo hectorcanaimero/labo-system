@@ -6,6 +6,7 @@ import {
   generarSlug,
   htmlEmail,
   mensajeWhatsApp,
+  mailtoResultado,
   normalizarTelefonoWhatsApp,
 } from "./enlace-resultado";
 
@@ -70,6 +71,16 @@ describe("mensajes", () => {
     const link = enlaceWhatsApp("584141234567", mensajeWhatsApp(input));
     expect(link.startsWith("https://wa.me/584141234567?text=")).toBe(true);
     expect(link).not.toContain(" ");
+  });
+
+  it("el mailto lleva destinatario, asunto y cuerpo, sin '+' por espacios", () => {
+    const link = mailtoResultado("paciente@test.com", input);
+    expect(link.startsWith("mailto:paciente%40test.com?")).toBe(true);
+    expect(link).toContain("subject=");
+    expect(link).toContain("body=");
+    // RFC 6068: el espacio va como %20, no como "+"
+    expect(link).not.toContain("+");
+    expect(decodeURIComponent(link)).toContain(input.url);
   });
 
   it("el html escapa el nombre del paciente", () => {
