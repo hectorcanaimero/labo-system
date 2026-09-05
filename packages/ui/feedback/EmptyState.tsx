@@ -38,8 +38,8 @@ export function EmptyState({
       role="status"
       aria-label={title}
       className={cn(
-        "flex flex-col items-center justify-center rounded-xl border border-dashed border-border bg-muted/20 px-6 text-center",
-        compact ? "gap-2 py-8" : "gap-3 py-14",
+        "flex flex-col items-center justify-center rounded-md border border-dashed border-border px-6 text-center",
+        compact ? "gap-2 py-6" : "gap-2.5 py-10",
         className,
       )}
     >
@@ -47,8 +47,8 @@ export function EmptyState({
         <div
           aria-hidden="true"
           className={cn(
-            "flex items-center justify-center rounded-full bg-muted text-muted-foreground",
-            compact ? "h-11 w-11" : "h-16 w-16",
+            "flex items-center justify-center rounded-md border border-border bg-card text-muted-foreground [&_svg]:h-4 [&_svg]:w-4",
+            compact ? "h-8 w-8" : "h-9 w-9",
           )}
         >
           {icon}
@@ -59,7 +59,7 @@ export function EmptyState({
         <h3
           className={cn(
             "font-semibold text-foreground",
-            compact ? "text-sm" : "text-base",
+            compact ? "text-sm" : "text-sm",
           )}
         >
           {title}
@@ -68,7 +68,7 @@ export function EmptyState({
           <p
             className={cn(
               "mx-auto max-w-sm text-muted-foreground",
-              compact ? "text-xs" : "text-sm",
+              "text-xs",
             )}
           >
             {description}

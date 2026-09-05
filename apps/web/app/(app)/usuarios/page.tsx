@@ -5,6 +5,7 @@ import { AuthError, getCurrentUser } from "@/lib/server/auth";
 import { getAdminDb } from "@/lib/db-server";
 
 import { UsuariosList, type UsuarioItem } from "./UsuariosList";
+import { PageHeader } from "@/components/layout/PageHeader";
 
 export const dynamic = "force-dynamic";
 
@@ -38,19 +39,11 @@ export default async function UsuariosPage() {
 
   return (
     <div className="mx-auto flex max-w-7xl flex-col gap-4">
-      <header className="flex flex-col gap-1 border-b border-border pb-3">
-        <div className="flex items-baseline gap-3">
-          <h1 className="text-xl font-semibold tracking-tight text-foreground">
-            Usuarios
-          </h1>
-          <span className="font-mono text-sm tabular-nums text-muted-foreground">
-            {initialUsuarios.length}
-          </span>
-        </div>
-        <p className="text-xs text-muted-foreground">
-          Gestioná accesos: invitá operadores o admins, cambiá roles y controlá actividad.
-        </p>
-      </header>
+      <PageHeader
+        title="Usuarios"
+        count={initialUsuarios.length}
+        description="Gestioná accesos: invitá operadores o admins, cambiá roles y controlá actividad."
+      />
 
       <UsuariosList currentUserId={user.userId} initialUsuarios={initialUsuarios} />
     </div>

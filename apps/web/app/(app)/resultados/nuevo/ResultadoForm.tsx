@@ -387,13 +387,13 @@ export function ResultadoForm({ mode, initialData, onSaved, onCancelEdit }: Resu
         </p>
       ) : null}
 
-      <section className="grid gap-6 rounded-2xl border border-border bg-card p-6 shadow-sm lg:grid-cols-2">
+      <section className="grid gap-6 rounded-lg border border-border bg-card p-6 shadow-sm lg:grid-cols-2">
         <div className="space-y-2">
           <label className="text-sm font-medium">Paciente</label>
           {mode === "create" ? (
             <PacienteAutocomplete onSelect={setSelectedPaciente} placeholder="Buscar por nombre, apellido o cédula" />
           ) : (
-            <div className="flex items-center gap-3 rounded-xl border border-border bg-background/70 px-4 py-3">
+            <div className="flex items-center gap-3 rounded-md border border-border bg-background/70 px-4 py-3">
               <UserRound className="h-4 w-4 text-muted-foreground" />
               <div>
                 <p className="text-sm font-medium text-foreground">
@@ -490,7 +490,7 @@ export function ResultadoForm({ mode, initialData, onSaved, onCancelEdit }: Resu
         </div>
       </section>
 
-      <section className="rounded-2xl border border-border bg-card p-6 shadow-sm">
+      <section className="rounded-lg border border-border bg-card p-6">
         <div className="flex flex-col gap-3 border-b border-border pb-4 md:flex-row md:items-center md:justify-between">
           <div>
             <h2 className="text-lg font-semibold">Exámenes del resultado</h2>
@@ -520,7 +520,7 @@ export function ResultadoForm({ mode, initialData, onSaved, onCancelEdit }: Resu
             {examLoading ? <p className="text-xs text-muted-foreground">Buscando exámenes…</p> : null}
             {examError ? <p className="text-xs text-destructive">{examError}</p> : null}
             {examItems.length > 0 ? (
-              <div className="max-h-64 overflow-auto rounded-xl border border-border">
+              <div className="max-h-64 overflow-auto rounded-md border border-border">
                 {examItems.map((item) => (
                   <button
                     key={item.id}
@@ -541,7 +541,7 @@ export function ResultadoForm({ mode, initialData, onSaved, onCancelEdit }: Resu
             ) : null}
           </div>
 
-          <div className="rounded-xl border border-dashed border-border bg-background/40 p-4">
+          <div className="rounded-md border border-dashed border-border bg-background/40 p-4">
             <p className="text-sm font-medium text-foreground">Resumen</p>
             <p className="mt-2 text-sm text-muted-foreground">
               {lineas.length} {lineas.length === 1 ? "examen cargado" : "exámenes cargados"}
@@ -552,7 +552,7 @@ export function ResultadoForm({ mode, initialData, onSaved, onCancelEdit }: Resu
           </div>
         </div>
 
-        <div className="mt-6 overflow-x-auto rounded-xl border border-border">
+        <div className="mt-6 overflow-x-auto rounded-md border border-border">
           <table className="min-w-full divide-y divide-border text-sm">
             <thead className="bg-muted/40 text-left text-muted-foreground">
               <tr>
@@ -618,7 +618,7 @@ export function ResultadoForm({ mode, initialData, onSaved, onCancelEdit }: Resu
 
       {paquetesOpen ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="w-full max-w-2xl rounded-2xl border border-border bg-card p-6 shadow-xl">
+          <div className="w-full max-w-2xl rounded-lg border border-border bg-card p-6 shadow-xl">
             <div className="flex items-start justify-between gap-4">
               <div>
                 <h3 className="text-xl font-semibold">Cargar paquete</h3>
@@ -629,7 +629,7 @@ export function ResultadoForm({ mode, initialData, onSaved, onCancelEdit }: Resu
 
             {packageError ? <p className="mt-4 text-sm text-destructive">{packageError}</p> : null}
 
-            <div className="mt-4 max-h-[28rem] overflow-auto rounded-xl border border-border">
+            <div className="mt-4 max-h-[28rem] overflow-auto rounded-md border border-border">
               {paquetesLoading ? (
                 <div className="flex items-center gap-2 px-4 py-6 text-sm text-muted-foreground">
                   <Loader2 className="h-4 w-4 animate-spin" /> Cargando paquetes…

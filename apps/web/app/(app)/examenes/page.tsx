@@ -5,6 +5,7 @@ import { AuthError, getCurrentUser } from "@/lib/server/auth";
 import { getAdminDb } from "@/lib/db-server";
 
 import { TitulosNavigator } from "./TitulosNavigator";
+import { PageHeader } from "@/components/layout/PageHeader";
 
 interface TituloListItem {
   id: string;
@@ -37,16 +38,12 @@ export default async function ExamenesPage() {
   }));
 
   return (
-    <div className="mx-auto flex max-w-6xl flex-col gap-6">
-      <div className="flex flex-col gap-2">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Exámenes</h1>
-          <p className="text-sm text-muted-foreground">
-            Gestioná el catálogo por grupos, actualizá precios y prepará la
-            importación masiva desde Excel.
-          </p>
-        </div>
-      </div>
+    <div className="mx-auto flex max-w-7xl flex-col gap-4">
+      <PageHeader
+        title="Exámenes"
+        count={initialTitulos.length}
+        description="Catálogo por grupos: precios, orden e importación masiva desde Excel."
+      />
 
       <TitulosNavigator initialTitulos={initialTitulos} />
     </div>

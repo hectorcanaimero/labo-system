@@ -5,6 +5,7 @@ import { AuthError, getCurrentUser } from "@/lib/server/auth";
 import { getAdminDb } from "@/lib/db-server";
 
 import { PresupuestoForm } from "./PresupuestoForm";
+import { PageHeader } from "@/components/layout/PageHeader";
 
 async function requireOperadorOrRedirect(): Promise<void> {
   try {
@@ -26,16 +27,12 @@ export default async function NuevoPresupuestoPage() {
   const latest = await getLatest(getAdminDb());
 
   return (
-    <div className="mx-auto flex max-w-6xl flex-col gap-6">
-      <div className="flex flex-col gap-2">
-        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-primary">
-          Nuevo presupuesto
-        </p>
-        <h1 className="text-3xl font-bold tracking-tight">Crear presupuesto</h1>
-        <p className="text-sm text-muted-foreground">
-          Elegí un paciente registrado o usá un nombre libre, cargá exámenes y el total se calcula en vivo en USD y Bs.
-        </p>
-      </div>
+    <div className="mx-auto flex max-w-6xl flex-col gap-4">
+      <PageHeader
+        title="Nuevo presupuesto"
+        description="Elegí un paciente o usá un nombre libre, cargá exámenes y el total se calcula en vivo en USD y Bs."
+        back={{ href: "/presupuestos", label: "Presupuestos" }}
+      />
 
       <PresupuestoForm
         mode="create"

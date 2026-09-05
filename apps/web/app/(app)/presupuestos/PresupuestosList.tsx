@@ -27,6 +27,7 @@ import {
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { Pagination } from "@/components/layout/Pagination";
 import {
   Table,
   TableBody,
@@ -871,40 +872,14 @@ export function PresupuestosList({ initialData, pageSize }: PresupuestosListProp
               </Table>
             )}
 
-            {/* Pagination footer */}
-            <div className="flex flex-col gap-2 border-t border-border bg-muted/20 px-3 py-2 text-xs md:flex-row md:items-center md:justify-between">
-              <p className="font-mono tabular-nums text-muted-foreground">
-                Página{" "}
-                <span className="font-semibold text-foreground">{data.page}</span> /{" "}
-                <span className="font-semibold text-foreground">{data.totalPages || 1}</span>
-                {" · "}
-                <span className="font-semibold text-foreground">{data.total}</span>{" "}
-                presupuestos
-              </p>
-
-              <div className="flex gap-1">
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  className="h-7 text-xs"
-                  disabled={page <= 1 || loadingList}
-                  onClick={() => setPage((current) => Math.max(1, current - 1))}
-                >
-                  ← Anterior
-                </Button>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  className="h-7 text-xs"
-                  disabled={data.totalPages === 0 || page >= data.totalPages || loadingList}
-                  onClick={() => setPage((current) => current + 1)}
-                >
-                  Siguiente →
-                </Button>
-              </div>
-            </div>
+            <Pagination
+              page={data.page}
+              totalPages={data.totalPages}
+              total={data.total}
+              label="presupuestos"
+              disabled={loadingList}
+              onPageChange={setPage}
+            />
           </>
         )}
       </div>

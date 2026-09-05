@@ -38,15 +38,15 @@ export default function AppErrorBoundary({
 
   return (
     <div className="flex min-h-[60vh] flex-1 items-center justify-center p-6">
-      <div className="w-full max-w-md rounded-xl border border-border bg-card p-8 text-center text-card-foreground shadow-sm">
+      <div className="w-full max-w-md rounded-lg border border-border bg-card p-6 text-center text-card-foreground">
         <div
-          className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-full bg-destructive/10 text-destructive"
+          className="mx-auto mb-4 flex h-10 w-10 items-center justify-center rounded-full bg-destructive/10 text-destructive"
           aria-hidden="true"
         >
-          <AlertTriangle className="h-7 w-7" />
+          <AlertTriangle className="h-5 w-5" />
         </div>
 
-        <h1 className="text-2xl font-bold tracking-tight">Algo salió mal</h1>
+        <h1 className="text-lg font-semibold tracking-tight">Algo salió mal</h1>
         <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
           {message}
         </p>
@@ -55,14 +55,14 @@ export default function AppErrorBoundary({
           <button
             type="button"
             onClick={reset}
-            className="inline-flex h-10 items-center justify-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            className="inline-flex h-9 items-center justify-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
             <RotateCcw className="h-4 w-4" aria-hidden="true" />
             Intentar de nuevo
           </button>
           <Link
             href="/dashboard"
-            className="inline-flex h-10 items-center justify-center gap-2 rounded-md border border-input bg-background px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            className="inline-flex h-9 items-center justify-center gap-2 rounded-md border border-input bg-background px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
             <Home className="h-4 w-4" aria-hidden="true" />
             Ir al inicio

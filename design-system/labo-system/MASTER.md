@@ -40,7 +40,9 @@ Todo por CSS variables — declaradas en `apps/web/app/globals.css` (shadcn `new
 | `border` | `#E4E4E7` | Bordes de todo |
 | `primary` | `#18181B` | Botón primario, acciones neutrales |
 | `primary-foreground` | `#FFFFFF` | Texto sobre primary |
-| `accent` | `#2563EB` | Enlaces, focus rings, drop targets válidos |
+| `accent` | `#F0F0F1` | Hover y estado activo de nav/menús (shadcn) |
+| `brand` | `#2563EB` | Único acento cromático: focus ring, links, selección |
+| `sidebar` | `#F7F7F8` | Fondo del sidebar |
 | `destructive` | `#DC2626` | Eliminar, anular, errores |
 | `ring` | `#18181B` | Focus outline |
 
@@ -77,8 +79,8 @@ Escala **densa** (density 8/10). Usar Tailwind default pero limitado:
 **Base**: `text-sm` (14px) body, `text-xs` (12px) meta/tabla, `text-lg` títulos de sección, `text-xl` page titles. **Nunca `text-3xl`** en páginas operativas.
 
 **Familias**:
-- **Sans** (default system stack): nombres, texto, botones, headings
-- **Mono** (`font-mono tabular-nums`): cédula, fecha, precio, ID, contadores, cualquier dato tabular
+- **Sans** (Inter vía `next/font`, `--font-sans`): nombres, texto, botones, headings
+- **Mono** (JetBrains Mono vía `next/font`, `--font-mono`, `font-mono tabular-nums`): cédula, fecha, precio, ID, contadores, cualquier dato tabular
 
 **Cuándo usar mono** (regla dura):
 - Cédulas (`V-12345678`)
@@ -101,7 +103,7 @@ Si dudás, mono. La grilla visual gana.
 
 | Componente | Uso |
 |---|---|
-| `Button` | Todos los botones. `size="sm"` por defecto (h-8). |
+| `Button` | Todos los botones. `default` = h-9, `sm` = h-8 (ya no hace falta `className="h-8"`). |
 | `Table` | Cualquier lista con >5 filas. Row `h-9` + `py-1.5`. |
 | `Badge` | Estados fijos que no cambian por interacción. |
 | `Dialog` | Confirmaciones, forms modales, acciones. **Reemplaza** cualquier `fixed inset-0` custom. |
@@ -196,7 +198,19 @@ Si dudás, mono. La grilla visual gana.
 
 ### 3.3 Page header compacto
 
-Título + total + acciones, todo en una fila.
+**Siempre** `PageHeader` (`apps/web/components/layout/PageHeader.tsx`). Es el único lugar donde se define el estilo de `h1`.
+
+```tsx
+<PageHeader
+  title="Órdenes"
+  count={total}                       // mono, al lado del título
+  description="Subtítulo de una línea."
+  back={{ href: "/resultados", label: "Órdenes" }}   // opcional, detalles
+  actions={<Button size="sm">Nueva orden</Button>}   // opcional
+/>
+```
+
+Markup equivalente (no lo repliques a mano):
 
 ```tsx
 <div className="flex flex-col gap-3 border-b border-border pb-3 sm:flex-row sm:items-end sm:justify-between">
@@ -294,7 +308,21 @@ Mobile-first. Breakpoints Tailwind: `sm` (640), `md` (768), `lg` (1024), `xl` (1
 
 ### 4.3 Navegación
 
-Sidebar fija a la izquierda (`packages/ui/nav/Sidebar.tsx`) — colapsable con localStorage. Header top con perfil de usuario + logout. **No agregar breadcrumbs** — el sidebar + page header alcanzan.
+Sidebar fija a la izquierda (`packages/ui/nav/Sidebar.tsx`, 224px / 56px colapsado, `⌘\`) con grupos (Operación · Catálogo · Administración), navegación con `next/link` (sin recarga), ítem activo `bg-accent` (nunca `bg-primary`), botón "Buscar ⌘K" y pie con `UserMenu` (tema claro/oscuro, logout). Los ítems de Administración sólo se muestran a `admin`. La tasa BCV vive como card en el Dashboard (`KPICards`), no en el sidebar. **No hay header global en desktop**: el `Header` de `@labo/ui/nav` es sólo mobile (40px). **No agregar breadcrumbs** — el `PageHeader` con `back` alcanza.
+
+### 4.4 Paleta de comandos y atajos
+
+`apps/web/components/nav/CommandPalette.tsx` (cmdk): busca pacientes por nombre/cédula, navega a páginas y dispara acciones. Atajos globales (ignorados dentro de inputs):
+
+| Atajo | Acción |
+|---|---|
+| `⌘K` / `/` | Abrir paleta |
+| `C` | Nueva orden |
+| `B` | Nuevo presupuesto |
+| `P` | Nuevo paciente |
+| `⌘\` | Colapsar sidebar |
+
+Mostrar el atajo como `<kbd>` (estilo global en `globals.css`) dentro del botón primario correspondiente.
 
 ---
 

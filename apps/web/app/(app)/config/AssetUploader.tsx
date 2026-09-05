@@ -138,11 +138,11 @@ export function AssetUploader({ type, label, description, onSuccess, onError }: 
       <label className="text-sm font-medium text-foreground">{label}</label>
 
       {loadingAsset && !localPreview ? (
-        <Skeleton className="h-40 w-full rounded-xl" />
+        <Skeleton className="h-40 w-full rounded-md" />
       ) : (
         <div
           onClick={handleCardClick}
-          className={`relative flex h-40 w-full cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed border-border bg-muted/30 transition-all hover:bg-muted/50 ${uploading ? "pointer-events-none opacity-60" : ""}`}
+          className={`relative flex h-40 w-full cursor-pointer flex-col items-center justify-center rounded-md border-2 border-dashed border-border bg-muted/30 transition-all hover:bg-muted/50 ${uploading ? "pointer-events-none opacity-60" : ""}`}
         >
         <input
           type="file"
@@ -165,7 +165,7 @@ export function AssetUploader({ type, label, description, onSuccess, onError }: 
               alt={label}
               className="max-h-full max-w-full rounded-md object-contain"
             />
-            <div className="absolute inset-0 bg-black/40 opacity-0 hover:opacity-100 transition-opacity flex items-center justify-center rounded-xl">
+            <div className="absolute inset-0 bg-black/40 opacity-0 hover:opacity-100 transition-opacity flex items-center justify-center rounded-md">
               <Upload className="h-5 w-5 text-white" />
               <span className="ml-1.5 text-xs text-white font-medium">Reemplazar</span>
             </div>
