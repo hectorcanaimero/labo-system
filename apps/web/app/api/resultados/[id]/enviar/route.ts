@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 
 import { get as getConfig } from "@labo/db/repos/config";
-import { crearOReutilizar } from "@labo/db/repos/enlaces";
+import { ENLACES_TABLA_FALTANTE, crearOReutilizar } from "@labo/db/repos/enlaces";
 import { getById as getPacienteById } from "@labo/db/repos/pacientes";
 import { getById as getOrden } from "@labo/db/repos/ordenes";
 import {
@@ -36,8 +36,8 @@ const UUID_PATTERN =
 const CANALES = ["whatsapp", "email"] as const;
 type Canal = (typeof CANALES)[number];
 
-function bad(status: number, error: string): Response {
-  return NextResponse.json({ error }, { status });
+function bad(status: number, error: string, detalle?: string): Response {
+  return NextResponse.json(detalle ? { error, detalle } : { error }, { status });
 }
 
 /**
@@ -119,7 +119,21 @@ export async function POST(
     if (error instanceof AuthError) {
       return bad(error.code === "UNAUTHENTICATED" ? 401 : 403, error.code);
     }
+
+    const message = error instanceof Error ? error.message : String(error);
     console.error("[POST /api/resultados/[id]/enviar]", error);
-    return bad(500, "ERROR_GENERICO");
+
+    if (message === ENLACES_TABLA_FALTANTE) {
+      return bad(
+        503,
+        ENLACES_TABLA_FALTANTE,
+        "Falta aplicar la migración 0014 (tabla enlaces_resultado) en este entorno.",
+      );
+    }
+
+    // El endpoint es staff-only (admin/operador): devolver la causa real acá
+    // vale más que proteger un detalle interno. Un 500 opaco obliga a entrar
+    // al VPS a leer logs para saber qué se rompió.
+    return bad(500, "ERROR_GENERICO", message);
   }
 }

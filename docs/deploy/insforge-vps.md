@@ -322,3 +322,38 @@ STORAGE_SIGNING_SECRET=             # openssl rand -hex 32 (mínimo 32 chars)
 - [x] `docs/deploy/insforge-vps.md` + `docker-compose.override.yml`
 - [ ] `docker compose ps` healthy tras reboot del VPS — verificar en el server
 - [ ] Credenciales del dashboard en el password manager — confirmar
+
+## Aplicar una migración en la instancia hosted (`*.insforge.app`)
+
+El `pnpm --filter @labo/db migrate` de `packages/db/package.json` apunta a
+`scripts/migrate.mjs`, y el `.gitignore` tiene un `scripts/` a secas (línea 4)
+que ignora **cualquier** carpeta `scripts/` del monorepo. O sea: ese runner
+nunca viaja por git y en un clone fresco no existe.
+
+Para la instancia hosted la vía real es el endpoint de migraciones de InsForge,
+que además **recarga el schema cache de PostgREST solo** — que es el paso que
+se olvida cuando se aplica el SQL por `psql` directo y deja la tabla creada
+pero invisible para el SDK (error `PGRST205`):
+
+```bash
+python3 - <<'PY'
+import os, json, urllib.request, pathlib
+u, k = os.environ['INSFORGE_URL'], os.environ['INSFORGE_API_KEY']
+sql = pathlib.Path('packages/db/migrations/00XX_nombre.sql').read_text()
+req = urllib.request.Request(
+    u + '/api/database/migrations',
+    data=json.dumps({'version': '00XX', 'name': 'nombre-con-guiones', 'sql': sql}).encode(),
+    method='POST',
+    headers={'Authorization': 'Bearer ' + k, 'Content-Type': 'application/json'})
+print(json.load(urllib.request.urlopen(req))['message'])
+PY
+```
+
+Notas:
+
+- El endpoint corre todo en **una transacción propia**: si un statement falla,
+  no queda nada aplicado ni registrado. No incluir `BEGIN` / `COMMIT` en el SQL.
+- `GET /api/database/migrations` lista lo aplicado por esta vía. Ojo: las
+  migraciones 0001–0013 se aplicaron por fuera, así que no figuran ahí.
+- Verificar después con
+  `GET /api/database/records/{tabla}?limit=1` usando la API key admin.
