@@ -28,7 +28,13 @@ function toStatus(error: unknown): { status: number; error: string } {
   }
   const code = error instanceof Error ? error.message : "ERROR_GENERICO";
   if (code === PACIENTE_NO_ENCONTRADO || code === EXAMEN_NO_ENCONTRADO) return { status: 404, error: code };
-  if (code.startsWith("FECHA_") || code.startsWith("EXAMENES_") || code.endsWith("_REQUERIDO") || code === "VALIDACION_FALLIDA") {
+  if (
+    code.startsWith("FECHA_") ||
+    code.startsWith("EXAMENES_") ||
+    code.startsWith("ENTREGA_") ||
+    code.endsWith("_REQUERIDO") ||
+    code === "VALIDACION_FALLIDA"
+  ) {
     return { status: 400, error: code };
   }
   return { status: 500, error: "ERROR_GENERICO" };
