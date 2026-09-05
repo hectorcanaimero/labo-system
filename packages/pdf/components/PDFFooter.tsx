@@ -1,99 +1,64 @@
-import { Image, StyleSheet, Text, View } from "@react-pdf/renderer";
+import { StyleSheet, Text, View } from "@react-pdf/renderer";
+
+import { PDF_COLORS, PDF_FONT, PDF_PAGE } from "../theme";
 
 export interface PDFFooterProps {
-  firma: string | null;
-  sello: string | null;
+  /** Texto libre de la configuración (`pdf_pie_pagina`). */
   pieDePagina: string | null;
+  /** Cláusula legal/aviso del documento. Si es null no se imprime. */
+  aviso?: string | null;
+  /** Texto a la izquierda del número de página (ej. "Emitido el 05/09/2026"). */
+  emision?: string | null;
 }
 
 const styles = StyleSheet.create({
-  signatures: {
-    alignItems: "flex-end",
-    flexDirection: "row",
-    justifyContent: "center",
-    minHeight: 76,
-    paddingBottom: 12,
-    paddingTop: 16,
-    gap: 40, // space between firma and sello
-  },
-  signatureBlock: {
-    alignItems: "center",
-    marginHorizontal: 12, // fallback for gap
-    width: 150,
-  },
-  asset: {
-    height: 54,
-    objectFit: "contain",
-    width: 120,
-  },
-  signatureLine: {
-    borderTopColor: "#0E9090",
-    borderTopWidth: 1,
-    color: "#0E9090",
-    fontFamily: "Helvetica-Bold",
-    fontSize: 7.5,
-    marginTop: 4,
-    paddingTop: 4,
-    textAlign: "center",
-    width: 130,
-    textTransform: "uppercase",
-  },
   footer: {
-    bottom: 16,
-    left: 36,
     position: "absolute",
-    right: 36,
-    textAlign: "center",
+    bottom: 18,
+    left: PDF_PAGE.paddingHorizontal,
+    right: PDF_PAGE.paddingHorizontal,
+    borderTopColor: PDF_COLORS.border,
+    borderTopWidth: 0.8,
+    paddingTop: 6,
   },
-  footerText: {
-    color: "#475569",
-    fontSize: 7,
-    marginBottom: 4,
-  },
-  legalClause: {
-    color: "#64748b",
+  aviso: {
+    color: PDF_COLORS.muted,
+    fontFamily: PDF_FONT.italic,
     fontSize: 6.5,
-    fontFamily: "Helvetica-Oblique",
-    lineHeight: 1.2,
-    marginBottom: 6,
+    lineHeight: 1.3,
+    textAlign: "center",
+    marginBottom: 3,
   },
-  pageNumber: {
-    color: "#0E9090",
-    fontFamily: "Helvetica-Bold",
-    fontSize: 7.5,
+  pie: {
+    color: PDF_COLORS.brandDark,
+    fontFamily: PDF_FONT.bold,
+    fontSize: 7,
+    textAlign: "center",
+    marginBottom: 3,
+  },
+  row: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+  },
+  small: {
+    color: PDF_COLORS.faint,
+    fontSize: 6.5,
   },
 });
 
-export function PDFFooter({ firma, sello, pieDePagina }: PDFFooterProps) {
+/** Pie fijo en todas las páginas: aviso, pie configurable, emisión y paginado. */
+export function PDFFooter({ pieDePagina, aviso, emision }: PDFFooterProps) {
   return (
-    <>
-      {firma || sello ? (
-        <View wrap={false} style={styles.signatures}>
-          {firma ? (
-            <View style={styles.signatureBlock}>
-              <Image src={firma} style={styles.asset} />
-              <Text style={styles.signatureLine}>Firma autorizada</Text>
-            </View>
-          ) : null}
-          {sello ? (
-            <View style={styles.signatureBlock}>
-              <Image src={sello} style={styles.asset} />
-              <Text style={styles.signatureLine}>Sello del laboratorio</Text>
-            </View>
-          ) : null}
-        </View>
-      ) : null}
-      <View fixed style={styles.footer}>
-        <Text style={styles.legalClause}>
-          Los resultados emitidos en este informe tienen validez clínica únicamente bajo la interpretación del médico tratante.
-          Este documento es de carácter confidencial y su uso está restringido exclusivamente a fines médicos.
-        </Text>
-        {pieDePagina ? <Text style={styles.footerText}>{pieDePagina}</Text> : null}
+    <View fixed style={styles.footer}>
+      {aviso ? <Text style={styles.aviso}>{aviso}</Text> : null}
+      {pieDePagina ? <Text style={styles.pie}>{pieDePagina}</Text> : null}
+      <View style={styles.row}>
+        <Text style={styles.small}>{emision ?? ""}</Text>
         <Text
-          style={styles.pageNumber}
+          style={styles.small}
           render={({ pageNumber, totalPages }) => `Página ${pageNumber} de ${totalPages}`}
         />
       </View>
-    </>
+    </View>
   );
 }

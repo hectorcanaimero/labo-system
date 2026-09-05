@@ -1,5 +1,7 @@
 import { StyleSheet, Text, View } from "@react-pdf/renderer";
 
+import { PDF_COLORS, PDF_FONT } from "../theme";
+
 export interface ExamenTableRow {
   id: string;
   nombre: string;
@@ -12,90 +14,109 @@ export interface ExamenTableRow {
 
 export interface ExamenesTableProps {
   rows: readonly ExamenTableRow[];
+  /** Si es false, se omite la fila de cabecera (para tablas encadenadas). */
+  header?: boolean;
 }
+
+const COL = {
+  prueba: "30%",
+  resultado: "16%",
+  unidad: "12%",
+  referencia: "24%",
+  metodo: "18%",
+} as const;
 
 const styles = StyleSheet.create({
   table: {
-    marginBottom: 16,
-    borderWidth: 1,
-    borderColor: "#DCDCDC",
-    borderRadius: 4,
-    overflow: "hidden",
+    marginBottom: 8,
   },
-  header: {
-    backgroundColor: "#0E9090",
-    color: "#ffffff",
+  headerRow: {
     flexDirection: "row",
-    fontFamily: "Helvetica-Bold",
-    fontSize: 8,
-    paddingHorizontal: 8,
-    paddingVertical: 6,
+    borderBottomColor: PDF_COLORS.brand,
+    borderBottomWidth: 1,
+    paddingHorizontal: 6,
+    paddingVertical: 4,
+  },
+  headerCell: {
+    color: PDF_COLORS.brandDark,
+    fontFamily: PDF_FONT.bold,
+    fontSize: 7,
+    letterSpacing: 0.3,
+    textTransform: "uppercase",
   },
   row: {
-    color: "#1e293b",
     flexDirection: "row",
+    alignItems: "flex-start",
+    borderBottomColor: PDF_COLORS.border,
+    borderBottomWidth: 0.6,
+    paddingHorizontal: 6,
+    paddingVertical: 5,
+  },
+  rowZebra: {
+    backgroundColor: PDF_COLORS.zebra,
+  },
+  cell: {
+    color: PDF_COLORS.text,
     fontSize: 8.5,
-    paddingHorizontal: 8,
-    paddingVertical: 7,
-  },
-  rowOdd: {
-    backgroundColor: "#E6E6E6",
-  },
-  rowEven: {
-    backgroundColor: "#DCDCDC",
-  },
-  pruebaColumn: {
     paddingRight: 6,
-    width: "25%",
   },
-  resultadoColumn: {
-    fontFamily: "Helvetica-Bold",
-    paddingRight: 6,
-    width: "15%",
+  prueba: { width: COL.prueba },
+  resultado: {
+    width: COL.resultado,
+    fontFamily: PDF_FONT.bold,
+    color: PDF_COLORS.ink,
   },
-  unidadColumn: {
-    paddingRight: 6,
-    width: "15%",
-  },
-  referenciaColumn: {
-    paddingRight: 6,
-    width: "25%",
-  },
-  metodoColumn: {
-    paddingRight: 6,
-    width: "20%",
+  unidad: { width: COL.unidad, color: PDF_COLORS.muted },
+  referencia: { width: COL.referencia, color: PDF_COLORS.muted },
+  metodo: { width: COL.metodo, color: PDF_COLORS.muted, fontSize: 7.5 },
+  observacion: {
+    color: PDF_COLORS.muted,
+    fontFamily: PDF_FONT.italic,
+    fontSize: 7.5,
+    marginTop: 2,
   },
   empty: {
-    color: "#64748b",
-    fontSize: 9,
-    padding: 14,
+    color: PDF_COLORS.muted,
+    fontSize: 8.5,
+    padding: 10,
     textAlign: "center",
-    backgroundColor: "#E6E6E6",
   },
 });
 
-export function ExamenesTable({ rows }: ExamenesTableProps) {
+/**
+ * Tabla de exámenes. Cada fila es indivisible (`wrap={false}`), pero la tabla
+ * sí puede partirse entre páginas. La observación de la línea, si existe, va
+ * en cursiva debajo del nombre de la prueba.
+ */
+export function ExamenesTable({ rows, header = true }: ExamenesTableProps) {
   return (
     <View style={styles.table}>
-      <View fixed style={styles.header}>
-        <Text style={styles.pruebaColumn}>PRUEBA</Text>
-        <Text style={styles.resultadoColumn}>RESULTADO</Text>
-        <Text style={styles.unidadColumn}>UNIDAD</Text>
-        <Text style={styles.referenciaColumn}>VALOR NORMAL</Text>
-        <Text style={styles.metodoColumn}>MÉTODO</Text>
-      </View>
+      {header ? (
+        <View style={styles.headerRow}>
+          <Text style={[styles.headerCell, styles.prueba]}>Prueba</Text>
+          <Text style={[styles.headerCell, styles.resultado]}>Resultado</Text>
+          <Text style={[styles.headerCell, styles.unidad]}>Unidad</Text>
+          <Text style={[styles.headerCell, styles.referencia]}>Valores de referencia</Text>
+          <Text style={[styles.headerCell, styles.metodo]}>Método</Text>
+        </View>
+      ) : null}
       {rows.length === 0 ? <Text style={styles.empty}>Sin exámenes registrados</Text> : null}
       {rows.map((row, index) => (
         <View
           key={row.id}
           wrap={false}
-          style={[styles.row, index % 2 === 0 ? styles.rowEven : styles.rowOdd]}
+          style={[styles.row, index % 2 === 1 ? styles.rowZebra : {}]}
         >
-          <Text style={styles.pruebaColumn}>{row.nombre}</Text>
-          <Text style={styles.resultadoColumn}>{row.valor}</Text>
-          <Text style={styles.unidadColumn}>{row.unidad ?? "—"}</Text>
-          <Text style={styles.referenciaColumn}>{row.referencia ?? "—"}</Text>
-          <Text style={styles.metodoColumn}>{row.metodo ?? "—"}</Text>
+          <View style={[styles.cell, styles.prueba]}>
+            <Text>{row.nombre}</Text>
+            {row.observacion?.trim() ? (
+              <Text style={styles.observacion}>{row.observacion.trim()}</Text>
+            ) : null}
+          </View>
+          <Text style={[styles.cell, styles.resultado]}>{row.valor.trim() || "—"}</Text>
+          <Text style={[styles.cell, styles.unidad]}>{row.unidad ?? "—"}</Text>
+          <Text style={[styles.cell, styles.referencia]}>{row.referencia ?? "—"}</Text>
+          <Text style={[styles.cell, styles.metodo]}>{row.metodo ?? "—"}</Text>
         </View>
       ))}
     </View>
