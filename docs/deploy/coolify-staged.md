@@ -27,16 +27,26 @@ El Coolify de este proyecto corre en el propio VPS (`coolify` v4.3.x detrás de
 
 ## 1. Crear el recurso en Coolify
 
-1. **New Resource → Docker Compose** (no "Nixpacks": el monorepo pnpm necesita
-   el Dockerfile propio).
-2. Source: repositorio `hectorcanaimero/labo-system`.
+Instancia: **https://cooly.usebot.chat** (corre en el mismo VPS, detrás de
+Traefik/`coolify-proxy`). El servidor registrado es `localhost`.
+
+El repo `hectorcanaimero/labo-system` es **público**, así que no hace falta
+instalar la GitHub App: alcanza con la fuente *Public Repository*.
+
+1. Entrar al proyecto **My first project** → entorno **production**
+   (o crear un proyecto nuevo, p. ej. `labo-system`).
+2. **+ New Resource → Public Repository**.
+3. Repository URL: `https://github.com/hectorcanaimero/labo-system`
    - Branch: **`staged`**
+   - Build Pack: **Docker Compose** (no Nixpacks: el monorepo pnpm necesita
+     el Dockerfile propio)
    - Base directory: `/`
-   - Docker Compose location: `docker-compose.staged.yml`
-3. Guardar. Coolify detecta el servicio `web` y el puerto `3000`.
-4. En **Domains**, asignar el dominio de staging al servicio `web`
-   (p. ej. `staging.rvlaboratorio.com`). La variable `SERVICE_FQDN_WEB_3000`
-   del compose es la que hace que Coolify publique ese puerto por el proxy.
+   - Docker Compose location: `/docker-compose.staged.yml`
+4. Guardar. Coolify parsea el compose y detecta el servicio `web` (puerto 3000)
+   junto con las variables `${...}` que hay que completar.
+5. En **Domains**, asignar el dominio de staging al servicio `web`. La variable
+   `SERVICE_FQDN_WEB_3000` del compose es la que hace que Coolify publique ese
+   puerto por el proxy.
 
 ## 2. Variables de entorno
 
@@ -81,18 +91,23 @@ reconstruir.
 
 Hay dos formas; con una alcanza.
 
-### Opción A — webhook nativo de Coolify (recomendada)
+### Opción A — webhook manual de Coolify
 
-1. En el recurso → pestaña **Webhooks**, copiar la *GitHub deploy webhook URL*.
+Sirve con la fuente *Public Repository*, pero el webhook hay que pegarlo a
+mano: la creación automática en GitHub sólo la hace Coolify cuando el origen
+es una GitHub App instalada, y acá no lo es.
+
+1. En el recurso → pestaña **Webhooks**, copiar la *GitHub manual webhook URL*
+   y el **Webhook Secret** que muestra al lado.
 2. En GitHub: **Settings → Webhooks → Add webhook**
    - Payload URL: la URL copiada
    - Content type: `application/json`
-   - Secret: el mismo valor que Coolify muestra en **Webhook Secret**
+   - Secret: el valor del paso 1
    - Events: *Just the push event*
 3. En Coolify, dejar **Auto Deploy** activado.
 
 Coolify filtra por la rama configurada en el recurso (`staged`), así que un
-push a `main` no dispara este deploy.
+push a otra rama no dispara este deploy.
 
 ### Opción B — desde GitHub Actions
 
@@ -108,8 +123,9 @@ El workflow corre en `push` a `staged` — un merge de PR hacia `staged` genera
 ese mismo push, así que cubre los dos casos — y también se puede lanzar a mano
 con **Run workflow** (`workflow_dispatch`).
 
-Ventaja de la opción B: el deploy queda encadenado al historial de Actions y
-se puede condicionar a que CI pase antes. Si se usa A y B a la vez, cada push
+**Recomendada mientras no haya GitHub App instalada**: no depende de pegar
+secretos en dos lados, el deploy queda encadenado al historial de Actions y se
+puede condicionar a que CI pase antes. Si se usan A y B a la vez, cada push
 dispara dos deploys.
 
 ## 4. Verificar
