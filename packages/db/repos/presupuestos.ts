@@ -245,9 +245,13 @@ export async function list(
   const { page, limit } = normalizePagination(input.page, input.limit);
   const filters = input.filters ?? {};
 
-  const applyFilters = <T extends { eq: Function; in: Function; gte: Function; lte: Function }>(
-    q: T,
-  ): T => {
+  type Filtrable<T> = {
+    eq: (column: string, value: unknown) => T;
+    in: (column: string, values: readonly unknown[]) => T;
+    gte: (column: string, value: unknown) => T;
+    lte: (column: string, value: unknown) => T;
+  };
+  const applyFilters = <T extends Filtrable<T>>(q: T): T => {
     let out = q;
     if (filters.paciente_id) out = out.eq("paciente_id", filters.paciente_id);
     if (filters.estados && filters.estados.length > 0) {

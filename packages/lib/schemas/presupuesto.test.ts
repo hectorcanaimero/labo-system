@@ -304,7 +304,7 @@ describe("estadoPresupuestoSchema", () => {
       "Aprobado",
       "Rechazado",
       "Cancelado",
-      "Convertido",
+      "Cerrado",
     ]) {
       expect(estadoPresupuestoSchema.safeParse(estado).success).toBe(true);
       expect(PresupuestoEstadoEnum.safeParse(estado).success).toBe(true);
@@ -313,6 +313,8 @@ describe("estadoPresupuestoSchema", () => {
 
   it("rechaza estado inválido", () => {
     expect(estadoPresupuestoSchema.safeParse("Archivado").success).toBe(false);
+    // "Convertido" fue el nombre viejo del estado terminal; hoy es "Cerrado".
+    expect(estadoPresupuestoSchema.safeParse("Convertido").success).toBe(false);
   });
 });
 
@@ -357,7 +359,7 @@ describe("presupuestoCambiarEstadoSchema", () => {
       "Enviado",
       "Aprobado",
       "Cancelado",
-      "Convertido",
+      "Cerrado",
     ]) {
       expect(
         presupuestoCambiarEstadoSchema.safeParse({ estado }).success,

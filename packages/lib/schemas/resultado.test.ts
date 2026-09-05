@@ -157,7 +157,7 @@ describe("resultadoUpdateSchema", () => {
   });
 
   it("acepta solo cambio de estado", () => {
-    const res = resultadoUpdateSchema.safeParse({ estado: "Completado" });
+    const res = resultadoUpdateSchema.safeParse({ estado: "Entregada" });
     expect(res.success).toBe(true);
   });
 

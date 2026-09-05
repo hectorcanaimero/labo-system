@@ -402,11 +402,14 @@ export async function list(
   const { page, limit } = normalizePagination(input);
   const filters = input.filters ?? {};
 
-  const applyFilters = <
-    T extends { eq: Function; gte: Function; lt: Function },
-  >(
-    q: T,
-  ): T => {
+  // Tipo mínimo del builder del SDK: sólo los filtros que usamos, cada uno
+  // devolviendo el mismo builder para poder encadenar.
+  type Filtrable<T> = {
+    eq: (column: string, value: unknown) => T;
+    gte: (column: string, value: unknown) => T;
+    lt: (column: string, value: unknown) => T;
+  };
+  const applyFilters = <T extends Filtrable<T>>(q: T): T => {
     let out = q;
     if (filters.pacienteId?.trim()) out = out.eq("paciente_id", filters.pacienteId.trim());
     if (filters.estado) out = out.eq("estado", filters.estado);
