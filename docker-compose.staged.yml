@@ -34,6 +34,10 @@ services:
       - DATABASE_URL=${DATABASE_URL}
       - CRON_SECRET=${CRON_SECRET}
 
+      # ─── Email (Resend). Sin RESEND_API_KEY el botón "Email" cae a mailto ──
+      - RESEND_API_KEY=${RESEND_API_KEY:-}
+      - EMAIL_FROM=${EMAIL_FROM:-}
+
       # ─── Necesaria para subir/servir archivos (mínimo 32 caracteres) ──────
       - STORAGE_SIGNING_SECRET=${STORAGE_SIGNING_SECRET}
       - STORAGE_ROOT=/app/.storage

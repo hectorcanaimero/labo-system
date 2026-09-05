@@ -7,8 +7,30 @@ import {
   htmlEmail,
   mensajeWhatsApp,
   mailtoResultado,
+  normalizarEmail,
   normalizarTelefonoWhatsApp,
 } from "./enlace-resultado";
+
+describe("normalizarEmail", () => {
+  it("acepta un email plausible y lo recorta", () => {
+    expect(normalizarEmail("  paciente@test.com ")).toBe("paciente@test.com");
+    expect(normalizarEmail("nombre.apellido+lab@sub.dominio.co")).toBe(
+      "nombre.apellido+lab@sub.dominio.co",
+    );
+  });
+
+  it("rechaza vacío, null y basura cargada en el campo", () => {
+    expect(normalizarEmail(null)).toBeNull();
+    expect(normalizarEmail(undefined)).toBeNull();
+    expect(normalizarEmail("")).toBeNull();
+    expect(normalizarEmail("   ")).toBeNull();
+    expect(normalizarEmail("no tiene")).toBeNull();
+    expect(normalizarEmail("0414-1234567")).toBeNull();
+    expect(normalizarEmail("paciente@")).toBeNull();
+    expect(normalizarEmail("paciente@dominio")).toBeNull();
+    expect(normalizarEmail("pac iente@test.com")).toBeNull();
+  });
+});
 
 describe("generarSlug", () => {
   it("genera 10 chars base62", () => {

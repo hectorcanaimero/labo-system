@@ -10,9 +10,10 @@ import {
   htmlEmail,
   mailtoResultado,
   mensajeWhatsApp,
+  normalizarEmail,
   normalizarTelefonoWhatsApp,
 } from "@labo/lib/enlace-resultado";
-import { EMAIL_NO_DISPONIBLE, sendEmail } from "@labo/lib/server/email";
+import { EMAIL_NO_DISPONIBLE, resolveEmailProvider, sendEmail } from "@labo/lib/server/email";
 import { AuthError, getCurrentUser } from "@/lib/server/auth";
 import { getAdminDb } from "@/lib/db-server";
 
@@ -57,7 +58,10 @@ function publicOrigin(request: NextRequest): string {
 }
 
 function formatVencimiento(iso: string): string {
-  return new Intl.DateTimeFormat("es-VE", { dateStyle: "long", timeZone: "UTC" }).format(
+  return new Intl.DateTimeFormat("es-VE", {
+    dateStyle: "long",
+    timeZone: "America/Caracas",
+  }).format(
     new Date(iso),
   );
 }
@@ -85,7 +89,7 @@ export async function POST(
     if (!paciente) return bad(404, "PACIENTE_NO_ENCONTRADO");
 
     const telefono = normalizarTelefonoWhatsApp(paciente.telefono);
-    const email = paciente.email?.trim() || null;
+    const email = normalizarEmail(paciente.email);
     if (canal === "whatsapp" && !telefono) return bad(400, "PACIENTE_SIN_TELEFONO");
     if (canal === "email" && !email) return bad(400, "PACIENTE_SIN_EMAIL");
 
@@ -109,10 +113,9 @@ export async function POST(
       });
     }
 
-    // Envío server-side si el proyecto lo tiene habilitado. Si no (plan sin
-    // servicio de email), se devuelve un `mailto:` y el operador lo manda desde
-    // su cuenta — mismo trato que WhatsApp. Cuando el plan se habilite, este
-    // camino vuelve solo al envío automático sin tocar código.
+    // Envío server-side (Resend). Si no hay proveedor configurado, se devuelve
+    // un `mailto:` y el operador lo manda desde su cuenta — mismo trato que
+    // WhatsApp. Al cargar RESEND_API_KEY vuelve solo al envío automático.
     try {
       await sendEmail({
         to: email as string,
@@ -122,7 +125,9 @@ export async function POST(
       return NextResponse.json({ canal, url, enviadoA: email });
     } catch (reason) {
       if (!(reason instanceof Error) || reason.message !== EMAIL_NO_DISPONIBLE) throw reason;
-      console.warn("[enviar] email server-side no disponible, se devuelve mailto");
+      console.warn(
+        `[enviar] email server-side no disponible (proveedor: ${resolveEmailProvider()}), se devuelve mailto`,
+      );
       return NextResponse.json({
         canal,
         url,

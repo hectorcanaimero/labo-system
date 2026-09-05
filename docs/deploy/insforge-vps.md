@@ -147,6 +147,13 @@ Configurado con Resend:
 
 No hace falta `password_reset_tokens` custom: el flujo de reset es nativo.
 
+Ese SMTP sólo cubre los correos de **Auth** (verificación, reset). Los correos
+que manda la app (resultados al paciente, invitaciones, alerta de tasa) salen
+por la **API HTTP de Resend** desde `packages/lib/server/email.ts`: hay que
+cargar `RESEND_API_KEY` (y opcionalmente `EMAIL_FROM`) en el entorno del
+container. El servicio de email de InsForge (`client.emails.send`) no está
+disponible en el plan free (403), por eso no se usa.
+
 ## Tareas Programadas (Cron)
 
 Para automatizar tareas recurrentes en el VPS, se utiliza el `crontab` del sistema de modo que invoque los Route Handlers de Next.js. Todos estos endpoints están protegidos mediante el header `x-cron-secret` (cuyo valor debe coincidir con `CRON_SECRET`).
