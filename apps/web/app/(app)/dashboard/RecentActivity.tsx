@@ -19,6 +19,7 @@ import type { EstadoPresupuesto } from "@labo/lib/schemas/presupuesto";
 import { EmptyState } from "@labo/ui/feedback";
 import { toHumanError } from "@labo/lib/error-messages";
 
+import { apiFetch } from "@/lib/api-client";
 interface ResultadoActivity {
   id: string;
   paciente_id: string;
@@ -85,13 +86,9 @@ export function RecentActivity({ initialActivity }: RecentActivityProps) {
 
     async function poll(): Promise<void> {
       try {
-        const res = await fetch("/api/dashboard?limit=5", {
+        const res = await apiFetch("/api/dashboard?limit=5", {
           headers: { accept: "application/json" },
         });
-        if (res.status === 401) {
-          window.location.href = "/login";
-          return;
-        }
         if (!res.ok) {
           const payload = await res.json().catch(() => null);
           throw new Error(payload?.error ?? `REQUEST_FAILED_${res.status}`);

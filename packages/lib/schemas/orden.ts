@@ -46,6 +46,18 @@ export const estadoOrdenSchema = z.enum(ESTADO_ORDEN, {
 /** Alias legacy. */
 export const estadoResultadoSchema = estadoOrdenSchema;
 
+/** Estados admitidos al crear: todos menos Anulada (anular es una acción posterior). */
+export const ESTADO_ORDEN_CREACION = [
+  "Registrada",
+  "Muestra tomada",
+  "En proceso",
+  "Validando",
+  "Entregada",
+] as const;
+export const estadoOrdenCreacionSchema = z.enum(ESTADO_ORDEN_CREACION, {
+  errorMap: () => ({ message: ESTADO_INVALIDO }),
+});
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Validators
 // ─────────────────────────────────────────────────────────────────────────────
@@ -73,13 +85,15 @@ export type LineaResultadoInput = LineaOrdenInput;
 /**
  * Schema de creación de una orden.
  * - Paciente obligatorio (a diferencia del presupuesto, que admite nombre libre).
- * - `estado` no se envía: el backend lo fija a 'Registrada'.
+ * - `estado` es opcional: si no viene, el backend lo deriva de la fecha de
+ *   resultado (Entregada si hay fecha, Registrada si no).
  */
 export const ordenCreateSchema = z
   .object({
     paciente_id: z.string().min(1, { message: PACIENTE_ID_REQUERIDO }),
     fecha_muestra: fechaNoFutura(FECHA_MUESTRA_FUTURA),
     fecha_resultado: fechaNoFutura(FECHA_RESULTADO_FUTURA).optional(),
+    estado: estadoOrdenCreacionSchema.optional(),
     medico_solicitante: z.string().optional(),
     observaciones: z.string().optional(),
     examenes: z.array(lineaOrdenSchema).min(1, { message: EXAMENES_REQUERIDOS }),

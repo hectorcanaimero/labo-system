@@ -576,8 +576,11 @@ export async function create(
   const fechaResultado = data.fecha_resultado
     ? new Date(data.fecha_resultado).toISOString()
     : null;
-  const estado: EstadoOrden = fechaResultado ? "Entregada" : "Registrada";
-  // Con fecha de resultado la orden nace Entregada: no puede tener valores en blanco.
+  // Estado explícito si vino; si no, se deriva de la fecha de resultado.
+  const estado: EstadoOrden = data.estado ?? (fechaResultado ? "Entregada" : "Registrada");
+  if (estado === "Entregada" && !fechaResultado) throw new Error(ESTADO_REQUIERE_FECHA_RESULTADO);
+  if (estado === "Registrada" && fechaResultado) throw new Error(ESTADO_FECHA_INCOHERENTE);
+  // Al entregar no puede haber valores en blanco.
   if (estado === "Entregada") assertPuedeEntregarse(data.examenes);
 
   const insRes = await db

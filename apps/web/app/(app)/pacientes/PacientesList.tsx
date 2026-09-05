@@ -40,6 +40,7 @@ import {
   type PacienteSerializable,
 } from "./PacienteFormDialog";
 
+import { apiFetch } from "@/lib/api-client";
 export interface PaginatedPacientesResponse {
   items: PacienteSerializable[];
   page: number;
@@ -129,18 +130,10 @@ export function PacientesList({ initialData, pageSize }: PacientesListProps) {
         setLoadingList(true);
         setErrorMessage(null);
 
-        const response = await fetch(`/api/pacientes?page=${page}&limit=${pageSize}`, {
+        const response = await apiFetch(`/api/pacientes?page=${page}&limit=${pageSize}`, {
           headers: { accept: "application/json" },
         });
 
-        if (response.status === 401) {
-          window.location.href = "/login";
-          return;
-        }
-        if (response.status === 403) {
-          window.location.href = "/dashboard?reason=sin-permisos";
-          return;
-        }
         if (!response.ok) {
           throw await readApiError(response);
         }
@@ -180,7 +173,7 @@ export function PacientesList({ initialData, pageSize }: PacientesListProps) {
         setLoadingSearch(true);
         setErrorMessage(null);
 
-        const response = await fetch(
+        const response = await apiFetch(
           `/api/pacientes/search?term=${encodeURIComponent(debouncedSearchTerm)}`,
           {
             headers: { accept: "application/json" },
@@ -188,14 +181,6 @@ export function PacientesList({ initialData, pageSize }: PacientesListProps) {
           },
         );
 
-        if (response.status === 401) {
-          window.location.href = "/login";
-          return;
-        }
-        if (response.status === 403) {
-          window.location.href = "/dashboard?reason=sin-permisos";
-          return;
-        }
         if (!response.ok) {
           throw await readApiError(response);
         }
@@ -239,7 +224,7 @@ export function PacientesList({ initialData, pageSize }: PacientesListProps) {
   }, [data.items, isSearching, searchResults]);
 
   async function refreshCurrentPage(nextPage = page): Promise<void> {
-    const response = await fetch(`/api/pacientes?page=${nextPage}&limit=${pageSize}`, {
+    const response = await apiFetch(`/api/pacientes?page=${nextPage}&limit=${pageSize}`, {
       headers: { accept: "application/json" },
     });
 
@@ -261,19 +246,11 @@ export function PacientesList({ initialData, pageSize }: PacientesListProps) {
 
     try {
       setErrorMessage(null);
-      const response = await fetch(`/api/pacientes/${paciente.id}`, {
+      const response = await apiFetch(`/api/pacientes/${paciente.id}`, {
         method: "DELETE",
         headers: { accept: "application/json" },
       });
 
-      if (response.status === 401) {
-        window.location.href = "/login";
-        return;
-      }
-      if (response.status === 403) {
-        window.location.href = "/dashboard?reason=sin-permisos";
-        return;
-      }
       if (!response.ok) {
         throw await readApiError(response);
       }

@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { toHumanError } from '@labo/lib/error-messages';
 import { TIPO_ANALISIS_VALUES } from '@labo/lib/schemas/examen';
 
+import { apiFetch } from "@/lib/api-client";
 interface ExamenDraft {
   id: string;
   titulo_id: string;
@@ -113,7 +114,7 @@ export function ExamenFormDialog({
     setErrorMessage(null);
 
     try {
-      const response = await fetch(isEdit ? `/api/examenes/${examen?.id}` : '/api/examenes', {
+      const response = await apiFetch(isEdit ? `/api/examenes/${examen?.id}` : '/api/examenes', {
         method: isEdit ? 'PATCH' : 'POST',
         headers: {
           'content-type': 'application/json',
@@ -143,14 +144,6 @@ export function ExamenFormDialog({
         ),
       });
 
-      if (response.status === 401) {
-        window.location.href = '/login';
-        return;
-      }
-      if (response.status === 403) {
-        window.location.href = '/dashboard?reason=sin-permisos';
-        return;
-      }
       if (!response.ok) {
         throw await readApiError(response);
       }

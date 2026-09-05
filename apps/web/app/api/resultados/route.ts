@@ -32,6 +32,7 @@ function toStatus(error: unknown): { status: number; error: string } {
     code.startsWith("FECHA_") ||
     code.startsWith("EXAMENES_") ||
     code.startsWith("ENTREGA_") ||
+    code.startsWith("ESTADO_") ||
     code.endsWith("_REQUERIDO") ||
     code === "VALIDACION_FALLIDA"
   ) {
