@@ -6,6 +6,7 @@ import { Loader2, PencilLine, Plus, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toHumanError } from "@labo/lib/error-messages";
 
+import { apiFetch } from "@/lib/api-client";
 interface TituloDraft {
   id: string;
   nombre: string;
@@ -79,7 +80,7 @@ export function TituloFormDialog({
     setErrorMessage(null);
 
     try {
-      const response = await fetch(
+      const response = await apiFetch(
         isEdit ? `/api/examenes/titulos/${titulo?.id}` : "/api/examenes/titulos",
         {
           method: isEdit ? "PATCH" : "POST",
@@ -95,14 +96,6 @@ export function TituloFormDialog({
         },
       );
 
-      if (response.status === 401) {
-        window.location.href = "/login";
-        return;
-      }
-      if (response.status === 403) {
-        window.location.href = "/dashboard?reason=sin-permisos";
-        return;
-      }
       if (!response.ok) {
         throw await readApiError(response);
       }

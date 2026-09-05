@@ -116,6 +116,7 @@ export function ResultadoDetalle({ role, initialData }: ResultadoDetalleProps) {
             fecha_muestra: initialData.fecha_muestra,
             fecha_resultado: initialData.fecha_resultado,
             medico_solicitante: initialData.medico_solicitante,
+            estado: initialData.estado,
             observaciones: initialData.observaciones,
             examenes: initialData.examenes,
           }}

@@ -51,6 +51,7 @@ import {
   type PipelinePresupuestoCard,
 } from "@labo/ui/presupuestos";
 
+import { apiFetch } from "@/lib/api-client";
 export interface PresupuestoListItem {
   id: string;
   numero_correlativo: number;
@@ -128,7 +129,7 @@ function pacienteNombre(
 }
 
 async function requestJson<T>(url: string, init?: RequestInit): Promise<T> {
-  const response = await fetch(url, {
+  const response = await apiFetch(url, {
     ...init,
     headers: {
       accept: "application/json",
@@ -494,18 +495,10 @@ export function PresupuestosList({ initialData, pageSize }: PresupuestosListProp
         if (hasta) params.append("hasta", hasta);
         if (estado) params.append("estado", estado);
 
-        const response = await fetch(`/api/presupuestos?${params.toString()}`, {
+        const response = await apiFetch(`/api/presupuestos?${params.toString()}`, {
           headers: { accept: "application/json" },
         });
 
-        if (response.status === 401) {
-          window.location.href = "/login";
-          return;
-        }
-        if (response.status === 403) {
-          window.location.href = "/dashboard?reason=sin-permisos";
-          return;
-        }
         if (!response.ok) {
           const payload = await response.json().catch(() => null);
           throw new Error(payload?.error || `REQUEST_FAILED_${response.status}`);

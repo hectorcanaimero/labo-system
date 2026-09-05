@@ -20,6 +20,7 @@ import { ExportButton } from "@labo/ui/exports/ExportButton";
 import { OrdenEstadoBadge } from "@labo/ui/ordenes/OrdenEstadoBadge";
 import { ESTADO_ORDEN, type EstadoOrden } from "@labo/lib/schemas/orden";
 
+import { apiFetch } from "@/lib/api-client";
 export interface ResultadoListItem {
   id: string;
   paciente_id: string;
@@ -109,18 +110,10 @@ export function ResultadosList({ initialData, pageSize }: ResultadosListProps) {
         if (hasta) params.append("hasta", hasta);
         if (estado) params.append("estado", estado);
 
-        const response = await fetch(`/api/resultados?${params.toString()}`, {
+        const response = await apiFetch(`/api/resultados?${params.toString()}`, {
           headers: { accept: "application/json" },
         });
 
-        if (response.status === 401) {
-          window.location.href = "/login";
-          return;
-        }
-        if (response.status === 403) {
-          window.location.href = "/dashboard?reason=sin-permisos";
-          return;
-        }
         if (!response.ok) {
           const payload = await response.json().catch(() => null);
           throw new Error(payload?.error || `REQUEST_FAILED_${response.status}`);

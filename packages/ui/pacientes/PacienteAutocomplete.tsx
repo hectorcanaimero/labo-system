@@ -29,6 +29,16 @@ export interface PacienteAutocompleteItem {
 
 interface PacienteAutocompleteProps {
   onSelect: (paciente: PacienteAutocompleteItem) => void;
+  /**
+   * Alta rápida: si viene, el desplegable ofrece "Crear paciente" con lo que
+   * se escribió, tanto cuando no hay resultados como al pie de la lista.
+   */
+  onCreate?: (query: string) => void;
+  /**
+   * Texto a mostrar en el input cuando el paciente se eligió por fuera del
+   * buscador (por ejemplo, recién creado). Cada cambio lo pisa en el input.
+   */
+  selectedLabel?: string | null;
   className?: string;
   disabled?: boolean;
   inputClassName?: string;
@@ -51,6 +61,8 @@ function formatPacienteLabel(paciente: PacienteAutocompleteItem): string {
 
 export function PacienteAutocomplete({
   onSelect,
+  onCreate,
+  selectedLabel,
   className,
   disabled = false,
   inputClassName,
@@ -164,6 +176,22 @@ export function PacienteAutocomplete({
       window.clearTimeout(timer);
     };
   }, [disabled, fetcher, minLength, normalizedQuery]);
+
+  useEffect(() => {
+    if (selectedLabel == null) return;
+    setQuery(selectedLabel);
+    setItems([]);
+    setIsOpen(false);
+    setActiveIndex(-1);
+    setError(null);
+    setResolvedQuery("");
+  }, [selectedLabel]);
+
+  function handleCreateMouseDown(event: MouseEvent<HTMLButtonElement>): void {
+    event.preventDefault();
+    setIsOpen(false);
+    onCreate?.(query.trim());
+  }
 
   function handleChange(event: ChangeEvent<HTMLInputElement>): void {
     setQuery(event.target.value);
@@ -284,6 +312,15 @@ export function PacienteAutocomplete({
               );
             })}
           </ul>
+          {onCreate ? (
+            <button
+              type="button"
+              className="flex w-full items-center gap-2 border-t border-slate-200 px-3 py-2 text-left text-xs font-medium text-sky-700 hover:bg-slate-50"
+              onMouseDown={handleCreateMouseDown}
+            >
+              + ¿No está en la lista? Crear paciente nuevo
+            </button>
+          ) : null}
         </div>
       ) : null}
 
@@ -293,8 +330,17 @@ export function PacienteAutocomplete({
       !isLoading &&
       items.length === 0 &&
       !error ? (
-        <div className="absolute z-10 mt-1 w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm text-slate-500 shadow-lg">
-          Sin resultados
+        <div className="absolute z-10 mt-1 flex w-full items-center justify-between gap-3 rounded-md border border-slate-200 bg-white px-3 py-2 text-sm text-slate-500 shadow-lg">
+          <span>Sin resultados</span>
+          {onCreate ? (
+            <button
+              type="button"
+              className="shrink-0 text-xs font-medium text-sky-700 hover:underline"
+              onMouseDown={handleCreateMouseDown}
+            >
+              + Crear paciente
+            </button>
+          ) : null}
         </div>
       ) : null}
 

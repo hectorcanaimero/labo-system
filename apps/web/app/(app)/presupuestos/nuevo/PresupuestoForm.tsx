@@ -25,6 +25,9 @@ import {
 } from "@labo/ui/pacientes/PacienteAutocomplete";
 import { StaleTasaBadge } from "@labo/ui/tasa/StaleTasaBadge";
 
+import { apiFetch } from "@/lib/api-client";
+import { aItemAutocomplete, valoresInicialesDesdeBusqueda } from "@/lib/paciente-quick-create";
+import { PacienteFormDialog, type PacienteFormValues } from "@/app/(app)/pacientes/PacienteFormDialog";
 type PresupuestoMode = "create" | "edit";
 type ModoCargaPaquete = "cerrado" | "desglosado";
 
@@ -98,7 +101,7 @@ function hasValue(value: string): boolean {
 }
 
 async function requestJson<T>(url: string, init?: RequestInit): Promise<T> {
-  const response = await fetch(url, {
+  const response = await apiFetch(url, {
     ...init,
     headers: {
       accept: "application/json",
@@ -161,6 +164,14 @@ export function PresupuestoForm({
       : null,
   );
   const [editingPaciente, setEditingPaciente] = useState(false);
+  const [crearPacienteOpen, setCrearPacienteOpen] = useState(false);
+  const [crearPacienteInicial, setCrearPacienteInicial] = useState<Partial<PacienteFormValues>>({});
+  const [pacienteLabel, setPacienteLabel] = useState<string | null>(null);
+
+  function abrirCrearPaciente(query: string): void {
+    setCrearPacienteInicial(valoresInicialesDesdeBusqueda(query));
+    setCrearPacienteOpen(true);
+  }
   const [nombreLibre, setNombreLibre] = useState(initialData?.paciente_nombre_libre ?? "");
   const [lineas, setLineas] = useState<PresupuestoLineaForm[]>(
     initialData?.lineas.map((item) => ({
@@ -516,8 +527,20 @@ export function PresupuestoForm({
                     setSelectedPaciente(paciente);
                     setEditingPaciente(false);
                   }}
+                  onCreate={abrirCrearPaciente}
+                  selectedLabel={pacienteLabel}
                   placeholder="Buscar por nombre, apellido o cédula"
                 />
+                <p className="text-xs text-muted-foreground">
+                  ¿Paciente nuevo?{" "}
+                  <button
+                    type="button"
+                    className="font-medium text-primary underline-offset-2 hover:underline"
+                    onClick={() => abrirCrearPaciente("")}
+                  >
+                    Crearlo sin salir de acá
+                  </button>
+                </p>
                 {selectedPaciente ? (
                   <p className="text-xs text-muted-foreground">
                     Seleccionado: {selectedPaciente.nombre} {selectedPaciente.apellido}
@@ -872,6 +895,17 @@ export function PresupuestoForm({
           {saving ? "Guardando…" : mode === "create" ? "Guardar presupuesto" : "Guardar cambios"}
         </Button>
       </div>
+      <PacienteFormDialog
+        open={crearPacienteOpen}
+        initialValues={crearPacienteInicial}
+        onOpenChange={setCrearPacienteOpen}
+        onSaved={(paciente) => {
+          const item = aItemAutocomplete(paciente);
+          setSelectedPaciente(item);
+          setEditingPaciente(false);
+          setPacienteLabel(`${item.nombre} ${item.apellido}`.trim());
+        }}
+      />
     </div>
   );
 }

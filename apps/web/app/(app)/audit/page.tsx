@@ -23,6 +23,7 @@ import { EmptyState, SkeletonTable } from "@labo/ui/feedback";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Pagination } from "@/components/layout/Pagination";
 
+import { apiFetch } from "@/lib/api-client";
 interface AuditEvent {
   id: string;
   usuarioId: string | null;
@@ -127,15 +128,9 @@ export default function AuditPage() {
       if (applied.desde) params.set("desde", applied.desde);
       if (applied.hasta) params.set("hasta", `${applied.hasta}T23:59:59`);
 
-      const res = await fetch(`/api/audit?${params.toString()}`, {
+      const res = await apiFetch(`/api/audit?${params.toString()}`, {
         cache: "no-store",
       });
-      if (res.status === 401 || res.status === 403) {
-        // Middleware ya redirige a Operador; por si la sesión venció a mitad
-        // de navegación, volvemos al login/dashboard.
-        window.location.href = "/login";
-        return;
-      }
       if (!res.ok) throw new Error("No se pudo cargar el audit log.");
       const json = (await res.json()) as AuditListResponse;
       setData(json);

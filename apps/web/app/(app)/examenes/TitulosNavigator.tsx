@@ -45,6 +45,7 @@ import { HighlightedText } from '@labo/ui/text/HighlightedText';
 import { ExamenFormDialog } from './ExamenFormDialog';
 import { TituloFormDialog } from './TituloFormDialog';
 
+import { apiFetch } from "@/lib/api-client";
 interface TituloListItem {
   id: string;
   nombre: string;
@@ -116,7 +117,7 @@ async function readApiError(response: Response): Promise<Error> {
 }
 
 async function requestJson<T>(input: RequestInfo | URL, init?: RequestInit): Promise<T> {
-  const response = await fetch(input, {
+  const response = await apiFetch(input, {
     ...init,
     headers: {
       accept: 'application/json',
@@ -125,15 +126,6 @@ async function requestJson<T>(input: RequestInfo | URL, init?: RequestInit): Pro
     cache: 'no-store',
   });
 
-  if (response.status === 401) {
-    window.location.href = '/login';
-    throw new Error('UNAUTHENTICATED');
-  }
-
-  if (response.status === 403) {
-    window.location.href = '/dashboard?reason=sin-permisos';
-    throw new Error('UNAUTHORIZED');
-  }
 
   if (!response.ok) {
     throw await readApiError(response);

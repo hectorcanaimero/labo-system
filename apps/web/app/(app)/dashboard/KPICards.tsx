@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toHumanError } from "@labo/lib/error-messages";
 
+import { apiFetch } from "@/lib/api-client";
 export interface DashboardKPIs {
   pacientesMes: number;
   resultadosMes: number;
@@ -53,13 +54,9 @@ export function KPICards({ initialKPIs, tasa }: KPICardsProps) {
 
     async function poll(): Promise<void> {
       try {
-        const res = await fetch("/api/dashboard", {
+        const res = await apiFetch("/api/dashboard", {
           headers: { accept: "application/json" },
         });
-        if (res.status === 401) {
-          window.location.href = "/login";
-          return;
-        }
         if (!res.ok) {
           const payload = await res.json().catch(() => null);
           throw new Error(payload?.error ?? `REQUEST_FAILED_${res.status}`);

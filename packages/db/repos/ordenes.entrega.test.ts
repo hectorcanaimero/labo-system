@@ -1,7 +1,14 @@
 import { describe, expect, it } from "vitest";
 
 import type { Db } from "../sdk";
-import { ENTREGA_REQUIERE_VALORES, create, update, updateEstado } from "./ordenes";
+import {
+  ENTREGA_REQUIERE_VALORES,
+  ESTADO_FECHA_INCOHERENTE,
+  ESTADO_REQUIERE_FECHA_RESULTADO,
+  create,
+  update,
+  updateEstado,
+} from "./ordenes";
 
 /**
  * Regla "no se entrega con valores en blanco", probada contra un Db falso
@@ -164,5 +171,69 @@ describe("create con fecha de resultado (nace Entregada)", () => {
       ),
     ).rejects.toThrow(ENTREGA_REQUIERE_VALORES);
     expect(llamadas.filter((l) => l.op === "insert")).toHaveLength(0);
+  });
+
+  it("con estado explícito Entregada exige fecha de resultado", async () => {
+    const { db, llamadas } = fakeDb((table) => {
+      if (table === "pacientes") return { data: [{ id: ORDEN.paciente_id }] };
+      return {};
+    });
+    await expect(
+      create(
+        db,
+        {
+          paciente_id: ORDEN.paciente_id,
+          fecha_muestra: "2026-08-31T12:00:00.000Z",
+          estado: "Entregada",
+          examenes: [{ examen_id: "ex-a", valor: "5.4" }],
+        },
+        "u1",
+      ),
+    ).rejects.toThrow(ESTADO_REQUIERE_FECHA_RESULTADO);
+    expect(llamadas.filter((l) => l.op === "insert")).toHaveLength(0);
+  });
+
+  it("con estado explícito Registrada no admite fecha de resultado", async () => {
+    const { db } = fakeDb((table) => {
+      if (table === "pacientes") return { data: [{ id: ORDEN.paciente_id }] };
+      return {};
+    });
+    await expect(
+      create(
+        db,
+        {
+          paciente_id: ORDEN.paciente_id,
+          fecha_muestra: "2026-08-31T12:00:00.000Z",
+          fecha_resultado: "2026-09-01T12:00:00.000Z",
+          estado: "Registrada",
+          examenes: [{ examen_id: "ex-a", valor: "5.4" }],
+        },
+        "u1",
+      ),
+    ).rejects.toThrow(ESTADO_FECHA_INCOHERENTE);
+  });
+
+  it("un estado intermedio explícito permite valores pendientes y llega al insert", async () => {
+    const { db, llamadas } = fakeDb((table, op) => {
+      if (table === "pacientes") return { data: [{ id: ORDEN.paciente_id }] };
+      if (table === "ordenes" && op === "insert") return { data: [{ ...ORDEN, estado: "En proceso" }] };
+      if (table === "examenes") return { data: [{ id: "ex-a", nombre: "A", precio_usd: 1, unidad: null, valores_referencia: null, tipo_analisis: null, metodo: null }] };
+      if (table === "ordenes_examenes") return { data: [linea("a", "")] };
+      return {};
+    });
+    await expect(
+      create(
+        db,
+        {
+          paciente_id: ORDEN.paciente_id,
+          fecha_muestra: "2026-08-31T12:00:00.000Z",
+          estado: "En proceso",
+          examenes: [{ examen_id: "ex-a", valor: "" }],
+        },
+        "u1",
+      ),
+    ).resolves.toBeTruthy();
+    const ins = llamadas.find((l) => l.table === "ordenes" && l.op === "insert");
+    expect(ins?.payload).toMatchObject({ estado: "En proceso", fecha_resultado: null });
   });
 });
