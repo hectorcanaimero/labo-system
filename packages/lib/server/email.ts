@@ -1,4 +1,4 @@
-import { createClient } from '@insforge/sdk';
+import { createAdminClient } from '@insforge/sdk';
 
 /**
  * Envío de emails vía InsForge Messaging SDK (ADR-11, F3.3.T4).
@@ -31,8 +31,16 @@ interface SendEmailOptions {
 
 interface InsforgeConfig {
   baseUrl: string;
-  anonKey: string;
+  apiKey: string;
 }
+
+/**
+ * El servicio de email de InsForge no está disponible en este proyecto: o el
+ * plan no lo incluye (`403 FORBIDDEN`) o la credencial no alcanza (`401`).
+ * Se distingue de un fallo de envío real para que el caller pueda ofrecer una
+ * alternativa en vez de tratarlo como un error inesperado.
+ */
+export const EMAIL_NO_DISPONIBLE = 'EMAIL_NO_DISPONIBLE';
 
 function readInsforgeConfig(): InsforgeConfig {
   const baseUrl = (process.env.INSFORGE_URL || process.env.NEXT_PUBLIC_INSFORGE_URL)?.replace(
@@ -44,9 +52,12 @@ function readInsforgeConfig(): InsforgeConfig {
       '[@labo/lib/server/email] INSFORGE_URL no está definida. Es requerida para enviar emails.',
     );
   }
+  // La anon key NO sirve acá: `/api/email/send-raw` responde
+  // `401 AUTH_INVALID_CREDENTIALS` ("Sending emails requires an authenticated
+  // user"). El envío server-side va con la API key admin.
   return {
     baseUrl,
-    anonKey: process.env.INSFORGE_ANON_KEY ?? '',
+    apiKey: process.env.INSFORGE_API_KEY?.trim() ?? '',
   };
 }
 
@@ -93,6 +104,22 @@ function buildTasaStaleAlert(input: SendTasaStaleAlertInput): {
 }
 
 /**
+ * El plan del proyecto no incluye el servicio de email, o la credencial no
+ * autoriza el envío. Mensajes observados en `/api/email/send-raw`:
+ *   403 "Custom email service is not available for free plan..."
+ *   401 "Sending emails requires an authenticated user"
+ */
+export function esEmailNoDisponible(message: string): boolean {
+  const m = message.toLowerCase();
+  return (
+    m.includes('not available for free plan') ||
+    m.includes('requires an authenticated user') ||
+    m.includes('forbidden') ||
+    m.includes('upgrade')
+  );
+}
+
+/**
  * Núcleo de envío. Mock/log en dev, SDK de InsForge en producción.
  * Lanza error si el envío falla para que el caller decida el manejo
  * (el cron registra el fallo en `audit_log` y NO marca como alertado).
@@ -103,8 +130,10 @@ export async function sendEmail(options: SendEmailOptions): Promise<void> {
     return;
   }
 
-  const { baseUrl, anonKey } = readInsforgeConfig();
-  const client = createClient({ baseUrl, anonKey });
+  const { baseUrl, apiKey } = readInsforgeConfig();
+  if (apiKey.length === 0) throw new Error(EMAIL_NO_DISPONIBLE);
+
+  const client = createAdminClient({ baseUrl, apiKey });
 
   const { error } = await client.emails.send({
     to: options.to,
@@ -113,6 +142,7 @@ export async function sendEmail(options: SendEmailOptions): Promise<void> {
   });
 
   if (error) {
+    if (esEmailNoDisponible(error.message)) throw new Error(EMAIL_NO_DISPONIBLE);
     throw new Error(`[@labo/lib/server/email] fallo al enviar email: ${error.message}`);
   }
 }

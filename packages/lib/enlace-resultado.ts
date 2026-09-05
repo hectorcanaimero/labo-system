@@ -109,6 +109,24 @@ export function enlaceWhatsApp(telefonoNormalizado: string, mensaje: string): st
   return `https://wa.me/${telefonoNormalizado}?text=${encodeURIComponent(mensaje)}`;
 }
 
+/**
+ * Link `mailto:` con asunto y cuerpo precargados, para que el operador mande
+ * el correo desde su propia cuenta.
+ *
+ * Es el mismo trato que `enlaceWhatsApp`: el sistema arma el mensaje, la
+ * persona lo dispara. Se usa cuando el envío server-side no está disponible
+ * (ver `EMAIL_NO_DISPONIBLE` en `@labo/lib/server/email`).
+ */
+export function mailtoResultado(email: string, input: MensajeResultadoInput): string {
+  const params = new URLSearchParams({
+    subject: asuntoEmail(input.laboratorio),
+    body: mensajeWhatsApp(input),
+  });
+  // URLSearchParams codifica el espacio como "+", que en el cuerpo de un
+  // mailto se muestra literal. RFC 6068 pide %20.
+  return `mailto:${encodeURIComponent(email)}?${params.toString().replace(/\+/g, "%20")}`;
+}
+
 export function asuntoEmail(laboratorio: string): string {
   return `Resultados de laboratorio disponibles — ${laboratorio}`;
 }

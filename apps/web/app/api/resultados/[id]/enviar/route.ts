@@ -8,10 +8,11 @@ import {
   asuntoEmail,
   enlaceWhatsApp,
   htmlEmail,
+  mailtoResultado,
   mensajeWhatsApp,
   normalizarTelefonoWhatsApp,
 } from "@labo/lib/enlace-resultado";
-import { sendEmail } from "@labo/lib/server/email";
+import { EMAIL_NO_DISPONIBLE, sendEmail } from "@labo/lib/server/email";
 import { AuthError, getCurrentUser } from "@/lib/server/auth";
 import { getAdminDb } from "@/lib/db-server";
 
@@ -108,13 +109,26 @@ export async function POST(
       });
     }
 
-    await sendEmail({
-      to: email as string,
-      subject: asuntoEmail(laboratorio),
-      html: htmlEmail(mensaje),
-    });
-
-    return NextResponse.json({ canal, url, enviadoA: email });
+    // Envío server-side si el proyecto lo tiene habilitado. Si no (plan sin
+    // servicio de email), se devuelve un `mailto:` y el operador lo manda desde
+    // su cuenta — mismo trato que WhatsApp. Cuando el plan se habilite, este
+    // camino vuelve solo al envío automático sin tocar código.
+    try {
+      await sendEmail({
+        to: email as string,
+        subject: asuntoEmail(laboratorio),
+        html: htmlEmail(mensaje),
+      });
+      return NextResponse.json({ canal, url, enviadoA: email });
+    } catch (reason) {
+      if (!(reason instanceof Error) || reason.message !== EMAIL_NO_DISPONIBLE) throw reason;
+      console.warn("[enviar] email server-side no disponible, se devuelve mailto");
+      return NextResponse.json({
+        canal,
+        url,
+        mailtoUrl: mailtoResultado(email as string, mensaje),
+      });
+    }
   } catch (error) {
     if (error instanceof AuthError) {
       return bad(error.code === "UNAUTHENTICATED" ? 401 : 403, error.code);
