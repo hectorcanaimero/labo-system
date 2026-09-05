@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { indicesSinValor, mensajeSinValor, tieneValor } from "@labo/lib/entrega-orden";
 import { toHumanError } from "@labo/lib/error-messages";
 import {
   PacienteAutocomplete,
@@ -229,6 +230,11 @@ export function ResultadoForm({ mode, initialData, onSaved, onCancelEdit }: Resu
 
   const estado = useMemo(() => inferEstado(fechaResultado), [fechaResultado]);
   const canSubmit = Boolean(selectedPaciente?.id || initialData?.paciente_id) && Boolean(fechaMuestra) && lineas.length > 0;
+  // Con fecha de resultado la orden se entrega al guardar: no puede quedar
+  // ningún examen sin valor. Se anticipa acá lo que el servidor va a rechazar.
+  const entregando = Boolean(fechaResultado);
+  const sinValor = useMemo(() => indicesSinValor(lineas), [lineas]);
+  const bloqueaEntrega = entregando && sinValor.length > 0;
 
   useEffect(() => {
     if (examSearch.trim().length < 2) {
@@ -324,6 +330,10 @@ export function ResultadoForm({ mode, initialData, onSaved, onCancelEdit }: Resu
   async function submit(): Promise<void> {
     if (!canSubmit) {
       setMessage("Completá paciente, fecha de muestra y al menos un examen.");
+      return;
+    }
+    if (bloqueaEntrega) {
+      setMessage(mensajeSinValor(lineas));
       return;
     }
 
@@ -549,6 +559,14 @@ export function ResultadoForm({ mode, initialData, onSaved, onCancelEdit }: Resu
             <p className="mt-1 text-sm text-muted-foreground">
               El estado se calcula al guardar: <span className="font-medium text-foreground">{estado}</span>
             </p>
+            {sinValor.length > 0 ? (
+              <p className={`mt-1 text-sm ${bloqueaEntrega ? "font-medium text-destructive" : "text-muted-foreground"}`}>
+                {sinValor.length} {sinValor.length === 1 ? "examen sin valor" : "exámenes sin valor"}
+                {bloqueaEntrega
+                  ? ". Completalos o quitá la fecha de resultado para guardar como pendiente."
+                  : "."}
+              </p>
+            ) : null}
           </div>
         </div>
 
@@ -579,7 +597,13 @@ export function ResultadoForm({ mode, initialData, onSaved, onCancelEdit }: Resu
                         value={linea.valor}
                         onChange={(event) => updateLinea(index, { valor: event.target.value })}
                         placeholder="Ej: 5.4"
-                        className="h-10 w-full min-w-28 rounded-md border border-input bg-background px-3 text-sm"
+                        aria-invalid={entregando && !tieneValor(linea.valor) ? true : undefined}
+                        aria-label={`Valor de ${linea.nombre_snap}`}
+                        className={`h-10 w-full min-w-28 rounded-md border bg-background px-3 text-sm ${
+                          entregando && !tieneValor(linea.valor)
+                            ? "border-destructive ring-1 ring-destructive/40"
+                            : "border-input"
+                        }`}
                       />
                     </td>
                     <td className="px-4 py-3">

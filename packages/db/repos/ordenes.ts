@@ -1,4 +1,5 @@
 import type { Db } from "../sdk";
+import { ENTREGA_REQUIERE_VALORES, assertPuedeEntregarse } from "@labo/lib/entrega-orden";
 import {
   estadoOrdenSchema,
   ordenCreateSchema,
@@ -17,6 +18,8 @@ export const EXAMEN_NO_ENCONTRADO = "EXAMEN_NO_ENCONTRADO";
 export const VALIDACION_FALLIDA = "VALIDACION_FALLIDA";
 export const ESTADO_FECHA_INCOHERENTE = "ESTADO_FECHA_INCOHERENTE";
 export const ESTADO_REQUIERE_FECHA_RESULTADO = "ESTADO_REQUIERE_FECHA_RESULTADO";
+/** Re-export: una orden no se entrega con líneas sin valor (ver @labo/lib/entrega-orden). */
+export { ENTREGA_REQUIERE_VALORES };
 
 const DEFAULT_PAGE = 1;
 const DEFAULT_LIMIT = 20;
@@ -571,6 +574,8 @@ export async function create(
     ? new Date(data.fecha_resultado).toISOString()
     : null;
   const estado: EstadoOrden = fechaResultado ? "Entregada" : "Registrada";
+  // Con fecha de resultado la orden nace Entregada: no puede tener valores en blanco.
+  if (estado === "Entregada") assertPuedeEntregarse(data.examenes);
 
   const insRes = await db
     .from("ordenes")
@@ -650,6 +655,12 @@ export async function update(
   const estadoFinal: EstadoOrden =
     data.estado ?? (fechaResultado ? "Entregada" : current.estado);
 
+  // Regla de entrega: si la orden queda (o sigue) Entregada, todas las líneas
+  // resultantes deben tener valor. Se evalúa sobre lo que va a quedar guardado.
+  if (estadoFinal === "Entregada") {
+    assertPuedeEntregarse(data.examenes ?? current.examenes);
+  }
+
   const patch: Record<string, unknown> = {
     fecha_muestra: fechaMuestra,
     fecha_resultado: fechaResultado,
@@ -706,6 +717,8 @@ export async function updateEstado(
 
   const patch: Record<string, unknown> = { estado: parsed.data };
   if (parsed.data === "Entregada") {
+    // No se entrega un informe con resultados en blanco (ni sin exámenes).
+    assertPuedeEntregarse(current.examenes);
     // Si pasa a Entregada sin fecha_resultado, la seteamos ahora.
     if (!current.fecha_resultado) patch.fecha_resultado = new Date().toISOString();
   } else if (parsed.data === "Registrada") {

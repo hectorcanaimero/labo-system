@@ -35,6 +35,12 @@ export const DOMAIN_ERROR_MESSAGES: Readonly<Record<string, string>> = {
   ASSET_MIME_INVALIDO: "El tipo de archivo no está permitido.",
   ASSET_TAMANO_EXCEDIDO: "El archivo supera el tamaño máximo permitido.",
 
+  // ── Órdenes (packages/db/repos/ordenes.ts) ────────────────────────────
+  ENTREGA_REQUIERE_VALORES:
+    "No se puede entregar: hay exámenes sin valor cargado. Completalos o quitá la fecha de resultado.",
+  ESTADO_REQUIERE_FECHA_RESULTADO: "Para entregar la orden hace falta la fecha de resultado.",
+  TRANSICION_ORDEN_INVALIDA: "Ese cambio de estado no está permitido desde el estado actual.",
+
   // ── Exports (packages/convex/exports.ts) ──────────────────────────────
   STORAGE_NO_ENCONTRADO: "No se encontró el archivo exportado.",
 
