@@ -1,13 +1,23 @@
 import { createAdminClient } from '@insforge/sdk';
 
 /**
- * Envío de emails vía InsForge Messaging SDK (ADR-11, F3.3.T4).
+ * Envío de emails server-side (ADR-11, F3.3.T4, GUR-18).
  *
- * - En dev/test (`NODE_ENV !== 'production'`) NO envía: loguea el payload con
- *   prefijo `[mailer:mock]` (criterio "mock/log en dev").
- * - En producción usa `client.emails.send({ to, subject, html })` del SDK.
- * - El job de cron (`/api/cron/check-stale-tasa`) es quien decide *cuándo*
- *   alertar y registra la idempotencia en `audit_log`; este módulo sólo envía.
+ * Proveedores, en orden de preferencia:
+ *   1. **Resend** (`RESEND_API_KEY`): es el servicio de email del laboratorio.
+ *      El dominio del remitente ya está verificado ahí (ver
+ *      docs/deploy/insforge-vps.md § Messaging). Se llama a la API HTTP
+ *      directo con `fetch`, sin SDK.
+ *   2. **InsForge Messaging** (`INSFORGE_API_KEY`): sólo si no hay key de
+ *      Resend. En el plan free responde 403 "not available for free plan",
+ *      así que en la práctica no envía.
+ *   3. Ninguno configurado → `EMAIL_NO_DISPONIBLE`, para que el caller ofrezca
+ *      una alternativa (el endpoint de resultados devuelve un `mailto:`).
+ *
+ * En tests (`NODE_ENV === 'test'`) o con `EMAIL_MOCK=true` no envía: loguea el
+ * payload con prefijo `[mailer:mock]`. Ya NO se mockea en `development`: staging
+ * corre con ese NODE_ENV y el mock hacía que la UI dijera "enviado" sin mandar
+ * nada. Con las keys cargadas, dev y staging envían de verdad.
  */
 
 export interface SendTasaStaleAlertInput {
@@ -23,42 +33,27 @@ export interface SendTasaStaleAlertInput {
   sinTasa?: boolean;
 }
 
-interface SendEmailOptions {
+export interface SendEmailOptions {
   to: string | string[];
   subject: string;
   html: string;
 }
 
-interface InsforgeConfig {
-  baseUrl: string;
-  apiKey: string;
-}
-
 /**
- * El servicio de email de InsForge no está disponible en este proyecto: o el
- * plan no lo incluye (`403 FORBIDDEN`) o la credencial no alcanza (`401`).
- * Se distingue de un fallo de envío real para que el caller pueda ofrecer una
- * alternativa en vez de tratarlo como un error inesperado.
+ * No hay servicio de email utilizable: no hay proveedor configurado, el plan
+ * no lo incluye (`403`) o la credencial no alcanza (`401`). Se distingue de un
+ * fallo de envío real para que el caller pueda ofrecer una alternativa en vez
+ * de tratarlo como un error inesperado.
  */
 export const EMAIL_NO_DISPONIBLE = 'EMAIL_NO_DISPONIBLE';
 
-function readInsforgeConfig(): InsforgeConfig {
-  const baseUrl = (process.env.INSFORGE_URL || process.env.NEXT_PUBLIC_INSFORGE_URL)?.replace(
-    /\/+$/,
-    '',
-  );
-  if (!baseUrl || baseUrl.length === 0) {
-    throw new Error(
-      '[@labo/lib/server/email] INSFORGE_URL no está definida. Es requerida para enviar emails.',
-    );
-  }
-  // La anon key NO sirve acá: `/api/email/send-raw` responde
-  // `401 AUTH_INVALID_CREDENTIALS` ("Sending emails requires an authenticated
-  // user"). El envío server-side va con la API key admin.
-  return {
-    baseUrl,
-    apiKey: process.env.INSFORGE_API_KEY?.trim() ?? '',
-  };
+const RESEND_API_URL = 'https://api.resend.com/emails';
+
+/** Remitente verificado en Resend (docs/deploy/insforge-vps.md § Messaging). */
+const DEFAULT_FROM = 'Rv Laboratorio <noreply@rvlaboratorio.com>';
+
+function env(name: string): string {
+  return process.env[name]?.trim() ?? '';
 }
 
 function formatFecha(date: Date | null): string {
@@ -105,9 +100,10 @@ function buildTasaStaleAlert(input: SendTasaStaleAlertInput): {
 
 /**
  * El plan del proyecto no incluye el servicio de email, o la credencial no
- * autoriza el envío. Mensajes observados en `/api/email/send-raw`:
- *   403 "Custom email service is not available for free plan..."
- *   401 "Sending emails requires an authenticated user"
+ * autoriza el envío. Mensajes observados:
+ *   InsForge 403 "Custom email service is not available for free plan..."
+ *   InsForge 401 "Sending emails requires an authenticated user"
+ *   Resend 403 "The ... domain is not verified" / 401 "API key is invalid"
  */
 export function esEmailNoDisponible(message: string): boolean {
   const m = message.toLowerCase();
@@ -115,25 +111,55 @@ export function esEmailNoDisponible(message: string): boolean {
     m.includes('not available for free plan') ||
     m.includes('requires an authenticated user') ||
     m.includes('forbidden') ||
-    m.includes('upgrade')
+    m.includes('upgrade') ||
+    m.includes('not verified') ||
+    m.includes('api key is invalid') ||
+    m.includes('missing api key')
   );
 }
 
-/**
- * Núcleo de envío. Mock/log en dev, SDK de InsForge en producción.
- * Lanza error si el envío falla para que el caller decida el manejo
- * (el cron registra el fallo en `audit_log` y NO marca como alertado).
- */
-export async function sendEmail(options: SendEmailOptions): Promise<void> {
-  if (process.env.NODE_ENV !== 'production') {
-    console.log('[mailer:mock] email no enviado (dev):', JSON.stringify(options));
-    return;
+/** Qué proveedor va a usar `sendEmail` con el entorno actual. Útil para logs. */
+export type EmailProvider = 'mock' | 'resend' | 'insforge' | 'none';
+
+export function resolveEmailProvider(): EmailProvider {
+  if (process.env.NODE_ENV === 'test' || env('EMAIL_MOCK') === 'true') return 'mock';
+  if (env('RESEND_API_KEY')) return 'resend';
+  if (env('INSFORGE_API_KEY') && (env('INSFORGE_URL') || env('NEXT_PUBLIC_INSFORGE_URL'))) {
+    return 'insforge';
   }
+  return 'none';
+}
 
-  const { baseUrl, apiKey } = readInsforgeConfig();
-  if (apiKey.length === 0) throw new Error(EMAIL_NO_DISPONIBLE);
+async function sendViaResend(options: SendEmailOptions): Promise<void> {
+  const response = await fetch(RESEND_API_URL, {
+    method: 'POST',
+    headers: {
+      authorization: `Bearer ${env('RESEND_API_KEY')}`,
+      'content-type': 'application/json',
+    },
+    body: JSON.stringify({
+      from: env('EMAIL_FROM') || DEFAULT_FROM,
+      to: Array.isArray(options.to) ? options.to : [options.to],
+      subject: options.subject,
+      html: options.html,
+    }),
+  });
+  if (response.ok) return;
 
-  const client = createAdminClient({ baseUrl, apiKey });
+  const payload = (await response.json().catch(() => null)) as { message?: string } | null;
+  const message = payload?.message ?? `HTTP ${response.status}`;
+  if (response.status === 401 || response.status === 403 || esEmailNoDisponible(message)) {
+    console.error(`[@labo/lib/server/email] Resend rechazó el envío (${response.status}): ${message}`);
+    throw new Error(EMAIL_NO_DISPONIBLE);
+  }
+  throw new Error(`[@labo/lib/server/email] Resend: fallo al enviar email (${response.status}): ${message}`);
+}
+
+async function sendViaInsforge(options: SendEmailOptions): Promise<void> {
+  const baseUrl = (env('INSFORGE_URL') || env('NEXT_PUBLIC_INSFORGE_URL')).replace(/\/+$/, '');
+  // La anon key NO sirve acá: `/api/email/send-raw` responde
+  // `401 AUTH_INVALID_CREDENTIALS`. El envío server-side va con la key admin.
+  const client = createAdminClient({ baseUrl, apiKey: env('INSFORGE_API_KEY') });
 
   const { error } = await client.emails.send({
     to: options.to,
@@ -142,8 +168,34 @@ export async function sendEmail(options: SendEmailOptions): Promise<void> {
   });
 
   if (error) {
-    if (esEmailNoDisponible(error.message)) throw new Error(EMAIL_NO_DISPONIBLE);
-    throw new Error(`[@labo/lib/server/email] fallo al enviar email: ${error.message}`);
+    if (esEmailNoDisponible(error.message)) {
+      console.error(`[@labo/lib/server/email] InsForge rechazó el envío: ${error.message}`);
+      throw new Error(EMAIL_NO_DISPONIBLE);
+    }
+    throw new Error(`[@labo/lib/server/email] InsForge: fallo al enviar email: ${error.message}`);
+  }
+}
+
+/**
+ * Núcleo de envío. Lanza si el envío falla para que el caller decida el
+ * manejo: `EMAIL_NO_DISPONIBLE` cuando no hay proveedor utilizable, otro
+ * `Error` ante un fallo de envío real.
+ */
+export async function sendEmail(options: SendEmailOptions): Promise<void> {
+  const provider = resolveEmailProvider();
+  switch (provider) {
+    case 'mock':
+      console.log('[mailer:mock] email no enviado:', JSON.stringify(options));
+      return;
+    case 'resend':
+      return sendViaResend(options);
+    case 'insforge':
+      return sendViaInsforge(options);
+    case 'none':
+      console.warn(
+        '[@labo/lib/server/email] sin proveedor de email: definí RESEND_API_KEY (o INSFORGE_API_KEY).',
+      );
+      throw new Error(EMAIL_NO_DISPONIBLE);
   }
 }
 

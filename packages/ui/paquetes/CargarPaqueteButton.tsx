@@ -175,7 +175,7 @@ export function CargarPaqueteButton({
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
           onMouseDown={handleBackdropMouseDown}
         >
-          <div className="w-full max-w-2xl rounded-xl border border-slate-200 bg-white p-6 shadow-xl">
+          <div className="w-full max-w-2xl rounded-md border border-slate-200 bg-white p-6 shadow-xl">
             <div className="flex items-start justify-between gap-4">
               <div className="space-y-1">
                 <h2 className="text-lg font-semibold text-slate-950">Cargar paquete</h2>
@@ -200,12 +200,12 @@ export function CargarPaqueteButton({
                   {Array.from({ length: 3 }).map((_, index) => (
                     <div
                       key={index}
-                      className="h-16 animate-pulse rounded-xl border border-slate-200 bg-slate-100"
+                      className="h-16 animate-pulse rounded-md border border-slate-200 bg-slate-100"
                     />
                   ))}
                 </div>
               ) : errorMessage ? (
-                <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                <div className="rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
                   No pudimos cargar el paquete. {errorMessage}
                 </div>
               ) : paquetes.length === 0 ? (
@@ -229,7 +229,7 @@ export function CargarPaqueteButton({
                           type="button"
                           onClick={() => void handleSelect(paquete.id)}
                           disabled={Boolean(isSelecting)}
-                          className="flex w-full items-center justify-between rounded-xl border border-slate-200 bg-white px-4 py-4 text-left transition hover:border-sky-300 hover:bg-sky-50 disabled:cursor-not-allowed disabled:opacity-60"
+                          className="flex w-full items-center justify-between rounded-md border border-slate-200 bg-white px-4 py-4 text-left transition hover:border-sky-300 hover:bg-sky-50 disabled:cursor-not-allowed disabled:opacity-60"
                         >
                           <div className="space-y-1">
                             <p className="text-sm font-semibold text-slate-950">{paquete.nombre}</p>

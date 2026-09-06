@@ -24,6 +24,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { PageHeader } from "@/components/layout/PageHeader";
 
 interface Paquete {
   id: string;
@@ -119,19 +120,11 @@ export default function PaquetesPage() {
 
   return (
     <div className="mx-auto flex max-w-[100rem] flex-col gap-4">
-      <header className="flex flex-col gap-1 border-b border-border pb-3">
-        <div className="flex items-baseline gap-3">
-          <h1 className="text-xl font-semibold tracking-tight text-foreground">
-            Paquetes
-          </h1>
-          <span className="font-mono text-sm tabular-nums text-muted-foreground">
-            {paquetes.length}
-          </span>
-        </div>
-        <p className="text-xs text-muted-foreground">
-          Combinaciones reutilizables de exámenes para presupuestos y órdenes.
-        </p>
-      </header>
+      <PageHeader
+        title="Paquetes"
+        count={paquetes.length}
+        description="Combinaciones reutilizables de exámenes para presupuestos y órdenes."
+      />
 
       {error ? (
         <p className="rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-xs text-destructive">

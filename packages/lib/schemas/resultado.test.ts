@@ -150,6 +150,24 @@ describe("resultadoCreateSchema", () => {
   });
 });
 
+describe("resultadoCreateSchema — estado explícito", () => {
+  it("acepta cualquier estado de creación y rechaza Anulada", () => {
+    const base = createInput();
+    for (const estado of ["Registrada", "Muestra tomada", "En proceso", "Validando", "Entregada"]) {
+      expect(resultadoCreateSchema.safeParse({ ...base, estado }).success).toBe(true);
+    }
+    const anulada = resultadoCreateSchema.safeParse({ ...base, estado: "Anulada" });
+    expect(anulada.success).toBe(false);
+    expect(anulada.error?.issues[0]?.message).toBe(ESTADO_INVALIDO);
+  });
+
+  it("sigue aceptando la creación sin estado (lo deriva el backend)", () => {
+    const res = resultadoCreateSchema.safeParse(createInput());
+    expect(res.success).toBe(true);
+    expect(res.data?.estado).toBeUndefined();
+  });
+});
+
 describe("resultadoUpdateSchema", () => {
   it("acepta objeto vacío (todos los campos opcionales)", () => {
     const res = resultadoUpdateSchema.safeParse({});
@@ -157,7 +175,7 @@ describe("resultadoUpdateSchema", () => {
   });
 
   it("acepta solo cambio de estado", () => {
-    const res = resultadoUpdateSchema.safeParse({ estado: "Completado" });
+    const res = resultadoUpdateSchema.safeParse({ estado: "Entregada" });
     expect(res.success).toBe(true);
   });
 

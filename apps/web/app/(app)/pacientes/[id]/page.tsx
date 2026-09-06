@@ -1,6 +1,6 @@
-import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
-import { ArrowLeft } from "lucide-react";
+
+import { PageHeader } from "@/components/layout/PageHeader";
 
 import { pacientesGetWithHistorial } from "@labo/db/repos/pacientes";
 import { getDb } from "@/lib/db-server";
@@ -53,23 +53,11 @@ export default async function PacienteDetallePage({ params }: PacienteDetallePag
 
     return (
       <div className="mx-auto flex max-w-7xl flex-col gap-4">
-        <header className="flex flex-col gap-2 border-b border-border pb-3">
-          <Link
-            href="/pacientes"
-            className="inline-flex w-fit items-center gap-1.5 text-xs text-muted-foreground transition-colors hover:text-foreground"
-          >
-            <ArrowLeft className="h-3.5 w-3.5" />
-            Pacientes
-          </Link>
-          <div className="flex items-baseline gap-3">
-            <h1 className="text-xl font-semibold tracking-tight text-foreground">
-              {fichaData.paciente.nombre} {fichaData.paciente.apellido}
-            </h1>
-            <span className="font-mono text-sm tabular-nums text-muted-foreground">
-              {fichaData.paciente.cedula}
-            </span>
-          </div>
-        </header>
+        <PageHeader
+          title={`${fichaData.paciente.nombre} ${fichaData.paciente.apellido}`}
+          count={fichaData.paciente.cedula}
+          back={{ href: "/pacientes", label: "Pacientes" }}
+        />
 
         <FichaTabs data={fichaData} />
       </div>

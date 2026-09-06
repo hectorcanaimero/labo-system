@@ -1,0 +1,40 @@
+# ============================================================================
+# Dockerfile.dev — imagen de STAGING para labo-system (apps/web en `next dev`)
+#
+# No es una imagen de producción: corre el dev server de Next.js (HMR, sin
+# build optimizado) para que staging refleje exactamente el código de la rama
+# `staged`. La produccion usa `next build && next start` (ver README).
+#
+# Coolify reconstruye esta imagen en cada push/merge a `staged` (webhook de
+# auto-deploy), así que el "git pull" lo hace el propio clone de Coolify.
+# ============================================================================
+
+FROM node:20-alpine
+
+# libc6-compat: binarios nativos (swc de Next) en Alpine.
+RUN apk add --no-cache libc6-compat
+
+ENV PNPM_HOME=/pnpm \
+    PATH=/pnpm:$PATH \
+    COREPACK_ENABLE_DOWNLOAD_PROMPT=0 \
+    NEXT_TELEMETRY_DISABLED=1 \
+    NODE_ENV=development
+RUN corepack enable
+
+WORKDIR /app
+
+COPY . .
+
+# --no-frozen-lockfile a propósito: `scripts/*` es un workspace del lockfile
+# pero está en .gitignore, así que un clone limpio (Coolify/CI) no lo tiene y
+# --frozen-lockfile abortaría por "lockfile is not up to date".
+RUN pnpm install --no-frozen-lockfile
+
+WORKDIR /app/apps/web
+
+EXPOSE 3000
+
+HEALTHCHECK --interval=30s --timeout=5s --start-period=120s --retries=5 \
+  CMD node -e "fetch('http://127.0.0.1:3000/').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
+
+CMD ["pnpm", "exec", "next", "dev", "-H", "0.0.0.0", "-p", "3000"]

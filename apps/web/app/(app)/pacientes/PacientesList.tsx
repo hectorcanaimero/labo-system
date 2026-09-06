@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import {
   Loader2,
@@ -13,6 +14,7 @@ import {
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { Pagination } from "@/components/layout/Pagination";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -38,6 +40,7 @@ import {
   type PacienteSerializable,
 } from "./PacienteFormDialog";
 
+import { apiFetch } from "@/lib/api-client";
 export interface PaginatedPacientesResponse {
   items: PacienteSerializable[];
   page: number;
@@ -90,6 +93,16 @@ export function PacientesList({ initialData, pageSize }: PacientesListProps) {
   const [loadingSearch, setLoadingSearch] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const router = useRouter();
+  const searchParams = useSearchParams();
+
+  // `?nuevo=1` (paleta de comandos / atajo P) abre el formulario directo.
+  useEffect(() => {
+    if (searchParams.get("nuevo") === "1") {
+      setIsCreateOpen(true);
+      router.replace("/pacientes", { scroll: false });
+    }
+  }, [router, searchParams]);
   const [editingPaciente, setEditingPaciente] = useState<PacienteSerializable | null>(null);
 
   useEffect(() => {
@@ -117,18 +130,10 @@ export function PacientesList({ initialData, pageSize }: PacientesListProps) {
         setLoadingList(true);
         setErrorMessage(null);
 
-        const response = await fetch(`/api/pacientes?page=${page}&limit=${pageSize}`, {
+        const response = await apiFetch(`/api/pacientes?page=${page}&limit=${pageSize}`, {
           headers: { accept: "application/json" },
         });
 
-        if (response.status === 401) {
-          window.location.href = "/login";
-          return;
-        }
-        if (response.status === 403) {
-          window.location.href = "/dashboard?reason=sin-permisos";
-          return;
-        }
         if (!response.ok) {
           throw await readApiError(response);
         }
@@ -168,7 +173,7 @@ export function PacientesList({ initialData, pageSize }: PacientesListProps) {
         setLoadingSearch(true);
         setErrorMessage(null);
 
-        const response = await fetch(
+        const response = await apiFetch(
           `/api/pacientes/search?term=${encodeURIComponent(debouncedSearchTerm)}`,
           {
             headers: { accept: "application/json" },
@@ -176,14 +181,6 @@ export function PacientesList({ initialData, pageSize }: PacientesListProps) {
           },
         );
 
-        if (response.status === 401) {
-          window.location.href = "/login";
-          return;
-        }
-        if (response.status === 403) {
-          window.location.href = "/dashboard?reason=sin-permisos";
-          return;
-        }
         if (!response.ok) {
           throw await readApiError(response);
         }
@@ -227,7 +224,7 @@ export function PacientesList({ initialData, pageSize }: PacientesListProps) {
   }, [data.items, isSearching, searchResults]);
 
   async function refreshCurrentPage(nextPage = page): Promise<void> {
-    const response = await fetch(`/api/pacientes?page=${nextPage}&limit=${pageSize}`, {
+    const response = await apiFetch(`/api/pacientes?page=${nextPage}&limit=${pageSize}`, {
       headers: { accept: "application/json" },
     });
 
@@ -249,19 +246,11 @@ export function PacientesList({ initialData, pageSize }: PacientesListProps) {
 
     try {
       setErrorMessage(null);
-      const response = await fetch(`/api/pacientes/${paciente.id}`, {
+      const response = await apiFetch(`/api/pacientes/${paciente.id}`, {
         method: "DELETE",
         headers: { accept: "application/json" },
       });
 
-      if (response.status === 401) {
-        window.location.href = "/login";
-        return;
-      }
-      if (response.status === 403) {
-        window.location.href = "/dashboard?reason=sin-permisos";
-        return;
-      }
       if (!response.ok) {
         throw await readApiError(response);
       }
@@ -282,15 +271,15 @@ export function PacientesList({ initialData, pageSize }: PacientesListProps) {
   return (
     <div className="flex flex-col gap-3">
       {/* Filter bar densa */}
-      <div className="flex flex-wrap items-center gap-2 rounded-md border border-border bg-muted/20 p-2">
-        <div className="relative min-w-[260px] flex-1">
+      <div className="flex flex-wrap items-center gap-2">
+        <div className="relative w-full max-w-sm">
           <Search className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-muted-foreground/70" />
           <input
             type="search"
             value={searchTerm}
             onChange={(event) => setSearchTerm(event.target.value)}
             placeholder="Buscar por nombre, apellido o cédula…"
-            className="flex h-8 w-full rounded-md border border-input bg-background py-1 pl-8 pr-8 text-xs ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1"
+            className="flex h-8 w-full rounded-md border border-input bg-card py-1 pl-8 pr-8 text-xs placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           />
           {loadingSearch ? (
             <Loader2 className="absolute right-2.5 top-2.5 h-3.5 w-3.5 animate-spin text-muted-foreground" />
@@ -298,9 +287,10 @@ export function PacientesList({ initialData, pageSize }: PacientesListProps) {
         </div>
         <div className="ml-auto flex items-center gap-2">
           <ExportButton actionName="pacientes" filters={{ term: debouncedSearchTerm }} />
-          <Button type="button" size="sm" className="h-8" onClick={() => setIsCreateOpen(true)}>
+          <Button type="button" size="sm" onClick={() => setIsCreateOpen(true)}>
             <Plus className="h-3.5 w-3.5" />
             Nuevo paciente
+            <kbd className="ml-1 hidden border-primary-foreground/30 bg-transparent text-primary-foreground/70 sm:inline-flex">P</kbd>
           </Button>
         </div>
       </div>
@@ -354,11 +344,16 @@ export function PacientesList({ initialData, pageSize }: PacientesListProps) {
                   const info = calcularEdadDesglosada(new Date(paciente.fecha_nacimiento));
                   const isPediatric = info && info.anos < 18;
                   return (
-                    <TableRow key={paciente.id} className="h-9">
+                    <TableRow
+                      key={paciente.id}
+                      className="group h-9 cursor-pointer"
+                      onClick={() => router.push(`/pacientes/${paciente.id}`)}
+                    >
                       <TableCell className="py-1.5 font-medium text-foreground">
                         <Link
                           href={`/pacientes/${paciente.id}`}
-                          className="hover:underline"
+                          className="focus-visible:underline focus-visible:outline-none"
+                          onClick={(event) => event.stopPropagation()}
                         >
                           {paciente.nombre} {paciente.apellido}
                         </Link>
@@ -386,14 +381,14 @@ export function PacientesList({ initialData, pageSize }: PacientesListProps) {
                           "N/A"
                         )}
                       </TableCell>
-                      <TableCell className="py-1.5 text-right">
+                      <TableCell className="py-1.5 text-right" onClick={(event) => event.stopPropagation()}>
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
                             <Button
                               type="button"
                               variant="ghost"
                               size="icon"
-                              className="h-7 w-7"
+                              className="h-7 w-7 opacity-0 transition-opacity focus-visible:opacity-100 group-hover:opacity-100 data-[state=open]:opacity-100"
                               aria-label="Acciones"
                             >
                               <MoreHorizontal className="h-4 w-4" />
@@ -432,45 +427,14 @@ export function PacientesList({ initialData, pageSize }: PacientesListProps) {
             </Table>
 
             {!isSearching ? (
-              <div className="flex flex-col gap-2 border-t border-border bg-muted/20 px-3 py-2 text-xs md:flex-row md:items-center md:justify-between">
-                <p className="font-mono tabular-nums text-muted-foreground">
-                  Página{" "}
-                  <span className="font-semibold text-foreground">{data.page}</span>
-                  {data.totalPages > 0 ? (
-                    <>
-                      {" "}/{" "}
-                      <span className="font-semibold text-foreground">
-                        {data.totalPages}
-                      </span>
-                    </>
-                  ) : null}
-                  {" · "}
-                  <span className="font-semibold text-foreground">{data.total}</span> pacientes
-                </p>
-
-                <div className="flex gap-1">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    className="h-7 text-xs"
-                    disabled={page <= 1 || loadingList}
-                    onClick={() => setPage((current) => Math.max(1, current - 1))}
-                  >
-                    ← Anterior
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    className="h-7 text-xs"
-                    disabled={data.totalPages === 0 || page >= data.totalPages || loadingList}
-                    onClick={() => setPage((current) => current + 1)}
-                  >
-                    Siguiente →
-                  </Button>
-                </div>
-              </div>
+              <Pagination
+                page={data.page}
+                totalPages={data.totalPages}
+                total={data.total}
+                label="pacientes"
+                disabled={loadingList}
+                onPageChange={setPage}
+              />
             ) : (
               <div className="border-t border-border px-4 py-3 text-sm text-muted-foreground">
                 Resultados rápidos: {searchResults.length} paciente{searchResults.length === 1 ? "" : "s"}.

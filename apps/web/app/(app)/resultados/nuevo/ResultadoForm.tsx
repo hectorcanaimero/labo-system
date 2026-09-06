@@ -16,15 +16,25 @@ import {
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { indicesSinValor, mensajeSinValor, tieneValor } from "@labo/lib/entrega-orden";
 import { toHumanError } from "@labo/lib/error-messages";
+import { ESTADO_ORDEN, type EstadoOrden } from "@labo/lib/schemas/orden";
 import {
   PacienteAutocomplete,
   type PacienteAutocompleteItem,
 } from "@labo/ui/pacientes/PacienteAutocomplete";
 
+import { apiFetch } from "@/lib/api-client";
+import { aItemAutocomplete, valoresInicialesDesdeBusqueda } from "@/lib/paciente-quick-create";
+import { PacienteFormDialog, type PacienteFormValues } from "@/app/(app)/pacientes/PacienteFormDialog";
 type ResultadoMode = "create" | "edit";
 
-type EstadoResultado = "Pendiente" | "Completado";
+/** Estados que se pueden elegir al cargar o editar. Anular es una acción aparte. */
+const ESTADOS_ELEGIBLES: readonly EstadoOrden[] = ESTADO_ORDEN.filter((e) => e !== "Anulada");
+
+function hoyInput(): string {
+  return new Date().toISOString().slice(0, 10);
+}
 
 interface ExamenCatalogoItem {
   id: string;
@@ -73,6 +83,7 @@ interface ResultadoInitialData {
   fecha_muestra: string;
   fecha_resultado: string | null;
   medico_solicitante: string | null;
+  estado?: EstadoOrden;
   observaciones: string | null;
   examenes: Array<{
     examen_id: string;
@@ -100,12 +111,8 @@ function toApiDate(value: string): string | undefined {
   return new Date(`${value}T12:00:00.000Z`).toISOString();
 }
 
-function inferEstado(fechaResultado: string): EstadoResultado {
-  return fechaResultado ? "Completado" : "Pendiente";
-}
-
 async function requestJson<T>(url: string, init?: RequestInit): Promise<T> {
-  const response = await fetch(url, {
+  const response = await apiFetch(url, {
     ...init,
     headers: {
       accept: "application/json",
@@ -159,6 +166,15 @@ export function ResultadoForm({ mode, initialData, onSaved, onCancelEdit }: Resu
   );
   const [fechaMuestra, setFechaMuestra] = useState(formatDateInput(initialData?.fecha_muestra));
   const [fechaResultado, setFechaResultado] = useState(formatDateInput(initialData?.fecha_resultado));
+  // El estado es explícito: lo elige el operador. Sólo se sugiere "Entregada"
+  // al cargar una fecha de resultado si todavía no lo tocó a mano.
+  const [estado, setEstado] = useState<EstadoOrden>(
+    initialData?.estado ?? (initialData?.fecha_resultado ? "Entregada" : "Registrada"),
+  );
+  const [estadoTocado, setEstadoTocado] = useState(false);
+  const [crearPacienteOpen, setCrearPacienteOpen] = useState(false);
+  const [crearPacienteInicial, setCrearPacienteInicial] = useState<Partial<PacienteFormValues>>({});
+  const [pacienteLabel, setPacienteLabel] = useState<string | null>(null);
   const [medicoSolicitante, setMedicoSolicitante] = useState(initialData?.medico_solicitante ?? "");
   const [observaciones, setObservaciones] = useState(initialData?.observaciones ?? "");
   const [lineas, setLineas] = useState<ResultadoLineaForm[]>(
@@ -195,7 +211,7 @@ export function ResultadoForm({ mode, initialData, onSaved, onCancelEdit }: Resu
     setAiNotice(null);
     setAiLoading(true);
     try {
-      const res = await fetch("/api/ai/observaciones", {
+      const res = await apiFetch("/api/ai/observaciones", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ texto }),
@@ -227,8 +243,31 @@ export function ResultadoForm({ mode, initialData, onSaved, onCancelEdit }: Resu
     }
   }
 
-  const estado = useMemo(() => inferEstado(fechaResultado), [fechaResultado]);
   const canSubmit = Boolean(selectedPaciente?.id || initialData?.paciente_id) && Boolean(fechaMuestra) && lineas.length > 0;
+  // Al entregar no puede quedar ningún examen sin valor. Se anticipa acá lo
+  // que el servidor va a rechazar.
+  const entregando = estado === "Entregada";
+
+  function cambiarFechaResultado(value: string): void {
+    setFechaResultado(value);
+    if (value && !estadoTocado && estado !== "Entregada") setEstado("Entregada");
+    if (!value && estado === "Entregada") setEstado("Validando");
+  }
+
+  function cambiarEstado(value: EstadoOrden): void {
+    setEstado(value);
+    setEstadoTocado(true);
+    // Registrada no admite fecha de resultado; Entregada la exige.
+    if (value === "Registrada") setFechaResultado("");
+    if (value === "Entregada" && !fechaResultado) setFechaResultado(hoyInput());
+  }
+
+  function abrirCrearPaciente(query: string): void {
+    setCrearPacienteInicial(valoresInicialesDesdeBusqueda(query));
+    setCrearPacienteOpen(true);
+  }
+  const sinValor = useMemo(() => indicesSinValor(lineas), [lineas]);
+  const bloqueaEntrega = entregando && sinValor.length > 0;
 
   useEffect(() => {
     if (examSearch.trim().length < 2) {
@@ -326,6 +365,10 @@ export function ResultadoForm({ mode, initialData, onSaved, onCancelEdit }: Resu
       setMessage("Completá paciente, fecha de muestra y al menos un examen.");
       return;
     }
+    if (bloqueaEntrega) {
+      setMessage(mensajeSinValor(lineas));
+      return;
+    }
 
     try {
       setSaving(true);
@@ -336,6 +379,7 @@ export function ResultadoForm({ mode, initialData, onSaved, onCancelEdit }: Resu
         fecha_muestra: toApiDate(fechaMuestra),
         fecha_resultado: fechaResultado ? toApiDate(fechaResultado) : mode === "edit" ? null : undefined,
         medico_solicitante: medicoSolicitante,
+        estado,
         observaciones,
         examenes: lineas.map((linea) => ({
           examen_id: linea.examen_id,
@@ -387,13 +431,18 @@ export function ResultadoForm({ mode, initialData, onSaved, onCancelEdit }: Resu
         </p>
       ) : null}
 
-      <section className="grid gap-6 rounded-2xl border border-border bg-card p-6 shadow-sm lg:grid-cols-2">
+      <section className="grid gap-6 rounded-lg border border-border bg-card p-6 shadow-sm lg:grid-cols-2">
         <div className="space-y-2">
           <label className="text-sm font-medium">Paciente</label>
           {mode === "create" ? (
-            <PacienteAutocomplete onSelect={setSelectedPaciente} placeholder="Buscar por nombre, apellido o cédula" />
+            <PacienteAutocomplete
+              onSelect={setSelectedPaciente}
+              onCreate={abrirCrearPaciente}
+              selectedLabel={pacienteLabel}
+              placeholder="Buscar por nombre, apellido o cédula"
+            />
           ) : (
-            <div className="flex items-center gap-3 rounded-xl border border-border bg-background/70 px-4 py-3">
+            <div className="flex items-center gap-3 rounded-md border border-border bg-background/70 px-4 py-3">
               <UserRound className="h-4 w-4 text-muted-foreground" />
               <div>
                 <p className="text-sm font-medium text-foreground">
@@ -406,6 +455,18 @@ export function ResultadoForm({ mode, initialData, onSaved, onCancelEdit }: Resu
           {mode === "create" && selectedPaciente ? (
             <p className="text-xs text-muted-foreground">
               Seleccionado: {selectedPaciente.nombre} {selectedPaciente.apellido} · {selectedPaciente.cedula}
+            </p>
+          ) : null}
+          {mode === "create" ? (
+            <p className="text-xs text-muted-foreground">
+              ¿Paciente nuevo?{" "}
+              <button
+                type="button"
+                className="font-medium text-primary underline-offset-2 hover:underline"
+                onClick={() => abrirCrearPaciente("")}
+              >
+                Crearlo sin salir de acá
+              </button>
             </p>
           ) : null}
         </div>
@@ -426,9 +487,34 @@ export function ResultadoForm({ mode, initialData, onSaved, onCancelEdit }: Resu
             <input
               type="date"
               value={fechaResultado}
-              onChange={(event) => setFechaResultado(event.target.value)}
-              className="h-11 w-full rounded-md border border-input bg-background px-3 text-sm"
+              onChange={(event) => cambiarFechaResultado(event.target.value)}
+              disabled={estado === "Registrada"}
+              className="h-11 w-full rounded-md border border-input bg-background px-3 text-sm disabled:cursor-not-allowed disabled:opacity-60"
             />
+          </label>
+
+          <label className="space-y-2 text-sm font-medium sm:col-span-2">
+            <span>Estado</span>
+            <select
+              value={estado}
+              onChange={(event) => cambiarEstado(event.target.value as EstadoOrden)}
+              className="h-11 w-full rounded-md border border-input bg-background px-3 text-sm"
+            >
+              {(ESTADOS_ELEGIBLES.includes(estado) ? ESTADOS_ELEGIBLES : [...ESTADOS_ELEGIBLES, estado]).map(
+                (opcion) => (
+                  <option key={opcion} value={opcion}>
+                    {opcion}
+                  </option>
+                ),
+              )}
+            </select>
+            <span className="block text-xs font-normal text-muted-foreground">
+              {estado === "Entregada"
+                ? "Entregada exige fecha de resultado y todos los valores cargados."
+                : estado === "Registrada"
+                  ? "Registrada no lleva fecha de resultado."
+                  : "Podés dejar valores pendientes en este estado."}
+            </span>
           </label>
         </div>
 
@@ -490,7 +576,7 @@ export function ResultadoForm({ mode, initialData, onSaved, onCancelEdit }: Resu
         </div>
       </section>
 
-      <section className="rounded-2xl border border-border bg-card p-6 shadow-sm">
+      <section className="rounded-lg border border-border bg-card p-6">
         <div className="flex flex-col gap-3 border-b border-border pb-4 md:flex-row md:items-center md:justify-between">
           <div>
             <h2 className="text-lg font-semibold">Exámenes del resultado</h2>
@@ -520,7 +606,7 @@ export function ResultadoForm({ mode, initialData, onSaved, onCancelEdit }: Resu
             {examLoading ? <p className="text-xs text-muted-foreground">Buscando exámenes…</p> : null}
             {examError ? <p className="text-xs text-destructive">{examError}</p> : null}
             {examItems.length > 0 ? (
-              <div className="max-h-64 overflow-auto rounded-xl border border-border">
+              <div className="max-h-64 overflow-auto rounded-md border border-border">
                 {examItems.map((item) => (
                   <button
                     key={item.id}
@@ -541,18 +627,26 @@ export function ResultadoForm({ mode, initialData, onSaved, onCancelEdit }: Resu
             ) : null}
           </div>
 
-          <div className="rounded-xl border border-dashed border-border bg-background/40 p-4">
+          <div className="rounded-md border border-dashed border-border bg-background/40 p-4">
             <p className="text-sm font-medium text-foreground">Resumen</p>
             <p className="mt-2 text-sm text-muted-foreground">
               {lineas.length} {lineas.length === 1 ? "examen cargado" : "exámenes cargados"}
             </p>
             <p className="mt-1 text-sm text-muted-foreground">
-              El estado se calcula al guardar: <span className="font-medium text-foreground">{estado}</span>
+              Estado al guardar: <span className="font-medium text-foreground">{estado}</span>
             </p>
+            {sinValor.length > 0 ? (
+              <p className={`mt-1 text-sm ${bloqueaEntrega ? "font-medium text-destructive" : "text-muted-foreground"}`}>
+                {sinValor.length} {sinValor.length === 1 ? "examen sin valor" : "exámenes sin valor"}
+                {bloqueaEntrega
+                  ? ". Completalos o quitá la fecha de resultado para guardar como pendiente."
+                  : "."}
+              </p>
+            ) : null}
           </div>
         </div>
 
-        <div className="mt-6 overflow-x-auto rounded-xl border border-border">
+        <div className="mt-6 overflow-x-auto rounded-md border border-border">
           <table className="min-w-full divide-y divide-border text-sm">
             <thead className="bg-muted/40 text-left text-muted-foreground">
               <tr>
@@ -579,7 +673,13 @@ export function ResultadoForm({ mode, initialData, onSaved, onCancelEdit }: Resu
                         value={linea.valor}
                         onChange={(event) => updateLinea(index, { valor: event.target.value })}
                         placeholder="Ej: 5.4"
-                        className="h-10 w-full min-w-28 rounded-md border border-input bg-background px-3 text-sm"
+                        aria-invalid={entregando && !tieneValor(linea.valor) ? true : undefined}
+                        aria-label={`Valor de ${linea.nombre_snap}`}
+                        className={`h-10 w-full min-w-28 rounded-md border bg-background px-3 text-sm ${
+                          entregando && !tieneValor(linea.valor)
+                            ? "border-destructive ring-1 ring-destructive/40"
+                            : "border-input"
+                        }`}
                       />
                     </td>
                     <td className="px-4 py-3">
@@ -618,7 +718,7 @@ export function ResultadoForm({ mode, initialData, onSaved, onCancelEdit }: Resu
 
       {paquetesOpen ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="w-full max-w-2xl rounded-2xl border border-border bg-card p-6 shadow-xl">
+          <div className="w-full max-w-2xl rounded-lg border border-border bg-card p-6 shadow-xl">
             <div className="flex items-start justify-between gap-4">
               <div>
                 <h3 className="text-xl font-semibold">Cargar paquete</h3>
@@ -629,7 +729,7 @@ export function ResultadoForm({ mode, initialData, onSaved, onCancelEdit }: Resu
 
             {packageError ? <p className="mt-4 text-sm text-destructive">{packageError}</p> : null}
 
-            <div className="mt-4 max-h-[28rem] overflow-auto rounded-xl border border-border">
+            <div className="mt-4 max-h-[28rem] overflow-auto rounded-md border border-border">
               {paquetesLoading ? (
                 <div className="flex items-center gap-2 px-4 py-6 text-sm text-muted-foreground">
                   <Loader2 className="h-4 w-4 animate-spin" /> Cargando paquetes…
@@ -658,6 +758,16 @@ export function ResultadoForm({ mode, initialData, onSaved, onCancelEdit }: Resu
           </div>
         </div>
       ) : null}
+      <PacienteFormDialog
+        open={crearPacienteOpen}
+        initialValues={crearPacienteInicial}
+        onOpenChange={setCrearPacienteOpen}
+        onSaved={(paciente) => {
+          const item = aItemAutocomplete(paciente);
+          setSelectedPaciente(item);
+          setPacienteLabel(`${item.nombre} ${item.apellido}`.trim());
+        }}
+      />
     </div>
   );
 }

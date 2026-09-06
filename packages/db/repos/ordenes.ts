@@ -1,4 +1,5 @@
 import type { Db } from "../sdk";
+import { ENTREGA_REQUIERE_VALORES, assertPuedeEntregarse } from "@labo/lib/entrega-orden";
 import {
   estadoOrdenSchema,
   ordenCreateSchema,
@@ -17,6 +18,8 @@ export const EXAMEN_NO_ENCONTRADO = "EXAMEN_NO_ENCONTRADO";
 export const VALIDACION_FALLIDA = "VALIDACION_FALLIDA";
 export const ESTADO_FECHA_INCOHERENTE = "ESTADO_FECHA_INCOHERENTE";
 export const ESTADO_REQUIERE_FECHA_RESULTADO = "ESTADO_REQUIERE_FECHA_RESULTADO";
+/** Re-export: una orden no se entrega con líneas sin valor (ver @labo/lib/entrega-orden). */
+export { ENTREGA_REQUIERE_VALORES };
 
 const DEFAULT_PAGE = 1;
 const DEFAULT_LIMIT = 20;
@@ -399,11 +402,14 @@ export async function list(
   const { page, limit } = normalizePagination(input);
   const filters = input.filters ?? {};
 
-  const applyFilters = <
-    T extends { eq: Function; gte: Function; lt: Function },
-  >(
-    q: T,
-  ): T => {
+  // Tipo mínimo del builder del SDK: sólo los filtros que usamos, cada uno
+  // devolviendo el mismo builder para poder encadenar.
+  type Filtrable<T> = {
+    eq: (column: string, value: unknown) => T;
+    gte: (column: string, value: unknown) => T;
+    lt: (column: string, value: unknown) => T;
+  };
+  const applyFilters = <T extends Filtrable<T>>(q: T): T => {
     let out = q;
     if (filters.pacienteId?.trim()) out = out.eq("paciente_id", filters.pacienteId.trim());
     if (filters.estado) out = out.eq("estado", filters.estado);
@@ -570,7 +576,12 @@ export async function create(
   const fechaResultado = data.fecha_resultado
     ? new Date(data.fecha_resultado).toISOString()
     : null;
-  const estado: EstadoOrden = fechaResultado ? "Entregada" : "Registrada";
+  // Estado explícito si vino; si no, se deriva de la fecha de resultado.
+  const estado: EstadoOrden = data.estado ?? (fechaResultado ? "Entregada" : "Registrada");
+  if (estado === "Entregada" && !fechaResultado) throw new Error(ESTADO_REQUIERE_FECHA_RESULTADO);
+  if (estado === "Registrada" && fechaResultado) throw new Error(ESTADO_FECHA_INCOHERENTE);
+  // Al entregar no puede haber valores en blanco.
+  if (estado === "Entregada") assertPuedeEntregarse(data.examenes);
 
   const insRes = await db
     .from("ordenes")
@@ -650,6 +661,12 @@ export async function update(
   const estadoFinal: EstadoOrden =
     data.estado ?? (fechaResultado ? "Entregada" : current.estado);
 
+  // Regla de entrega: si la orden queda (o sigue) Entregada, todas las líneas
+  // resultantes deben tener valor. Se evalúa sobre lo que va a quedar guardado.
+  if (estadoFinal === "Entregada") {
+    assertPuedeEntregarse(data.examenes ?? current.examenes);
+  }
+
   const patch: Record<string, unknown> = {
     fecha_muestra: fechaMuestra,
     fecha_resultado: fechaResultado,
@@ -706,6 +723,8 @@ export async function updateEstado(
 
   const patch: Record<string, unknown> = { estado: parsed.data };
   if (parsed.data === "Entregada") {
+    // No se entrega un informe con resultados en blanco (ni sin exámenes).
+    assertPuedeEntregarse(current.examenes);
     // Si pasa a Entregada sin fecha_resultado, la seteamos ahora.
     if (!current.fecha_resultado) patch.fecha_resultado = new Date().toISOString();
   } else if (parsed.data === "Registrada") {

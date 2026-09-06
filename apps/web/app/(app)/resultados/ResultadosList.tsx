@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import { FileText, Plus, Search } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { Pagination } from "@/components/layout/Pagination";
 import {
   Table,
   TableBody,
@@ -19,6 +20,7 @@ import { ExportButton } from "@labo/ui/exports/ExportButton";
 import { OrdenEstadoBadge } from "@labo/ui/ordenes/OrdenEstadoBadge";
 import { ESTADO_ORDEN, type EstadoOrden } from "@labo/lib/schemas/orden";
 
+import { apiFetch } from "@/lib/api-client";
 export interface ResultadoListItem {
   id: string;
   paciente_id: string;
@@ -108,18 +110,10 @@ export function ResultadosList({ initialData, pageSize }: ResultadosListProps) {
         if (hasta) params.append("hasta", hasta);
         if (estado) params.append("estado", estado);
 
-        const response = await fetch(`/api/resultados?${params.toString()}`, {
+        const response = await apiFetch(`/api/resultados?${params.toString()}`, {
           headers: { accept: "application/json" },
         });
 
-        if (response.status === 401) {
-          window.location.href = "/login";
-          return;
-        }
-        if (response.status === 403) {
-          window.location.href = "/dashboard?reason=sin-permisos";
-          return;
-        }
         if (!response.ok) {
           const payload = await response.json().catch(() => null);
           throw new Error(payload?.error || `REQUEST_FAILED_${response.status}`);
@@ -289,37 +283,14 @@ export function ResultadosList({ initialData, pageSize }: ResultadosListProps) {
               </TableBody>
             </Table>
 
-            <div className="flex flex-col gap-2 border-t border-border bg-muted/20 px-3 py-2 text-xs md:flex-row md:items-center md:justify-between">
-              <p className="font-mono tabular-nums text-muted-foreground">
-                Página{" "}
-                <span className="font-semibold text-foreground">{data.page}</span> /{" "}
-                <span className="font-semibold text-foreground">{data.totalPages || 1}</span>{" "}
-                · <span className="font-semibold text-foreground">{data.total}</span> total
-              </p>
-
-              <div className="flex gap-1">
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  className="h-7 text-xs"
-                  disabled={page <= 1 || loadingList}
-                  onClick={() => setPage((current) => Math.max(1, current - 1))}
-                >
-                  ← Anterior
-                </Button>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  className="h-7 text-xs"
-                  disabled={data.totalPages === 0 || page >= data.totalPages || loadingList}
-                  onClick={() => setPage((current) => current + 1)}
-                >
-                  Siguiente →
-                </Button>
-              </div>
-            </div>
+            <Pagination
+              page={data.page}
+              totalPages={data.totalPages}
+              total={data.total}
+              label="órdenes"
+              disabled={loadingList}
+              onPageChange={setPage}
+            />
           </>
         )}
       </div>

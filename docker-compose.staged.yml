@@ -1,0 +1,71 @@
+# ============================================================================
+# docker-compose.staged.yml — despliegue de STAGING en Coolify
+#
+# Uso en Coolify: New Resource → Docker Compose → repo labo-system,
+# branch `staged`, compose file `docker-compose.staged.yml`.
+# Ver docs/deploy/coolify-staged.md para el paso a paso completo.
+#
+# Local (opcional, para reproducir staging en la máquina):
+#   docker compose -f docker-compose.staged.yml up --build
+# ============================================================================
+
+services:
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    restart: unless-stopped
+    environment:
+      # Coolify inyecta aquí el dominio público y publica el puerto 3000.
+      # Fuera de Coolify la variable queda vacía y no molesta.
+      - SERVICE_FQDN_WEB_3000
+      - NODE_ENV=development
+      - NEXT_TELEMETRY_DISABLED=1
+
+      # ─── Obligatorias: sin estas dos la app tira 500 en la primera render ──
+      # (`apps/web/app/providers.tsx` lanza si falta cualquiera de las dos)
+      - NEXT_PUBLIC_INSFORGE_URL=${NEXT_PUBLIC_INSFORGE_URL}
+      - NEXT_PUBLIC_INSFORGE_ANON_KEY=${NEXT_PUBLIC_INSFORGE_ANON_KEY}
+
+      # ─── Backend server-side ──────────────────────────────────────────────
+      - INSFORGE_URL=${INSFORGE_URL}
+      - INSFORGE_ANON_KEY=${INSFORGE_ANON_KEY}
+      - INSFORGE_API_KEY=${INSFORGE_API_KEY}
+      - DATABASE_URL=${DATABASE_URL}
+      - CRON_SECRET=${CRON_SECRET}
+
+      # ─── Email (Resend). Sin RESEND_API_KEY el botón "Email" cae a mailto ──
+      - RESEND_API_KEY=${RESEND_API_KEY:-}
+      - EMAIL_FROM=${EMAIL_FROM:-}
+
+      # ─── Necesaria para subir/servir archivos (mínimo 32 caracteres) ──────
+      - STORAGE_SIGNING_SECRET=${STORAGE_SIGNING_SECRET}
+      - STORAGE_ROOT=/app/.storage
+
+      # ─── Opcionales (tienen default en código) ────────────────────────────
+      - NEXT_PUBLIC_APP_URL=${NEXT_PUBLIC_APP_URL:-}
+      - BCV_MAX_CHANGE_RATIO=${BCV_MAX_CHANGE_RATIO:-0.5}
+      - AI_OBSERVACIONES_ENABLED=${AI_OBSERVACIONES_ENABLED:-false}
+      - NEXT_PUBLIC_AI_OBSERVACIONES_ENABLED=${NEXT_PUBLIC_AI_OBSERVACIONES_ENABLED:-false}
+      - GEMINI_API_KEY=${GEMINI_API_KEY:-}
+    volumes:
+      # Los archivos subidos viven fuera de la imagen: si no, cada redeploy
+      # (que reconstruye la imagen entera) los borraría.
+      - labo-staged-storage:/app/.storage
+    expose:
+      - "3000"
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://127.0.0.1:3000/').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))",
+        ]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 180s
+
+volumes:
+  labo-staged-storage:

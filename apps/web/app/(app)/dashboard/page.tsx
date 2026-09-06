@@ -6,12 +6,14 @@ import {
   getRecentActivity,
   getResultadosPorMes,
 } from "@labo/db/repos/dashboard";
+import { getLatest } from "@labo/db/repos/tasa";
 import { getAdminDb } from "@/lib/db-server";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { KPICards } from "./KPICards";
 import { QuickLinks } from "./QuickLinks";
 import { RecentActivity, type RecentActivityData } from "./RecentActivity";
+import { PageHeader } from "@/components/layout/PageHeader";
 
 export const metadata: Metadata = {
   title: "Dashboard — RV Laboratorio",
@@ -33,10 +35,11 @@ function toIso(d: Date | string | null | undefined): string {
 
 export default async function DashboardPage() {
   const db = getAdminDb();
-  const [kpis, resultadosPorMes, rawActivity] = await Promise.all([
+  const [kpis, resultadosPorMes, rawActivity, tasa] = await Promise.all([
     getKPIs(db),
     getResultadosPorMes(db, 6),
     getRecentActivity(db, 5),
+    getLatest(db).catch(() => null),
   ]);
 
   const activity: RecentActivityData = {
@@ -53,16 +56,25 @@ export default async function DashboardPage() {
 
   return (
     <main className="mx-auto flex max-w-[100rem] flex-col gap-4">
-      <header className="flex flex-col gap-1 border-b border-border pb-3">
-        <h1 className="text-xl font-semibold tracking-tight text-foreground">
-          Dashboard
-        </h1>
-        <p className="text-xs text-muted-foreground">
-          Resumen operativo del laboratorio — se actualiza cada 30 segundos.
-        </p>
-      </header>
+      <PageHeader
+        title="Dashboard"
+        description="Resumen operativo del laboratorio."
+        meta={
+          <span className="inline-flex items-center gap-1.5 font-mono text-[11px] text-muted-foreground">
+            <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" aria-hidden="true" />
+            en vivo · 30s
+          </span>
+        }
+      />
 
-      <KPICards initialKPIs={kpis} />
+      <KPICards
+        initialKPIs={kpis}
+        tasa={
+          tasa
+            ? { tasa: tasa.tasa, fuente: tasa.fuente, scraped_at: tasa.scraped_at, stale: tasa.stale }
+            : null
+        }
+      />
 
       <Card className="shadow-none">
         <CardHeader className="border-b border-border py-3">

@@ -2,8 +2,6 @@
 
 import { useCallback, useEffect, useState } from "react";
 import {
-  ChevronLeft,
-  ChevronRight,
   ClipboardList,
   Filter,
   Search,
@@ -22,7 +20,10 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { EmptyState, SkeletonTable } from "@labo/ui/feedback";
+import { PageHeader } from "@/components/layout/PageHeader";
+import { Pagination } from "@/components/layout/Pagination";
 
+import { apiFetch } from "@/lib/api-client";
 interface AuditEvent {
   id: string;
   usuarioId: string | null;
@@ -127,15 +128,9 @@ export default function AuditPage() {
       if (applied.desde) params.set("desde", applied.desde);
       if (applied.hasta) params.set("hasta", `${applied.hasta}T23:59:59`);
 
-      const res = await fetch(`/api/audit?${params.toString()}`, {
+      const res = await apiFetch(`/api/audit?${params.toString()}`, {
         cache: "no-store",
       });
-      if (res.status === 401 || res.status === 403) {
-        // Middleware ya redirige a Operador; por si la sesión venció a mitad
-        // de navegación, volvemos al login/dashboard.
-        window.location.href = "/login";
-        return;
-      }
       if (!res.ok) throw new Error("No se pudo cargar el audit log.");
       const json = (await res.json()) as AuditListResponse;
       setData(json);
@@ -167,21 +162,11 @@ export default function AuditPage() {
 
   return (
     <div className="mx-auto flex max-w-7xl flex-col gap-4">
-      <header className="flex flex-col gap-1 border-b border-border pb-3">
-        <div className="flex items-baseline gap-3">
-          <h1 className="text-xl font-semibold tracking-tight text-foreground">
-            Auditoría
-          </h1>
-          {data ? (
-            <span className="font-mono text-sm tabular-nums text-muted-foreground">
-              {data.total}
-            </span>
-          ) : null}
-        </div>
-        <p className="text-xs text-muted-foreground">
-          Historial de eventos del sistema — solo lectura.
-        </p>
-      </header>
+      <PageHeader
+        title="Auditoría"
+        count={data ? data.total : undefined}
+        description="Historial de eventos del sistema — solo lectura."
+      />
 
       {/* Filtros densos */}
       <section
@@ -327,35 +312,14 @@ export default function AuditPage() {
               </TableBody>
             </Table>
 
-            {/* Paginación compacta */}
-            <div className="flex flex-wrap items-center justify-between gap-2 border-t border-border px-3 py-2 text-xs">
-              <span className="font-mono tabular-nums text-muted-foreground">
-                Página {data.page}/{data.totalPages || 1} · {data.total}{" "}
-                {data.total === 1 ? "evento" : "eventos"}
-              </span>
-              <div className="flex items-center gap-1">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-7 gap-1 text-xs"
-                  disabled={data.page <= 1}
-                  onClick={() => setPage((prev) => Math.max(1, prev - 1))}
-                >
-                  <ChevronLeft className="h-3 w-3" />
-                  Anterior
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-7 gap-1 text-xs"
-                  disabled={data.page >= data.totalPages}
-                  onClick={() => setPage((prev) => prev + 1)}
-                >
-                  Siguiente
-                  <ChevronRight className="h-3 w-3" />
-                </Button>
-              </div>
-            </div>
+            <Pagination
+              page={data.page}
+              totalPages={data.totalPages}
+              total={data.total}
+              label={data.total === 1 ? "evento" : "eventos"}
+              disabled={loading}
+              onPageChange={setPage}
+            />
           </CardContent>
         </Card>
       ) : null}

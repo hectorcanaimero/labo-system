@@ -8,7 +8,7 @@ import {
 } from "@labo/db/repos/usuarios";
 import { getCurrentUser, AuthError } from "@/lib/server/auth";
 import { getAdminDb } from "@/lib/db-server";
-import { sendEmail } from "@labo/lib/server/email";
+import { EMAIL_NO_DISPONIBLE, sendEmail } from "@labo/lib/server/email";
 
 const INVITE_TTL_DAYS = 7;
 
@@ -87,7 +87,21 @@ export async function POST(req: Request): Promise<NextResponse> {
     const inviteUrl = `${origin}/accept-invite?token=${token}`;
     const { subject, html } = buildInviteEmail(role, inviteUrl);
 
-    await sendEmail({ to: email, subject, html });
+    try {
+      await sendEmail({ to: email, subject, html });
+    } catch (err) {
+      if (!(err instanceof Error) || err.message !== EMAIL_NO_DISPONIBLE) throw err;
+      // La invitación ya quedó creada: avisar que el correo no salió en vez
+      // de un 500 opaco que sugiere que hay que reintentar todo.
+      console.error("[invite:POST] invitación creada pero sin proveedor de email configurado");
+      return NextResponse.json(
+        {
+          error:
+            "La invitación se creó pero no se pudo enviar el correo: falta configurar RESEND_API_KEY.",
+        },
+        { status: 503 },
+      );
+    }
 
     return NextResponse.json({ ok: true });
   } catch (err) {

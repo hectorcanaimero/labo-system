@@ -198,19 +198,19 @@ export function ImportWizard() {
             </div>
             
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6">
-              <div className="bg-white p-4 rounded shadow-sm border border-green-100 text-center">
+              <div className="bg-card p-4 rounded-md border border-border text-center">
                 <p className="text-2xl font-bold text-gray-900">{result.titulos_creados}</p>
                 <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mt-1">Grupos Creados</p>
               </div>
-              <div className="bg-white p-4 rounded shadow-sm border border-green-100 text-center">
+              <div className="bg-card p-4 rounded-md border border-border text-center">
                 <p className="text-2xl font-bold text-gray-900">{result.examenes_creados}</p>
                 <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mt-1">Exámenes Creados</p>
               </div>
-              <div className="bg-white p-4 rounded shadow-sm border border-green-100 text-center">
+              <div className="bg-card p-4 rounded-md border border-border text-center">
                 <p className="text-2xl font-bold text-gray-900">{result.examenes_actualizados}</p>
                 <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mt-1">Exámenes Actualizados</p>
               </div>
-              <div className="bg-white p-4 rounded shadow-sm border border-green-100 text-center">
+              <div className="bg-card p-4 rounded-md border border-border text-center">
                 <p className="text-2xl font-bold text-gray-900">{result.errores.length}</p>
                 <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mt-1">Filas con Error</p>
               </div>

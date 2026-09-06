@@ -105,7 +105,7 @@ export function SkeletonCard({ className }: SkeletonProps) {
   return (
     <div
       className={cn(
-        "space-y-3 rounded-xl border border-border bg-card p-5 shadow-sm",
+        "space-y-3 rounded-md border border-border bg-card p-4",
         className,
       )}
     >
@@ -120,7 +120,7 @@ export function SkeletonKPI({ className }: SkeletonProps) {
   return (
     <div
       className={cn(
-        "space-y-3 rounded-xl border border-border bg-card p-5 shadow-sm",
+        "space-y-3 rounded-md border border-border bg-card p-4",
         className,
       )}
     >

@@ -19,7 +19,79 @@ function examenRow(overrides: Partial<ExamenPDFRow> & { id: string }): ExamenPDF
   };
 }
 
+// PNG 2×2 rojo: alcanza para que @react-pdf decodifique una imagen real.
+const PNG_ROJO =
+  "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAIAAAD91JpzAAAAFklEQVR4nGP4z8DwHwyBFJDNwAAlAQD6+w/9F0oHZQAAAABJRU5ErkJggg==";
+
+async function renderBytes(element: React.ReactElement): Promise<number> {
+  const stream = await renderToStream(element as never);
+  let bytes = 0;
+  for await (const chunk of stream) bytes += (chunk as Buffer).length;
+  return bytes;
+}
+
 describe("PDF templates render", () => {
+  it("embebe logo, firma y sello de la configuración en ambos documentos", async () => {
+    const config = {
+      nombre: "Licda. Yuna Ramírez",
+      direccion: "El Caimito, Puerto Ordaz",
+      rif: null,
+      colegio_bioanalistas: "05-801",
+      mpps: "12507",
+      telefono: "+584249646265",
+      email: "lab@test.com",
+      logo_url: PNG_ROJO,
+      firma_url: PNG_ROJO,
+      sello_url: PNG_ROJO,
+      pdf_pie_pagina: "Gracias por confiar en nuestro laboratorio.",
+    };
+    const resultado = {
+      id: "f9fede93-9830-406f-be54-4c2fae9c11f8",
+      estado: "Entregada",
+      fecha_muestra: "2026-08-31",
+      fecha_resultado: "2026-08-31",
+      medico_solicitante: null,
+      observaciones: null,
+      paciente: {
+        nombre: "Juan",
+        apellido: "Pérez",
+        cedula: "V-23456789",
+        fecha_nacimiento: "1979-01-01",
+        sexo: "M" as const,
+      },
+      examenes: [examenRow({ id: "1", valor: "", observacion: "Muestra hemolizada" })],
+      config,
+    };
+    const presupuesto = {
+      id: "p1",
+      numero_correlativo: 5,
+      paciente_id: "x",
+      paciente_nombre_libre: null,
+      paciente_nombre: "Juan",
+      paciente_apellido: "Pérez",
+      descuento_pct: 10,
+      tasa_bs: 145.75,
+      total_usd: 54,
+      total_bs: 7870.5,
+      estado: "Cerrado",
+      created_at: "2026-08-31T12:00:00Z",
+      lineas: [{ id: "l1", nombre_snap: "Hemograma", precio_final_snap: 10.8, orden: 1 }],
+      config,
+    };
+
+    // Con imágenes el PDF pesa más que sin ellas: si las tres se embebieran
+    // como "nada", los tamaños serían iguales.
+    const sinAssets = { ...config, logo_url: null, firma_url: null, sello_url: null };
+    const [conR, sinR, conP, sinP] = await Promise.all([
+      renderBytes(<ResultadoPDF data={resultado} />),
+      renderBytes(<ResultadoPDF data={{ ...resultado, config: sinAssets }} />),
+      renderBytes(<PresupuestoPDF data={presupuesto} />),
+      renderBytes(<PresupuestoPDF data={{ ...presupuesto, config: sinAssets }} />),
+    ]);
+    expect(conR).toBeGreaterThan(sinR);
+    expect(conP).toBeGreaterThan(sinP);
+  });
+
   it("renders ResultadoPDF without crashing", async () => {
     const data = {
       estado: "Completado",

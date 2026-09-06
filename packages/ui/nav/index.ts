@@ -2,6 +2,8 @@ export {
   Sidebar,
   SidebarProvider,
   SidebarTrigger,
+  useSidebar,
+  type NavGroup,
   type NavItem,
   type SidebarProps,
 } from "./Sidebar";

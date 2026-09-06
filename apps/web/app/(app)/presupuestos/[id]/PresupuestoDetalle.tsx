@@ -54,6 +54,7 @@ import type { EstadoPresupuesto } from "@labo/lib/schemas/presupuesto";
 const PACIENTE_LIBRE_REQUIERE_FICHA = "PACIENTE_LIBRE_REQUIERE_FICHA";
 
 import { PresupuestoForm } from "../nuevo/PresupuestoForm";
+import { PageHeader } from "@/components/layout/PageHeader";
 
 interface PresupuestoDetalleProps {
   role: string;
@@ -186,14 +187,12 @@ export function PresupuestoDetalle({ initialData }: PresupuestoDetalleProps) {
 
   if (isEditing) {
     return (
-      <div className="flex flex-col gap-6">
-        <div className="flex flex-col gap-2">
-          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-primary">Edición</p>
-          <h1 className="text-3xl font-bold tracking-tight">Editar presupuesto</h1>
-          <p className="text-sm text-muted-foreground">
-            Actualizá paciente, exámenes, descuento y tasa mientras el presupuesto siga en Borrador.
-          </p>
-        </div>
+      <div className="flex flex-col gap-4">
+        <PageHeader
+          title="Editar presupuesto"
+          description="Actualizá paciente, exámenes, descuento y tasa mientras el presupuesto siga en Borrador."
+          back={{ href: "/presupuestos", label: "Presupuestos" }}
+        />
 
         <PresupuestoForm
           mode="edit"

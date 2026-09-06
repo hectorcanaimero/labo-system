@@ -1,0 +1,50 @@
+name: Deploy staged
+
+# Dispara el redeploy de staging en Coolify cuando entra código a `staged`,
+# tanto por push directo como por merge de un PR (un merge a `staged` produce
+# un push a `staged`, así que este único trigger cubre ambos casos).
+on:
+  push:
+    branches: [staged]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-staged
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Trigger Coolify redeploy
+    runs-on: ubuntu-latest
+    steps:
+      - name: Call Coolify deploy webhook
+        env:
+          COOLIFY_WEBHOOK_URL: ${{ secrets.COOLIFY_WEBHOOK_URL }}
+          COOLIFY_TOKEN: ${{ secrets.COOLIFY_TOKEN }}
+        run: |
+          set -euo pipefail
+
+          if [ -z "${COOLIFY_WEBHOOK_URL}" ] || [ -z "${COOLIFY_TOKEN}" ]; then
+            echo "::error::Faltan los secrets COOLIFY_WEBHOOK_URL y/o COOLIFY_TOKEN."
+            echo "Configurarlos en Settings → Secrets and variables → Actions."
+            echo "Ver docs/deploy/coolify-staged.md"
+            exit 1
+          fi
+
+          status=$(curl --silent --show-error --location \
+            --max-time 30 --retry 3 --retry-delay 10 --retry-all-errors \
+            --output /tmp/coolify-response.txt --write-out '%{http_code}' \
+            --header "Authorization: Bearer ${COOLIFY_TOKEN}" \
+            "${COOLIFY_WEBHOOK_URL}")
+
+          echo "HTTP ${status}"
+          # El cuerpo trae el deployment_uuid; no contiene secretos.
+          cat /tmp/coolify-response.txt || true
+          echo
+
+          if [ "${status}" -lt 200 ] || [ "${status}" -ge 300 ]; then
+            echo "::error::Coolify respondió ${status}; el redeploy no arrancó."
+            exit 1
+          fi
+
+          echo "Redeploy de staging solicitado para ${GITHUB_SHA}."

@@ -12,6 +12,7 @@ import {
   type PacienteCreateInput,
 } from "@labo/lib/schemas/paciente";
 
+import { apiFetch } from "@/lib/api-client";
 /**
  * Máscara visual de cédula venezolana: `V-12.345.678`.
  * El valor enmascarado es aceptado por `normalizeCedula` (que tolera
@@ -77,6 +78,8 @@ export interface PacienteFormValues {
 
 interface PacienteFormDialogProps {
   paciente?: PacienteSerializable | null;
+  /** Valores iniciales para el alta (ignorados al editar). */
+  initialValues?: Partial<PacienteFormValues>;
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSaved: (paciente: PacienteSerializable) => void | Promise<void>;
@@ -149,6 +152,7 @@ async function readApiError(response: Response): Promise<Error> {
 
 export function PacienteFormDialog({
   paciente,
+  initialValues,
   open,
   onOpenChange,
   onSaved,
@@ -200,17 +204,20 @@ export function PacienteFormDialog({
       return;
     }
 
+    const inicial = paciente ? undefined : initialValues;
     reset({
-      nombre: paciente?.nombre ?? "",
-      apellido: paciente?.apellido ?? "",
-      cedula: formatCedulaMask(paciente?.cedula ?? ""),
-      fecha_nacimiento: toDateInputValue(paciente?.fecha_nacimiento),
-      sexo: paciente?.sexo ?? "",
-      telefono: formatTelefonoVeMask(paciente?.telefono ?? ""),
-      email: paciente?.email ?? "",
-      direccion: paciente?.direccion ?? "",
+      nombre: paciente?.nombre ?? inicial?.nombre ?? "",
+      apellido: paciente?.apellido ?? inicial?.apellido ?? "",
+      cedula: formatCedulaMask(paciente?.cedula ?? inicial?.cedula ?? ""),
+      fecha_nacimiento: toDateInputValue(paciente?.fecha_nacimiento) || (inicial?.fecha_nacimiento ?? ""),
+      sexo: paciente?.sexo ?? inicial?.sexo ?? "",
+      telefono: formatTelefonoVeMask(paciente?.telefono ?? inicial?.telefono ?? ""),
+      email: paciente?.email ?? inicial?.email ?? "",
+      direccion: paciente?.direccion ?? inicial?.direccion ?? "",
     });
     setErrorMessage(null);
+    // `initialValues` suele ser un objeto nuevo en cada render del padre; sólo
+    // interesa su valor al abrir, por eso no va en las dependencias.
   }, [open, paciente, reset]);
 
   if (!open) {
@@ -225,7 +232,7 @@ export function PacienteFormDialog({
       setSubmitting(true);
       setErrorMessage(null);
 
-      const response = await fetch(isEdit ? `/api/pacientes/${paciente?.id}` : "/api/pacientes", {
+      const response = await apiFetch(isEdit ? `/api/pacientes/${paciente?.id}` : "/api/pacientes", {
         method: isEdit ? "PATCH" : "POST",
         headers: {
           accept: "application/json",
@@ -243,14 +250,6 @@ export function PacienteFormDialog({
         }),
       });
 
-      if (response.status === 401) {
-        window.location.href = "/login";
-        return;
-      }
-      if (response.status === 403) {
-        window.location.href = "/dashboard?reason=sin-permisos";
-        return;
-      }
       if (!response.ok) {
         throw await readApiError(response);
       }
@@ -277,19 +276,11 @@ export function PacienteFormDialog({
       setDeleting(true);
       setErrorMessage(null);
 
-      const response = await fetch(`/api/pacientes/${paciente.id}`, {
+      const response = await apiFetch(`/api/pacientes/${paciente.id}`, {
         method: "DELETE",
         headers: { accept: "application/json" },
       });
 
-      if (response.status === 401) {
-        window.location.href = "/login";
-        return;
-      }
-      if (response.status === 403) {
-        window.location.href = "/dashboard?reason=sin-permisos";
-        return;
-      }
       if (!response.ok) {
         throw await readApiError(response);
       }

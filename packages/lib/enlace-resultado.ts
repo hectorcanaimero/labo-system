@@ -78,6 +78,17 @@ export function normalizarTelefonoWhatsApp(
   return null;
 }
 
+/**
+ * Email plausible para enviar: algo@dominio.tld sin espacios. No pretende
+ * validar RFC 5322; alcanza para no habilitar el botón con un dato basura
+ * (ej. "no tiene" o un teléfono cargado en el campo equivocado).
+ */
+export function normalizarEmail(email: string | null | undefined): string | null {
+  const value = email?.trim() ?? "";
+  if (value.length === 0 || value.length > 254) return null;
+  return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(value) ? value : null;
+}
+
 export interface MensajeResultadoInput {
   /** Nombre de pila del paciente, para el saludo. */
   paciente: string;
