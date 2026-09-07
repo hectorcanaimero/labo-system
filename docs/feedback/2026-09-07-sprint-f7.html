@@ -34,7 +34,7 @@ ul{margin:.2rem 0 0;padding-left:1.1rem}li{margin:.2rem 0}
 <span class="eyebrow">RV Laboratorio · F7</span>
 <h1>Sprint de feedback del cliente</h1>
 <p class="lede">Dos semanas para cerrar lo que reportó Miguel Franchi y lo que se acordó en la reunión del 6 de septiembre. Sale del análisis técnico; cada tarea tiene alcance, criterios de aceptación y archivos.</p>
-<div class="meta"><span>Del <b>8 al 19 sep 2026</b></span><span>Tareas <b>15</b></span><span>Estimado <b>40h</b></span><span>Spec <b>specs/F7/sprint-feedback-cliente.md</b></span><span>Backlog <b>tasks.json</b></span></div>
+<div class="meta"><span>Del <b>8 al 19 sep 2026</b></span><span>Tareas <b>16</b></span><span>Estimado <b>42h</b></span><span>Spec <b>specs/F7/sprint-feedback-cliente.md</b></span><span>Backlog <b>tasks.json</b></span></div>
 </header>
 <div class="wrap"><table><thead><tr><th>Cuándo</th><th>ID</th><th>Tarea</th><th>Depende de</th><th>Horas</th></tr></thead><tbody>
 <tr><td><span class="wk s1">S1 · d1-2</span></td><td class="id">F7.1.T1</td><td>Migrar los siete modales a mano al Dialog de shadcn</td><td>—</td><td class="h">4</td></tr>
@@ -47,6 +47,7 @@ ul{margin:.2rem 0 0;padding-left:1.1rem}li{margin:.2rem 0}
 <tr><td><span class="wk s1">S1 · d3-5</span></td><td class="id">F7.2.T4</td><td>Ganancia: ocultar detrás de Ajustes avanzados y corregir el paquete cerrado</td><td>—</td><td class="h">2</td></tr>
 <tr><td><span class="wk s1">S1 · d3-5</span></td><td class="id">F7.1.T3</td><td>Paquetes: botón Agregar en vez de arrastrar y guardado en un solo request</td><td>—</td><td class="h">3</td></tr>
 <tr><td><span class="wk s1">S1 · d3-5</span></td><td class="id">F7.1.T4</td><td>Correcciones de la revisión cruzada sobre modales y paquetes</td><td>F7.1.T1, F7.1.T3</td><td class="h">2</td></tr>
+<tr><td><span class="wk s1">S1 · d3-5</span></td><td class="id">F7.2.T5</td><td>Correcciones de la revisión cruzada sobre PDF público y edición de presupuestos</td><td>F7.3.T1b, F7.2.T4</td><td class="h">2</td></tr>
 <tr><td><span class="wk s2">S2 · d1-3</span></td><td class="id">F7.4.T1</td><td>Métodos de análisis como tabla administrable</td><td>—</td><td class="h">5</td></tr>
 <tr><td><span class="wk s2">S2 · d1-3</span></td><td class="id">F7.4.T2</td><td>Dirección obligatoria y enlace de ubicación en pacientes</td><td>—</td><td class="h">2</td></tr>
 <tr><td><span class="wk s2">S2 · d1-3</span></td><td class="id">F7.3.T3</td><td>Botón de IA para observaciones en el detalle del resultado</td><td>—</td><td class="h">2</td></tr>
@@ -177,6 +178,7 @@ ul{margin:.2rem 0 0;padding-left:1.1rem}li{margin:.2rem 0}
 <tr data-task="F7.3.T1b"><td class="id">F7.3.T1b</td><td>sonnet</td><td>hecha</td><td class="id">97b3e10</td><td>GET /api/r/[slug]/pdf sin sesión, 404 si el slug no existe, venció o la orden está anulada. El render se extrajo de la ruta de staff y se comparte. Botón de descarga en la página pública. Build de web pasa; descarga real sin probar en navegador.</td></tr>
 <tr data-task="F7.1.T3"><td class="id">F7.1.T3</td><td>opus</td><td>hecha</td><td class="id">494930d</td><td>Botón Agregar en el catálogo, sensores y SortableContext real para el reorden, PUT único /api/paquetes/[id] con setContenido. Sin transacciones en PostgREST: el rollback es por compensación; atomicidad real requeriría una RPC en Postgres. packages/ui suma dnd-kit. Las rutas viejas /examenes y /titulos siguen. Sin prueba en navegador ni test de setContenido.</td></tr>
 <tr data-task="F7.1.T4"><td class="id">F7.1.T4</td><td>sonnet</td><td>hecha</td><td class="id">a380435</td><td>setExamenes y setTitulos hacen upsert primero (onConflict sobre las PK compuestas, verificadas en 0001 y 0011) y borran el sobrante después: un insert fallido ya no vacía el paquete. Guard y spinner en el diálogo de paquetes de la orden nueva. PaqueteBuilder refetch y refresh tras guardado fallido. Sin prueba contra Postgres real ni navegador.</td></tr>
+<tr data-task="F7.2.T5"><td class="id">F7.2.T5</td><td>opus</td><td>en curso</td><td class="id">—</td><td>Revisión cruzada de opus sobre los commits de sonnet: el middleware bloquea el PDF público con 307 (verificado con build real); editar un presupuesto reaplica la ganancia global y pierde el reparto del paquete cerrado. Se corrigen los dos más el enmascarado de cédula ante formato raro.</td></tr>
 <tr data-task="F7.2.T1"><td class="id">F7.2.T1</td><td>sonnet</td><td>hecha</td><td class="id">f275872</td><td>Botón siempre habilitado; al guardar con faltantes los lista junto al botón y hace scroll a la sección. Bloque de paciente en rojo tras el intento. Nota operativa: tras rebasear sobre commits que agregan dependencias, correr pnpm install de nuevo o el typecheck falla por caché.</td></tr>
 <tr data-task="F7.2.T4"><td class="id">F7.2.T4</td><td>sonnet</td><td>hecha</td><td class="id">dce358f</td><td>Ganancia global, columna por línea y fila del resumen detrás de un toggle Ajustes avanzados plegado. Paquete cerrado: líneas con ganancia 0 explícita, test nuevo (15 repartido en 9+6 con ganancia global 10 da 15). Seguimiento anotado: al editar un presupuesto guardado, las líneas de paquete cerrado se reconstruyen como desglosadas; limitación previa.</td></tr>
 <tr data-task="F7.2.T2"><td class="id">F7.2.T2</td><td>opus</td><td>hecha</td><td class="id">2f25ad7 + bdf8cef</td><td>Migración 0015 (toma_muestra_usd, domicilio_usd en presupuestos; toma_muestra_default_usd en laboratorio_config), probada en Postgres local e idempotente. calcularTotales suma serviciosUsd después de descuento y ganancia; schemas y repo persisten los campos. NO aplicada en hosted: debe aplicarse ANTES del deploy porque PRESUPUESTO_COLS ya pide las columnas. Tests de lib 313/313. Corrección bdf8cef: sin BEGIN/COMMIT; aplicar por el endpoint de InsForge, no por psql.</td></tr>
@@ -191,6 +193,8 @@ ul{margin:.2rem 0 0;padding-left:1.1rem}li{margin:.2rem 0}
 <div><span class="eyebrow">Pendientes del usuario</span><ul>
 <li>Log de Coolify del POST a <code>/api/examenes</code> del 6 de septiembre, 02:35 a 02:45 UTC, para cerrar la causa del 500.</li>
 <li><b>Aplicar la migración 0015 en hosted ANTES de desplegar el PR.</b> Tres columnas numeric(12,2) NOT NULL DEFAULT 0 con CHECK; no toca datos. Sin ella, el código nuevo rompe al leer presupuestos.</li>
-<li>Confirmar con el cliente si la ganancia se oculta o se elimina.</li></ul></div>
+<li>Confirmar con el cliente si la ganancia se oculta o se elimina.</li>
+<li>Decidir si la página pública del resultado debe seguir mostrando observaciones clínicas y médico solicitante. Hoy los muestra.</li>
+<li>El push de <code>sprint/f7-1</code> y el PR requieren tu permiso.</li></ul></div>
 </div></section>
 </main>

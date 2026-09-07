@@ -579,6 +579,7 @@ Rama del sprint: `sprint/f7-1`, base `staged`. Cada tarea es un commit; al cerra
 | F7.1.T4 | sonnet | hecha | `a380435` | setExamenes y setTitulos hacen upsert primero (onConflict sobre las PK compuestas, verificadas en 0001 y 0011) y borran el sobrante después: un insert fallido ya no vacía el paquete. Guard y spinner en el diálogo de paquetes de la orden nueva. PaqueteBuilder refetch y refresh tras guardado fallido. Sin prueba contra Postgres real ni navegador. |
 | F7.2.T2 | opus | hecha | `2f25ad7` + `bdf8cef` | Migración 0015 (toma_muestra_usd, domicilio_usd en presupuestos; toma_muestra_default_usd en laboratorio_config), probada en Postgres local e idempotente. calcularTotales suma serviciosUsd después de descuento y ganancia; schemas y repo persisten los campos. NO aplicada en hosted: debe aplicarse ANTES del deploy porque PRESUPUESTO_COLS ya pide las columnas. Tests de lib 313/313.  Corrección: sin BEGIN/COMMIT, porque el endpoint de migraciones de InsForge envuelve el SQL en su propia transacción; aplicar por el endpoint, no por psql. |
 | F7.2.T3 | opus | hecha | `b173abe` | Bloque Servicios en el formulario con toma de muestra precargada desde Config y check de domicilio; detalle y PDF muestran ambos; hora de emisión en zona Caracas con test (antes la fecha del PDF salía al día siguiente pasadas las 20:00 por formatear en UTC). Config con valor por defecto de toma de muestra. Sin prueba visual del PDF ni del navegador. Hallazgo: los tests de packages/pdf no se typechequean (tsconfig con files: []). |
+| F7.2.T5 | opus | en curso | — | Revisión cruzada de opus: el middleware bloquea el PDF público con 307; editar un presupuesto reaplica la ganancia global y pierde el reparto del paquete cerrado porque page.tsx no pasa paquete_id, precio_base_snap ni ganancia_pct. Pendiente del cliente: si la página pública debe mostrar observaciones y médico. |
 
 ## F7.3.T1b — PDF público por slug para el enlace del paciente (seguimiento de F7.3.T1)
 
@@ -649,6 +650,48 @@ No hace:
 
 - F7.1.T1
 - F7.1.T3
+
+### Estimación
+
+2h
+
+## F7.2.T5 — Correcciones de la revisión cruzada sobre PDF público y edición de presupuestos
+
+### Objetivo
+
+Cerrar los hallazgos confirmados de la revisión de opus sobre los commits de sonnet antes de abrir el PR.
+
+### Alcance
+
+Sí hace:
+- `apps/web/middleware.ts`: dejar pasar `/api/r/*` sin sesión, con exclusión en el matcher. Hoy el PDF público redirige al home con 307.
+- `apps/web/app/(app)/presupuestos/[id]/page.tsx`: pasar `paquete_id`, `precio_base_snap` y `ganancia_pct` en `initialData.lineas`.
+- `apps/web/app/(app)/presupuestos/nuevo/PresupuestoForm.tsx`: derivar `cerrado` de las líneas cargadas en vez de fijarlo en `false`, para que editar no reaplique la ganancia global ni pierda el reparto del paquete.
+- `apps/web/app/r/[slug]/page.tsx`: `maskCedula` enmascara todo ante formato desconocido.
+- Test sobre la reconstrucción de líneas al editar, si el patrón del repo lo permite sin infraestructura nueva.
+
+No hace:
+- Quitar observaciones y médico solicitante de la página pública: decisión del cliente.
+- Log de duración en la ruta pública de PDF.
+
+### Criterios de aceptación
+
+- [ ] `GET /api/r/<slug>/pdf` sin cookie llega al handler y responde el PDF con un slug vigente.
+- [ ] Abrir y guardar sin cambios un presupuesto con paquete cerrado de precio base 15 y ganancia global 10 mantiene el total en 15.
+- [ ] Una línea con ganancia propia conserva su porcentaje al editar y guardar.
+- [ ] Una cédula con formato inesperado sale completamente enmascarada.
+
+### Archivos afectados
+
+- `apps/web/middleware.ts`
+- `apps/web/app/(app)/presupuestos/[id]/page.tsx`
+- `apps/web/app/(app)/presupuestos/nuevo/PresupuestoForm.tsx`
+- `apps/web/app/r/[slug]/page.tsx`
+
+### Dependencias
+
+- F7.3.T1b
+- F7.2.T4
 
 ### Estimación
 

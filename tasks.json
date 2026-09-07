@@ -2849,6 +2849,36 @@
           "text": "setExamenes y setTitulos hacen upsert primero (onConflict sobre las PK compuestas, verificadas en 0001 y 0011) y borran el sobrante después: un insert fallido ya no vacía el paquete. Guard y spinner en el diálogo de paquetes de la orden nueva. PaqueteBuilder refetch y refresh tras guardado fallido. Sin prueba contra Postgres real ni navegador."
         }
       ]
+    },
+    {
+      "id": "F7.2.T5",
+      "phase": 7,
+      "title": "Correcciones de la revisión cruzada sobre PDF público y edición de presupuestos",
+      "description": "Middleware deja pasar /api/r/*; page.tsx pasa paquete_id, precio_base_snap y ganancia_pct; PresupuestoForm deriva cerrado; maskCedula falla cerrado.",
+      "model": "opencode/deepseek-v4-pro",
+      "reason": "Correcciones ubicadas por la revisión; tocan middleware y reconstrucción de estado.",
+      "status": "in_progress",
+      "dependencies": [
+        "F7.3.T1b",
+        "F7.2.T4"
+      ],
+      "estimateHours": 2,
+      "files": [
+        "apps/web/middleware.ts",
+        "apps/web/app/(app)/presupuestos/[id]/page.tsx",
+        "apps/web/app/(app)/presupuestos/nuevo/PresupuestoForm.tsx",
+        "apps/web/app/r/[slug]/page.tsx"
+      ],
+      "specRef": "F7/sprint-feedback-cliente.md#F7.2.T5",
+      "comments": [
+        {
+          "date": "2026-09-07",
+          "author": "planner",
+          "session": "opus",
+          "commit": "",
+          "text": "Revisión de opus: middleware redirige /api/r/[slug]/pdf con 307 (verificado con next start); editar presupuesto fija cerrado=false y page.tsx no pasa paquete_id/precio_base_snap/ganancia_pct, total 15 pasa a 16,50 y se pierde el reparto y la ganancia por línea. Plausibles: maskCedula falla abierto; página pública muestra observaciones y médico; ruta pública sin log de duración."
+        }
+      ]
     }
   ],
   "phases": []
