@@ -3034,7 +3034,7 @@
       "description": "Tabla tipos_analisis sembrada con TIPO_ANALISIS_VALUES, repo y endpoints, selector en el examen con alta inline, panel de catálogo en Config con tipos y métodos.",
       "model": "opencode/deepseek-v4-pro",
       "reason": "Mismo patrón que métodos, con generalización del panel.",
-      "status": "in_progress",
+      "status": "done",
       "dependencies": [
         "F7.4.T1"
       ],
@@ -3048,7 +3048,15 @@
         "apps/web/app/(app)/config/ConfigForm.tsx"
       ],
       "specRef": "F7/sprint-feedback-cliente.md#F7.4.T3",
-      "comments": []
+      "comments": [
+        {
+          "date": "2026-09-07",
+          "author": "planner",
+          "session": "opus",
+          "commit": "459f844",
+          "text": "Tabla tipos_analisis (0019) sembrada con los ocho tipos más los existentes; repo compartido de catálogo para tipos y métodos con 23 tests; tipo y método como selectores con alta inline en el examen; página /catalogo/tipos-y-metodos en el sidebar, solo admin; MetodosPanel fuera de Config. La importación no valida tipos: quedan como fuera de la lista. Sin la 0019 no se pueden crear exámenes nuevos. Sin prueba en navegador."
+        }
+      ]
     },
     {
       "id": "F7.6.T1",

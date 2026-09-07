@@ -831,7 +831,7 @@ Rama `sprint/f7-3`, base `staged` post PR #13.
 
 | Tarea | Sesión | Estado | Commit | Comentario |
 |---|---|---|---|---|
-| F7.4.T3 | opus | en curso | — | Pedido del usuario: tipos de análisis como tabla administrable, mismo patrón que métodos. |
+| F7.4.T3 | opus | hecha | `459f844` | Tabla tipos_analisis (0019) sembrada con los ocho tipos más los existentes; repo compartido de catálogo para tipos y métodos con 23 tests; tipo y método como selectores con alta inline en el examen; página /catalogo/tipos-y-metodos en el sidebar, solo admin; MetodosPanel fuera de Config. La importación no valida tipos: quedan como fuera de la lista. Sin la 0019 no se pueden crear exámenes nuevos. Sin prueba en navegador. |
 | F7.6.T1 | sonnet | en curso | — | Pedido del usuario: Configuración en pestañas. Toca ConfigForm junto con F7.4.T3; quien integre segundo rebasea. |
 
 ## F7.4.T3 — Tipos de análisis como tabla administrable
