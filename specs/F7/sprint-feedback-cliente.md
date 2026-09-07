@@ -846,7 +846,7 @@ Sí hace:
 - `packages/db/repos/tipos-analisis.ts` y `GET/POST/PATCH /api/examenes/tipos-analisis`, mismo patrón y roles que métodos.
 - `packages/lib/schemas/examen.ts`: `tipo_analisis` pasa a ser texto no vacío; el vocabulario lo da la tabla. Conservar `TIPO_ANALISIS_VALUES` solo como semilla de la migración o eliminarla si nada más la usa.
 - `ExamenFormDialog`: selector de tipos activos con "Agregar tipo…" para admin, mismo componente o patrón que el de métodos. Un examen con tipo desactivado o renombrado se muestra como "(fuera de la lista)" y no se pierde al guardar.
-- Config: generalizar `MetodosPanel` en un panel de catálogo reutilizable con dos pestañas o dos bloques: Tipos de análisis y Métodos. Alta, renombrar en línea, activar y desactivar.
+- Página propia `/catalogo/tipos-y-metodos` en el grupo Catálogo del sidebar (`apps/web/app/(app)/layout.tsx`, entre Exámenes y Paquetes), con dos bloques: Tipos de análisis y Métodos. Alta, renombrar en línea, activar y desactivar. `MetodosPanel` se mueve ahí y desaparece de Config. Solo admin.
 - Importación de exámenes (`examenes/import`): si valida el tipo contra la lista fija, pasar a validar contra la tabla.
 
 No hace:
@@ -857,7 +857,7 @@ No hace:
 - [ ] Crear un examen ofrece tipo y método como selectores alimentados por las tablas; no hay texto libre en ninguno.
 - [ ] El admin agrega un tipo nuevo desde el formulario del examen sin salir de él.
 - [ ] Un tipo desactivado desaparece del selector y se conserva en los exámenes que lo tenían.
-- [ ] Config muestra tipos y métodos en un mismo panel de catálogo.
+- [ ] El sidebar muestra “Tipos y métodos” bajo Catálogo y la página administra ambos; Config ya no los muestra.
 - [ ] La migración sembró los ocho tipos en orden y `pnpm turbo run lint typecheck test build` sigue en verde.
 
 ### Archivos afectados
@@ -867,6 +867,8 @@ No hace:
 - `apps/web/app/api/examenes/tipos-analisis/route.ts`
 - `packages/lib/schemas/examen.ts`
 - `apps/web/app/(app)/examenes/ExamenFormDialog.tsx`
+- `apps/web/app/(app)/catalogo/tipos-y-metodos/page.tsx`
+- `apps/web/app/(app)/layout.tsx`
 - `apps/web/app/(app)/config/ConfigForm.tsx`, `MetodosPanel.tsx`
 - `apps/web/app/(app)/examenes/import/*`
 
