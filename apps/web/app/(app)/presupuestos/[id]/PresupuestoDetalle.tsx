@@ -81,9 +81,12 @@ interface PresupuestoDetalleProps {
       nombre_snap: string;
       precio_snap: number;
       orden: number;
-      paquete_id?: string | null;
-      precio_base_snap?: number;
-      ganancia_pct?: number;
+      // Requeridos: el formulario de edición los necesita para reconstruir
+      // las líneas. Eran opcionales y la página no los pasaba, así que un
+      // paquete cerrado volvía como líneas sueltas sin que nada fallara.
+      paquete_id: string | null;
+      precio_base_snap: number;
+      ganancia_pct: number;
       precio_final_snap?: number;
     }>;
   };

@@ -18,6 +18,7 @@ import { Button } from "@/components/ui/button";
 import { toHumanError } from "@labo/lib/error-messages";
 import { formatBs, formatUsd } from "@labo/lib/bs-format";
 import { calcularTotales } from "@labo/lib/calcular-totales";
+import { reconstruirLineaGuardada } from "@labo/lib/presupuesto-lineas";
 import type { EstadoPresupuesto } from "@labo/lib/schemas/presupuesto";
 import { ExamenAutocomplete } from "@labo/ui/examenes/ExamenAutocomplete";
 import {
@@ -184,15 +185,9 @@ export function PresupuestoForm({
       examen_id: item.examen_id,
       nombre_snap: item.nombre_snap,
       precio_snap: item.precio_snap,
-      paquete_id: item.paquete_id ?? null,
-      precio_base_snap: item.precio_base_snap ?? item.precio_snap,
-      gananciaPctInput:
-        item.ganancia_pct != null &&
-        initialData &&
-        item.ganancia_pct !== initialData.ganancia_pct
-          ? String(item.ganancia_pct)
-          : "",
-      cerrado: false,
+      // `cerrado`, el reparto y la ganancia por línea se derivan de lo
+      // guardado: fijarlos a mano perdía el precio pactado del paquete.
+      ...reconstruirLineaGuardada(item, initialData.ganancia_pct),
     })) ?? [],
   );
   const [descuentoPct, setDescuentoPct] = useState(
@@ -479,9 +474,14 @@ export function PresupuestoForm({
           precio_base_snap: linea.precio_base_snap,
           // Paquete cerrado: ganancia 0 siempre, aunque Ajustes avanzados
           // esté cerrado — es lo que mantiene el precio pactado del paquete.
+          // El toggle de Ajustes avanzados decide qué se MUESTRA, no qué se
+          // guarda: `gananciaPctInput` sólo tiene valor si el usuario lo
+          // escribió o si venía del presupuesto guardado, y en los dos casos
+          // hay que persistirlo. Condicionarlo al toggle borraba la ganancia
+          // por línea al reeditar, porque arranca plegado.
           ...(linea.cerrado
             ? { ganancia_pct: 0 }
-            : ajustesAvanzadosOpen && hasValue(linea.gananciaPctInput)
+            : hasValue(linea.gananciaPctInput)
               ? { ganancia_pct: toNumber(linea.gananciaPctInput) }
               : {}),
         })),

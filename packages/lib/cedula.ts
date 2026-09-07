@@ -32,3 +32,43 @@ export function normalizeCedulaOrThrow(raw: string): string {
   if (result === null) throw new InvalidCedulaError(raw);
   return result;
 }
+
+/**
+ * Enmascara una cédula dejando visibles sólo los dos últimos dígitos, con los
+ * grupos de miles que tendría al mostrarse completa
+ * (`V-12345678` → `V-**.***.*78`).
+ *
+ * Falla CERRADO: si el valor no tiene el formato normalizado esperado, se
+ * devuelve una máscara sin dígitos en vez del valor original. Es una función
+ * cuyo único propósito es no filtrar el dato, así que ante una entrada que no
+ * entiende no puede optar por mostrarla.
+ */
+export function enmascararCedula(cedula: string | null | undefined): string {
+  if (typeof cedula !== "string" || cedula.trim().length === 0) return "—";
+
+  const match = /^([VEJGP])-(\d+)$/.exec(cedula.trim());
+  if (!match) return "***";
+
+  const [, prefijo, digitos] = match;
+
+  const largos: number[] = [];
+  let resto = digitos.length;
+  while (resto > 3) {
+    largos.unshift(3);
+    resto -= 3;
+  }
+  largos.unshift(resto);
+
+  const visibles = Math.min(2, digitos.length);
+  const enmascarada =
+    "*".repeat(digitos.length - visibles) + digitos.slice(digitos.length - visibles);
+
+  const grupos: string[] = [];
+  let cursor = 0;
+  for (const largo of largos) {
+    grupos.push(enmascarada.slice(cursor, cursor + largo));
+    cursor += largo;
+  }
+
+  return `${prefijo}-${grupos.join(".")}`;
+}

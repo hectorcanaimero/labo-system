@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { normalizeCedula, normalizeCedulaOrThrow, InvalidCedulaError } from "./cedula";
+import {
+  enmascararCedula,
+  InvalidCedulaError,
+  normalizeCedula,
+  normalizeCedulaOrThrow,
+} from "./cedula";
 
 describe("normalizeCedula", () => {
   it("normalizes V- 33.338.896 (spec acceptance)", () => {
@@ -120,5 +125,47 @@ describe("normalizeCedulaOrThrow", () => {
 
   it("throws with raw value in message", () => {
     expect(() => normalizeCedulaOrThrow("invalid")).toThrow(/invalid/);
+  });
+});
+
+describe("enmascararCedula", () => {
+  it("deja visibles sólo los dos últimos dígitos, con grupos de miles", () => {
+    expect(enmascararCedula("V-12345678")).toBe("V-**.***.*78");
+    expect(enmascararCedula("E-123456789")).toBe("E-***.***.*89");
+    expect(enmascararCedula("V-1234567")).toBe("V-*.***.*67");
+  });
+
+  it("acepta cualquier prefijo que produce normalizeCedula", () => {
+    for (const prefijo of ["V", "E", "J", "G", "P"]) {
+      expect(enmascararCedula(`${prefijo}-12345678`)).toBe(`${prefijo}-**.***.*78`);
+    }
+  });
+
+  it("es consistente con la salida de normalizeCedula", () => {
+    const normalizada = normalizeCedula("v 12.345.678");
+    expect(normalizada).toBe("V-12345678");
+    expect(enmascararCedula(normalizada!)).toBe("V-**.***.*78");
+  });
+
+  // Falla cerrado: ante un formato que no entiende NO devuelve el valor
+  // original, porque su único trabajo es no filtrar la cédula.
+  it.each([
+    "12345678",
+    "V12345678",
+    "V-12.345.678",
+    "X-12345678",
+    "V-",
+    "cualquier cosa",
+  ])("no filtra el valor original ante formato desconocido: %j", (raw) => {
+    const salida = enmascararCedula(raw);
+    expect(salida).toBe("***");
+    expect(salida).not.toContain("12345678");
+  });
+
+  it("vacío, null y undefined dan guion", () => {
+    expect(enmascararCedula("")).toBe("—");
+    expect(enmascararCedula("   ")).toBe("—");
+    expect(enmascararCedula(null)).toBe("—");
+    expect(enmascararCedula(undefined)).toBe("—");
   });
 });

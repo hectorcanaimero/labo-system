@@ -60,10 +60,13 @@ export default function middleware(request: NextRequest): NextResponse {
 export const config = {
   /**
    * Excluye estáticos de Next, archivos con extensión, `/api/pdf/*`,
-   * `/api/cron/*`, `/api/me` y `/api/auth/reset` (todos validan sesión /
-   * secret internamente).
+   * `/api/cron/*`, `/api/me`, `/api/r/*` y `/api/auth/reset` (todos validan
+   * sesión / secret / slug internamente).
+   *
+   * `api/r/` va con la barra final a propósito: sin ella el prefijo también
+   * matchearía `api/resultados`, que sí necesita el guard de sesión.
    */
   matcher: [
-    "/((?!_next/static|_next/image|favicon.ico|.*\\..*|api/pdf|api/cron|api/me|api/auth/reset).*)",
+    "/((?!_next/static|_next/image|favicon.ico|.*\\..*|api/pdf|api/cron|api/me|api/r/|api/auth/reset).*)",
   ],
 };
