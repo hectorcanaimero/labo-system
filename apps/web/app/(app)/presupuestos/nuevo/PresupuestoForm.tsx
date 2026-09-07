@@ -73,6 +73,8 @@ interface PresupuestoFormInitialData {
   descuento_pct: number;
   ganancia_pct: number;
   tasa_bs: number;
+  toma_muestra_usd: number;
+  domicilio_usd: number;
   estado: EstadoPresupuesto;
   lineas: Array<{
     examen_id: string;
@@ -88,6 +90,8 @@ interface PresupuestoFormProps {
   mode: PresupuestoMode;
   initialData?: PresupuestoFormInitialData;
   initialTasa?: { tasa: number; stale: boolean } | null;
+  /** Valor por defecto de "Toma de muestra" (Config). Sólo aplica al crear. */
+  tomaMuestraDefault?: number;
   onSaved?: (presupuestoId: string) => void;
   onCancelEdit?: () => void;
 }
@@ -145,6 +149,7 @@ export function PresupuestoForm({
   mode,
   initialData,
   initialTasa,
+  tomaMuestraDefault = 0,
   onSaved,
   onCancelEdit,
 }: PresupuestoFormProps) {
@@ -198,6 +203,18 @@ export function PresupuestoForm({
   );
   const [tasaBs, setTasaBs] = useState(initialTasa ? String(initialTasa.tasa) : initialData ? String(initialData.tasa_bs) : "");
 
+  // Servicios: la toma de muestra siempre se cobra y arranca con el valor de
+  // Config; el domicilio es opcional y su monto sólo se pide si está marcado.
+  const [tomaMuestraUsd, setTomaMuestraUsd] = useState(
+    initialData ? String(initialData.toma_muestra_usd) : String(tomaMuestraDefault),
+  );
+  const [domicilioActivo, setDomicilioActivo] = useState(
+    initialData ? initialData.domicilio_usd > 0 : false,
+  );
+  const [domicilioUsd, setDomicilioUsd] = useState(
+    initialData && initialData.domicilio_usd > 0 ? String(initialData.domicilio_usd) : "",
+  );
+
   const [paquetePanelOpen, setPaquetePanelOpen] = useState(false);
   const [paquetes, setPaquetes] = useState<PaqueteResumenItem[]>([]);
   const [paquetesLoading, setPaquetesLoading] = useState(false);
@@ -232,12 +249,19 @@ export function PresupuestoForm({
     (linea) => !hasValue(linea.gananciaPctInput) || toNumber(linea.gananciaPctInput) >= 0,
   );
 
+  const tomaMuestraNum = toNumber(tomaMuestraUsd);
+  const domicilioNum = domicilioActivo ? toNumber(domicilioUsd) : 0;
+  const tomaMuestraValida = !hasValue(tomaMuestraUsd) || tomaMuestraNum >= 0;
+  const domicilioValido = !domicilioActivo || (!hasValue(domicilioUsd) || domicilioNum >= 0);
+  const serviciosUsd = tomaMuestraNum + domicilioNum;
+
   const totals = useMemo(() => {
     if (!tasaValida || lineas.length === 0) return null;
     return calcularTotales({
       descuentoPct: descuentoNum,
       gananciaPct: gananciaNum,
       tasa: tasaNum,
+      serviciosUsd,
       lineas: lineas.map((linea) => ({
         precioBase: linea.precio_base_snap,
         ...(hasValue(linea.gananciaPctInput)
@@ -245,7 +269,7 @@ export function PresupuestoForm({
           : {}),
       })),
     });
-  }, [lineas, descuentoNum, gananciaNum, tasaNum, tasaValida]);
+  }, [lineas, descuentoNum, gananciaNum, tasaNum, tasaValida, serviciosUsd]);
 
   const pacienteOk =
     (modoPaciente === "registrado" && Boolean(selectedPaciente?.id)) ||
@@ -256,6 +280,8 @@ export function PresupuestoForm({
     descuentoValido &&
     gananciaValida &&
     gananciaPorLineaValida &&
+    tomaMuestraValida &&
+    domicilioValido &&
     tasaValida;
 
   const faltantes = useMemo(() => {
@@ -265,6 +291,8 @@ export function PresupuestoForm({
     if (!descuentoValido) items.push("El descuento debe estar entre 0 y 100");
     if (!gananciaValida) items.push("La ganancia global no puede ser negativa");
     if (!gananciaPorLineaValida) items.push("La ganancia por línea no puede ser negativa");
+    if (!tomaMuestraValida) items.push("La toma de muestra no puede ser negativa");
+    if (!domicilioValido) items.push("El servicio a domicilio no puede ser negativo");
     if (!tasaValida) items.push("Ingresá una tasa mayor a 0");
     return items;
   }, [
@@ -273,6 +301,8 @@ export function PresupuestoForm({
     descuentoValido,
     gananciaValida,
     gananciaPorLineaValida,
+    tomaMuestraValida,
+    domicilioValido,
     tasaValida,
   ]);
 
@@ -440,6 +470,9 @@ export function PresupuestoForm({
         descuento_pct: descuentoNum,
         ganancia_pct: gananciaNum,
         tasa_bs: tasaNum,
+        toma_muestra_usd: tomaMuestraNum,
+        // Desmarcar el check manda 0: es lo que lo saca del PDF y del total.
+        domicilio_usd: domicilioNum,
         examenes: lineas.map((linea) => ({
           examen_id: linea.examen_id,
           ...(linea.paquete_id ? { paquete_id: linea.paquete_id } : {}),
@@ -829,6 +862,71 @@ export function PresupuestoForm({
         ) : null}
       </section>
 
+      <section className="rounded-2xl border border-border bg-card p-6 shadow-sm">
+        <div className="flex flex-col gap-1">
+          <h2 className="text-sm font-semibold text-foreground">Servicios</h2>
+          <p className="text-xs text-muted-foreground">
+            Se cobran aparte de los exámenes: no les aplica el descuento ni la ganancia.
+          </p>
+        </div>
+
+        <div className="mt-4 grid gap-4 sm:grid-cols-2">
+          <label className="space-y-2 text-sm font-medium">
+            <span>Toma de muestra (USD)</span>
+            <input
+              type="number"
+              min={0}
+              step="0.01"
+              value={tomaMuestraUsd}
+              onChange={(event) => setTomaMuestraUsd(event.target.value)}
+              placeholder="0.00"
+              className="h-11 w-full rounded-md border border-input bg-background px-3 text-sm"
+            />
+            {!tomaMuestraValida ? (
+              <span className="text-xs text-destructive">No puede ser negativa.</span>
+            ) : null}
+          </label>
+
+          <div className="space-y-2">
+            <label className="flex items-center gap-2 text-sm font-medium">
+              <input
+                type="checkbox"
+                checked={domicilioActivo}
+                onChange={(event) => {
+                  const activo = event.target.checked;
+                  setDomicilioActivo(activo);
+                  if (!activo) setDomicilioUsd("");
+                }}
+                className="h-4 w-4 rounded border-input"
+              />
+              Servicio a domicilio
+            </label>
+
+            {domicilioActivo ? (
+              <>
+                <input
+                  type="number"
+                  min={0}
+                  step="0.01"
+                  value={domicilioUsd}
+                  onChange={(event) => setDomicilioUsd(event.target.value)}
+                  placeholder="0.00"
+                  aria-label="Monto del servicio a domicilio en USD"
+                  className="h-11 w-full rounded-md border border-input bg-background px-3 text-sm"
+                />
+                {!domicilioValido ? (
+                  <span className="text-xs text-destructive">No puede ser negativo.</span>
+                ) : null}
+              </>
+            ) : (
+              <p className="text-xs text-muted-foreground">
+                Marcalo si la muestra se toma en el domicilio del paciente.
+              </p>
+            )}
+          </div>
+        </div>
+      </section>
+
       <section ref={ajustesSectionRef} className="rounded-2xl border border-border bg-card p-6 shadow-sm">
         <div className="grid gap-6 lg:grid-cols-2">
           <div className="space-y-4">
@@ -936,6 +1034,16 @@ export function PresupuestoForm({
                   </span>
                 </div>
               ) : null}
+              <div className="flex items-center justify-between">
+                <span className="text-muted-foreground">Toma de muestra</span>
+                <span className="font-mono text-foreground">{formatUsd(tomaMuestraNum)}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-muted-foreground">Servicio a domicilio</span>
+                <span className="font-mono text-foreground">
+                  {domicilioActivo ? formatUsd(domicilioNum) : "—"}
+                </span>
+              </div>
               <div className="mt-3 flex items-center justify-between border-t border-border pt-3">
                 <span className="font-medium text-foreground">Total USD</span>
                 <span className="font-mono text-lg font-semibold text-foreground">

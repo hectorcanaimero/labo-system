@@ -6,7 +6,14 @@ import { formatNumeroPresupuesto } from "@labo/lib/numero-presupuesto";
 import { PDFFirma } from "./components/PDFFirma";
 import { PDFFooter } from "./components/PDFFooter";
 import { PDFHeader } from "./components/PDFHeader";
-import { PDF_COLORS, PDF_FONT, PDF_PAGE, formatDateDMY, type LaboratorioPDFConfig } from "./theme";
+import {
+  PDF_COLORS,
+  PDF_FONT,
+  PDF_PAGE,
+  formatDateDMY,
+  formatDateTimeDMY,
+  type LaboratorioPDFConfig,
+} from "./theme";
 
 export type PresupuestoPDFConfig = LaboratorioPDFConfig;
 
@@ -27,6 +34,10 @@ export interface PresupuestoPDFData {
   paciente_apellido: string | null;
   descuento_pct: number;
   tasa_bs: number;
+  /** Cargo por toma de muestra en USD. Fila propia, no es un examen. */
+  toma_muestra_usd?: number;
+  /** Cargo por servicio a domicilio en USD. Si es 0 no se imprime. */
+  domicilio_usd?: number;
   total_usd: number;
   total_bs: number;
   estado: string;
@@ -200,6 +211,9 @@ export function PresupuestoPDF({ data }: PresupuestoPDFProps) {
   const subtotalUsd = lines.reduce((sum, line) => sum + line.precio_final_snap, 0);
   const numero = formatNumeroPresupuesto(data.numero_correlativo, data.created_at);
   const fecha = formatDateDMY(data.created_at);
+  const emision = formatDateTimeDMY(data.created_at);
+  const tomaMuestraUsd = data.toma_muestra_usd ?? 0;
+  const domicilioUsd = data.domicilio_usd ?? 0;
 
   return (
     <Document
@@ -270,6 +284,22 @@ export function PresupuestoPDF({ data }: PresupuestoPDFProps) {
             <Text style={styles.totalLabel}>Subtotal (USD)</Text>
             <Text style={styles.totalValue}>USD {formatUsd(subtotalUsd)}</Text>
           </View>
+          {tomaMuestraUsd > 0 ? (
+            <View style={styles.totalRow}>
+              <Text style={styles.totalLabel}>Toma de muestra</Text>
+              <Text style={styles.totalValue}>
+                USD {formatUsd(tomaMuestraUsd)} · Bs. {formatBs(tomaMuestraUsd * data.tasa_bs)}
+              </Text>
+            </View>
+          ) : null}
+          {domicilioUsd > 0 ? (
+            <View style={styles.totalRow}>
+              <Text style={styles.totalLabel}>Servicio a domicilio</Text>
+              <Text style={styles.totalValue}>
+                USD {formatUsd(domicilioUsd)} · Bs. {formatBs(domicilioUsd * data.tasa_bs)}
+              </Text>
+            </View>
+          ) : null}
           {data.descuento_pct > 0 ? (
             <View style={styles.totalRow}>
               <Text style={styles.totalLabel}>Descuento aplicado</Text>
@@ -297,7 +327,7 @@ export function PresupuestoPDF({ data }: PresupuestoPDFProps) {
 
         <PDFFooter
           aviso={AVISO_PRESUPUESTO}
-          emision={`Emitido el ${fecha}`}
+          emision={`Emitido el ${emision}`}
           pieDePagina={config?.pdf_pie_pagina ?? null}
         />
       </Page>

@@ -238,6 +238,59 @@ describe("PDF templates render", () => {
     expect(chunks.length).toBeGreaterThan(0);
   });
 
+  it("renders PresupuestoPDF con toma de muestra y domicilio como filas aparte", async () => {
+    // Exámenes 13, toma 4, domicilio 6 → total 23. Las líneas siguen sumando
+    // 13: los servicios van como filas propias, no como exámenes.
+    const data = {
+      id: "PRE-003",
+      paciente_id: null,
+      paciente_nombre_libre: "Jane Doe",
+      paciente_nombre: null,
+      paciente_apellido: null,
+      descuento_pct: 0,
+      tasa_bs: 40,
+      toma_muestra_usd: 4,
+      domicilio_usd: 6,
+      total_usd: 23,
+      total_bs: 920,
+      estado: "Borrador",
+      created_at: new Date(Date.UTC(2026, 8, 7, 1, 30)),
+      lineas: [
+        { id: "l1", nombre_snap: "Hematología", precio_final_snap: 8, orden: 1 },
+        { id: "l2", nombre_snap: "Glicemia", precio_final_snap: 5, orden: 2 },
+      ],
+      config: null,
+    };
+
+    expect(await renderBytes(<PresupuestoPDF data={data} />)).toBeGreaterThan(0);
+
+    const sumaLineas = data.lineas.reduce((sum, line) => sum + line.precio_final_snap, 0);
+    expect(sumaLineas).toBe(13);
+    expect(sumaLineas + data.toma_muestra_usd + data.domicilio_usd).toBe(data.total_usd);
+  });
+
+  it("renders PresupuestoPDF con domicilio en 0 (no se imprime la fila)", async () => {
+    const data = {
+      id: "PRE-004",
+      paciente_id: null,
+      paciente_nombre_libre: "Jane Doe",
+      paciente_nombre: null,
+      paciente_apellido: null,
+      descuento_pct: 0,
+      tasa_bs: 40,
+      toma_muestra_usd: 4,
+      domicilio_usd: 0,
+      total_usd: 17,
+      total_bs: 680,
+      estado: "Borrador",
+      created_at: new Date(Date.UTC(2026, 8, 7, 1, 30)),
+      lineas: [{ id: "l1", nombre_snap: "Hematología", precio_final_snap: 13, orden: 1 }],
+      config: null,
+    };
+
+    expect(await renderBytes(<PresupuestoPDF data={data} />)).toBeGreaterThan(0);
+  });
+
   it("renders PresupuestoPDF with reconciled line totals matching the grand total", async () => {
     // Espeja la salida de calcularTotales con descuento 10% y ganancia 25%:
     // base 40 × 1.25 × 0.9 = 45 por línea; Σ finales = 90 = total_usd.

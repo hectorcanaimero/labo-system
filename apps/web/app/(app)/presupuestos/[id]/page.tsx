@@ -40,6 +40,8 @@ export default async function PresupuestoDetallePage({ params }: { params: { id:
           descuento_pct: presupuesto.descuento_pct,
           ganancia_pct: presupuesto.ganancia_pct,
           tasa_bs: presupuesto.tasa_bs,
+          toma_muestra_usd: presupuesto.toma_muestra_usd,
+          domicilio_usd: presupuesto.domicilio_usd,
           total_usd: presupuesto.total_usd,
           total_bs: presupuesto.total_bs,
           estado: presupuesto.estado,
