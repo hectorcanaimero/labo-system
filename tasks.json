@@ -2771,7 +2771,7 @@
       "description": "**Objetivo**\n\nEl laboratorio toma muestras a domicilio y pide al paciente su ubicación por WhatsApp. Hacer la dirección obligatoria y agregar un campo para el enlace de mapa o las coordenadas.\n\n**Alcance**\n\nSí hace:\n- Migración `0018_pacientes_ubicacion.sql`: `ubicacion_url text`.\n- `schemas/paciente.ts`: `direccion` requerida con mínimo 5 caracteres; `ubicacion_url` opcional, URL o par `lat,long`.\n- Formulario: dirección marcada como requerida; campo “Ubicación (enlace o coordenadas)” con botón “Abrir en mapa”.\n- Ficha del paciente muestra el enlace.\n\nNo hace:\n- Mapa embebido.\n\n**Criterios de aceptación**\n\n- [ ] Crear paciente sin dirección muestra error en el campo.\n- [ ] Pegar `10.49,-66.88` guarda y abre Google Maps con esas coordenadas.",
       "model": "opencode-go/kimi-k2.6",
       "reason": "Cambios acotados de UI, mensajes y documentación.",
-      "status": "todo",
+      "status": "done",
       "dependencies": [],
       "estimateHours": 2,
       "files": [
@@ -2781,7 +2781,15 @@
         "apps/web/app/(app)/pacientes/[id]/FichaTabs.tsx"
       ],
       "specRef": "F7/sprint-feedback-cliente.md#F7.4.T2",
-      "comments": []
+      "comments": [
+        {
+          "date": "2026-09-07",
+          "author": "planner",
+          "session": "sonnet",
+          "commit": "c86a03d",
+          "text": "Migración 0018 con pacientes.ubicacion_url nullable, probada en Postgres local, no aplicada en hosted. direccion requerida en Zod con error visible en el formulario; ubicacion_url acepta URL o par lat,long con validación en packages/lib/ubicacion.ts; botón Abrir en mapa y enlace en la ficha. Nota: la dirección requerida también aplica al alta rápida desde presupuesto y orden, que reusa el mismo diálogo."
+        }
+      ]
     },
     {
       "id": "F7.5.T1",
