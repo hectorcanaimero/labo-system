@@ -12,7 +12,8 @@ const ACCION_FALLO = "cron.scrape-bcv.failed";
 const ENTITY_TYPE = "tasa_cambio_bcv";
 
 /**
- * Cron BCV — dispara desde Coolify Scheduled Task cada 30 min:
+ * Cron BCV — dispara desde Coolify Scheduled Task cada hora, 06:00-20:00 VET
+ * (ver docs/deploy/insforge-vps.md §2 y docs/deploy/coolify-staged.md):
  *   curl -X POST -H "x-cron-secret: $CRON_SECRET" https://.../api/cron/scrape-bcv
  *
  * Patrón external-indicators (guayana-news):

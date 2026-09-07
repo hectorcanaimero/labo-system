@@ -63,13 +63,31 @@ export async function getLatest(db: Db): Promise<LatestTasa | null> {
 
 /**
  * Override manual de la tasa. INSERT en `tasa_cambio_bcv` + audit best-effort.
+ *
+ * Aplica la misma guarda anti-outlier que `setFromScraper` (variación >
+ * `MAX_CHANGE_RATIO` vs LKG no-stale => rechaza). Antes no existía ninguna:
+ * cualquier valor se guardaba con éxito silencioso, incluida una tasa
+ * cargada con un error de tipeo.
  */
 export async function setManual(
   db: Db,
   input: SetManualTasaInput,
-): Promise<string> {
+): Promise<{ id: string | null; skipped: boolean; reason?: string; tasaAnterior?: number }> {
   const motivo = input.motivo?.trim();
   const nowIso = new Date().toISOString();
+
+  const previous = await getLatest(db);
+  if (previous && !previous.stale && previous.tasa > 0 && MAX_CHANGE_RATIO > 0) {
+    const ratio = Math.abs(input.tasa - previous.tasa) / previous.tasa;
+    if (ratio > MAX_CHANGE_RATIO) {
+      return {
+        id: null,
+        skipped: true,
+        reason: `variacion_${ratio.toFixed(3)}_sobre_${MAX_CHANGE_RATIO}`,
+        tasaAnterior: previous.tasa,
+      };
+    }
+  }
 
   const { data, error } = await db
     .from("tasa_cambio_bcv")
@@ -100,7 +118,7 @@ export async function setManual(
   });
   if (auditError) console.warn(`[audit ${AUDIT_ACTION}]`, auditError.message);
 
-  return tasaId;
+  return { id: tasaId, skipped: false };
 }
 
 /**

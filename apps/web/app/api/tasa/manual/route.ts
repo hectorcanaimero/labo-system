@@ -42,13 +42,25 @@ export async function POST(request: NextRequest): Promise<Response> {
       return bad(400, 'INVALID_INPUT');
     }
 
-    const id = await setManual(getAdminDb(), {
+    const outcome = await setManual(getAdminDb(), {
       tasa: input.tasa,
       motivo: input.motivo,
       usuarioId: user.userId,
     });
 
-    return NextResponse.json({ ok: true, id });
+    if (outcome.skipped) {
+      return NextResponse.json(
+        {
+          error: 'TASA_RECHAZADA_OUTLIER',
+          reason: outcome.reason,
+          tasa_anterior: outcome.tasaAnterior,
+          tasa_intentada: input.tasa,
+        },
+        { status: 409 },
+      );
+    }
+
+    return NextResponse.json({ ok: true, id: outcome.id });
   } catch (error) {
     if (error instanceof AuthError) {
       return bad(error.code === 'UNAUTHENTICATED' ? 401 : 403, error.code);

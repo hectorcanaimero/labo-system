@@ -104,18 +104,6 @@ export function ConfigForm({ preloadedConfig, preloadedTasa }: ConfigFormProps) 
     }
   }
 
-  async function setManualTasa(data: { tasa: number; motivo?: string }): Promise<void> {
-    const res = await fetch("/api/tasa/manual", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(data),
-    });
-    if (!res.ok) {
-      const payload = (await res.json().catch(() => null)) as { error?: string } | null;
-      throw new Error(payload?.error || "Error al actualizar la tasa.");
-    }
-  }
-
   async function onSaveConfig(data: ConfigUpdateInput) {
     setSavingConfig(true);
     try {
@@ -188,7 +176,27 @@ export function ConfigForm({ preloadedConfig, preloadedTasa }: ConfigFormProps) 
     }
     setUpdatingTasa(true);
     try {
-      await setManualTasa({ tasa: value, motivo: tasaMotivo || undefined });
+      const res = await fetch("/api/tasa/manual", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ tasa: value, motivo: tasaMotivo || undefined }),
+      });
+      const payload = (await res.json().catch(() => null)) as
+        | { ok?: boolean; error?: string; tasa_anterior?: number; tasa_intentada?: number }
+        | null;
+
+      if (!res.ok || !payload?.ok) {
+        const code = payload?.error ?? `HTTP_${res.status}`;
+        if (code === "TASA_RECHAZADA_OUTLIER") {
+          notifyError(
+            `Tasa rechazada (variación fuera de rango): intentaste ${payload?.tasa_intentada?.toFixed(2)}, la anterior sigue en ${payload?.tasa_anterior?.toFixed(2)}.`,
+          );
+        } else {
+          notifyError(`No se pudo actualizar la tasa (${code}).`);
+        }
+        return;
+      }
+
       setLatestTasa({
         tasa: value,
         fuente: "manual",
