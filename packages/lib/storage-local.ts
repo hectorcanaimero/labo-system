@@ -19,13 +19,34 @@ export interface SignedUrlOptions {
   baseUrl?: string;
 }
 
+let warnedMissingRoot = false;
+
 function getRoot(): string {
   // ponytail: el default anterior era "/data/storage" — un path absoluto que
   // no existe ni es escribible en el container de Coolify (ni en dev local),
   // así que todo upload de logo/firma/sello moría con EACCES/ENOENT.
   // Ceiling: `.storage` vive dentro del build → se pierde en cada redeploy.
   // En prod montar un volumen persistente y apuntar STORAGE_ROOT ahí.
-  return process.env.STORAGE_ROOT || path.join(process.cwd(), ".storage");
+  //
+  // F7.6.T2 — ese "montar un volumen" quedó como nota, no como aviso: un
+  // entorno que arranca sin STORAGE_ROOT (typo en el env, environment nuevo
+  // sin copiar la config de staging) subía y servía archivos igual, hasta
+  // que un redeploy los borraba en silencio. Avisar acá, una vez por
+  // proceso, para que aparezca en los logs del arranque en vez de en un
+  // reporte del cliente semanas después.
+  if (!process.env.STORAGE_ROOT) {
+    if (!warnedMissingRoot) {
+      warnedMissingRoot = true;
+      console.warn(
+        "[storage-local] STORAGE_ROOT no está seteado — usando " +
+          `${path.join(process.cwd(), ".storage")} (relativo al proceso). ` +
+          "Si este contenedor no tiene un volumen persistente montado ahí, " +
+          "los archivos subidos se pierden en el próximo redeploy o reinicio.",
+      );
+    }
+    return path.join(process.cwd(), ".storage");
+  }
+  return process.env.STORAGE_ROOT;
 }
 
 function getSecret(): string {
