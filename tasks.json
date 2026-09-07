@@ -2616,7 +2616,7 @@
       "description": "**Objetivo**\n\nExponer los cargos por servicio como se acordó en la reunión: campo “Toma de muestra” siempre visible con valor por defecto de Config, y check “Servicio a domicilio” que abre el monto. Mostrarlos en el detalle y en el PDF, y agregar la hora a la fecha de emisión.\n\n**Alcance**\n\nSí hace:\n- Formulario: bloque “Servicios” entre la tabla de exámenes y el resumen.\n- Resumen en vivo con dos filas nuevas antes del total.\n- `PresupuestoDetalle` muestra ambos montos.\n- `PresupuestoPDF`: dos filas bajo la tabla de exámenes, y “Emitido el dd/mm/aaaa hh:mm” en zona `America/Caracas`.\n- Config: campo para el valor por defecto de toma de muestra.\n\nNo hace:\n- Servicios en la orden ni en el PDF de resultados.\n\n**Criterios de aceptación**\n\n- [ ] El PDF muestra tasa, fecha y hora de emisión y los dos servicios como filas separadas de los exámenes.\n- [ ] Desmarcar “Servicio a domicilio” lo pone en 0 y lo quita del PDF.",
       "model": "opencode/deepseek-v4-pro",
       "reason": "Cambios de formulario, endpoints y migraciones con lógica de negocio.",
-      "status": "todo",
+      "status": "done",
       "dependencies": [
         "F7.2.T2"
       ],
@@ -2628,7 +2628,15 @@
         "apps/web/app/(app)/config/ConfigForm.tsx"
       ],
       "specRef": "F7/sprint-feedback-cliente.md#F7.2.T3",
-      "comments": []
+      "comments": [
+        {
+          "date": "2026-09-07",
+          "author": "planner",
+          "session": "opus",
+          "commit": "b173abe",
+          "text": "Bloque Servicios en el formulario con toma de muestra precargada desde Config y check de domicilio; detalle y PDF muestran ambos; hora de emisión en zona Caracas con test (antes la fecha del PDF salía al día siguiente pasadas las 20:00 por formatear en UTC). Config con valor por defecto de toma de muestra. Sin prueba visual del PDF ni del navegador. Hallazgo: los tests de packages/pdf no se typechequean (tsconfig con files: [])."
+        }
+      ]
     },
     {
       "id": "F7.2.T4",
