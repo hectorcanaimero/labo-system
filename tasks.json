@@ -2746,7 +2746,7 @@
       "description": "Seguimiento de F7.3.T1: endpoint GET /api/r/[slug]/pdf autorizado por slug vigente y botón de descarga en /r/[slug].",
       "model": "opencode-go/kimi-k2.6",
       "reason": "Endpoint acotado que reutiliza el render existente.",
-      "status": "todo",
+      "status": "done",
       "dependencies": [
         "F7.3.T1"
       ],
@@ -2757,7 +2757,15 @@
         "apps/web/app/r/[slug]/page.tsx"
       ],
       "specRef": "F7/sprint-feedback-cliente.md#F7.3.T1b",
-      "comments": []
+      "comments": [
+        {
+          "date": "2026-09-07",
+          "author": "planner",
+          "session": "sonnet",
+          "commit": "97b3e10",
+          "text": "GET /api/r/[slug]/pdf sin sesión, 404 si el slug no existe, venció o la orden está anulada. El render se extrajo de la ruta de staff y se comparte. Botón de descarga en la página pública. Build de web pasa; descarga real sin probar en navegador."
+        }
+      ]
     }
   ],
   "phases": []
