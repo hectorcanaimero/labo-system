@@ -152,6 +152,106 @@ describe("update con fecha de resultado (pasa a Entregada)", () => {
   });
 });
 
+describe("update no cambia el estado si el body no trae fecha de resultado (F7.3.T4)", () => {
+  // Una orden anulada conserva su `fecha_resultado`: `updateEstado` sólo la
+  // limpia al volver a Registrada. Antes, cualquier patch heredaba esa fecha y
+  // el auto-cálculo la pasaba a Entregada, salteando la matriz de transiciones
+  // (que sólo valida `updateEstado`) y resucitando el informe.
+  const ANULADA_CON_FECHA = {
+    ...ORDEN,
+    estado: "Anulada",
+    fecha_resultado: "2026-09-01T12:00:00.000Z",
+  };
+
+  function estadoGuardado(llamadas: Array<{ table: string; op: string; payload?: unknown }>) {
+    const upd = llamadas.find((l) => l.table === "ordenes" && l.op === "update");
+    return (upd?.payload as { estado?: string } | undefined)?.estado;
+  }
+
+  it("una orden anulada con fecha de resultado sigue anulada tras guardar observaciones", async () => {
+    const { db, llamadas } = fakeDb((table) => {
+      if (table === "ordenes") return { data: [ANULADA_CON_FECHA] };
+      if (table === "ordenes_examenes") return { data: [linea("a", "5.4")] };
+      return {};
+    });
+
+    await expect(
+      update(db, ORDEN.id, { observaciones: "Muestra hemolizada" }, "u1"),
+    ).resolves.toBeTruthy();
+
+    expect(estadoGuardado(llamadas)).toBe("Anulada");
+  });
+
+  it("una orden en proceso con fecha de resultado sigue en proceso tras guardar observaciones", async () => {
+    const { db, llamadas } = fakeDb((table) => {
+      if (table === "ordenes") {
+        return { data: [{ ...ORDEN, estado: "En proceso", fecha_resultado: "2026-09-01T12:00:00.000Z" }] };
+      }
+      if (table === "ordenes_examenes") return { data: [linea("a", "5.4")] };
+      return {};
+    });
+
+    await expect(update(db, ORDEN.id, { observaciones: "Repetir" }, "u1")).resolves.toBeTruthy();
+
+    expect(estadoGuardado(llamadas)).toBe("En proceso");
+  });
+
+  it("no pisa las líneas cuando el body sólo trae observaciones", async () => {
+    const { db, llamadas } = fakeDb((table) => {
+      if (table === "ordenes") return { data: [ANULADA_CON_FECHA] };
+      if (table === "ordenes_examenes") return { data: [linea("a", "5.4")] };
+      return {};
+    });
+
+    await update(db, ORDEN.id, { observaciones: "Nota" }, "u1");
+
+    expect(
+      llamadas.filter((l) => l.table === "ordenes_examenes" && l.op !== "select"),
+    ).toHaveLength(0);
+  });
+
+  it("una orden anulada con fecha de resultado y valores en blanco tampoco se entrega", async () => {
+    // Sin el arreglo, acá `assertPuedeEntregarse` habría tirado
+    // ENTREGA_REQUIERE_VALORES: la orden intentaba pasar a Entregada.
+    const { db, llamadas } = fakeDb((table) => {
+      if (table === "ordenes") return { data: [ANULADA_CON_FECHA] };
+      if (table === "ordenes_examenes") return { data: [linea("a", "")] };
+      return {};
+    });
+
+    await expect(update(db, ORDEN.id, { observaciones: "Nota" }, "u1")).resolves.toBeTruthy();
+    expect(estadoGuardado(llamadas)).toBe("Anulada");
+  });
+
+  it("mandar fecha de resultado explícita SÍ entrega, como antes", async () => {
+    const { db, llamadas } = fakeDb((table) => {
+      if (table === "ordenes") return { data: [{ ...ORDEN, estado: "Validando" }] };
+      if (table === "ordenes_examenes") return { data: [linea("a", "5.4")] };
+      return {};
+    });
+
+    await expect(
+      update(db, ORDEN.id, { fecha_resultado: "2026-09-01T12:00:00.000Z" }, "u1"),
+    ).resolves.toBeTruthy();
+
+    expect(estadoGuardado(llamadas)).toBe("Entregada");
+  });
+
+  it("un estado explícito sigue mandando sobre el auto-cálculo", async () => {
+    const { db, llamadas } = fakeDb((table) => {
+      if (table === "ordenes") return { data: [{ ...ORDEN, estado: "Validando" }] };
+      if (table === "ordenes_examenes") return { data: [linea("a", "5.4")] };
+      return {};
+    });
+
+    await expect(
+      update(db, ORDEN.id, { estado: "Validando", observaciones: "Nota" }, "u1"),
+    ).resolves.toBeTruthy();
+
+    expect(estadoGuardado(llamadas)).toBe("Validando");
+  });
+});
+
 describe("create con fecha de resultado (nace Entregada)", () => {
   it("rechaza valores vacíos antes de insertar", async () => {
     const { db, llamadas } = fakeDb((table) => {

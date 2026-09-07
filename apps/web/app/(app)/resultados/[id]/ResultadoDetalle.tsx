@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import {
   ClipboardList,
   Download,
+  Loader2,
   FileText,
   PencilLine,
   Trash2,
@@ -13,6 +14,7 @@ import {
 
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@labo/ui/feedback";
+import { RefinarObservacionesButton } from "@labo/ui/resultados/RefinarObservacionesButton";
 
 import { EnviarResultadoButtons } from "./EnviarResultadoButtons";
 import { ResultadoForm } from "../nuevo/ResultadoForm";
@@ -81,6 +83,44 @@ export function ResultadoDetalle({ role, initialData }: ResultadoDetalleProps) {
   const [deleting, setDeleting] = useState(false);
   const isAdmin = role === "admin";
 
+  const [observaciones, setObservaciones] = useState(initialData.observaciones);
+  const [isEditingObs, setIsEditingObs] = useState(false);
+  const [obsDraft, setObsDraft] = useState(initialData.observaciones ?? "");
+  const [savingObs, setSavingObs] = useState(false);
+  const [obsError, setObsError] = useState<string | null>(null);
+
+  // Una orden anulada no se edita: no tiene sentido cambiarle la observación
+  // y era la puerta por la que un PATCH la volvía a entregar.
+  const puedeEditarObservaciones = initialData.estado !== "Anulada";
+
+  function abrirEdicionObservaciones(): void {
+    setObsDraft(observaciones ?? "");
+    setObsError(null);
+    setIsEditingObs(true);
+  }
+
+  async function guardarObservaciones(): Promise<void> {
+    try {
+      setSavingObs(true);
+      setObsError(null);
+      await requestJson(`/api/resultados/${initialData.id}`, {
+        method: "PATCH",
+        headers: { "content-type": "application/json" },
+        // El estado va explícito e igual al actual: editar una observación no
+        // es un cambio de estado, y mandarlo evita depender del auto-cálculo
+        // del repo. Cinturón y tirantes con el arreglo de `ordenes.update`.
+        body: JSON.stringify({ observaciones: obsDraft, estado: initialData.estado }),
+      });
+      setObservaciones(obsDraft);
+      setIsEditingObs(false);
+      router.refresh();
+    } catch (reason) {
+      setObsError(reason instanceof Error ? reason.message : "No se pudo guardar la observación.");
+    } finally {
+      setSavingObs(false);
+    }
+  }
+
   async function deleteResultado(): Promise<void> {
     const confirmed = window.confirm("¿Seguro que querés eliminar este resultado? Esta acción no se puede deshacer.");
     if (!confirmed) return;
@@ -117,7 +157,7 @@ export function ResultadoDetalle({ role, initialData }: ResultadoDetalleProps) {
             fecha_resultado: initialData.fecha_resultado,
             medico_solicitante: initialData.medico_solicitante,
             estado: initialData.estado,
-            observaciones: initialData.observaciones,
+            observaciones,
             examenes: initialData.examenes,
           }}
           onCancelEdit={() => setIsEditing(false)}
@@ -188,19 +228,65 @@ export function ResultadoDetalle({ role, initialData }: ResultadoDetalleProps) {
           </div>
         </div>
 
-        {(initialData.patient.telefono || initialData.patient.email || initialData.observaciones) ? (
-          <div className="mt-4 grid gap-4 md:grid-cols-2">
-            <div className="rounded-md border border-border bg-background p-3">
-              <p className="text-xs uppercase tracking-wide text-muted-foreground">Contacto paciente</p>
-              <p className="mt-1 text-sm text-foreground">{initialData.patient.telefono || "Sin teléfono"}</p>
-              <p className="text-sm text-muted-foreground">{initialData.patient.email || "Sin correo"}</p>
-            </div>
-            <div className="rounded-md border border-border bg-background p-3">
-              <p className="text-xs uppercase tracking-wide text-muted-foreground">Observaciones generales</p>
-              <p className="mt-1 text-sm text-foreground">{initialData.observaciones || "Sin observaciones."}</p>
-            </div>
+        <div className="mt-4 grid gap-4 md:grid-cols-2">
+          <div className="rounded-md border border-border bg-background p-3">
+            <p className="text-xs uppercase tracking-wide text-muted-foreground">Contacto paciente</p>
+            <p className="mt-1 text-sm text-foreground">{initialData.patient.telefono || "Sin teléfono"}</p>
+            <p className="text-sm text-muted-foreground">{initialData.patient.email || "Sin correo"}</p>
           </div>
-        ) : null}
+          <div className="rounded-md border border-border bg-background p-3">
+            <div className="flex items-center justify-between gap-2">
+              <p className="text-xs uppercase tracking-wide text-muted-foreground">Observaciones generales</p>
+              {!isEditingObs && puedeEditarObservaciones ? (
+                <button
+                  type="button"
+                  onClick={abrirEdicionObservaciones}
+                  className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline"
+                >
+                  <PencilLine className="h-3 w-3" />
+                  Editar
+                </button>
+              ) : null}
+            </div>
+            {isEditingObs ? (
+              <div className="mt-2 flex flex-col gap-2">
+                <div className="flex justify-end">
+                  <RefinarObservacionesButton
+                    value={obsDraft}
+                    onChange={setObsDraft}
+                    disabled={savingObs}
+                    className="-mr-2"
+                  />
+                </div>
+                <textarea
+                  rows={3}
+                  value={obsDraft}
+                  onChange={(event) => setObsDraft(event.target.value)}
+                  disabled={savingObs}
+                  className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                />
+                {obsError ? <p className="text-xs text-destructive">{obsError}</p> : null}
+                <div className="flex justify-end gap-2">
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    onClick={() => setIsEditingObs(false)}
+                    disabled={savingObs}
+                  >
+                    Cancelar
+                  </Button>
+                  <Button type="button" size="sm" onClick={() => void guardarObservaciones()} disabled={savingObs}>
+                    {savingObs ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}
+                    {savingObs ? "Guardando…" : "Guardar"}
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <p className="mt-1 text-sm text-foreground">{observaciones || "Sin observaciones."}</p>
+            )}
+          </div>
+        </div>
       </section>
 
       <section className="rounded-md border border-border bg-card">

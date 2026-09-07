@@ -580,6 +580,7 @@ Rama del sprint: `sprint/f7-1`, base `staged`. Cada tarea es un commit. PR #9 `s
 | F7.2.T2 | opus | hecha | `2f25ad7` + `bdf8cef` | Migración 0015 (toma_muestra_usd, domicilio_usd en presupuestos; toma_muestra_default_usd en laboratorio_config), probada en Postgres local e idempotente. calcularTotales suma serviciosUsd después de descuento y ganancia; schemas y repo persisten los campos. NO aplicada en hosted: debe aplicarse ANTES del deploy porque PRESUPUESTO_COLS ya pide las columnas. Tests de lib 313/313.  Corrección: sin BEGIN/COMMIT, porque el endpoint de migraciones de InsForge envuelve el SQL en su propia transacción; aplicar por el endpoint, no por psql. |
 | F7.2.T3 | opus | hecha | `b173abe` | Bloque Servicios en el formulario con toma de muestra precargada desde Config y check de domicilio; detalle y PDF muestran ambos; hora de emisión en zona Caracas con test (antes la fecha del PDF salía al día siguiente pasadas las 20:00 por formatear en UTC). Config con valor por defecto de toma de muestra. Sin prueba visual del PDF ni del navegador. Hallazgo: los tests de packages/pdf no se typechequean (tsconfig con files: []). |
 | F7.2.T5 | opus | hecha | `02dd0b8` | Middleware excluye api/r/ con barra final (sin la barra abría /api/resultados). page.tsx pasa paquete_id, precio_base_snap y ganancia_pct, ahora requeridos en el tipo. cerrado se deriva con esPaqueteCerrado (paquete_id y ganancia 0; ambigüedad documentada si la ganancia global es 0). El submit manda ganancia por línea aunque el toggle esté plegado. enmascararCedula en packages/lib falla cerrado. 22 tests nuevos, lib 335/335. Verificado con next start: el PDF público llega al handler y las rutas protegidas siguen en 307. |
+| F7.0.T1 | sonnet | hecha | `1afe7ce` | lib, ui y pdf sin build de tsup (exportan fuentes, web los transpila). Tests de integración de db alineados a la firma con Db inyectado; dashboard corre solo con credenciales de InsForge, dos tests de presupuestos en skip con motivo. web y convex con test no-op explícito; convex es código muerto post-InsForge. turbo lint typecheck test build 20/20 en verde. |
 
 ## F7.3.T1b — PDF público por slug para el enlace del paciente (seguimiento de F7.3.T1)
 
@@ -692,6 +693,133 @@ No hace:
 
 - F7.3.T1b
 - F7.2.T4
+
+### Estimación
+
+2h
+
+## F7.0.T1 — Dejar verde el CI de la raíz
+
+### Objetivo
+
+`main` exige lint, typecheck, test y build en verde y hoy fallan los tres últimos por causas previas al sprint. Sin esto no se puede promover `staged` a producción.
+
+### Alcance
+
+Sí hace:
+- `@labo/lib`: build con tsup sin inputs; corregir entry o config.
+- `@labo/db`: 11 errores de tipos en `dashboard.integration.test.ts` y `presupuestos.integration.test.ts`; alinear a las firmas actuales o skip con motivo.
+- `apps/web`: script `test` llama a vitest sin tenerlo; instalar con config mínima o no-op explícito.
+- `@labo/db test`: 3 rojos preexistentes; saltear los de integración cuando no hay `INSFORGE_URL`.
+
+No hace:
+- Tocar lógica de negocio.
+
+### Criterios de aceptación
+
+- [ ] `pnpm turbo run lint typecheck test build` en verde desde la raíz.
+
+### Archivos afectados
+
+- `packages/lib/package.json`, `packages/lib/tsup.config.ts`
+- `packages/db/repos/*.integration.test.ts`
+- `apps/web/package.json`
+
+### Dependencias
+
+- Ninguna
+
+### Estimación
+
+3h
+
+# Registro del Sprint 2 (semana 2)
+
+Rama del sprint: `sprint/f7-2`, base `staged` (post PR #11). Cada tarea es un commit. Siete commits funcionales, revisión cruzada en las dos direcciones y dos tareas de corrección. PR `sprint/f7-2 → staged` abierto al cierre. Migraciones 0016, 0017 y 0018 se escriben y prueban en local; se aplican en hosted por el endpoint de InsForge antes del deploy, con decisión del usuario.
+
+| Tarea | Sesión | Estado | Commit | Comentario |
+|---|---|---|---|---|
+| F7.5.T1 | sonnet | hecha | `13f3753` | setManual no tenía guarda anti-outlier: se agregó la misma de setFromScraper y POST /api/tasa/manual responde 409 TASA_RECHAZADA_OUTLIER con tasa anterior e intentada; Config lo muestra. Doc de la Scheduled Task horaria en coolify-staged.md. Pendiente del usuario: confirmar en el panel de Coolify que scrape-bcv-hourly exista y esté activa. |
+| F7.4.T2 | sonnet | hecha | `c86a03d` | Migración 0018 con pacientes.ubicacion_url nullable, probada en Postgres local, no aplicada en hosted. direccion requerida en Zod con error visible en el formulario; ubicacion_url acepta URL o par lat,long con validación en packages/lib/ubicacion.ts; botón Abrir en mapa y enlace en la ficha. Nota: la dirección requerida también aplica al alta rápida desde presupuesto y orden, que reusa el mismo diálogo. |
+| F7.3.T3 | sonnet | hecha | `e5341de` | Botón Sugerir redacción extraído a packages/ui/resultados y usado en el formulario de orden y en el detalle, donde las observaciones ahora se editan in-place y se guardan por PATCH con solo ese campo. packages/ui/resultados agregado a los globs de Tailwind. Pendiente del usuario: confirmar GEMINI_API_KEY en Coolify. Sin prueba en navegador. |
+| F7.3.T2 | opus | hecha | `e333136` | Tabla enlaces_verificacion (0016) con slug sin vencimiento; se crea al entregar y también al emitir el PDF, best-effort: sin la migración el PDF sale sin QR y nada rompe. QR como SVG en ResultadoPDF junto a la firma. Ruta pública /v/[slug] con laboratorio, fecha y hora, cédula enmascarada y botón de WhatsApp. Migración probada en Postgres local, no aplicada en hosted. Sin escaneo real del QR ni apertura del PDF. |
+| F7.4.T1 | opus | hecha | `517397a` | Tabla metodos_analisis (0017) sembrada con los métodos existentes, repo y endpoints con patrón de títulos, select en el examen con alta inline para admin y panel de métodos en Config fuera del form. Un método desactivado se conserva en los exámenes como (fuera de la lista). Renombrar no reescribe examenes.metodo ni metodo_snap, a propósito. Sin la 0017 el selector muestra un mensaje y nada rompe. Probada en Postgres local, no aplicada en hosted. Sin prueba en navegador. |
+| F7.3.T4 | opus | hecha | `1b2d5cb` | update de órdenes solo auto-entrega cuando el body trae fecha_resultado; el detalle manda estado explícito y no ofrece Editar en anuladas. Tasa manual con force y motivo obligatorio auditado, ofrecido en Config solo tras un 409 con el mismo valor; rechazos por outlier auditados. 14 tests nuevos en db (18 a 32), los de regresión fallan sin el fix. Sin prueba en navegador. |
+| F7.3.T5 | sonnet | hecha | `7e00aff` | La creación del enlace de verificación solo tolera tabla faltante; cualquier otro error queda en audit_log sin tumbar la entrega ni el PDF, con test. /v/[slug] sin Estado. QR y enlace solo cuando la orden está Entregada. Carrera sin UNIQUE en orden_id anotada. |
+
+## F7.3.T4 — Correcciones de la revisión cruzada sobre observaciones y tasa
+
+### Objetivo
+
+Cerrar el hallazgo confirmado de la revisión de opus sobre los commits de sonnet en el Sprint 2, más dos plausibles operativos de la tasa.
+
+### Alcance
+
+Sí hace:
+- `packages/db/repos/ordenes.ts`: el auto-cálculo de estado a `Entregada` en `update` aplica solo cuando el body trae `fecha_resultado`, no cuando se hereda del registro actual. Editar solo `observaciones` no cambia el estado.
+- `apps/web/app/(app)/resultados/[id]/ResultadoDetalle.tsx`: el PATCH de observaciones manda `estado` explícito igual al actual, y el botón Editar no se muestra en órdenes anuladas.
+- Test unitario en `packages/lib` o `packages/db` que cubra: orden anulada con `fecha_resultado`, PATCH solo con observaciones, el estado sigue anulado.
+- `packages/db/repos/tasa.ts` y `apps/web/app/api/tasa/manual/route.ts`: `force: true` con `motivo` obligatorio para saltar la guarda anti-outlier en la carga manual, auditado en `audit_log` con tasa anterior, nueva y motivo. Config ofrece el forzado solo después de un rechazo, con campo de motivo.
+- Auditar los rechazos por outlier, manual y scraper, en `audit_log`.
+
+No hace:
+- Aflojar `direccion` al editar pacientes viejos: decisión del cliente.
+
+### Criterios de aceptación
+
+- [ ] Una orden anulada con fecha de resultado sigue anulada tras guardar una observación desde el detalle.
+- [ ] Una orden en proceso con fecha de resultado sigue en proceso tras guardar una observación.
+- [ ] Tras un 409 por outlier, Config permite reintentar con motivo y la tasa queda guardada y auditada.
+- [ ] Un rechazo por outlier deja una fila en `audit_log`.
+
+### Archivos afectados
+
+- `packages/db/repos/ordenes.ts`
+- `apps/web/app/(app)/resultados/[id]/ResultadoDetalle.tsx`
+- `packages/db/repos/tasa.ts`
+- `apps/web/app/api/tasa/manual/route.ts`
+- `apps/web/app/(app)/config/ConfigForm.tsx`
+
+### Dependencias
+
+- F7.3.T3
+- F7.5.T1
+
+### Estimación
+
+3h
+
+## F7.3.T5 — Correcciones de la revisión cruzada sobre QR y verificación
+
+### Objetivo
+
+Cerrar los dos hallazgos confirmados de la revisión de sonnet sobre los commits de opus en el Sprint 2, más acotar el QR a informes entregados.
+
+### Alcance
+
+Sí hace:
+- `packages/db/repos/ordenes.ts` (`crearVerificacionBestEffort`) y `apps/web/app/api/pdf/resultado/[id]/route.ts` (`resolverVerificacionUrl`): tragar solo `VERIFICACION_TABLA_FALTANTE`; cualquier otro error se relanza o al menos se audita. Test del caso.
+- `apps/web/app/v/[slug]/page.tsx`: quitar el campo Estado. Solo laboratorio, fecha, hora, cédula enmascarada y WhatsApp.
+- El enlace de verificación y el QR se generan solo para órdenes en estado Entregada. Un PDF de una orden sin entregar sale sin QR y sin crear enlace.
+
+No hace:
+- UNIQUE sobre `orden_id` en `enlaces_verificacion`: la carrera converge al enlace más viejo, queda anotada.
+
+### Criterios de aceptación
+
+- [ ] Un error distinto de tabla faltante al crear la verificación no pasa desapercibido: se relanza o queda en `audit_log`.
+- [ ] `/v/[slug]` no muestra el estado de la orden.
+- [ ] El PDF de una orden no entregada no lleva QR ni crea enlace de verificación.
+
+### Archivos afectados
+
+- `packages/db/repos/ordenes.ts`
+- `apps/web/app/api/pdf/resultado/[id]/route.ts`
+- `apps/web/app/v/[slug]/page.tsx`
+
+### Dependencias
+
+- F7.3.T2
 
 ### Estimación
 

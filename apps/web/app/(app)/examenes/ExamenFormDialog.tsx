@@ -43,6 +43,14 @@ interface ApiErrorPayload {
   error?: string;
 }
 
+interface MetodoAnalisis {
+  id: string;
+  nombre: string;
+}
+
+/** Valor centinela del `select` que abre el alta de método (solo admin). */
+const OPCION_NUEVO_METODO = "__nuevo_metodo__";
+
 async function readApiError(response: Response): Promise<Error> {
   const payload = (await response.json().catch(() => null)) as ApiErrorPayload | null;
   return new Error(payload?.error ?? 'ERROR_GENERICO');
@@ -67,6 +75,12 @@ export function ExamenFormDialog({
   const [valoresReferencia, setValoresReferencia] = useState('');
   const [tipoAnalisis, setTipoAnalisis] = useState('');
   const [metodo, setMetodo] = useState('');
+  const [metodos, setMetodos] = useState<MetodoAnalisis[]>([]);
+  const [metodosError, setMetodosError] = useState<string | null>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [nuevoMetodo, setNuevoMetodo] = useState('');
+  const [creandoMetodo, setCreandoMetodo] = useState(false);
+  const [altaMetodoAbierta, setAltaMetodoAbierta] = useState(false);
   const [observaciones, setObservaciones] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -86,9 +100,81 @@ export function ExamenFormDialog({
     setValoresReferencia(examen?.valores_referencia ?? '');
     setTipoAnalisis(examen?.tipo_analisis ?? '');
     setMetodo(examen?.metodo ?? '');
+    setAltaMetodoAbierta(false);
+    setNuevoMetodo('');
     setObservaciones(examen?.observaciones ?? '');
     setErrorMessage(null);
   }, [examen, open]);
+
+  // Los métodos son un catálogo administrable (F7.4.T1): el campo dejó de ser
+  // texto libre. Se cargan al abrir para que un método agregado desde Config
+  // aparezca sin recargar la página.
+  useEffect(() => {
+    if (!open) return;
+    let cancelado = false;
+
+    void (async () => {
+      try {
+        const response = await apiFetch('/api/examenes/metodos', {
+          headers: { accept: 'application/json' },
+        });
+        if (!response.ok) throw await readApiError(response);
+        const payload = (await response.json()) as MetodoAnalisis[];
+        if (!cancelado) {
+          setMetodos(payload);
+          setMetodosError(null);
+        }
+      } catch (error) {
+        if (!cancelado) {
+          setMetodos([]);
+          setMetodosError(toHumanError(error));
+        }
+      }
+    })();
+
+    void (async () => {
+      try {
+        const response = await apiFetch('/api/me', { headers: { accept: 'application/json' } });
+        if (!response.ok) return;
+        const me = (await response.json()) as { role?: string };
+        if (!cancelado) setIsAdmin(me.role === 'admin');
+      } catch {
+        // Sin rol confirmado no se ofrece agregar métodos; el selector anda igual.
+      }
+    })();
+
+    return () => {
+      cancelado = true;
+    };
+  }, [open]);
+
+  const crearMetodo = async (): Promise<void> => {
+    const nombre = nuevoMetodo.trim();
+    if (nombre.length === 0) return;
+
+    try {
+      setCreandoMetodo(true);
+      const response = await apiFetch('/api/examenes/metodos', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json', accept: 'application/json' },
+        body: JSON.stringify({ nombre }),
+      });
+      if (!response.ok) throw await readApiError(response);
+
+      const creado = (await response.json()) as MetodoAnalisis;
+      setMetodos((actuales) =>
+        actuales.some((item) => item.id === creado.id) ? actuales : [...actuales, creado],
+      );
+      setMetodo(creado.nombre);
+      setAltaMetodoAbierta(false);
+      setNuevoMetodo('');
+      setErrorMessage(null);
+    } catch (error) {
+      setErrorMessage(toHumanError(error));
+    } finally {
+      setCreandoMetodo(false);
+    }
+  };
 
   const handleOpenChange = (next: boolean) => {
     if (!next && submitting) return;
@@ -257,24 +343,91 @@ export function ExamenFormDialog({
               <label htmlFor="examen-metodo" className="text-sm font-medium">
                 Método
               </label>
-              <input
+              <select
                 id="examen-metodo"
-                type="text"
                 value={metodo}
-                onChange={(event) => setMetodo(event.target.value)}
+                onChange={(event) => {
+                  const elegido = event.target.value;
+                  if (elegido === OPCION_NUEVO_METODO) {
+                    setAltaMetodoAbierta(true);
+                    return;
+                  }
+                  setMetodo(elegido);
+                }}
                 disabled={submitting}
-                list="metodos-list"
-                placeholder="Ej. Espectrofotometría, ELISA"
-                className="flex h-11 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-              />
-              <datalist id="metodos-list">
-                <option value="Espectrofotometría" />
-                <option value="Quimioluminiscencia" />
-                <option value="ELISA" />
-                <option value="Microscopía" />
-                <option value="PCR" />
-                <option value="Inmunocromatografía" />
-              </datalist>
+                className="flex h-11 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                <option value="">Sin método</option>
+                {metodos.map((item) => (
+                  <option key={item.id} value={item.nombre}>
+                    {item.nombre}
+                  </option>
+                ))}
+                {/* Un método desactivado o renombrado ya no está en la lista,
+                    pero el examen que lo tenía tiene que seguir mostrándolo. */}
+                {metodo && !metodos.some((item) => item.nombre === metodo) ? (
+                  <option value={metodo}>{metodo} (fuera de la lista)</option>
+                ) : null}
+                {isAdmin ? (
+                  <option value={OPCION_NUEVO_METODO}>Agregar método…</option>
+                ) : null}
+              </select>
+
+              {altaMetodoAbierta ? (
+                <div className="flex flex-col gap-2 sm:flex-row">
+                  <input
+                    type="text"
+                    value={nuevoMetodo}
+                    onChange={(event) => setNuevoMetodo(event.target.value)}
+                    onKeyDown={(event) => {
+                      if (event.key === 'Enter') {
+                        event.preventDefault();
+                        void crearMetodo();
+                      }
+                    }}
+                    disabled={creandoMetodo || submitting}
+                    autoFocus
+                    placeholder="Nombre del método nuevo"
+                    aria-label="Nombre del método nuevo"
+                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+                  />
+                  <div className="flex gap-2">
+                    <Button
+                      type="button"
+                      size="sm"
+                      onClick={() => void crearMetodo()}
+                      disabled={creandoMetodo || submitting || nuevoMetodo.trim().length === 0}
+                    >
+                      {creandoMetodo ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+                      Agregar
+                    </Button>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      onClick={() => {
+                        setAltaMetodoAbierta(false);
+                        setNuevoMetodo('');
+                      }}
+                      disabled={creandoMetodo}
+                    >
+                      Cancelar
+                    </Button>
+                  </div>
+                </div>
+              ) : null}
+
+              {metodosError ? (
+                <p className="text-xs text-destructive">
+                  No pudimos cargar los métodos. {metodosError}
+                </p>
+              ) : (
+                <p className="text-xs text-muted-foreground">
+                  {isAdmin
+                    ? 'La lista se administra desde Configuración.'
+                    : 'Si falta un método, pedile a un administrador que lo agregue.'}
+                </p>
+              )}
             </div>
 
             <div className="flex flex-col gap-2 md:col-span-2">

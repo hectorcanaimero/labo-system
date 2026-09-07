@@ -6,6 +6,7 @@ import { getBySlug } from "@labo/db/repos/enlaces";
 import { getById as getOrden, RESULTADO_NO_ENCONTRADO } from "@labo/db/repos/ordenes";
 import { SLUG_PATTERN } from "@labo/lib/enlace-resultado";
 import { getAdminDb } from "@/lib/db-server";
+import { publicOrigin } from "@/lib/public-origin";
 
 import { pdfResponse, renderResultadoPdf } from "../../../pdf/resultado/[id]/route";
 
@@ -30,7 +31,7 @@ function notFound(): Response {
   return NextResponse.json({ error: "ENLACE_NO_ENCONTRADO" }, { status: 404 });
 }
 
-export async function GET(_request: NextRequest, { params }: RouteParams): Promise<Response> {
+export async function GET(request: NextRequest, { params }: RouteParams): Promise<Response> {
   if (!SLUG_PATTERN.test(params.slug)) return notFound();
 
   const db = getAdminDb();
@@ -41,7 +42,7 @@ export async function GET(_request: NextRequest, { params }: RouteParams): Promi
   if (!orden || orden.estado === "Anulada") return notFound();
 
   try {
-    const { body, filename } = await renderResultadoPdf(orden.id);
+    const { body, filename } = await renderResultadoPdf(orden.id, publicOrigin(request));
     return pdfResponse(body, filename);
   } catch (error) {
     if (error instanceof Error && error.message === RESULTADO_NO_ENCONTRADO) {

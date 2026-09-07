@@ -16,6 +16,7 @@ import {
 import { EMAIL_NO_DISPONIBLE, resolveEmailProvider, sendEmail } from "@labo/lib/server/email";
 import { AuthError, getCurrentUser } from "@/lib/server/auth";
 import { getAdminDb } from "@/lib/db-server";
+import { publicOrigin } from "@/lib/public-origin";
 
 /**
  * POST /api/resultados/{id}/enviar — comparte el resultado con el paciente
@@ -40,21 +41,6 @@ type Canal = (typeof CANALES)[number];
 
 function bad(status: number, error: string, detalle?: string): Response {
   return NextResponse.json(detalle ? { error, detalle } : { error }, { status });
-}
-
-/**
- * Origen público de la app. En el VPS corre detrás de Traefik, así que
- * `request.url` trae el host interno del container: hay que mirar los headers
- * `x-forwarded-*`. `NEXT_PUBLIC_APP_URL` lo pisa todo si está definida.
- */
-function publicOrigin(request: NextRequest): string {
-  const configured = process.env.NEXT_PUBLIC_APP_URL?.trim().replace(/\/+$/, "");
-  if (configured) return configured;
-
-  const host = request.headers.get("x-forwarded-host") ?? request.headers.get("host");
-  if (!host) return new URL(request.url).origin;
-  const proto = request.headers.get("x-forwarded-proto")?.split(",")[0]?.trim() ?? "https";
-  return `${proto}://${host}`;
 }
 
 function formatVencimiento(iso: string): string {

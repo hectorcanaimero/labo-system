@@ -152,6 +152,31 @@ En Coolify, **Logs** del servicio `web` debe mostrar:
 ✓ Ready in …
 ```
 
+## 5. Scheduled Task del scrape de tasa BCV (F7.5.T1)
+
+Verificado en el repo, pendiente de confirmar en el panel de Coolify de
+producción (esta sesión no tiene acceso al panel).
+
+- **Qué debe existir**: una *Scheduled Task* en la aplicación `labo-web` de
+  Coolify llamada `scrape-bcv-hourly` que llama a
+  `POST /api/cron/scrape-bcv` con el header `x-cron-secret: $CRON_SECRET`,
+  cada hora en punto de 06:00 a 20:00 VET (15 disparos/día). El paso a paso
+  completo — comando exacto, expresión cron según el `TZ` del contenedor, y
+  cómo leer las respuestas (`success`, `skipped` por outlier, `401`, `500`) —
+  está en `docs/deploy/insforge-vps.md`, sección "Scrape horario de la tasa
+  BCV". No se duplica acá para no desincronizar los dos documentos.
+- **Por qué importa**: durante las pruebas del cliente la tasa quedó
+  desactualizada; la auditoría en producción mostró dos
+  `tasa.setFromScraper` casi seguidos (dos clics manuales en "Actualizar
+  desde BCV"), no una cadencia horaria — indicio de que la Scheduled Task no
+  estaba corriendo, o nunca se creó.
+- **Pendiente del usuario**: entrar a Coolify → `labo-web` → **Scheduled
+  Tasks** y confirmar que `scrape-bcv-hourly` existe, está activa y tiene
+  "Last Run" reciente. Si no existe, crearla siguiendo el paso a paso de
+  `insforge-vps.md`. El criterio de aceptación de F7.5.T1 ("la tasa se
+  actualiza sola cada hora durante un día completo") sólo se puede verificar
+  ahí, no desde el código.
+
 ## Notas y limitaciones
 
 - **`next dev` no es para producción.** Sirve páginas sin optimizar, expone

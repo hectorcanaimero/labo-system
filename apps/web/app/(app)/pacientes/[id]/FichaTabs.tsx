@@ -25,6 +25,7 @@ import { PresupuestoEstadoBadge } from "@labo/ui/presupuestos/PresupuestoEstadoB
 import type { EstadoOrden } from "@labo/lib/schemas/orden";
 import type { EstadoPresupuesto } from "@labo/lib/schemas/presupuesto";
 import { calcularEdadDesglosada } from "@labo/lib/edad";
+import { resolverUbicacionMaps } from "@labo/lib/ubicacion";
 
 import {
   PacienteFormDialog,
@@ -131,6 +132,7 @@ export function FichaTabs({ data }: FichaTabsProps) {
       telefono: data.paciente.telefono,
       email: data.paciente.email,
       direccion: data.paciente.direccion,
+      ubicacionUrl: resolverUbicacionMaps(data.paciente.ubicacion_url ?? ""),
     };
   }, [data.paciente]);
 
@@ -171,6 +173,23 @@ export function FichaTabs({ data }: FichaTabsProps) {
             <MetaRow label="Teléfono" value={meta.telefono ?? "—"} mono />
             <MetaRow label="Correo" value={meta.email ?? "—"} />
             <MetaRow label="Dirección" value={meta.direccion ?? "—"} />
+            <MetaRow
+              label="Ubicación"
+              value={
+                meta.ubicacionUrl ? (
+                  <a
+                    href={meta.ubicacionUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-primary hover:underline"
+                  >
+                    Abrir en mapa
+                  </a>
+                ) : (
+                  "—"
+                )
+              }
+            />
           </dl>
         </CardContent>
       </Card>

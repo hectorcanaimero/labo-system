@@ -2694,7 +2694,7 @@
       "description": "**Objetivo**\n\nImplementar la decisión de la reunión: QR en el PDF que lleva a una página de validación con laboratorio, fecha, hora, cédula enmascarada y botón de WhatsApp. Nunca muestra el resultado.\n\n**Alcance**\n\nSí hace:\n- Migración `0016_enlaces_verificacion.sql`: tabla con `slug`, `orden_id`, sin vencimiento, o campo `tipo` en `enlaces_resultado`.\n- Ruta pública `/v/[slug]` con los datos mínimos y botón `wa.me` al teléfono de `laboratorio_config`.\n- Generar el QR en el servidor como SVG (`qrcode` npm, sin canvas) y embeberlo en `ResultadoPDF` junto a la firma.\n- El slug de verificación se crea al pasar la orden a “Entregada” si no existe.\n- Aplicar la migración en la instancia hosted.\n\nNo hace:\n- Token por SMS ni acceso al resultado desde la verificación.\n\n**Criterios de aceptación**\n\n- [ ] Escanear el QR del PDF abre `/v/[slug]` con laboratorio, fecha, hora y cédula enmascarada.\n- [ ] La vista de verificación no expone ningún valor ni el nombre completo.\n- [ ] Un PDF regenerado conserva el mismo slug.",
       "model": "opencode/gemini-3.1-pro",
       "reason": "Migración, ruta pública, generación de QR en PDF y flujo de privacidad.",
-      "status": "todo",
+      "status": "done",
       "dependencies": [
         "F7.3.T1"
       ],
@@ -2708,7 +2708,15 @@
         "packages/db/repos/ordenes.ts"
       ],
       "specRef": "F7/sprint-feedback-cliente.md#F7.3.T2",
-      "comments": []
+      "comments": [
+        {
+          "date": "2026-09-07",
+          "author": "planner",
+          "session": "opus",
+          "commit": "e333136",
+          "text": "Tabla enlaces_verificacion (0016) con slug sin vencimiento; se crea al entregar y también al emitir el PDF, best-effort: sin la migración el PDF sale sin QR y nada rompe. QR como SVG en ResultadoPDF junto a la firma. Ruta pública /v/[slug] con laboratorio, fecha y hora, cédula enmascarada y botón de WhatsApp. Migración probada en Postgres local, no aplicada en hosted. Sin escaneo real del QR ni apertura del PDF."
+        }
+      ]
     },
     {
       "id": "F7.3.T3",
@@ -2717,7 +2725,7 @@
       "description": "**Objetivo**\n\nEl asistente de observaciones solo existe en el formulario de orden nueva. La licenciada carga valores desde el detalle, así que el botón tiene que estar ahí.\n\n**Alcance**\n\nSí hace:\n- Extraer el botón y su llamada a `api/ai/observaciones` a `packages/ui/resultados/RefinarObservacionesButton.tsx`.\n- Usarlo en `ResultadoDetalle` y en `ResultadoForm`.\n- Verificar en Coolify que `GEMINI_API_KEY` esté cargada en producción.\n\nNo hace:\n- Cambiar el prompt.\n\n**Criterios de aceptación**\n\n- [ ] Desde el detalle de una orden en proceso, el botón reescribe la observación y la deja editable antes de guardar.",
       "model": "opencode-go/kimi-k2.6",
       "reason": "Cambios acotados de UI, mensajes y documentación.",
-      "status": "todo",
+      "status": "done",
       "dependencies": [],
       "estimateHours": 2,
       "files": [
@@ -2726,7 +2734,15 @@
         "apps/web/app/(app)/resultados/nuevo/ResultadoForm.tsx"
       ],
       "specRef": "F7/sprint-feedback-cliente.md#F7.3.T3",
-      "comments": []
+      "comments": [
+        {
+          "date": "2026-09-07",
+          "author": "planner",
+          "session": "sonnet",
+          "commit": "e5341de",
+          "text": "Botón Sugerir redacción extraído a packages/ui/resultados y usado en el formulario de orden y en el detalle, donde las observaciones ahora se editan in-place y se guardan por PATCH con solo ese campo. packages/ui/resultados agregado a los globs de Tailwind. Pendiente del usuario: confirmar GEMINI_API_KEY en Coolify. Sin prueba en navegador."
+        }
+      ]
     },
     {
       "id": "F7.4.T1",
@@ -2735,7 +2751,7 @@
       "description": "**Objetivo**\n\nReemplazar el texto libre con sugerencias por una tabla de métodos que el admin pueda ampliar, como se acordó en la reunión, sin romper el snapshot de método en las órdenes.\n\n**Alcance**\n\nSí hace:\n- Migración `0017_metodos_analisis.sql`: tabla `(id, nombre unique, activo, orden)` poblada con los distintos de `examenes.metodo`.\n- Endpoints `GET/POST/PATCH /api/examenes/metodos` con el patrón de `titulos`.\n- `ExamenFormDialog`: `select` de métodos activos con opción “Agregar método…” para admin.\n- Config: lista de métodos con renombrar y desactivar.\n- `examenes.metodo` sigue siendo texto: se guarda el nombre elegido.\n\nNo hace:\n- Migrar `metodo_snap` de órdenes.\n\n**Criterios de aceptación**\n\n- [ ] No se puede escribir un método a mano en el examen.\n- [ ] Un método desactivado no aparece en el selector pero se sigue viendo en exámenes que ya lo tenían.",
       "model": "opencode/deepseek-v4-pro",
       "reason": "Cambios de formulario, endpoints y migraciones con lógica de negocio.",
-      "status": "todo",
+      "status": "done",
       "dependencies": [],
       "estimateHours": 5,
       "files": [
@@ -2746,7 +2762,15 @@
         "apps/web/app/(app)/config/ConfigForm.tsx"
       ],
       "specRef": "F7/sprint-feedback-cliente.md#F7.4.T1",
-      "comments": []
+      "comments": [
+        {
+          "date": "2026-09-07",
+          "author": "planner",
+          "session": "opus",
+          "commit": "517397a",
+          "text": "Tabla metodos_analisis (0017) sembrada con los métodos existentes, repo y endpoints con patrón de títulos, select en el examen con alta inline para admin y panel de métodos en Config fuera del form. Un método desactivado se conserva en los exámenes como (fuera de la lista). Renombrar no reescribe examenes.metodo ni metodo_snap, a propósito. Sin la 0017 el selector muestra un mensaje y nada rompe. Probada en Postgres local, no aplicada en hosted. Sin prueba en navegador."
+        }
+      ]
     },
     {
       "id": "F7.4.T2",
@@ -2755,7 +2779,7 @@
       "description": "**Objetivo**\n\nEl laboratorio toma muestras a domicilio y pide al paciente su ubicación por WhatsApp. Hacer la dirección obligatoria y agregar un campo para el enlace de mapa o las coordenadas.\n\n**Alcance**\n\nSí hace:\n- Migración `0018_pacientes_ubicacion.sql`: `ubicacion_url text`.\n- `schemas/paciente.ts`: `direccion` requerida con mínimo 5 caracteres; `ubicacion_url` opcional, URL o par `lat,long`.\n- Formulario: dirección marcada como requerida; campo “Ubicación (enlace o coordenadas)” con botón “Abrir en mapa”.\n- Ficha del paciente muestra el enlace.\n\nNo hace:\n- Mapa embebido.\n\n**Criterios de aceptación**\n\n- [ ] Crear paciente sin dirección muestra error en el campo.\n- [ ] Pegar `10.49,-66.88` guarda y abre Google Maps con esas coordenadas.",
       "model": "opencode-go/kimi-k2.6",
       "reason": "Cambios acotados de UI, mensajes y documentación.",
-      "status": "todo",
+      "status": "done",
       "dependencies": [],
       "estimateHours": 2,
       "files": [
@@ -2765,7 +2789,15 @@
         "apps/web/app/(app)/pacientes/[id]/FichaTabs.tsx"
       ],
       "specRef": "F7/sprint-feedback-cliente.md#F7.4.T2",
-      "comments": []
+      "comments": [
+        {
+          "date": "2026-09-07",
+          "author": "planner",
+          "session": "sonnet",
+          "commit": "c86a03d",
+          "text": "Migración 0018 con pacientes.ubicacion_url nullable, probada en Postgres local, no aplicada en hosted. direccion requerida en Zod con error visible en el formulario; ubicacion_url acepta URL o par lat,long con validación en packages/lib/ubicacion.ts; botón Abrir en mapa y enlace en la ficha. Nota: la dirección requerida también aplica al alta rápida desde presupuesto y orden, que reusa el mismo diálogo."
+        }
+      ]
     },
     {
       "id": "F7.5.T1",
@@ -2774,7 +2806,7 @@
       "description": "**Objetivo**\n\nLa tasa estaba desactualizada durante las pruebas del cliente y los únicos refrescos en auditoría son manuales. Verificar la tarea programada y hacer visibles los rechazos de la guarda anti-outlier.\n\n**Alcance**\n\nSí hace:\n- Revisar en Coolify la tarea programada que llama a `refresh-bcv` con `CRON_SECRET`; documentar en `docs/deploy/coolify-staged.md` cómo está configurada.\n- Cuando `setManual` o el scraper rechazan por outlier, devolver `TASA_RECHAZADA_OUTLIER` y mostrarlo en Config con el valor anterior.\n- Reproducir el “tasa manual no funciona” de la demo con la consola abierta y anotar la causa.\n\nNo hace:\n- Cambiar el umbral del outlier sin dato.\n\n**Criterios de aceptación**\n\n- [ ] La tasa en producción se actualiza sola cada hora durante un día completo.\n- [ ] Cargar una tasa manual fuera de rango muestra el motivo en vez de éxito silencioso.",
       "model": "opencode-go/kimi-k2.6",
       "reason": "Cambios acotados de UI, mensajes y documentación.",
-      "status": "todo",
+      "status": "done",
       "dependencies": [],
       "estimateHours": 2,
       "files": [
@@ -2784,7 +2816,15 @@
         "apps/web/app/(app)/config/ConfigForm.tsx"
       ],
       "specRef": "F7/sprint-feedback-cliente.md#F7.5.T1",
-      "comments": []
+      "comments": [
+        {
+          "date": "2026-09-07",
+          "author": "planner",
+          "session": "sonnet",
+          "commit": "13f3753",
+          "text": "setManual no tenía guarda anti-outlier: se agregó la misma de setFromScraper y POST /api/tasa/manual responde 409 TASA_RECHAZADA_OUTLIER con tasa anterior e intentada; Config lo muestra. Doc de la Scheduled Task horaria en coolify-staged.md. Pendiente del usuario: confirmar en el panel de Coolify que scrape-bcv-hourly exista y esté activa."
+        }
+      ]
     },
     {
       "id": "F7.3.T1b",
@@ -2884,6 +2924,106 @@
           "session": "opus",
           "commit": "02dd0b8",
           "text": "Middleware excluye api/r/ con barra final (sin la barra abría /api/resultados). page.tsx pasa paquete_id, precio_base_snap y ganancia_pct, ahora requeridos en el tipo. cerrado se deriva con esPaqueteCerrado (paquete_id y ganancia 0; ambigüedad documentada si la ganancia global es 0). El submit manda ganancia por línea aunque el toggle esté plegado. enmascararCedula en packages/lib falla cerrado. 22 tests nuevos, lib 335/335. Verificado con next start: el PDF público llega al handler y las rutas protegidas siguen en 307."
+        }
+      ]
+    },
+    {
+      "id": "F7.0.T1",
+      "phase": 7,
+      "title": "Dejar verde el CI de la raíz",
+      "description": "Build de @labo/lib con tsup, tipos de tests de integración de @labo/db, vitest en apps/web. Bloquea la promoción staged → main.",
+      "model": "opencode-go/kimi-k2.6",
+      "reason": "Arreglos de tooling con diagnóstico hecho.",
+      "status": "done",
+      "dependencies": [],
+      "estimateHours": 3,
+      "files": [
+        "packages/lib/package.json",
+        "packages/db/repos/dashboard.integration.test.ts",
+        "packages/db/repos/presupuestos.integration.test.ts",
+        "apps/web/package.json"
+      ],
+      "specRef": "F7/sprint-feedback-cliente.md#F7.0.T1",
+      "comments": [
+        {
+          "date": "2026-09-07",
+          "author": "planner",
+          "session": "sonnet",
+          "commit": "1afe7ce",
+          "text": "lib, ui y pdf sin build de tsup (exportan fuentes, web los transpila). Tests de integración de db alineados a la firma con Db inyectado; dashboard corre solo con credenciales de InsForge, dos tests de presupuestos en skip con motivo. web y convex con test no-op explícito; convex es código muerto post-InsForge. turbo lint typecheck test build 20/20 en verde."
+        }
+      ]
+    },
+    {
+      "id": "F7.3.T4",
+      "phase": 7,
+      "title": "Correcciones de la revisión cruzada sobre observaciones y tasa",
+      "description": "update de órdenes no auto-entrega al heredar fecha_resultado; detalle manda estado explícito y oculta Editar en anuladas; force con motivo auditado en tasa manual; auditar rechazos por outlier.",
+      "model": "opencode/deepseek-v4-pro",
+      "reason": "Corrección de regla de estado con test, más ajuste operativo de tasa.",
+      "status": "done",
+      "dependencies": [
+        "F7.3.T3",
+        "F7.5.T1"
+      ],
+      "estimateHours": 3,
+      "files": [
+        "packages/db/repos/ordenes.ts",
+        "apps/web/app/(app)/resultados/[id]/ResultadoDetalle.tsx",
+        "packages/db/repos/tasa.ts",
+        "apps/web/app/api/tasa/manual/route.ts",
+        "apps/web/app/(app)/config/ConfigForm.tsx"
+      ],
+      "specRef": "F7/sprint-feedback-cliente.md#F7.3.T4",
+      "comments": [
+        {
+          "date": "2026-09-07",
+          "author": "planner",
+          "session": "opus",
+          "commit": "",
+          "text": "Revisión de opus: confirmado que PATCH solo con observaciones desde el detalle hereda fecha_resultado y update pasa la orden a Entregada, incluso desde Anulada, esquivando la matriz de transiciones. Plausibles: tasa manual sin forma de forzar tras un 409; rechazos por outlier no auditados; pacientes viejos sin dirección bloqueados al editar."
+        },
+        {
+          "date": "2026-09-07",
+          "author": "planner",
+          "session": "opus",
+          "commit": "1b2d5cb",
+          "text": "update de órdenes solo auto-entrega cuando el body trae fecha_resultado; el detalle manda estado explícito y no ofrece Editar en anuladas. Tasa manual con force y motivo obligatorio auditado, ofrecido en Config solo tras un 409 con el mismo valor; rechazos por outlier auditados. 14 tests nuevos en db (18 a 32), los de regresión fallan sin el fix. Sin prueba en navegador."
+        }
+      ]
+    },
+    {
+      "id": "F7.3.T5",
+      "phase": 7,
+      "title": "Correcciones de la revisión cruzada sobre QR y verificación",
+      "description": "Tragar solo VERIFICACION_TABLA_FALTANTE; quitar Estado de /v/[slug]; QR y enlace de verificación solo para órdenes Entregadas.",
+      "model": "opencode-go/kimi-k2.6",
+      "reason": "Correcciones acotadas con diagnóstico hecho.",
+      "status": "done",
+      "dependencies": [
+        "F7.3.T2"
+      ],
+      "estimateHours": 2,
+      "files": [
+        "packages/db/repos/ordenes.ts",
+        "apps/web/app/api/pdf/resultado/[id]/route.ts",
+        "apps/web/app/v/[slug]/page.tsx"
+      ],
+      "specRef": "F7/sprint-feedback-cliente.md#F7.3.T5",
+      "comments": [
+        {
+          "date": "2026-09-07",
+          "author": "planner",
+          "session": "sonnet",
+          "commit": "",
+          "text": "Revisión de sonnet: catch indiscriminado en crearVerificacionBestEffort y resolverVerificacionUrl; /v/[slug] muestra Estado; QR para órdenes en cualquier estado; carrera sin UNIQUE en orden_id converge al enlace más viejo."
+        },
+        {
+          "date": "2026-09-07",
+          "author": "planner",
+          "session": "sonnet",
+          "commit": "7e00aff",
+          "text": "La creación del enlace de verificación solo tolera tabla faltante; cualquier otro error queda en audit_log sin tumbar la entrega ni el PDF, con test. /v/[slug] sin Estado. QR y enlace solo cuando la orden está Entregada. Carrera sin UNIQUE en orden_id anotada."
         }
       ]
     }

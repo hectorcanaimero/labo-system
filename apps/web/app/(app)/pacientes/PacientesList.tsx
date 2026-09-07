@@ -218,6 +218,7 @@ export function PacientesList({ initialData, pageSize }: PacientesListProps) {
         telefono: null,
         email: null,
         direccion: null,
+        ubicacion_url: null,
       })) as PacienteSerializable[];
     }
     return data.items;

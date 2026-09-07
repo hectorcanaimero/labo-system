@@ -20,6 +20,7 @@ import { Separator } from "@/components/ui/separator";
 import { EmptyState } from "@labo/ui/feedback";
 import { notifyError, notifySuccess } from "@labo/ui/feedback/toast";
 import { AssetUploader } from "./AssetUploader";
+import { MetodosPanel } from "./MetodosPanel";
 
 export interface ConfigPreloaded {
   nombre: string;
@@ -55,6 +56,15 @@ export function ConfigForm({ preloadedConfig, preloadedTasa }: ConfigFormProps) 
   const [refreshingBcv, setRefreshingBcv] = useState(false);
   const [tasaInput, setTasaInput] = useState("");
   const [tasaMotivo, setTasaMotivo] = useState("");
+  /**
+   * Datos del último rechazo por outlier. Mientras esté seteado, el formulario
+   * ofrece forzar la carga: es la salida del admin cuando la tasa se movió de
+   * verdad más que el umbral. No se ofrece de entrada para que forzar sea una
+   * decisión consciente y no el camino por defecto.
+   */
+  const [tasaRechazada, setTasaRechazada] = useState<
+    { tasa: number; anterior: number | null } | null
+  >(null);
 
   const {
     register,
@@ -101,18 +111,6 @@ export function ConfigForm({ preloadedConfig, preloadedTasa }: ConfigFormProps) 
     if (!res.ok) {
       const payload = (await res.json().catch(() => null)) as { error?: string } | null;
       throw new Error(payload?.error || "Error al guardar la configuración.");
-    }
-  }
-
-  async function setManualTasa(data: { tasa: number; motivo?: string }): Promise<void> {
-    const res = await fetch("/api/tasa/manual", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(data),
-    });
-    if (!res.ok) {
-      const payload = (await res.json().catch(() => null)) as { error?: string } | null;
-      throw new Error(payload?.error || "Error al actualizar la tasa.");
     }
   }
 
@@ -179,6 +177,11 @@ export function ConfigForm({ preloadedConfig, preloadedTasa }: ConfigFormProps) 
     }
   }
 
+  // El botón pasa a "Forzar tasa" sólo si el rechazo previo fue por el valor
+  // que está escrito ahora: cambiar el número vuelve al flujo normal.
+  const forzandoTasa =
+    tasaRechazada !== null && parseFloat(tasaInput) === tasaRechazada.tasa;
+
   async function handleTasaSubmit(e: React.FormEvent) {
     e.preventDefault();
     const value = parseFloat(tasaInput);
@@ -186,19 +189,57 @@ export function ConfigForm({ preloadedConfig, preloadedTasa }: ConfigFormProps) 
       notifyError("La tasa debe ser un número positivo.");
       return;
     }
+    // Sólo se fuerza si el rechazo previo fue por ESTA misma tasa: cambiar el
+    // número reinicia el flujo y vuelve a pasar por la guarda.
+    const forzando = tasaRechazada !== null && tasaRechazada.tasa === value;
+    const motivo = tasaMotivo.trim();
+
+    if (forzando && motivo.length === 0) {
+      notifyError("Para forzar la tasa hay que escribir un motivo.");
+      return;
+    }
+
     setUpdatingTasa(true);
     try {
-      await setManualTasa({ tasa: value, motivo: tasaMotivo || undefined });
+      const res = await fetch("/api/tasa/manual", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          tasa: value,
+          motivo: motivo || undefined,
+          ...(forzando ? { force: true } : {}),
+        }),
+      });
+      const payload = (await res.json().catch(() => null)) as
+        | { ok?: boolean; error?: string; tasa_anterior?: number; tasa_intentada?: number }
+        | null;
+
+      if (!res.ok || !payload?.ok) {
+        const code = payload?.error ?? `HTTP_${res.status}`;
+        if (code === "TASA_RECHAZADA_OUTLIER") {
+          setTasaRechazada({ tasa: value, anterior: payload?.tasa_anterior ?? null });
+          notifyError(
+            `Tasa rechazada (variación fuera de rango): intentaste ${payload?.tasa_intentada?.toFixed(2)}, la anterior sigue en ${payload?.tasa_anterior?.toFixed(2)}.`,
+          );
+        } else if (code === "MOTIVO_REQUERIDO_PARA_FORZAR") {
+          notifyError("Para forzar la tasa hay que escribir un motivo.");
+        } else {
+          notifyError(`No se pudo actualizar la tasa (${code}).`);
+        }
+        return;
+      }
+
       setLatestTasa({
         tasa: value,
         fuente: "manual",
         scraped_at: new Date().toISOString(),
-        motivo: tasaMotivo || null,
+        motivo: motivo || null,
         stale: false,
       });
-      notifySuccess("Tasa actualizada.");
+      notifySuccess(forzando ? "Tasa forzada y registrada en auditoría." : "Tasa actualizada.");
       setTasaInput("");
       setTasaMotivo("");
+      setTasaRechazada(null);
     } catch (err) {
       notifyError(err);
     } finally {
@@ -489,24 +530,50 @@ export function ConfigForm({ preloadedConfig, preloadedTasa }: ConfigFormProps) 
               </div>
               <div className="flex flex-col gap-1.5">
                 <Label htmlFor="tasa-motivo" className="text-xs">
-                  Motivo <span className="text-muted-foreground">(opcional)</span>
+                  Motivo{" "}
+                  <span className="text-muted-foreground">
+                    {forzandoTasa ? "(obligatorio para forzar)" : "(opcional)"}
+                  </span>
                 </Label>
                 <Input
                   id="tasa-motivo"
                   type="text"
-                  placeholder="Ej. Ajuste manual"
+                  placeholder={forzandoTasa ? "Ej. Devaluación del 60% del 7/9" : "Ej. Ajuste manual"}
                   value={tasaMotivo}
                   onChange={(e) => setTasaMotivo(e.target.value)}
                   disabled={updatingTasa}
                   className="h-8"
                 />
               </div>
-              <Button type="submit" size="sm" disabled={updatingTasa}>
+
+              {forzandoTasa ? (
+                <div className="flex items-start gap-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900">
+                  <AlertCircle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                  <span>
+                    La guarda rechazó {tasaRechazada?.tasa.toFixed(2)} por variación fuera de
+                    rango
+                    {tasaRechazada?.anterior != null
+                      ? ` contra ${tasaRechazada.anterior.toFixed(2)}`
+                      : ""}
+                    . Si la tasa se movió de verdad, escribí el motivo y volvé a enviar: se
+                    guarda igual y queda registrado en auditoría.
+                  </span>
+                </div>
+              ) : null}
+
+              <Button
+                type="submit"
+                size="sm"
+                variant={forzandoTasa ? "destructive" : "default"}
+                disabled={updatingTasa}
+              >
                 {updatingTasa ? (
                   <>
                     <Loader2 className="h-3.5 w-3.5 animate-spin" />
                     Actualizando…
                   </>
+                ) : forzandoTasa ? (
+                  "Forzar tasa"
                 ) : (
                   "Actualizar tasa"
                 )}
@@ -515,6 +582,10 @@ export function ConfigForm({ preloadedConfig, preloadedTasa }: ConfigFormProps) 
           </CardContent>
         </Card>
       </aside>
+
+      {/* Métodos de análisis: ancho completo y FUERA del <form> de la config,
+          porque tiene sus propios inputs y no debe disparar ese submit. */}
+      <MetodosPanel />
     </div>
   );
 }

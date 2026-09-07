@@ -35,6 +35,7 @@ export interface Paciente {
   telefono: string | null;
   email: string | null;
   direccion: string | null;
+  ubicacion_url: string | null;
   activo: boolean;
   created_at: Date;
   updated_at: Date;
@@ -165,6 +166,7 @@ function mapPaciente(row: Record<string, unknown>): Paciente {
     telefono: (row.telefono as string | null) ?? null,
     email: (row.email as string | null) ?? null,
     direccion: (row.direccion as string | null) ?? null,
+    ubicacion_url: (row.ubicacion_url as string | null) ?? null,
     activo: row.activo as boolean,
     created_at: toDate(row.created_at),
     updated_at: toDate(row.updated_at),
@@ -255,6 +257,8 @@ function mapPacienteCreate(input: Record<string, unknown>): Record<string, unkno
     telefono: typeof input.telefono === "string" ? input.telefono.trim() || null : null,
     email: typeof input.email === "string" ? input.email.trim() || null : null,
     direccion: typeof input.direccion === "string" ? input.direccion.trim() || null : null,
+    ubicacion_url:
+      typeof input.ubicacion_url === "string" ? input.ubicacion_url.trim() || null : null,
   };
 }
 
@@ -278,6 +282,12 @@ function mapPacienteUpdate(input: Record<string, unknown>): Record<string, unkno
   if (input.direccion !== undefined) {
     payload.direccion =
       typeof input.direccion === "string" ? input.direccion.trim() || null : input.direccion;
+  }
+  if (input.ubicacion_url !== undefined) {
+    payload.ubicacion_url =
+      typeof input.ubicacion_url === "string"
+        ? input.ubicacion_url.trim() || null
+        : input.ubicacion_url;
   }
 
   return payload;

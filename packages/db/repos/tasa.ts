@@ -14,6 +14,15 @@ export interface SetManualTasaInput {
   tasa: number;
   motivo?: string;
   usuarioId: string;
+  /**
+   * Salta la guarda anti-outlier. Es la salida del admin cuando la tasa se
+   * movió de verdad más que el umbral: sin esto la carga manual queda
+   * bloqueada hasta que el LKG se ponga stale (24h), y el scraper tampoco
+   * puede refrescarlo porque tiene la misma guarda.
+   *
+   * Exige `motivo`: forzar sin dejar dicho por qué no deja auditar nada útil.
+   */
+  force?: boolean;
 }
 
 export interface SetFromScraperInput {
@@ -27,11 +36,49 @@ export interface SetFromScraperInput {
 const STALE_THRESHOLD_MS = 24 * 60 * 60 * 1000;
 const AUDIT_ACTION = "tasa.setManual";
 const AUDIT_ACTION_SCRAPER = "tasa.setFromScraper";
+/** Rechazos de la guarda anti-outlier: dejan rastro aunque no escriban tasa. */
+const AUDIT_ACTION_RECHAZO = "tasa.rechazadaOutlier";
+
+/** Forzar la carga manual sin explicar por qué no se audita: se rechaza. */
+export const MOTIVO_REQUERIDO_PARA_FORZAR = "MOTIVO_REQUERIDO_PARA_FORZAR";
 const ENTITY_TYPE = "tasa_cambio_bcv";
 const MAX_CHANGE_RATIO = Number(process.env.BCV_MAX_CHANGE_RATIO ?? "0.5");
 
 function normalizeTasa(value: string | number): number {
   return typeof value === "number" ? value : Number(value);
+}
+
+/**
+ * Deja constancia de un rechazo de la guarda anti-outlier.
+ *
+ * El rechazo no escribe tasa, así que sin esto no queda ningún rastro de que
+ * alguien intentó cargar un valor y el sistema lo frenó — que es justo la
+ * evidencia que hace falta cuando el operador reporta "la tasa no funciona".
+ */
+async function auditarRechazo(
+  db: Db,
+  row: {
+    usuarioId: string | null;
+    fuente: TasaFuente;
+    tasaIntentada: number;
+    tasaAnterior: number;
+    ratio: number;
+  },
+): Promise<void> {
+  const { error } = await db.from("audit_log").insert({
+    usuario_id: row.usuarioId,
+    accion: AUDIT_ACTION_RECHAZO,
+    entity_type: ENTITY_TYPE,
+    entity_id: null,
+    metadata: {
+      fuente: row.fuente,
+      tasa_intentada: row.tasaIntentada,
+      tasa_anterior: row.tasaAnterior,
+      ratio: Number(row.ratio.toFixed(4)),
+      umbral: MAX_CHANGE_RATIO,
+    },
+  });
+  if (error) console.warn(`[audit ${AUDIT_ACTION_RECHAZO}]`, error.message);
 }
 
 /**
@@ -63,13 +110,54 @@ export async function getLatest(db: Db): Promise<LatestTasa | null> {
 
 /**
  * Override manual de la tasa. INSERT en `tasa_cambio_bcv` + audit best-effort.
+ *
+ * Aplica la misma guarda anti-outlier que `setFromScraper` (variación >
+ * `MAX_CHANGE_RATIO` vs LKG no-stale => rechaza). Antes no existía ninguna:
+ * cualquier valor se guardaba con éxito silencioso, incluida una tasa
+ * cargada con un error de tipeo.
+ *
+ * `force: true` (con `motivo` obligatorio) salta la guarda: es la salida del
+ * admin cuando la tasa realmente se movió más que el umbral. Sin eso la carga
+ * manual quedaba bloqueada hasta que el LKG se pusiera stale a las 24h, y el
+ * scraper tampoco podía refrescarlo porque comparte la guarda.
+ *
+ * Todo queda auditado: el rechazo, el forzado y la carga normal.
  */
 export async function setManual(
   db: Db,
   input: SetManualTasaInput,
-): Promise<string> {
+): Promise<{ id: string | null; skipped: boolean; reason?: string; tasaAnterior?: number }> {
   const motivo = input.motivo?.trim();
   const nowIso = new Date().toISOString();
+  const forzado = input.force === true;
+
+  if (forzado && !(motivo && motivo.length > 0)) {
+    throw new Error(MOTIVO_REQUERIDO_PARA_FORZAR);
+  }
+
+  const previous = await getLatest(db);
+  let fueraDeRango = false;
+  if (previous && !previous.stale && previous.tasa > 0 && MAX_CHANGE_RATIO > 0) {
+    const ratio = Math.abs(input.tasa - previous.tasa) / previous.tasa;
+    if (ratio > MAX_CHANGE_RATIO) {
+      fueraDeRango = true;
+      if (!forzado) {
+        await auditarRechazo(db, {
+          usuarioId: input.usuarioId,
+          fuente: "manual",
+          tasaIntentada: input.tasa,
+          tasaAnterior: previous.tasa,
+          ratio,
+        });
+        return {
+          id: null,
+          skipped: true,
+          reason: `variacion_${ratio.toFixed(3)}_sobre_${MAX_CHANGE_RATIO}`,
+          tasaAnterior: previous.tasa,
+        };
+      }
+    }
+  }
 
   const { data, error } = await db
     .from("tasa_cambio_bcv")
@@ -94,13 +182,18 @@ export async function setManual(
     entity_id: tasaId,
     metadata: {
       tasa: input.tasa,
+      tasa_anterior: previous?.tasa ?? null,
       motivo: motivo ?? null,
       fuente: "manual",
+      forzado,
+      // `true` sólo cuando además se saltó la guarda: distingue un forzado que
+      // hacía falta de uno que igual estaba dentro de rango.
+      fuera_de_rango: fueraDeRango,
     },
   });
   if (auditError) console.warn(`[audit ${AUDIT_ACTION}]`, auditError.message);
 
-  return tasaId;
+  return { id: tasaId, skipped: false };
 }
 
 /**
@@ -130,6 +223,13 @@ export async function setFromScraper(
   if (previous && !previous.stale && previous.tasa > 0 && MAX_CHANGE_RATIO > 0) {
     const ratio = Math.abs(input.tasa - previous.tasa) / previous.tasa;
     if (ratio > MAX_CHANGE_RATIO) {
+      await auditarRechazo(db, {
+        usuarioId: input.usuarioId ?? null,
+        fuente: input.fuente,
+        tasaIntentada: input.tasa,
+        tasaAnterior: previous.tasa,
+        ratio,
+      });
       return {
         id: null,
         skipped: true,

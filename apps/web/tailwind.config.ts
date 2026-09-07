@@ -12,6 +12,7 @@ const config: Config = {
     "../../packages/ui/layout/**/*.{ts,tsx}",
     "../../packages/ui/overlay/**/*.{ts,tsx}",
     "../../packages/ui/paquetes/**/*.{ts,tsx}",
+    "../../packages/ui/resultados/**/*.{ts,tsx}",
   ],
   theme: {
     container: {
