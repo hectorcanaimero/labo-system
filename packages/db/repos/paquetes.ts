@@ -459,20 +459,39 @@ export async function setExamenes(
     }
   }
 
-  const delRes = await db
+  const actualRes = await db
     .from("paquetes_examenes")
-    .delete()
+    .select("examen_id")
     .eq("paquete_id", id);
-  if (delRes.error) throw new Error(`paquetes.setExamenes: ${delRes.error.message}`);
+  if (actualRes.error) throw new Error(`paquetes.setExamenes: ${actualRes.error.message}`);
+  const actualIds = ((actualRes.data ?? []) as Array<{ examen_id: string }>).map(
+    (row) => row.examen_id,
+  );
 
+  // Insertar/actualizar primero y borrar lo que sobra después: si el upsert
+  // falla, las asociaciones previas siguen intactas — no quedan en cero como
+  // pasaba con delete-todo-luego-insert-todo, donde un insert fallido dejaba
+  // el paquete sin exámenes.
   if (examenIds.length > 0) {
     const values = examenIds.map((examenId, idx) => ({
       paquete_id: id,
       examen_id: examenId,
       orden: idx + 1,
     }));
-    const insRes = await db.from("paquetes_examenes").insert(values);
-    if (insRes.error) throw new Error(`paquetes.setExamenes: ${insRes.error.message}`);
+    const upsertRes = await db
+      .from("paquetes_examenes")
+      .upsert(values, { onConflict: "paquete_id,examen_id" });
+    if (upsertRes.error) throw new Error(`paquetes.setExamenes: ${upsertRes.error.message}`);
+  }
+
+  const sobrantes = actualIds.filter((examenId) => !examenIds.includes(examenId));
+  if (sobrantes.length > 0) {
+    const delRes = await db
+      .from("paquetes_examenes")
+      .delete()
+      .eq("paquete_id", id)
+      .in("examen_id", sobrantes);
+    if (delRes.error) throw new Error(`paquetes.setExamenes: ${delRes.error.message}`);
   }
 
   return loadPaqueteExamenes(db, id, true);
@@ -578,20 +597,39 @@ export async function setTitulos(
     }
   }
 
-  const delRes = await db
+  const actualRes = await db
     .from("paquetes_titulos")
-    .delete()
+    .select("titulo_id")
     .eq("paquete_id", id);
-  if (delRes.error) throw new Error(`paquetes.setTitulos: ${delRes.error.message}`);
+  if (actualRes.error) throw new Error(`paquetes.setTitulos: ${actualRes.error.message}`);
+  const actualIds = ((actualRes.data ?? []) as Array<{ titulo_id: string }>).map(
+    (row) => row.titulo_id,
+  );
 
+  // Insertar/actualizar primero y borrar lo que sobra después: si el upsert
+  // falla, las asociaciones previas siguen intactas — no quedan en cero como
+  // pasaba con delete-todo-luego-insert-todo, donde un insert fallido dejaba
+  // el paquete sin grupos.
   if (tituloIds.length > 0) {
     const values = tituloIds.map((tituloId, idx) => ({
       paquete_id: id,
       titulo_id: tituloId,
       orden: idx + 1,
     }));
-    const insRes = await db.from("paquetes_titulos").insert(values);
-    if (insRes.error) throw new Error(`paquetes.setTitulos: ${insRes.error.message}`);
+    const upsertRes = await db
+      .from("paquetes_titulos")
+      .upsert(values, { onConflict: "paquete_id,titulo_id" });
+    if (upsertRes.error) throw new Error(`paquetes.setTitulos: ${upsertRes.error.message}`);
+  }
+
+  const sobrantes = actualIds.filter((tituloId) => !tituloIds.includes(tituloId));
+  if (sobrantes.length > 0) {
+    const delRes = await db
+      .from("paquetes_titulos")
+      .delete()
+      .eq("paquete_id", id)
+      .in("titulo_id", sobrantes);
+    if (delRes.error) throw new Error(`paquetes.setTitulos: ${delRes.error.message}`);
   }
 
   return loadPaqueteTitulos(db, id);

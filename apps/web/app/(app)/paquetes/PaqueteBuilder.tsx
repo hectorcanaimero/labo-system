@@ -29,6 +29,7 @@ import {
   Wand2,
 } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -212,6 +213,7 @@ export function PaqueteBuilder({
   initialData: PaqueteBuilderData;
   canEdit: boolean;
 }) {
+  const router = useRouter();
   const [items, setItems] = useState<PackageExam[]>(initialData.examenes);
   const [precioBase, setPrecioBase] = useState<string>(
     initialData.precio_base.toString(),
@@ -396,6 +398,19 @@ export function PaqueteBuilder({
       setMessage("Paquete guardado.");
     } catch (error) {
       setMessage(toHumanError(error));
+      // El guardado pudo fallar a medio camino del lado del servidor (ver
+      // setContenido). Recargamos el estado real antes de dejar reintentar,
+      // para no reintentar sobre un borrador que ya no coincide con la base.
+      try {
+        const fresh = await requestJson<PaqueteBuilderData>(`/api/paquetes/${initialData.id}`);
+        setItems(fresh.examenes);
+        setPrecioBase(fresh.precio_base.toString());
+        setSelectedTitulos(fresh.titulos);
+      } catch {
+        // Best-effort: si el refetch también falla, queda el borrador local
+        // y el mensaje de error de arriba.
+      }
+      router.refresh();
     } finally {
       setBusy(false);
     }

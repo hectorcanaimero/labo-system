@@ -202,6 +202,7 @@ export function ResultadoForm({ mode, initialData, onSaved, onCancelEdit }: Resu
   const [paquetesOpen, setPaquetesOpen] = useState(false);
   const [paquetesLoading, setPaquetesLoading] = useState(false);
   const [packageError, setPackageError] = useState<string | null>(null);
+  const [addingPaqueteId, setAddingPaqueteId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [aiLoading, setAiLoading] = useState(false);
@@ -339,7 +340,9 @@ export function ResultadoForm({ mode, initialData, onSaved, onCancelEdit }: Resu
   }
 
   async function addPaquete(paqueteId: string): Promise<void> {
+    if (addingPaqueteId) return;
     try {
+      setAddingPaqueteId(paqueteId);
       setPackageError(null);
       const examenes = await requestJson<PaqueteExamen[]>(`/api/paquetes/${paqueteId}/examenes`);
       setLineas((current) =>
@@ -355,7 +358,14 @@ export function ResultadoForm({ mode, initialData, onSaved, onCancelEdit }: Resu
       setPaquetesOpen(false);
     } catch (error) {
       setPackageError(toHumanError(error));
+    } finally {
+      setAddingPaqueteId(null);
     }
+  }
+
+  function handlePaquetesOpenChange(next: boolean): void {
+    if (!next && addingPaqueteId) return;
+    setPaquetesOpen(next);
   }
 
   function updateLinea(index: number, patch: Partial<ResultadoLineaForm>): void {
@@ -724,7 +734,7 @@ export function ResultadoForm({ mode, initialData, onSaved, onCancelEdit }: Resu
         </Button>
       </div>
 
-      <Dialog open={paquetesOpen} onOpenChange={setPaquetesOpen}>
+      <Dialog open={paquetesOpen} onOpenChange={handlePaquetesOpenChange}>
         <DialogContent className="flex max-h-[90vh] w-full max-w-2xl flex-col gap-0 overflow-hidden p-0">
           <DialogHeader className="px-6 pb-4 pr-12 pt-6">
             <DialogTitle className="text-xl">Cargar paquete</DialogTitle>
@@ -749,14 +759,21 @@ export function ResultadoForm({ mode, initialData, onSaved, onCancelEdit }: Resu
                     key={paquete.id}
                     type="button"
                     onClick={() => void addPaquete(paquete.id)}
-                    className="flex w-full items-center justify-between border-b border-border px-4 py-4 text-left last:border-b-0 hover:bg-muted/30"
+                    disabled={Boolean(addingPaqueteId)}
+                    className="flex w-full items-center justify-between border-b border-border px-4 py-4 text-left last:border-b-0 hover:bg-muted/30 disabled:cursor-not-allowed disabled:opacity-60"
                   >
                     <div>
                       <p className="font-medium text-foreground">{paquete.nombre}</p>
                       <p className="text-sm text-muted-foreground">{paquete.descripcion || "Sin descripción"}</p>
                     </div>
-                    <span className="rounded-full bg-primary/10 px-2.5 py-1 text-xs font-semibold text-primary">
-                      {paquete.examenes_count} {paquete.examenes_count === 1 ? "examen" : "exámenes"}
+                    <span className="inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-2.5 py-1 text-xs font-semibold text-primary">
+                      {addingPaqueteId === paquete.id ? (
+                        <>
+                          <Loader2 className="h-3 w-3 animate-spin" /> Cargando…
+                        </>
+                      ) : (
+                        `${paquete.examenes_count} ${paquete.examenes_count === 1 ? "examen" : "exámenes"}`
+                      )}
                     </span>
                   </button>
                 ))
