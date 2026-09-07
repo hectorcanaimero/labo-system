@@ -2743,7 +2743,7 @@
       "description": "**Objetivo**\n\nReemplazar el texto libre con sugerencias por una tabla de métodos que el admin pueda ampliar, como se acordó en la reunión, sin romper el snapshot de método en las órdenes.\n\n**Alcance**\n\nSí hace:\n- Migración `0017_metodos_analisis.sql`: tabla `(id, nombre unique, activo, orden)` poblada con los distintos de `examenes.metodo`.\n- Endpoints `GET/POST/PATCH /api/examenes/metodos` con el patrón de `titulos`.\n- `ExamenFormDialog`: `select` de métodos activos con opción “Agregar método…” para admin.\n- Config: lista de métodos con renombrar y desactivar.\n- `examenes.metodo` sigue siendo texto: se guarda el nombre elegido.\n\nNo hace:\n- Migrar `metodo_snap` de órdenes.\n\n**Criterios de aceptación**\n\n- [ ] No se puede escribir un método a mano en el examen.\n- [ ] Un método desactivado no aparece en el selector pero se sigue viendo en exámenes que ya lo tenían.",
       "model": "opencode/deepseek-v4-pro",
       "reason": "Cambios de formulario, endpoints y migraciones con lógica de negocio.",
-      "status": "todo",
+      "status": "done",
       "dependencies": [],
       "estimateHours": 5,
       "files": [
@@ -2754,7 +2754,15 @@
         "apps/web/app/(app)/config/ConfigForm.tsx"
       ],
       "specRef": "F7/sprint-feedback-cliente.md#F7.4.T1",
-      "comments": []
+      "comments": [
+        {
+          "date": "2026-09-07",
+          "author": "planner",
+          "session": "opus",
+          "commit": "517397a",
+          "text": "Tabla metodos_analisis (0017) sembrada con los métodos existentes, repo y endpoints con patrón de títulos, select en el examen con alta inline para admin y panel de métodos en Config fuera del form. Un método desactivado se conserva en los exámenes como (fuera de la lista). Renombrar no reescribe examenes.metodo ni metodo_snap, a propósito. Sin la 0017 el selector muestra un mensaje y nada rompe. Probada en Postgres local, no aplicada en hosted. Sin prueba en navegador."
+        }
+      ]
     },
     {
       "id": "F7.4.T2",
