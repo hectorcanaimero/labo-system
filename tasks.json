@@ -2725,7 +2725,7 @@
       "description": "**Objetivo**\n\nEl asistente de observaciones solo existe en el formulario de orden nueva. La licenciada carga valores desde el detalle, así que el botón tiene que estar ahí.\n\n**Alcance**\n\nSí hace:\n- Extraer el botón y su llamada a `api/ai/observaciones` a `packages/ui/resultados/RefinarObservacionesButton.tsx`.\n- Usarlo en `ResultadoDetalle` y en `ResultadoForm`.\n- Verificar en Coolify que `GEMINI_API_KEY` esté cargada en producción.\n\nNo hace:\n- Cambiar el prompt.\n\n**Criterios de aceptación**\n\n- [ ] Desde el detalle de una orden en proceso, el botón reescribe la observación y la deja editable antes de guardar.",
       "model": "opencode-go/kimi-k2.6",
       "reason": "Cambios acotados de UI, mensajes y documentación.",
-      "status": "todo",
+      "status": "done",
       "dependencies": [],
       "estimateHours": 2,
       "files": [
@@ -2734,7 +2734,15 @@
         "apps/web/app/(app)/resultados/nuevo/ResultadoForm.tsx"
       ],
       "specRef": "F7/sprint-feedback-cliente.md#F7.3.T3",
-      "comments": []
+      "comments": [
+        {
+          "date": "2026-09-07",
+          "author": "planner",
+          "session": "sonnet",
+          "commit": "e5341de",
+          "text": "Botón Sugerir redacción extraído a packages/ui/resultados y usado en el formulario de orden y en el detalle, donde las observaciones ahora se editan in-place y se guardan por PATCH con solo ese campo. packages/ui/resultados agregado a los globs de Tailwind. Pendiente del usuario: confirmar GEMINI_API_KEY en Coolify. Sin prueba en navegador."
+        }
+      ]
     },
     {
       "id": "F7.4.T1",
