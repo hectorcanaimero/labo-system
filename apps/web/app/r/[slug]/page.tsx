@@ -1,11 +1,13 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+import { Download } from "lucide-react";
 
 import { get as getConfig } from "@labo/db/repos/config";
 import { getBySlug } from "@labo/db/repos/enlaces";
 import { getById as getPacienteById } from "@labo/db/repos/pacientes";
 import { getById as getOrden } from "@labo/db/repos/ordenes";
 import { SLUG_PATTERN } from "@labo/lib/enlace-resultado";
+import { Button } from "@/components/ui/button";
 import { getAdminDb } from "@/lib/db-server";
 
 /**
@@ -143,8 +145,14 @@ export default async function ResultadoPublicoPage({
         <h2 className="text-lg font-semibold">Resultado</h2>
         <p className="mt-2 text-sm text-muted-foreground">
           Por su privacidad, los valores del resultado no se muestran en esta página.
-          Solicite el PDF del resultado a {laboratorio}.
+          Descargue el PDF para verlos.
         </p>
+        <Button asChild className="mt-4">
+          <a href={`/api/r/${params.slug}/pdf`} download={`resultado-${params.slug}.pdf`}>
+            <Download className="h-4 w-4" />
+            Descargar resultado (PDF)
+          </a>
+        </Button>
       </section>
 
       {orden.observaciones ? (
