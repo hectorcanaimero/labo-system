@@ -832,8 +832,8 @@ Rama `sprint/f7-3`, base `staged` post PR #13.
 | Tarea | Sesión | Estado | Commit | Comentario |
 |---|---|---|---|---|
 | F7.4.T3 | opus | hecha | `459f844` | Tabla tipos_analisis (0019) sembrada con los ocho tipos más los existentes; repo compartido de catálogo para tipos y métodos con 23 tests; tipo y método como selectores con alta inline en el examen; página /catalogo/tipos-y-metodos en el sidebar, solo admin; MetodosPanel fuera de Config. La importación no valida tipos: quedan como fuera de la lista. Sin la 0019 no se pueden crear exámenes nuevos. Sin prueba en navegador. |
-| F7.6.T1 | sonnet | en curso | — | Pedido del usuario: Configuración en pestañas, con quinta pestaña Tipos y métodos que embebe el CatalogoPanel; el sidebar apunta a /config?tab=catalogo. Rebase sobre F7.4.T3. |
-| F7.6.T2 | sonnet | en curso | — | Pedido del usuario: las imágenes subidas en Config se pierden. Diagnóstico y corrección. |
+| F7.6.T1 | sonnet | hecha | `abbad57` | Cinco pestañas: Laboratorio, Presupuestos, Imagen, Tasa de cambio y Tipos y métodos con el CatalogoPanel embebido. Un solo form para las tres primeras, Guardar fijo con indicador, salto a la pestaña con error, ?tab= en la URL con history.replaceState porque router.replace re-ejecutaba el server component y reseteaba el form. Sidebar apunta a /config?tab=catalogo. Sin prueba en navegador. |
+| F7.6.T2 | sonnet | hecha | `8fba463` | Bug real: assets/set borraba el archivo viejo antes de confirmar la config nueva; si el upsert fallaba, quedaba sin asset. Orden invertido. Verificado contra el contenedor real de staging: volumen montado y sin errores de storage en 72h; el reporte es probablemente anterior. Producción no tenía compose ni volumen: docker-compose.production.yml nuevo. Test de que el upsert de config no pisa las claves. Pendiente del usuario: confirmar en Coolify si producción apunta al compose nuevo; en este VPS solo corre el contenedor de staging. |
 
 ## F7.4.T3 — Tipos de análisis como tabla administrable
 
