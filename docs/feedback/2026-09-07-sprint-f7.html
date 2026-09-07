@@ -34,13 +34,14 @@ ul{margin:.2rem 0 0;padding-left:1.1rem}li{margin:.2rem 0}
 <span class="eyebrow">RV Laboratorio · F7</span>
 <h1>Sprint de feedback del cliente</h1>
 <p class="lede">Dos semanas para cerrar lo que reportó Miguel Franchi y lo que se acordó en la reunión del 6 de septiembre. Sale del análisis técnico; cada tarea tiene alcance, criterios de aceptación y archivos.</p>
-<div class="meta"><span>Del <b>8 al 19 sep 2026</b></span><span>Tareas <b>13</b></span><span>Estimado <b>36h</b></span><span>Spec <b>specs/F7/sprint-feedback-cliente.md</b></span><span>Backlog <b>tasks.json</b></span></div>
+<div class="meta"><span>Del <b>8 al 19 sep 2026</b></span><span>Tareas <b>14</b></span><span>Estimado <b>38h</b></span><span>Spec <b>specs/F7/sprint-feedback-cliente.md</b></span><span>Backlog <b>tasks.json</b></span></div>
 </header>
 <div class="wrap"><table><thead><tr><th>Cuándo</th><th>ID</th><th>Tarea</th><th>Depende de</th><th>Horas</th></tr></thead><tbody>
 <tr><td><span class="wk s1">S1 · d1-2</span></td><td class="id">F7.1.T1</td><td>Migrar los siete modales a mano al Dialog de shadcn</td><td>—</td><td class="h">4</td></tr>
 <tr><td><span class="wk s1">S1 · d1-2</span></td><td class="id">F7.1.T2</td><td>Mensajes de error faltantes y registro del 500 en exámenes</td><td>—</td><td class="h">1</td></tr>
 <tr><td><span class="wk s1">S1 · d1-2</span></td><td class="id">F7.2.T1</td><td>Decir qué falta para guardar el presupuesto</td><td>—</td><td class="h">2</td></tr>
 <tr><td><span class="wk s1">S1 · d1-2</span></td><td class="id">F7.3.T1</td><td>Enmascarar la página pública del resultado</td><td>—</td><td class="h">1</td></tr>
+<tr><td><span class="wk s1">S1 · d1-2</span></td><td class="id">F7.3.T1b</td><td>PDF público por slug para el enlace del paciente (seguimiento)</td><td>F7.3.T1</td><td class="h">2</td></tr>
 <tr><td><span class="wk s1">S1 · d3-5</span></td><td class="id">F7.2.T2</td><td>Toma de muestra y domicilio: base, schema y cálculo</td><td>—</td><td class="h">3</td></tr>
 <tr><td><span class="wk s1">S1 · d3-5</span></td><td class="id">F7.2.T3</td><td>Toma de muestra y domicilio en formulario, detalle y PDF, más hora de emisión</td><td>F7.2.T2</td><td class="h">3</td></tr>
 <tr><td><span class="wk s1">S1 · d3-5</span></td><td class="id">F7.2.T4</td><td>Ganancia: ocultar detrás de Ajustes avanzados y corregir el paquete cerrado</td><td>—</td><td class="h">2</td></tr>
@@ -167,9 +168,25 @@ ul{margin:.2rem 0 0;padding-left:1.1rem}li{margin:.2rem 0}
 </dl></article>
 </div></section>
 <section id="registro"><h2>Registro del Sprint 1</h2>
+<p style="margin-bottom:1rem;color:var(--ink-2)">Sprint 1 es la semana 1. Rama <code>sprint/f7-1</code> con base <code>staged</code>; un commit por tarea, PR al cierre. Sesiones opus y sonnet en worktrees propios, integración solo por fast-forward.</p>
 <div class="wrap" style="margin-top:0"><table><thead><tr><th>Tarea</th><th>Sesión</th><th>Estado</th><th>Commit</th><th>Comentario</th></tr></thead><tbody id="registro-body">
-<tr data-task="F7.3.T1"><td class="id">F7.3.T1</td><td>sonnet</td><td>hecha, con seguimiento</td><td class="id">1085ba2</td><td>Cédula enmascarada y tabla de valores quitada de /r/[slug]. Seguimiento: la página quedó sin forma de bajar el PDF porque api/pdf/resultado exige sesión de staff; el paciente no ve su resultado. Se agrega F7.3.T1b: endpoint público de PDF autorizado por slug y botón de descarga.</td></tr>
-<tr data-task="F7.1.T1"><td class="id">F7.1.T1</td><td>opus</td><td>hecha</td><td class="id">78441b1</td><td>Siete modales migrados al Dialog de shadcn con DialogBody desplazable y pie fijo. packages/ui suma @radix-ui/react-dialog y un overlay/Dialog.tsx propio para CargarPaqueteButton. Escape y click fuera no cancelan un guardado en curso. Falta verificar a ojo en 1366x768 y tablet.</td></tr>
-<tr data-task="F7.1.T2"><td class="id">F7.1.T2</td><td>sonnet</td><td>hecha</td><td class="id">9094277</td><td>Cinco códigos traducidos y console.error del 500 en exámenes y presupuestos. Pendiente: buscar en los logs de Coolify el POST a /api/examenes del 2026-09-06 02:35-02:45 UTC; la sesión no tiene acceso. Hallazgo: pnpm test y pnpm typecheck fallan en la raíz por errores preexistentes (tsup de @labo/lib sin inputs, tests de integración de @labo/db); por paquete, lib y web pasan.</td></tr>
-</tbody></table></div></section>
+<tr data-task="F7.1.T2"><td class="id">F7.1.T2</td><td>sonnet</td><td>hecha</td><td class="id">9094277</td><td>Cinco códigos traducidos y console.error del 500 en exámenes y presupuestos. Pendiente: log de Coolify del POST a /api/examenes del 2026-09-06 02:35-02:45 UTC.</td></tr>
+<tr data-task="F7.1.T1"><td class="id">F7.1.T1</td><td>opus</td><td>hecha</td><td class="id">78441b1</td><td>Siete modales sobre el Dialog de shadcn con cuerpo desplazable y pie fijo. packages/ui suma @radix-ui/react-dialog y un Dialog propio. Sin prueba visual: ninguna sesión tiene navegador.</td></tr>
+<tr data-task="F7.3.T1"><td class="id">F7.3.T1</td><td>sonnet</td><td>hecha, con seguimiento</td><td class="id">1085ba2</td><td>Cédula enmascarada y valores fuera del HTML. Dejó al paciente sin forma de bajar el PDF; se abrió F7.3.T1b.</td></tr>
+<tr data-task="F7.3.T1b"><td class="id">F7.3.T1b</td><td>sonnet</td><td>en curso</td><td class="id">—</td><td>Endpoint público de PDF autorizado por slug vigente y botón de descarga.</td></tr>
+<tr data-task="F7.1.T3"><td class="id">F7.1.T3</td><td>opus</td><td>en curso</td><td class="id">—</td><td>—</td></tr>
+<tr data-task="F7.2.T1"><td class="id">F7.2.T1</td><td>sonnet</td><td>pendiente</td><td class="id">—</td><td>Después de F7.3.T1b.</td></tr>
+<tr data-task="F7.2.T4"><td class="id">F7.2.T4</td><td>sonnet</td><td>pendiente</td><td class="id">—</td><td>—</td></tr>
+<tr data-task="F7.2.T2"><td class="id">F7.2.T2</td><td>opus</td><td>pendiente</td><td class="id">—</td><td>La migración 0015 no se aplica en la instancia hosted sin decisión del usuario.</td></tr>
+<tr data-task="F7.2.T3"><td class="id">F7.2.T3</td><td>opus</td><td>pendiente</td><td class="id">—</td><td>Última de opus: rebase sobre los cambios de sonnet en PresupuestoForm.</td></tr>
+</tbody></table></div>
+<div class="two">
+<div><span class="eyebrow">Hallazgos fuera del sprint</span><ul>
+<li><b>Globs de Tailwind incompletos.</b> <code>apps/web/tailwind.config.ts</code> no incluye <code>packages/ui/dnd</code>, <code>ordenes</code>, <code>presupuestos</code>, <code>pacientes</code> ni <code>exports</code>, que la app sí usa. Sus clases nunca se generan. Lo limpio es <code>packages/ui/**</code>, pero cambia CSS de toda la app.</li>
+<li><b>Verificación de raíz rota.</b> <code>pnpm test</code> falla porque el build de <code>@labo/lib</code> con tsup no encuentra inputs; <code>pnpm typecheck</code> falla por dos tests de integración de <code>@labo/db</code>; <code>apps/web</code> no tiene vitest. Todo previo al sprint. Las tareas se verifican por paquete.</li></ul></div>
+<div><span class="eyebrow">Pendientes del usuario</span><ul>
+<li>Log de Coolify del POST a <code>/api/examenes</code> del 6 de septiembre, 02:35 a 02:45 UTC, para cerrar la causa del 500.</li>
+<li>Autorizar la migración 0015 en la instancia hosted cuando opus la entregue.</li>
+<li>Confirmar con el cliente si la ganancia se oculta o se elimina.</li></ul></div>
+</div></section>
 </main>
