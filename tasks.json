@@ -2886,6 +2886,25 @@
           "text": "Middleware excluye api/r/ con barra final (sin la barra abría /api/resultados). page.tsx pasa paquete_id, precio_base_snap y ganancia_pct, ahora requeridos en el tipo. cerrado se deriva con esPaqueteCerrado (paquete_id y ganancia 0; ambigüedad documentada si la ganancia global es 0). El submit manda ganancia por línea aunque el toggle esté plegado. enmascararCedula en packages/lib falla cerrado. 22 tests nuevos, lib 335/335. Verificado con next start: el PDF público llega al handler y las rutas protegidas siguen en 307."
         }
       ]
+    },
+    {
+      "id": "F7.0.T1",
+      "phase": 7,
+      "title": "Dejar verde el CI de la raíz",
+      "description": "Build de @labo/lib con tsup, tipos de tests de integración de @labo/db, vitest en apps/web. Bloquea la promoción staged → main.",
+      "model": "opencode-go/kimi-k2.6",
+      "reason": "Arreglos de tooling con diagnóstico hecho.",
+      "status": "in_progress",
+      "dependencies": [],
+      "estimateHours": 3,
+      "files": [
+        "packages/lib/package.json",
+        "packages/db/repos/dashboard.integration.test.ts",
+        "packages/db/repos/presupuestos.integration.test.ts",
+        "apps/web/package.json"
+      ],
+      "specRef": "F7/sprint-feedback-cliente.md#F7.0.T1",
+      "comments": []
     }
   ],
   "phases": []
