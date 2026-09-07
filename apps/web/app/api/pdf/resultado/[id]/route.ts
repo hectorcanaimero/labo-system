@@ -9,8 +9,10 @@ import { renderToStream, type DocumentProps } from "@react-pdf/renderer";
 import { NextResponse, type NextRequest } from "next/server";
 import { createElement, type ReactElement } from "react";
 
+import { crearOReutilizarVerificacion } from "@labo/db/repos/enlaces";
 import { resolvePdfAsset } from "@/lib/pdf-assets";
 import { getAdminDb, getDb } from "@/lib/db-server";
+import { publicOrigin } from "@/lib/public-origin";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -68,23 +70,57 @@ function toErrorResponse(error: unknown): Response {
 }
 
 /**
+ * URL del QR de verificación. Reutiliza el enlace de la orden y lo crea si no
+ * existe, para que un PDF regenerado conserve el mismo slug y el QR de una
+ * copia impresa siga coincidiendo con el de la copia digital.
+ *
+ * Best-effort: si falla (por ejemplo, la migración 0016 sin aplicar) el
+ * informe se emite sin QR en vez de no emitirse.
+ */
+async function resolverVerificacionUrl(
+  db: ReturnType<typeof getAdminDb>,
+  ordenId: string,
+  origin: string,
+): Promise<string | null> {
+  try {
+    const enlace = await crearOReutilizarVerificacion(db, ordenId);
+    return `${origin}/v/${enlace.slug}`;
+  } catch (error) {
+    console.warn(
+      "[pdf/resultado] sin QR de verificación",
+      error instanceof Error ? error.message : error,
+    );
+    return null;
+  }
+}
+
+/**
  * Renderiza el PDF de una orden. Compartido entre esta ruta (staff, con
  * sesión) y `api/r/[slug]/pdf` (público, autorizado por slug vigente) para no
  * duplicar la carga de assets ni el armado del documento.
+ *
+ * `origin` es el origen público con el que se arma la URL del QR; sin él el
+ * informe sale sin QR.
  */
 export async function renderResultadoPdf(
   ordenId: string,
+  origin?: string,
 ): Promise<{ body: ReadableStream<Uint8Array>; filename: string }> {
-  const data = await getForPDF(getAdminDb(), ordenId, resolvePdfAsset);
+  const db = getAdminDb();
+  const data = await getForPDF(db, ordenId, resolvePdfAsset);
   if (!data) {
     throw new Error(RESULTADO_NO_ENCONTRADO);
   }
 
   assertPdfConfig(data.config?.nombre);
 
+  const verificacionUrl = origin ? await resolverVerificacionUrl(db, ordenId, origin) : null;
+
   // Afirmación solo en el límite del renderer: las props ya están chequeadas
   // por createElement(ResultadoPDF, { data }) contra ResultadoPDFProps.
-  const element = createElement(ResultadoPDF, { data }) as ReactElement<DocumentProps>;
+  const element = createElement(ResultadoPDF, {
+    data: { ...data, verificacion_url: verificacionUrl },
+  }) as ReactElement<DocumentProps>;
   const stream = await renderToStream(element);
   const body = Readable.toWeb(stream as unknown as Readable) as ReadableStream<Uint8Array>;
 
@@ -102,7 +138,7 @@ export function pdfResponse(body: ReadableStream<Uint8Array>, filename: string):
   });
 }
 
-export async function GET(_request: NextRequest, { params }: RouteParams): Promise<Response> {
+export async function GET(request: NextRequest, { params }: RouteParams): Promise<Response> {
   const startedAt = performance.now();
 
   try {
@@ -113,7 +149,7 @@ export async function GET(_request: NextRequest, { params }: RouteParams): Promi
       return bad(400, "VALIDACION_FALLIDA");
     }
 
-    const { body, filename } = await renderResultadoPdf(params.id);
+    const { body, filename } = await renderResultadoPdf(params.id, publicOrigin(request));
     return pdfResponse(body, filename);
   } catch (error) {
     return toErrorResponse(error);

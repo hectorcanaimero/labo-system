@@ -12,9 +12,15 @@ import { NextResponse, type NextRequest } from "next/server";
  * (Coolify/Traefik) con `ERR_SSL_WRONG_VERSION_NUMBER`: el DNS interno
  * resuelve al puerto HTTP del container y Node intenta TLS handshake.
  *
- * Rutas públicas: `/`, `/forgot-password`, `/reset-password`, `/accept-invite`
- * y `/r/{slug}` (ficha de resultados que se comparte con el paciente, GUR-18:
- * el slug es la credencial, no hay sesión).
+ * Rutas públicas: `/`, `/forgot-password`, `/reset-password`, `/accept-invite`,
+ * `/r/{slug}` (ficha de resultados que se comparte con el paciente, GUR-18:
+ * el slug es la credencial, no hay sesión) y `/v/{slug}` (verificación del
+ * informe por QR, F7.3.T2).
+ *
+ * `isPublicRoute` compara por segmento (`=== route` o `startsWith(route + "/")`),
+ * así que un prefijo corto como `/v` NO abre `/verificar-algo`. La lista de
+ * exclusiones del `matcher` de abajo sí es por prefijo crudo: ahí hay que
+ * cuidar la barra final.
  * Resto: exige cookie; si no hay, redirect a `/`.
  */
 
@@ -27,6 +33,7 @@ const PUBLIC_ROUTES = [
   "/reset-password",
   "/accept-invite",
   "/r",
+  "/v",
 ] as const;
 
 function isPublicRoute(pathname: string): boolean {

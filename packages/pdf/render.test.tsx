@@ -238,6 +238,61 @@ describe("PDF templates render", () => {
     expect(chunks.length).toBeGreaterThan(0);
   });
 
+  it("renders ResultadoPDF con QR de verificación", async () => {
+    const base = {
+      id: "f9fede93-9830-406f-be54-4c2fae9c11f8",
+      estado: "Entregada",
+      fecha_muestra: "2026-09-06",
+      fecha_resultado: "2026-09-06",
+      medico_solicitante: null,
+      observaciones: null,
+      paciente: {
+        nombre: "Juan",
+        apellido: "Pérez",
+        cedula: "V-23456789",
+        fecha_nacimiento: "1979-01-01",
+        sexo: "M" as const,
+      },
+      examenes: [examenRow({ id: "e1" })],
+      config: null,
+    };
+
+    const conQr = await renderBytes(
+      <ResultadoPDF data={{ ...base, verificacion_url: "https://lab.test/v/AbCd123456" }} />,
+    );
+    const sinQr = await renderBytes(<ResultadoPDF data={base} />);
+
+    expect(conQr).toBeGreaterThan(0);
+    expect(sinQr).toBeGreaterThan(0);
+    // El QR agrega geometría real al documento, no es un no-op.
+    expect(conQr).toBeGreaterThan(sinQr);
+  });
+
+  it("renders ResultadoPDF sin QR cuando no hay URL de verificación", async () => {
+    // Una orden sin enlace de verificación (migración 0016 sin aplicar, por
+    // ejemplo) tiene que emitir el informe igual, sin recuadro de QR.
+    const data = {
+      id: "f9fede93-9830-406f-be54-4c2fae9c11f8",
+      estado: "Entregada",
+      fecha_muestra: "2026-09-06",
+      fecha_resultado: null,
+      medico_solicitante: null,
+      observaciones: null,
+      paciente: {
+        nombre: "Juan",
+        apellido: "Pérez",
+        cedula: "V-23456789",
+        fecha_nacimiento: "1979-01-01",
+        sexo: "M" as const,
+      },
+      examenes: [examenRow({ id: "e1" })],
+      config: null,
+      verificacion_url: null,
+    };
+
+    expect(await renderBytes(<ResultadoPDF data={data} />)).toBeGreaterThan(0);
+  });
+
   it("renders PresupuestoPDF con toma de muestra y domicilio como filas aparte", async () => {
     // Exámenes 13, toma 4, domicilio 6 → total 23. Las líneas siguen sumando
     // 13: los servicios van como filas propias, no como exámenes.

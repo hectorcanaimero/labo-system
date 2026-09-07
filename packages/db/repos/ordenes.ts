@@ -1,5 +1,6 @@
 import type { Db } from "../sdk";
 import { ENTREGA_REQUIERE_VALORES, assertPuedeEntregarse } from "@labo/lib/entrega-orden";
+import { crearOReutilizarVerificacion } from "./enlaces";
 import {
   estadoOrdenSchema,
   ordenCreateSchema,
@@ -701,6 +702,28 @@ export async function update(
   return updated;
 }
 
+/**
+ * Crea el enlace de verificación de la orden si todavía no tiene.
+ *
+ * Best-effort: si falla (tabla 0016 sin aplicar, por ejemplo) no puede tumbar
+ * la entrega del informe, que es la operación que el usuario pidió. El PDF lo
+ * vuelve a intentar al emitirse, así que el QR se recupera solo.
+ */
+async function crearVerificacionBestEffort(
+  db: Db,
+  ordenId: string,
+  usuarioId: string,
+): Promise<void> {
+  try {
+    await crearOReutilizarVerificacion(db, ordenId, usuarioId);
+  } catch (error) {
+    console.warn(
+      "[ordenes] no se pudo crear el enlace de verificación",
+      error instanceof Error ? error.message : error,
+    );
+  }
+}
+
 export async function updateEstado(
   db: Db,
   id: string,
@@ -734,6 +757,12 @@ export async function updateEstado(
 
   const upd = await db.from("ordenes").update(patch).eq("id", id);
   if (upd.error) throw new Error(`ordenes.updateEstado: ${upd.error.message}`);
+
+  // El QR del informe apunta a este slug; se crea al entregar, y se reutiliza
+  // en cada emisión para que un PDF regenerado conserve el mismo.
+  if (parsed.data === "Entregada") {
+    await crearVerificacionBestEffort(db, id, usuarioId);
+  }
 
   await auditBestEffort(db, {
     usuarioId,
