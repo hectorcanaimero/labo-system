@@ -1,47 +1,10 @@
 "use client";
 
-import { Fragment, useEffect, useMemo, useState } from "react";
 import type { ReactNode } from "react";
 
-import { ESTADO_ORDEN, type EstadoOrden } from "@labo/lib/schemas/orden";
+import { type EstadoOrden } from "@labo/lib/schemas/orden";
 
-import { OrdenEstadoBadge } from "./OrdenEstadoBadge";
-
-// SVG inline: evita agregar `lucide-react` como dep del paquete UI (los otros
-// componentes de este paquete no dependen de lucide).
-function IconChevron({
-  direction,
-  className = "h-3.5 w-3.5",
-}: {
-  direction: "left" | "right";
-  className?: string;
-}) {
-  return (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth={2}
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      className={className}
-      aria-hidden
-    >
-      {direction === "left" ? (
-        <>
-          <path d="m11 17-5-5 5-5" />
-          <path d="m18 17-5-5 5-5" />
-        </>
-      ) : (
-        <>
-          <path d="m6 17 5-5-5-5" />
-          <path d="m13 17 5-5-5-5" />
-        </>
-      )}
-    </svg>
-  );
-}
+import { PipelineBoard, moveTargets, type PipelineColumnDef } from "../pipeline";
 
 /**
  * Espejo front de `TRANSICIONES_ESTADO_ORDEN` (backend). Solo para feedback
@@ -68,6 +31,39 @@ export function esTransicionOrdenValida(
   );
 }
 
+/**
+ * Color por etapa, con el mismo criterio que `OrdenEstadoBadge`, que sigue
+ * usándose en el detalle y en el diálogo: un estado no puede tener dos
+ * colores según dónde se lo mire.
+ */
+const PUNTO: Readonly<Record<EstadoOrden, string>> = {
+  Registrada: "bg-zinc-400",
+  "Muestra tomada": "bg-sky-500",
+  "En proceso": "bg-cyan-500",
+  Validando: "bg-violet-500",
+  Entregada: "bg-emerald-500",
+  Anulada: "bg-red-500",
+};
+
+const BORDE: Readonly<Record<EstadoOrden, string>> = {
+  Registrada: "border-l-zinc-400",
+  "Muestra tomada": "border-l-sky-500",
+  "En proceso": "border-l-cyan-500",
+  Validando: "border-l-violet-500",
+  Entregada: "border-l-emerald-500",
+  Anulada: "border-l-red-500",
+};
+
+/** Orden del proceso operativo; Anulada al final y colapsada. */
+export const COLUMNAS_ORDEN: readonly PipelineColumnDef<EstadoOrden>[] = [
+  { estado: "Registrada", accentClassName: PUNTO.Registrada },
+  { estado: "Muestra tomada", accentClassName: PUNTO["Muestra tomada"] },
+  { estado: "En proceso", accentClassName: PUNTO["En proceso"] },
+  { estado: "Validando", accentClassName: PUNTO.Validando },
+  { estado: "Entregada", accentClassName: PUNTO.Entregada },
+  { estado: "Anulada", accentClassName: PUNTO.Anulada, terminal: true },
+];
+
 export interface PipelineOrdenCard {
   id: string;
   estado: EstadoOrden;
@@ -78,31 +74,19 @@ export interface PipelineOrdenCard {
   medico: string | null;
 }
 
-interface ColumnaConTarjetas {
-  estado: EstadoOrden;
-  count: number;
-  tarjetas: PipelineOrdenCard[];
-}
-
-// ────────────────────────────────────────────────────────────────────────────
-// Card
-// ────────────────────────────────────────────────────────────────────────────
-
-export function OrdenKanbanCard({
-  card,
-  actionsSlot,
-}: {
-  card: PipelineOrdenCard;
-  actionsSlot?: ReactNode;
-}) {
+/**
+ * Tarjeta compacta: paciente arriba, cédula y fecha abajo, cantidad de
+ * exámenes a la derecha. Sin badge de estado — lo dice la columna.
+ */
+export function OrdenKanbanCard({ card }: { card: PipelineOrdenCard }) {
   return (
     <div
-      className="group flex flex-col gap-1 rounded-md border border-border bg-card px-3 py-2 transition-colors hover:border-primary/40 hover:bg-accent/40"
+      className={`flex flex-col gap-0.5 rounded-md border border-l-[3px] border-border bg-card px-2.5 py-2 pr-7 transition-shadow hover:shadow-md ${BORDE[card.estado]}`}
       title={card.medico ? `Solicita: ${card.medico}` : undefined}
     >
       <div className="flex items-baseline justify-between gap-2">
         <span
-          className="min-w-0 flex-1 truncate text-sm font-medium leading-tight text-foreground"
+          className="min-w-0 flex-1 truncate text-sm font-semibold leading-tight text-foreground"
           title={card.pacienteLabel}
         >
           {card.pacienteLabel}
@@ -111,186 +95,55 @@ export function OrdenKanbanCard({
           ×{card.examenesCount}
         </span>
       </div>
-      <div className="flex items-center justify-between gap-2 text-[11px] text-muted-foreground">
+      <div className="flex items-center justify-between gap-2 font-mono text-[11px] text-muted-foreground">
         {card.cedula ? (
-          <span className="font-mono tabular-nums">{card.cedula}</span>
+          <span className="truncate tabular-nums">{card.cedula}</span>
         ) : (
-          <span className="italic">Sin ficha</span>
+          <span className="truncate italic">Sin ficha</span>
         )}
-        <span className="tabular-nums">{card.fechaMuestraLabel}</span>
+        <span className="shrink-0 tabular-nums">{card.fechaMuestraLabel}</span>
       </div>
-      {actionsSlot ? <div className="pt-1">{actionsSlot}</div> : null}
     </div>
   );
 }
 
-// ────────────────────────────────────────────────────────────────────────────
-// Persistencia local del set de columnas colapsadas
-// ────────────────────────────────────────────────────────────────────────────
-
-const COLLAPSED_STORAGE_KEY = "labo.ordenes.pipeline.collapsed.v1";
-
-function readCollapsed(): Set<EstadoOrden> {
-  if (typeof window === "undefined") return new Set();
-  try {
-    const raw = window.localStorage.getItem(COLLAPSED_STORAGE_KEY);
-    if (!raw) return new Set();
-    const parsed = JSON.parse(raw) as unknown;
-    if (!Array.isArray(parsed)) return new Set();
-    return new Set(
-      parsed.filter((v): v is EstadoOrden =>
-        (ESTADO_ORDEN as readonly string[]).includes(v as string),
-      ),
-    );
-  } catch {
-    return new Set();
-  }
-}
-
-function persistCollapsed(set: Set<EstadoOrden>): void {
-  if (typeof window === "undefined") return;
-  try {
-    window.localStorage.setItem(
-      COLLAPSED_STORAGE_KEY,
-      JSON.stringify(Array.from(set)),
-    );
-  } catch {
-    // silencioso — el estado sigue vivo en memoria
-  }
-}
-
-// ────────────────────────────────────────────────────────────────────────────
-// Kanban
-// ────────────────────────────────────────────────────────────────────────────
-
 export interface OrdenPipelineKanbanProps {
   items: readonly PipelineOrdenCard[];
-  onCardClick?: (card: PipelineOrdenCard) => void;
-  renderCard?: (card: PipelineOrdenCard) => ReactNode;
+  toolbar?: ReactNode;
+  renderCard: (card: PipelineOrdenCard) => ReactNode;
   renderColumnBody?: (estado: EstadoOrden, cardsNode: ReactNode) => ReactNode;
+  onMove: (card: PipelineOrdenCard, destino: EstadoOrden) => void;
+  getExtraActions?: (
+    card: PipelineOrdenCard,
+  ) => readonly { label: string; onSelect: () => void }[];
+  pendingCardId?: string | null;
 }
 
 export function OrdenPipelineKanban({
   items,
-  onCardClick,
+  toolbar,
   renderCard,
   renderColumnBody,
+  onMove,
+  getExtraActions,
+  pendingCardId,
 }: OrdenPipelineKanbanProps) {
-  const columns = useMemo<ColumnaConTarjetas[]>(() => {
-    return ESTADO_ORDEN.map((estado) => {
-      const tarjetas = items.filter((card) => card.estado === estado);
-      return { estado, count: tarjetas.length, tarjetas };
-    });
-  }, [items]);
-
-  // Cargamos el set persistido después del mount para no romper la
-  // hidratación (localStorage no existe en SSR).
-  const [collapsed, setCollapsed] = useState<Set<EstadoOrden>>(() => new Set());
-  useEffect(() => {
-    setCollapsed(readCollapsed());
-  }, []);
-
-  function toggle(estado: EstadoOrden): void {
-    setCollapsed((prev) => {
-      const next = new Set(prev);
-      if (next.has(estado)) next.delete(estado);
-      else next.add(estado);
-      persistCollapsed(next);
-      return next;
-    });
-  }
-
   return (
-    <div
-      className="flex gap-2 overflow-x-auto pb-1"
-      role="region"
-      aria-label="Pipeline operativo de órdenes de laboratorio"
-    >
-      {columns.map((columna) => {
-        const isCollapsed = collapsed.has(columna.estado);
-
-        // Colapsada: columna angosta con badge vertical + count. Un solo click
-        // en cualquier parte del track la vuelve a expandir.
-        if (isCollapsed) {
-          return (
-            <button
-              key={columna.estado}
-              type="button"
-              onClick={() => toggle(columna.estado)}
-              aria-label={`Expandir columna ${columna.estado} (${columna.count} órdenes)`}
-              className="group flex w-10 shrink-0 flex-col items-center gap-2 rounded-lg border border-border bg-muted/20 py-2 text-muted-foreground transition-colors hover:border-primary/40 hover:bg-accent/40 hover:text-foreground"
-            >
-              <IconChevron direction="right" />
-              <span className="font-mono text-[11px] font-semibold tabular-nums">
-                {columna.count}
-              </span>
-              <span
-                className="whitespace-nowrap text-[11px] font-medium tracking-wide"
-                style={{ writingMode: "vertical-rl", transform: "rotate(180deg)" }}
-              >
-                {columna.estado}
-              </span>
-            </button>
-          );
-        }
-
-        // Expandida: columna full con cards.
-        const cardsNode = (
-          <div className="flex flex-col gap-1.5">
-            {columna.tarjetas.length > 0 ? (
-              columna.tarjetas.map((card) =>
-                renderCard ? (
-                  <Fragment key={card.id}>{renderCard(card)}</Fragment>
-                ) : (
-                  <button
-                    key={card.id}
-                    type="button"
-                    className="cursor-pointer text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1"
-                    onClick={() => onCardClick?.(card)}
-                    aria-label={`Acciones para orden de ${card.pacienteLabel}`}
-                  >
-                    <OrdenKanbanCard card={card} />
-                  </button>
-                ),
-              )
-            ) : (
-              <p className="rounded-md border border-dashed border-border/60 px-2 py-3 text-center text-[11px] italic text-muted-foreground/70">
-                —
-              </p>
-            )}
-          </div>
-        );
-
-        return (
-          <section
-            key={columna.estado}
-            aria-label={`${columna.estado}: ${columna.count} órdenes`}
-            className="flex min-h-[8rem] w-64 shrink-0 flex-col rounded-lg border border-border bg-muted/20"
-          >
-            <header className="sticky top-0 z-10 flex items-center justify-between gap-2 rounded-t-lg border-b border-border bg-muted/60 px-2 py-1.5 backdrop-blur">
-              <div className="flex min-w-0 items-center gap-1.5">
-                <OrdenEstadoBadge estado={columna.estado} />
-                <span className="font-mono text-[11px] font-semibold tabular-nums text-muted-foreground">
-                  {columna.count}
-                </span>
-              </div>
-              <button
-                type="button"
-                onClick={() => toggle(columna.estado)}
-                aria-label={`Colapsar columna ${columna.estado}`}
-                className="rounded p-1 text-muted-foreground/70 transition-colors hover:bg-background hover:text-foreground"
-              >
-                <IconChevron direction="left" />
-              </button>
-            </header>
-            <div className="flex-1 p-1.5">
-              {renderColumnBody
-                ? renderColumnBody(columna.estado, cardsNode)
-                : cardsNode}
-            </div>
-          </section>
-        );
-      })}
-    </div>
+    <PipelineBoard
+      label="Pipeline operativo de órdenes de laboratorio"
+      columns={COLUMNAS_ORDEN}
+      cards={items}
+      cardsLabel="órdenes"
+      emptyColumnLabel="Sin órdenes"
+      toolbar={toolbar}
+      renderCard={renderCard}
+      renderColumnBody={renderColumnBody}
+      getMoveTargets={(card) =>
+        moveTargets(COLUMNAS_ORDEN, card.estado, TRANSICIONES_ESTADO_ORDEN_UI)
+      }
+      onMove={onMove}
+      getExtraActions={getExtraActions}
+      pendingCardId={pendingCardId}
+    />
   );
 }

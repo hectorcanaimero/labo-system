@@ -101,8 +101,14 @@ export function OrdenesShell({
         }
       />
 
-      {/* Barra de conteos por estado — siempre visible, hace de mini-leyenda */}
-      <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs">
+      {/*
+        Conteos por estado. F7.7.T1: sólo en la tabla — en el tablero cada
+        columna ya trae su punto de color, su nombre y su conteo, y repetirlo
+        arriba era la misma información dos veces.
+      */}
+      <div
+        className={`flex-wrap items-center gap-x-4 gap-y-1 text-xs ${vista === "kanban" ? "hidden" : "flex"}`}
+      >
         {ESTADO_ORDEN.map((estado) => (
           <div key={estado} className="flex items-center gap-1.5">
             <span

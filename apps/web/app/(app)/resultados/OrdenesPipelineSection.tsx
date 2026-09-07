@@ -1,9 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { CalendarDays, Eye, Loader2, Stethoscope, User } from "lucide-react";
 import {
   DndContext,
   DragOverlay,
@@ -16,22 +14,12 @@ import {
   type DragStartEvent,
 } from "@dnd-kit/core";
 
-import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 import {
   OrdenPipelineKanban,
   OrdenKanbanCard,
-  TRANSICIONES_ESTADO_ORDEN_UI,
   esTransicionOrdenValida,
   type PipelineOrdenCard,
 } from "@labo/ui/ordenes/OrdenPipelineKanban";
-import { OrdenEstadoBadge } from "@labo/ui/ordenes/OrdenEstadoBadge";
 import { toHumanError } from "@labo/lib/error-messages";
 import { notifyError, notifySuccess } from "@labo/ui/feedback/toast";
 import type { EstadoOrden } from "@labo/lib/schemas/orden";
@@ -101,7 +89,9 @@ function DraggableCardShell({
             onClick();
           }
         }}
-        aria-label={`Acciones para orden de ${card.pacienteLabel}`}
+        aria-label={`Orden de ${card.pacienteLabel}. Enter abre el detalle; usá "Mover a…" para cambiar su estado.`}
+        role="button"
+        tabIndex={0}
         className="cursor-grab active:cursor-grabbing focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1"
       >
         <OrdenKanbanCard card={card} />
@@ -163,14 +153,14 @@ export function OrdenesPipelineSection({ items }: OrdenesPipelineSectionProps) {
     () => new Map(),
   );
 
-  const [activeCardId, setActiveCardId] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
-  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [pendingId, setPendingId] = useState<string | null>(null);
   const [draggingEstado, setDraggingEstado] = useState<EstadoOrden | null>(null);
   const [draggingCard, setDraggingCard] = useState<PipelineOrdenCard | null>(null);
 
   const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
+    // 6 px: por debajo, un clic con la mano temblorosa arrastra sin querer.
+    useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
   );
 
   // Aplicamos overrides sobre los items del server.
@@ -214,21 +204,11 @@ export function OrdenesPipelineSection({ items }: OrdenesPipelineSectionProps) {
   );
 
   const cardsById = useMemo(() => new Map(cards.map((c) => [c.id, c])), [cards]);
-  const activeCard = activeCardId ? cardsById.get(activeCardId) ?? null : null;
-  const activeItem = activeCardId
-    ? mergedItems.find((i) => i.id === activeCardId) ?? null
-    : null;
-
-  const destinos = useMemo<EstadoOrden[]>(
-    () => (activeCard ? [...TRANSICIONES_ESTADO_ORDEN_UI[activeCard.estado]] : []),
-    [activeCard],
-  );
 
   async function cambiarEstado(
     ordenId: string,
     origen: EstadoOrden,
     destino: EstadoOrden,
-    { fromModal = false }: { fromModal?: boolean } = {},
   ): Promise<void> {
     if (busy) return;
 
@@ -239,10 +219,8 @@ export function OrdenesPipelineSection({ items }: OrdenesPipelineSectionProps) {
       return next;
     });
 
-    if (fromModal) setActiveCardId(null);
-
     setBusy(true);
-    setErrorMsg(null);
+    setPendingId(ordenId);
     try {
       const res = await fetch(`/api/resultados/${ordenId}`, {
         method: "PATCH",
@@ -275,15 +253,11 @@ export function OrdenesPipelineSection({ items }: OrdenesPipelineSectionProps) {
         }, 0);
         return next;
       });
-      const msg = toHumanError(err);
-      if (fromModal) {
-        setErrorMsg(msg);
-        setActiveCardId(ordenId); // reabrimos para mostrar el error
-      } else {
-        notifyError(err);
-      }
+      // La tarjeta ya volvió a su columna; el aviso va por toast.
+      notifyError(toHumanError(err));
     } finally {
       setBusy(false);
+      setPendingId(null);
     }
   }
 
@@ -321,155 +295,50 @@ export function OrdenesPipelineSection({ items }: OrdenesPipelineSectionProps) {
   }
 
   return (
-    <>
-      <DndContext
-        sensors={sensors}
-        onDragStart={handleDragStart}
-        onDragEnd={handleDragEnd}
-        onDragCancel={() => {
-          setDraggingEstado(null);
-          setDraggingCard(null);
-        }}
-      >
-        <OrdenPipelineKanban
-          items={cards}
-          renderCard={(card) => (
-            <DraggableCardShell
-              key={card.id}
-              card={card}
-              onClick={() => setActiveCardId(card.id)}
-            />
-          )}
-          renderColumnBody={(estado, cardsNode) => (
-            <DroppableColumnShell estado={estado} activeEstado={draggingEstado}>
-              {cardsNode}
-            </DroppableColumnShell>
-          )}
-        />
-
-        <DragOverlay dropAnimation={null}>
-          {draggingCard ? (
-            <div className="rotate-1 opacity-95 shadow-lg">
-              <OrdenKanbanCard card={draggingCard} />
-            </div>
-          ) : null}
-        </DragOverlay>
-      </DndContext>
-
-      <Dialog
-        open={!!activeCard}
-        onOpenChange={(open) => {
-          if (!open && !busy) {
-            setActiveCardId(null);
-            setErrorMsg(null);
+    <DndContext
+      sensors={sensors}
+      onDragStart={handleDragStart}
+      onDragEnd={handleDragEnd}
+      onDragCancel={() => {
+        setDraggingEstado(null);
+        setDraggingCard(null);
+      }}
+    >
+      <div className="flex h-[calc(100vh-18rem)] min-h-[22rem] flex-col">
+      <OrdenPipelineKanban
+        items={cards}
+        pendingCardId={pendingId}
+        renderCard={(card) => (
+          <DraggableCardShell
+            key={card.id}
+            card={card}
+            onClick={() => router.push(`/resultados/${card.id}`)}
+          />
+        )}
+        renderColumnBody={(estado, cardsNode) => (
+          <DroppableColumnShell estado={estado} activeEstado={draggingEstado}>
+            {cardsNode}
+          </DroppableColumnShell>
+        )}
+        onMove={(card, destino) => {
+          if (!esTransicionOrdenValida(card.estado, destino)) {
+            notifyError(
+              new Error(`Transición no permitida: ${card.estado} → ${destino}`),
+            );
+            return;
           }
+          void cambiarEstado(card.id, card.estado, destino);
         }}
-      >
-        <DialogContent className="max-w-lg">
-          {activeCard && activeItem ? (
-            <>
-              <DialogHeader>
-                <DialogTitle className="flex items-center justify-between gap-3">
-                  <span className="min-w-0 truncate">{activeCard.pacienteLabel}</span>
-                  <OrdenEstadoBadge estado={activeCard.estado} />
-                </DialogTitle>
-                <DialogDescription className="text-xs">
-                  Movés la tarjeta arrastrándola entre columnas, o usá los botones
-                  de abajo.
-                </DialogDescription>
-              </DialogHeader>
+      />
+      </div>
 
-              <dl className="mt-1 grid grid-cols-2 gap-x-3 gap-y-2 rounded-md border border-border bg-muted/30 p-3 text-xs">
-                <div className="flex items-center gap-1.5">
-                  <User className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-                  <dt className="text-muted-foreground">Cédula:</dt>
-                  <dd className="font-mono tabular-nums text-foreground">
-                    {activeItem.paciente_cedula || "—"}
-                  </dd>
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <Stethoscope className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-                  <dt className="text-muted-foreground">Solicita:</dt>
-                  <dd className="truncate text-foreground">
-                    {activeItem.medico_solicitante || "—"}
-                  </dd>
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <CalendarDays className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-                  <dt className="text-muted-foreground">Muestra:</dt>
-                  <dd className="font-mono tabular-nums text-foreground">
-                    {formatDate(activeItem.fecha_muestra)}
-                  </dd>
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <CalendarDays className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-                  <dt className="text-muted-foreground">Entrega:</dt>
-                  <dd className="font-mono tabular-nums text-foreground">
-                    {formatDate(activeItem.fecha_resultado)}
-                  </dd>
-                </div>
-                <div className="col-span-2 flex items-center gap-1.5">
-                  <dt className="text-muted-foreground">Exámenes:</dt>
-                  <dd className="font-mono tabular-nums text-foreground">
-                    {activeItem.examenes_count}
-                  </dd>
-                </div>
-              </dl>
-
-              {errorMsg ? (
-                <p className="rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-xs text-destructive">
-                  {errorMsg}
-                </p>
-              ) : null}
-
-              <div>
-                <p className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
-                  Cambiar estado
-                </p>
-                {destinos.length === 0 ? (
-                  <p className="rounded-md border border-dashed border-border px-3 py-3 text-center text-xs text-muted-foreground">
-                    Estado terminal — no admite más transiciones.
-                  </p>
-                ) : (
-                  <div className="flex flex-wrap gap-2">
-                    {destinos.map((d) => (
-                      <Button
-                        key={d}
-                        type="button"
-                        size="sm"
-                        variant={d === "Anulada" ? "outline" : "default"}
-                        className={
-                          d === "Anulada"
-                            ? "h-8 border-destructive/40 text-destructive hover:bg-destructive/10"
-                            : "h-8"
-                        }
-                        disabled={busy}
-                        onClick={() =>
-                          void cambiarEstado(activeCard.id, activeCard.estado, d, {
-                            fromModal: true,
-                          })
-                        }
-                      >
-                        {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}
-                        → {d}
-                      </Button>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              <div className="flex items-center justify-end gap-2 border-t border-border pt-3">
-                <Link href={`/resultados/${activeCard.id}`}>
-                  <Button type="button" variant="outline" size="sm" className="h-8">
-                    <Eye className="h-3.5 w-3.5" />
-                    Ver detalle
-                  </Button>
-                </Link>
-              </div>
-            </>
-          ) : null}
-        </DialogContent>
-      </Dialog>
-    </>
+      <DragOverlay dropAnimation={null}>
+        {draggingCard ? (
+          <div className="rotate-1 opacity-95 shadow-lg">
+            <OrdenKanbanCard card={draggingCard} />
+          </div>
+        ) : null}
+      </DragOverlay>
+    </DndContext>
   );
 }

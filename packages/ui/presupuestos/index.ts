@@ -6,6 +6,7 @@ export {
   type PipelineColumnaTotales,
   type PipelinePresupuestoCard,
   type PresupuestoPipelineKanbanProps,
+  COLUMNAS_PRESUPUESTO,
 } from "./PresupuestoPipelineKanban";
 export {
   PresupuestoEstadoBadge,
