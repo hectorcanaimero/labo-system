@@ -2530,7 +2530,7 @@
       "description": "**Objetivo**\n\nQuitar el arrastre entre columnas del constructor de paquetes, que hoy no agrega nada porque `DndContext` no tiene sensores y `SortableList` no es un `SortableContext`, y dejar un botón explícito por fila. Unificar el guardado que hoy son tres requests en paralelo.\n\n**Alcance**\n\nSí hace:\n- Fila del catálogo: botón “Agregar” a la derecha; sin `useDraggable`.\n- Reorden dentro del paquete: `useSensors(PointerSensor{distance:6}, KeyboardSensor)` y `SortableContext` con `verticalListSortingStrategy`.\n- Nuevo `PUT /api/paquetes/[id]` que reciba `precio_base`, `examenIds` y `tituloIds` y los aplique en orden; el builder llama solo a ese.\n- Texto vacío del paquete: “Hacé clic en Agregar o incluí un grupo completo”.\n\nNo hace:\n- Cambiar el cálculo de suma sugerida ni de ahorro.\n\n**Criterios de aceptación**\n\n- [ ] Clic en “Agregar” suma el examen al paquete y lo deshabilita en el catálogo.\n- [ ] Reordenar con el mouse y con teclado funciona y persiste al guardar.\n- [ ] Si falla el guardado, el paquete queda como estaba antes.",
       "model": "opencode/deepseek-v4-pro",
       "reason": "Cambios de formulario, endpoints y migraciones con lógica de negocio.",
-      "status": "todo",
+      "status": "done",
       "dependencies": [],
       "estimateHours": 3,
       "files": [
@@ -2540,7 +2540,15 @@
         "packages/db/repos/paquetes.ts"
       ],
       "specRef": "F7/sprint-feedback-cliente.md#F7.1.T3",
-      "comments": []
+      "comments": [
+        {
+          "date": "2026-09-07",
+          "author": "planner",
+          "session": "opus",
+          "commit": "494930d",
+          "text": "Botón Agregar en el catálogo, sensores y SortableContext real para el reorden, PUT único /api/paquetes/[id] con setContenido. Sin transacciones en PostgREST: el rollback es por compensación; atomicidad real requeriría una RPC en Postgres. packages/ui suma dnd-kit. Las rutas viejas /examenes y /titulos siguen. Sin prueba en navegador ni test de setContenido."
+        }
+      ]
     },
     {
       "id": "F7.2.T1",
