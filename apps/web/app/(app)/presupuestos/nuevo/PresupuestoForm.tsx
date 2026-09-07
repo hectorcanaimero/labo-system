@@ -1,11 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   ArrowLeft,
   BadgePercent,
+  ChevronDown,
   Loader2,
   PackageOpen,
   Save,
@@ -72,6 +73,8 @@ interface PresupuestoFormInitialData {
   descuento_pct: number;
   ganancia_pct: number;
   tasa_bs: number;
+  toma_muestra_usd: number;
+  domicilio_usd: number;
   estado: EstadoPresupuesto;
   lineas: Array<{
     examen_id: string;
@@ -87,6 +90,8 @@ interface PresupuestoFormProps {
   mode: PresupuestoMode;
   initialData?: PresupuestoFormInitialData;
   initialTasa?: { tasa: number; stale: boolean } | null;
+  /** Valor por defecto de "Toma de muestra" (Config). Sólo aplica al crear. */
+  tomaMuestraDefault?: number;
   onSaved?: (presupuestoId: string) => void;
   onCancelEdit?: () => void;
 }
@@ -144,6 +149,7 @@ export function PresupuestoForm({
   mode,
   initialData,
   initialTasa,
+  tomaMuestraDefault = 0,
   onSaved,
   onCancelEdit,
 }: PresupuestoFormProps) {
@@ -197,6 +203,18 @@ export function PresupuestoForm({
   );
   const [tasaBs, setTasaBs] = useState(initialTasa ? String(initialTasa.tasa) : initialData ? String(initialData.tasa_bs) : "");
 
+  // Servicios: la toma de muestra siempre se cobra y arranca con el valor de
+  // Config; el domicilio es opcional y su monto sólo se pide si está marcado.
+  const [tomaMuestraUsd, setTomaMuestraUsd] = useState(
+    initialData ? String(initialData.toma_muestra_usd) : String(tomaMuestraDefault),
+  );
+  const [domicilioActivo, setDomicilioActivo] = useState(
+    initialData ? initialData.domicilio_usd > 0 : false,
+  );
+  const [domicilioUsd, setDomicilioUsd] = useState(
+    initialData && initialData.domicilio_usd > 0 ? String(initialData.domicilio_usd) : "",
+  );
+
   const [paquetePanelOpen, setPaquetePanelOpen] = useState(false);
   const [paquetes, setPaquetes] = useState<PaqueteResumenItem[]>([]);
   const [paquetesLoading, setPaquetesLoading] = useState(false);
@@ -206,6 +224,12 @@ export function PresupuestoForm({
 
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
+  const [intentoGuardar, setIntentoGuardar] = useState(false);
+  const [ajustesAvanzadosOpen, setAjustesAvanzadosOpen] = useState(false);
+
+  const pacienteSectionRef = useRef<HTMLElement>(null);
+  const examenesSectionRef = useRef<HTMLElement>(null);
+  const ajustesSectionRef = useRef<HTMLElement>(null);
 
   const selectedExamIds = useMemo(() => lineas.map((linea) => linea.examen_id), [lineas]);
 
@@ -225,12 +249,19 @@ export function PresupuestoForm({
     (linea) => !hasValue(linea.gananciaPctInput) || toNumber(linea.gananciaPctInput) >= 0,
   );
 
+  const tomaMuestraNum = toNumber(tomaMuestraUsd);
+  const domicilioNum = domicilioActivo ? toNumber(domicilioUsd) : 0;
+  const tomaMuestraValida = !hasValue(tomaMuestraUsd) || tomaMuestraNum >= 0;
+  const domicilioValido = !domicilioActivo || (!hasValue(domicilioUsd) || domicilioNum >= 0);
+  const serviciosUsd = tomaMuestraNum + domicilioNum;
+
   const totals = useMemo(() => {
     if (!tasaValida || lineas.length === 0) return null;
     return calcularTotales({
       descuentoPct: descuentoNum,
       gananciaPct: gananciaNum,
       tasa: tasaNum,
+      serviciosUsd,
       lineas: lineas.map((linea) => ({
         precioBase: linea.precio_base_snap,
         ...(hasValue(linea.gananciaPctInput)
@@ -238,7 +269,7 @@ export function PresupuestoForm({
           : {}),
       })),
     });
-  }, [lineas, descuentoNum, gananciaNum, tasaNum, tasaValida]);
+  }, [lineas, descuentoNum, gananciaNum, tasaNum, tasaValida, serviciosUsd]);
 
   const pacienteOk =
     (modoPaciente === "registrado" && Boolean(selectedPaciente?.id)) ||
@@ -249,7 +280,31 @@ export function PresupuestoForm({
     descuentoValido &&
     gananciaValida &&
     gananciaPorLineaValida &&
+    tomaMuestraValida &&
+    domicilioValido &&
     tasaValida;
+
+  const faltantes = useMemo(() => {
+    const items: string[] = [];
+    if (!pacienteOk) items.push("Falta elegir paciente");
+    if (lineas.length === 0) items.push("Agregá al menos un examen");
+    if (!descuentoValido) items.push("El descuento debe estar entre 0 y 100");
+    if (!gananciaValida) items.push("La ganancia global no puede ser negativa");
+    if (!gananciaPorLineaValida) items.push("La ganancia por línea no puede ser negativa");
+    if (!tomaMuestraValida) items.push("La toma de muestra no puede ser negativa");
+    if (!domicilioValido) items.push("El servicio a domicilio no puede ser negativo");
+    if (!tasaValida) items.push("Ingresá una tasa mayor a 0");
+    return items;
+  }, [
+    pacienteOk,
+    lineas.length,
+    descuentoValido,
+    gananciaValida,
+    gananciaPorLineaValida,
+    tomaMuestraValida,
+    domicilioValido,
+    tasaValida,
+  ]);
 
   useEffect(() => {
     if (!paquetePanelOpen) {
@@ -358,7 +413,10 @@ export function PresupuestoForm({
           precio_snap: precios[index],
           paquete_id: paquete.id,
           precio_base_snap: bases[index],
-          gananciaPctInput: "",
+          // Paquete cerrado: ganancia 0 explícita para que el total sea el
+          // precio base fijado por el admin, no ese precio + la ganancia
+          // global aplicada de nuevo sobre el reparto (bug reportado).
+          gananciaPctInput: modo === "cerrado" ? "0" : "",
           cerrado: modo === "cerrado",
         })),
       );
@@ -390,8 +448,15 @@ export function PresupuestoForm({
   }
 
   async function submit(): Promise<void> {
+    setIntentoGuardar(true);
+
     if (!canSubmit) {
-      setMessage("Completá paciente, exámenes y una tasa válida antes de guardar.");
+      const target = !pacienteOk
+        ? pacienteSectionRef.current
+        : lineas.length === 0
+          ? examenesSectionRef.current
+          : ajustesSectionRef.current;
+      target?.scrollIntoView({ behavior: "smooth", block: "start" });
       return;
     }
 
@@ -405,13 +470,20 @@ export function PresupuestoForm({
         descuento_pct: descuentoNum,
         ganancia_pct: gananciaNum,
         tasa_bs: tasaNum,
+        toma_muestra_usd: tomaMuestraNum,
+        // Desmarcar el check manda 0: es lo que lo saca del PDF y del total.
+        domicilio_usd: domicilioNum,
         examenes: lineas.map((linea) => ({
           examen_id: linea.examen_id,
           ...(linea.paquete_id ? { paquete_id: linea.paquete_id } : {}),
           precio_base_snap: linea.precio_base_snap,
-          ...(hasValue(linea.gananciaPctInput)
-            ? { ganancia_pct: toNumber(linea.gananciaPctInput) }
-            : {}),
+          // Paquete cerrado: ganancia 0 siempre, aunque Ajustes avanzados
+          // esté cerrado — es lo que mantiene el precio pactado del paquete.
+          ...(linea.cerrado
+            ? { ganancia_pct: 0 }
+            : ajustesAvanzadosOpen && hasValue(linea.gananciaPctInput)
+              ? { ganancia_pct: toNumber(linea.gananciaPctInput) }
+              : {}),
         })),
       };
 
@@ -461,7 +533,12 @@ export function PresupuestoForm({
         </p>
       ) : null}
 
-      <section className="grid gap-6 rounded-2xl border border-border bg-card p-6 shadow-sm">
+      <section
+        ref={pacienteSectionRef}
+        className={`grid gap-6 rounded-2xl border bg-card p-6 shadow-sm ${
+          intentoGuardar && !pacienteOk ? "border-destructive" : "border-border"
+        }`}
+      >
         <div>
           <h2 className="text-lg font-semibold">Paciente</h2>
           <p className="text-sm text-muted-foreground">
@@ -563,7 +640,7 @@ export function PresupuestoForm({
         )}
       </section>
 
-      <section className="rounded-2xl border border-border bg-card p-6 shadow-sm">
+      <section ref={examenesSectionRef} className="rounded-2xl border border-border bg-card p-6 shadow-sm">
         <div className="flex flex-col gap-3 border-b border-border pb-4 md:flex-row md:items-center md:justify-between">
           <div>
             <h2 className="text-lg font-semibold">Exámenes del presupuesto</h2>
@@ -685,7 +762,9 @@ export function PresupuestoForm({
                 <th className="px-4 py-3 font-medium">Examen</th>
                 <th className="px-4 py-3 font-medium">Origen</th>
                 <th className="px-4 py-3 font-medium">Precio base USD</th>
-                <th className="px-4 py-3 font-medium">Ganancia %</th>
+                {ajustesAvanzadosOpen ? (
+                  <th className="px-4 py-3 font-medium">Ganancia %</th>
+                ) : null}
                 <th className="px-4 py-3 text-right font-medium">Precio final USD</th>
                 <th className="px-4 py-3 text-right font-medium">Acción</th>
               </tr>
@@ -693,7 +772,10 @@ export function PresupuestoForm({
             <tbody className="divide-y divide-border">
               {lineas.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="px-4 py-8 text-center text-sm text-muted-foreground">
+                  <td
+                    colSpan={ajustesAvanzadosOpen ? 6 : 5}
+                    className="px-4 py-8 text-center text-sm text-muted-foreground"
+                  >
                     Todavía no agregaste exámenes. Usá el buscador o cargá un paquete.
                   </td>
                 </tr>
@@ -721,26 +803,28 @@ export function PresupuestoForm({
                       <td className="px-4 py-3 font-mono text-muted-foreground">
                         {formatUsd(linea.precio_base_snap)}
                       </td>
-                      <td className="px-4 py-3">
-                        {linea.cerrado ? (
-                          <span className="text-xs text-muted-foreground">Global</span>
-                        ) : (
-                          <input
-                            type="number"
-                            min={0}
-                            step="0.01"
-                            value={linea.gananciaPctInput}
-                            onChange={(event) => updateGananciaLinea(index, event.target.value)}
-                            placeholder="Global"
-                            aria-label={`Ganancia % de ${linea.nombre_snap}`}
-                            className={`h-9 w-24 rounded-md border bg-background px-2 text-sm ${
-                              gananciaInvalida
-                                ? "border-destructive text-destructive"
-                                : "border-input"
-                            }`}
-                          />
-                        )}
-                      </td>
+                      {ajustesAvanzadosOpen ? (
+                        <td className="px-4 py-3">
+                          {linea.cerrado ? (
+                            <span className="text-xs text-muted-foreground">0 (cerrado)</span>
+                          ) : (
+                            <input
+                              type="number"
+                              min={0}
+                              step="0.01"
+                              value={linea.gananciaPctInput}
+                              onChange={(event) => updateGananciaLinea(index, event.target.value)}
+                              placeholder="Global"
+                              aria-label={`Ganancia % de ${linea.nombre_snap}`}
+                              className={`h-9 w-24 rounded-md border bg-background px-2 text-sm ${
+                                gananciaInvalida
+                                  ? "border-destructive text-destructive"
+                                  : "border-input"
+                              }`}
+                            />
+                          )}
+                        </td>
+                      ) : null}
                       <td className="px-4 py-3 text-right font-mono text-foreground">
                         {precioFinalLinea === undefined ? "—" : formatUsd(precioFinalLinea)}
                       </td>
@@ -779,65 +863,150 @@ export function PresupuestoForm({
       </section>
 
       <section className="rounded-2xl border border-border bg-card p-6 shadow-sm">
+        <div className="flex flex-col gap-1">
+          <h2 className="text-sm font-semibold text-foreground">Servicios</h2>
+          <p className="text-xs text-muted-foreground">
+            Se cobran aparte de los exámenes: no les aplica el descuento ni la ganancia.
+          </p>
+        </div>
+
+        <div className="mt-4 grid gap-4 sm:grid-cols-2">
+          <label className="space-y-2 text-sm font-medium">
+            <span>Toma de muestra (USD)</span>
+            <input
+              type="number"
+              min={0}
+              step="0.01"
+              value={tomaMuestraUsd}
+              onChange={(event) => setTomaMuestraUsd(event.target.value)}
+              placeholder="0.00"
+              className="h-11 w-full rounded-md border border-input bg-background px-3 text-sm"
+            />
+            {!tomaMuestraValida ? (
+              <span className="text-xs text-destructive">No puede ser negativa.</span>
+            ) : null}
+          </label>
+
+          <div className="space-y-2">
+            <label className="flex items-center gap-2 text-sm font-medium">
+              <input
+                type="checkbox"
+                checked={domicilioActivo}
+                onChange={(event) => {
+                  const activo = event.target.checked;
+                  setDomicilioActivo(activo);
+                  if (!activo) setDomicilioUsd("");
+                }}
+                className="h-4 w-4 rounded border-input"
+              />
+              Servicio a domicilio
+            </label>
+
+            {domicilioActivo ? (
+              <>
+                <input
+                  type="number"
+                  min={0}
+                  step="0.01"
+                  value={domicilioUsd}
+                  onChange={(event) => setDomicilioUsd(event.target.value)}
+                  placeholder="0.00"
+                  aria-label="Monto del servicio a domicilio en USD"
+                  className="h-11 w-full rounded-md border border-input bg-background px-3 text-sm"
+                />
+                {!domicilioValido ? (
+                  <span className="text-xs text-destructive">No puede ser negativo.</span>
+                ) : null}
+              </>
+            ) : (
+              <p className="text-xs text-muted-foreground">
+                Marcalo si la muestra se toma en el domicilio del paciente.
+              </p>
+            )}
+          </div>
+        </div>
+      </section>
+
+      <section ref={ajustesSectionRef} className="rounded-2xl border border-border bg-card p-6 shadow-sm">
         <div className="grid gap-6 lg:grid-cols-2">
-          <div className="grid gap-4 sm:grid-cols-3">
-            <label className="space-y-2 text-sm font-medium">
-              <span className="inline-flex items-center gap-1.5">
-                <BadgePercent className="h-4 w-4 text-muted-foreground" />
-                Descuento %
-              </span>
-              <input
-                type="number"
-                min={0}
-                max={100}
-                step="0.01"
-                value={descuentoPct}
-                onChange={(event) => setDescuentoPct(event.target.value)}
-                placeholder="0"
-                className="h-11 w-full rounded-md border border-input bg-background px-3 text-sm"
-              />
-              {!descuentoValido ? (
-                <span className="text-xs text-destructive">Debe estar entre 0 y 100.</span>
-              ) : null}
-            </label>
+          <div className="space-y-4">
+            <div className="grid gap-4 sm:grid-cols-2">
+              <label className="space-y-2 text-sm font-medium">
+                <span className="inline-flex items-center gap-1.5">
+                  <BadgePercent className="h-4 w-4 text-muted-foreground" />
+                  Descuento %
+                </span>
+                <input
+                  type="number"
+                  min={0}
+                  max={100}
+                  step="0.01"
+                  value={descuentoPct}
+                  onChange={(event) => setDescuentoPct(event.target.value)}
+                  placeholder="0"
+                  className="h-11 w-full rounded-md border border-input bg-background px-3 text-sm"
+                />
+                {!descuentoValido ? (
+                  <span className="text-xs text-destructive">Debe estar entre 0 y 100.</span>
+                ) : null}
+              </label>
 
-            <label className="space-y-2 text-sm font-medium">
-              <span className="inline-flex items-center gap-1.5">
-                <BadgePercent className="h-4 w-4 text-muted-foreground" />
-                Ganancia %
-              </span>
-              <input
-                type="number"
-                min={0}
-                step="0.01"
-                value={gananciaPct}
-                onChange={(event) => setGananciaPct(event.target.value)}
-                placeholder="0"
-                className="h-11 w-full rounded-md border border-input bg-background px-3 text-sm"
-              />
-              {!gananciaValida ? (
-                <span className="text-xs text-destructive">No puede ser negativa.</span>
-              ) : null}
-            </label>
+              <label className="space-y-2 text-sm font-medium">
+                <span className="inline-flex items-center gap-1.5">
+                  Tasa Bs
+                  <StaleTasaBadge />
+                </span>
+                <input
+                  type="number"
+                  min={0}
+                  step="0.0001"
+                  value={tasaBs}
+                  onChange={(event) => setTasaBs(event.target.value)}
+                  placeholder="0.00"
+                  className="h-11 w-full rounded-md border border-input bg-background px-3 text-sm"
+                />
+                {!tasaValida ? (
+                  <span className="text-xs text-destructive">Ingresá una tasa mayor a 0.</span>
+                ) : null}
+              </label>
+            </div>
 
-            <label className="space-y-2 text-sm font-medium">
-              <span className="inline-flex items-center gap-1.5">
-                Tasa Bs
-                <StaleTasaBadge />
-              </span>
-              <input
-                type="number"
-                min={0}
-                step="0.0001"
-                value={tasaBs}
-                onChange={(event) => setTasaBs(event.target.value)}
-                placeholder="0.00"
-                className="h-11 w-full rounded-md border border-input bg-background px-3 text-sm"
-              />
-              {!tasaValida ? (
-                <span className="text-xs text-destructive">Ingresá una tasa mayor a 0.</span>
+            <div>
+              <button
+                type="button"
+                onClick={() => setAjustesAvanzadosOpen((open) => !open)}
+                className="inline-flex items-center gap-1.5 text-sm font-medium text-muted-foreground hover:text-foreground"
+                aria-expanded={ajustesAvanzadosOpen}
+              >
+                <ChevronDown
+                  className={`h-4 w-4 transition-transform ${
+                    ajustesAvanzadosOpen ? "rotate-180" : ""
+                  }`}
+                />
+                Ajustes avanzados
+              </button>
+
+              {ajustesAvanzadosOpen ? (
+                <label className="mt-3 block max-w-xs space-y-2 text-sm font-medium">
+                  <span className="inline-flex items-center gap-1.5">
+                    <BadgePercent className="h-4 w-4 text-muted-foreground" />
+                    Ganancia %
+                  </span>
+                  <input
+                    type="number"
+                    min={0}
+                    step="0.01"
+                    value={gananciaPct}
+                    onChange={(event) => setGananciaPct(event.target.value)}
+                    placeholder="0"
+                    className="h-11 w-full rounded-md border border-input bg-background px-3 text-sm"
+                  />
+                  {!gananciaValida ? (
+                    <span className="text-xs text-destructive">No puede ser negativa.</span>
+                  ) : null}
+                </label>
               ) : null}
-            </label>
+            </div>
           </div>
 
           <div className="flex flex-col justify-between rounded-xl border border-border bg-background/60 p-5">
@@ -857,10 +1026,22 @@ export function PresupuestoForm({
                   {hasValue(descuentoPct) ? `${descuentoNum}%` : "—"}
                 </span>
               </div>
+              {ajustesAvanzadosOpen ? (
+                <div className="flex items-center justify-between">
+                  <span className="text-muted-foreground">Ganancia</span>
+                  <span className="font-mono text-foreground">
+                    {hasValue(gananciaPct) ? `${gananciaNum}%` : "—"}
+                  </span>
+                </div>
+              ) : null}
               <div className="flex items-center justify-between">
-                <span className="text-muted-foreground">Ganancia</span>
+                <span className="text-muted-foreground">Toma de muestra</span>
+                <span className="font-mono text-foreground">{formatUsd(tomaMuestraNum)}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-muted-foreground">Servicio a domicilio</span>
                 <span className="font-mono text-foreground">
-                  {hasValue(gananciaPct) ? `${gananciaNum}%` : "—"}
+                  {domicilioActivo ? formatUsd(domicilioNum) : "—"}
                 </span>
               </div>
               <div className="mt-3 flex items-center justify-between border-t border-border pt-3">
@@ -884,16 +1065,25 @@ export function PresupuestoForm({
         </div>
       </section>
 
-      <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
-        {mode === "edit" && onCancelEdit ? (
-          <Button type="button" variant="outline" onClick={onCancelEdit}>
-            Cancelar
-          </Button>
+      <div className="flex flex-col items-end gap-3">
+        {intentoGuardar && faltantes.length > 0 ? (
+          <ul className="w-full space-y-1 text-right text-sm text-destructive sm:w-auto">
+            {faltantes.map((item) => (
+              <li key={item}>{item}</li>
+            ))}
+          </ul>
         ) : null}
-        <Button type="button" onClick={() => void submit()} disabled={saving || !canSubmit}>
-          {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-          {saving ? "Guardando…" : mode === "create" ? "Guardar presupuesto" : "Guardar cambios"}
-        </Button>
+        <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+          {mode === "edit" && onCancelEdit ? (
+            <Button type="button" variant="outline" onClick={onCancelEdit}>
+              Cancelar
+            </Button>
+          ) : null}
+          <Button type="button" onClick={() => void submit()} disabled={saving}>
+            {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+            {saving ? "Guardando…" : mode === "create" ? "Guardar presupuesto" : "Guardar cambios"}
+          </Button>
+        </div>
       </div>
       <PacienteFormDialog
         open={crearPacienteOpen}

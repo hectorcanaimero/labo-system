@@ -1,11 +1,13 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+import { Download } from "lucide-react";
 
 import { get as getConfig } from "@labo/db/repos/config";
 import { getBySlug } from "@labo/db/repos/enlaces";
 import { getById as getPacienteById } from "@labo/db/repos/pacientes";
 import { getById as getOrden } from "@labo/db/repos/ordenes";
 import { SLUG_PATTERN } from "@labo/lib/enlace-resultado";
+import { Button } from "@/components/ui/button";
 import { getAdminDb } from "@/lib/db-server";
 
 /**
@@ -31,6 +33,38 @@ function formatDate(value: string | Date | null): string {
   return new Intl.DateTimeFormat("es-VE", { dateStyle: "long", timeZone: "UTC" }).format(
     new Date(value),
   );
+}
+
+/**
+ * Enmascara la cédula dejando visibles solo los últimos dos dígitos, con los
+ * mismos grupos de miles que se usarían al mostrarla completa (ej.
+ * `V-12345678` → `V-***.***.*78`).
+ */
+function maskCedula(cedula: string): string {
+  const match = /^([VEJGP])-(\d+)$/.exec(cedula);
+  if (!match) return cedula;
+  const [, prefix, digits] = match;
+
+  const groupLengths: number[] = [];
+  let remaining = digits.length;
+  while (remaining > 3) {
+    groupLengths.unshift(3);
+    remaining -= 3;
+  }
+  groupLengths.unshift(remaining);
+
+  const visibleCount = Math.min(2, digits.length);
+  const masked =
+    "*".repeat(digits.length - visibleCount) + digits.slice(digits.length - visibleCount);
+
+  const groups: string[] = [];
+  let cursor = 0;
+  for (const length of groupLengths) {
+    groups.push(masked.slice(cursor, cursor + length));
+    cursor += length;
+  }
+
+  return `${prefix}-${groups.join(".")}`;
 }
 
 export default async function ResultadoPublicoPage({
@@ -78,7 +112,7 @@ export default async function ResultadoPublicoPage({
         <dl className="mt-4 grid gap-3 sm:grid-cols-2">
           <div>
             <dt className="text-xs uppercase tracking-wide text-muted-foreground">Cédula</dt>
-            <dd className="text-sm font-medium">{paciente.cedula}</dd>
+            <dd className="text-sm font-medium">{maskCedula(paciente.cedula)}</dd>
           </div>
           <div>
             <dt className="text-xs uppercase tracking-wide text-muted-foreground">Estado</dt>
@@ -107,56 +141,18 @@ export default async function ResultadoPublicoPage({
         </dl>
       </section>
 
-      <section className="rounded-2xl border border-border bg-card shadow-sm">
-        <div className="border-b border-border p-5">
-          <h2 className="text-lg font-semibold">Detalle de exámenes</h2>
-        </div>
-
-        {/* Tabla en desktop, tarjetas en móvil: el enlace llega casi siempre por WhatsApp. */}
-        <div className="hidden overflow-x-auto p-5 md:block">
-          <table className="min-w-full divide-y divide-border text-sm">
-            <thead className="text-left text-muted-foreground">
-              <tr>
-                <th className="px-3 py-2 font-medium">Examen</th>
-                <th className="px-3 py-2 font-medium">Resultado</th>
-                <th className="px-3 py-2 font-medium">Unidad</th>
-                <th className="px-3 py-2 font-medium">Valores de referencia</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-border">
-              {orden.examenes.map((examen) => (
-                <tr key={examen.id} className="align-top">
-                  <td className="px-3 py-2 font-medium">{examen.nombre_snap}</td>
-                  <td className="px-3 py-2 font-medium">{examen.valor || "—"}</td>
-                  <td className="px-3 py-2 text-muted-foreground">{examen.unidad_snap || "—"}</td>
-                  <td className="px-3 py-2 text-xs text-muted-foreground">
-                    {examen.valores_referencia_snap || "—"}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-
-        <ul className="flex flex-col divide-y divide-border md:hidden">
-          {orden.examenes.map((examen) => (
-            <li key={examen.id} className="flex flex-col gap-1 p-5">
-              <p className="font-medium">{examen.nombre_snap}</p>
-              <p className="text-sm">
-                <span className="font-semibold">{examen.valor || "—"}</span>{" "}
-                <span className="text-muted-foreground">{examen.unidad_snap || ""}</span>
-              </p>
-              {examen.valores_referencia_snap ? (
-                <p className="text-xs text-muted-foreground">
-                  Referencia: {examen.valores_referencia_snap}
-                </p>
-              ) : null}
-              {examen.observacion ? (
-                <p className="text-xs text-muted-foreground">{examen.observacion}</p>
-              ) : null}
-            </li>
-          ))}
-        </ul>
+      <section className="rounded-2xl border border-border bg-card p-5 shadow-sm">
+        <h2 className="text-lg font-semibold">Resultado</h2>
+        <p className="mt-2 text-sm text-muted-foreground">
+          Por su privacidad, los valores del resultado no se muestran en esta página.
+          Descargue el PDF para verlos.
+        </p>
+        <Button asChild className="mt-4">
+          <a href={`/api/r/${params.slug}/pdf`} download={`resultado-${params.slug}.pdf`}>
+            <Download className="h-4 w-4" />
+            Descargar resultado (PDF)
+          </a>
+        </Button>
       </section>
 
       {orden.observaciones ? (

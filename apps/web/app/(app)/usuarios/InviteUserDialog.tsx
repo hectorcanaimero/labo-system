@@ -1,8 +1,17 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Loader2, Mail, Shield, UserPlus, X, Clock, AlertCircle } from "lucide-react";
+import { Loader2, Mail, Shield, UserPlus, Clock, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogBody,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 interface InviteUserDialogProps {
   onSuccess: (msg: string) => void;
@@ -61,6 +70,11 @@ export function InviteUserDialog({ onSuccess, onError }: InviteUserDialogProps) 
       setLoadingPending(false);
     }
   }
+
+  const handleOpenChange = (next: boolean) => {
+    if (!next && submitting) return;
+    setIsOpen(next);
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -147,26 +161,17 @@ export function InviteUserDialog({ onSuccess, onError }: InviteUserDialogProps) 
         <span>Invitar usuario</span>
       </Button>
 
-      {isOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 animate-in fade-in duration-200">
-          <div className="w-full max-w-md rounded-xl border border-border bg-card p-6 text-card-foreground shadow-lg animate-in zoom-in-95 duration-200">
-            <div className="flex items-center justify-between pb-4">
-              <div className="flex flex-col gap-1">
-                <h3 className="text-lg font-semibold leading-none tracking-tight">Invitar Usuario</h3>
-                <p className="text-xs text-muted-foreground">
-                  Enviá un enlace de acceso por email. Vence en 7 días.
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={() => setIsOpen(false)}
-                className="rounded-md p-1.5 hover:bg-muted text-muted-foreground/80 hover:text-foreground"
-              >
-                <X className="h-4 w-4" />
-              </button>
-            </div>
+      <Dialog open={isOpen} onOpenChange={handleOpenChange}>
+        <DialogContent className="flex max-h-[90vh] w-full max-w-md flex-col gap-0 overflow-hidden p-0 text-card-foreground">
+          <DialogHeader className="px-6 pb-4 pr-12 pt-6">
+            <DialogTitle>Invitar Usuario</DialogTitle>
+            <DialogDescription className="text-xs">
+              Enviá un enlace de acceso por email. Vence en 7 días.
+            </DialogDescription>
+          </DialogHeader>
 
-            <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col">
+            <DialogBody className="space-y-4">
               <div className="flex flex-col gap-2">
                 <label htmlFor="invite-email" className="text-sm font-medium leading-none">
                   Correo Electrónico
@@ -209,31 +214,31 @@ export function InviteUserDialog({ onSuccess, onError }: InviteUserDialogProps) 
                 <AlertCircle className="h-3.5 w-3.5 shrink-0 mt-0.5" />
                 <span>El invitado elegirá su contraseña al activar su cuenta.</span>
               </div>
+            </DialogBody>
 
-              <div className="flex justify-end gap-3 pt-2">
-                <Button
-                  type="button"
-                  variant="ghost"
-                  onClick={() => setIsOpen(false)}
-                  disabled={submitting}
-                >
-                  Cancelar
-                </Button>
-                <Button type="submit" disabled={submitting}>
-                  {submitting ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Enviando…
-                    </>
-                  ) : (
-                    "Enviar Invitación"
-                  )}
-                </Button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+            <DialogFooter className="shrink-0 gap-3 border-t border-border bg-card px-6 py-4">
+              <Button
+                type="button"
+                variant="ghost"
+                onClick={() => handleOpenChange(false)}
+                disabled={submitting}
+              >
+                Cancelar
+              </Button>
+              <Button type="submit" disabled={submitting}>
+                {submitting ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Enviando…
+                  </>
+                ) : (
+                  "Enviar Invitación"
+                )}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

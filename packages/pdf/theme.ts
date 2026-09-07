@@ -41,6 +41,39 @@ export function formatDateDMY(value: Date | string | null | undefined): string {
   return `${day}/${month}/${d.getUTCFullYear()}`;
 }
 
+/** Zona horaria del laboratorio. El servidor corre en UTC. */
+export const LAB_TIMEZONE = "America/Caracas";
+
+/**
+ * Fecha y hora en la zona del laboratorio: `dd/mm/aaaa hh:mm`.
+ *
+ * `formatDateDMY` formatea en UTC, así que un presupuesto emitido a las 21:30
+ * de Caracas saldría fechado al día siguiente. Acá la conversión es explícita.
+ */
+export function formatDateTimeDMY(value: Date | string | null | undefined): string {
+  if (!value) return "—";
+  const d = value instanceof Date ? value : new Date(value);
+  if (Number.isNaN(d.getTime())) return "—";
+
+  const parts = new Intl.DateTimeFormat("en-GB", {
+    timeZone: LAB_TIMEZONE,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  }).formatToParts(d);
+
+  const get = (type: Intl.DateTimeFormatPartTypes): string =>
+    parts.find((part) => part.type === type)?.value ?? "";
+
+  // `hour12: false` puede devolver "24" para medianoche en algunos runtimes.
+  const hour = get("hour") === "24" ? "00" : get("hour");
+
+  return `${get("day")}/${get("month")}/${get("year")} ${hour}:${get("minute")}`;
+}
+
 export interface LaboratorioPDFConfig {
   nombre: string;
   direccion: string;

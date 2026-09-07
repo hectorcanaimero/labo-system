@@ -10,6 +10,8 @@ const config: Config = {
     "../../packages/ui/text/**/*.{ts,tsx}",
     "../../packages/ui/feedback/**/*.{ts,tsx}",
     "../../packages/ui/layout/**/*.{ts,tsx}",
+    "../../packages/ui/overlay/**/*.{ts,tsx}",
+    "../../packages/ui/paquetes/**/*.{ts,tsx}",
   ],
   theme: {
     container: {

@@ -6,6 +6,7 @@ import { z } from "zod";
 export const NOMBRE_REQUERIDO = "NOMBRE_REQUERIDO";
 export const RIF_INVALIDO = "RIF_INVALIDO";
 export const DIRECCION_REQUERIDA = "DIRECCION_REQUERIDA";
+export const TOMA_MUESTRA_DEFAULT_INVALIDA = "TOMA_MUESTRA_DEFAULT_INVALIDA";
 
 /**
  * Errores de validación de assets (logo/firma/sello).
@@ -94,6 +95,16 @@ export const configUpdateSchema = z.object({
     ),
 
   pdf_pie_pagina: z.string().optional(),
+
+  /**
+   * Valor con el que el formulario de presupuesto precarga "Toma de muestra",
+   * en USD. Refleja el CHECK `toma_muestra_default_usd >= 0` de la 0015.
+   */
+  toma_muestra_default_usd: z
+    .number()
+    .finite()
+    .refine((v) => v >= 0, { message: TOMA_MUESTRA_DEFAULT_INVALIDA })
+    .optional(),
 });
 
 export type ConfigUpdateInput = z.infer<typeof configUpdateSchema>;
@@ -135,6 +146,16 @@ export const configUpdatePartialSchema = z.object({
     ),
 
   pdf_pie_pagina: z.string().optional(),
+
+  /**
+   * Valor con el que el formulario de presupuesto precarga "Toma de muestra",
+   * en USD. Refleja el CHECK `toma_muestra_default_usd >= 0` de la 0015.
+   */
+  toma_muestra_default_usd: z
+    .number()
+    .finite()
+    .refine((v) => v >= 0, { message: TOMA_MUESTRA_DEFAULT_INVALIDA })
+    .optional(),
 });
 
 export type ConfigUpdatePartialInput = z.infer<typeof configUpdatePartialSchema>;

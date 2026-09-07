@@ -18,6 +18,7 @@ export const EXAMENES_REQUERIDOS = 'EXAMENES_REQUERIDOS';
 export const EXAMEN_ID_REQUERIDO = 'EXAMEN_ID_REQUERIDO';
 export const MOTIVO_RECHAZO_REQUERIDO = 'MOTIVO_RECHAZO_REQUERIDO';
 export const PRECIO_INVALIDO = 'PRECIO_INVALIDO';
+export const SERVICIO_INVALIDO = 'SERVICIO_INVALIDO';
 
 /**
  * Estados posibles del pipeline comercial de presupuestos.
@@ -94,6 +95,17 @@ export const gananciaPctSchema = z.number().refine((v) => v >= 0, { message: GAN
  */
 export const tasaBsSchema = z.number().refine((v) => v > 0, { message: TASA_INVALIDA });
 
+/**
+ * Cargo por servicio (toma de muestra, domicilio) en USD: finito y >= 0.
+ *
+ * Refleja los CHECK `toma_muestra_usd >= 0` y `domicilio_usd >= 0` de la
+ * migración 0015.
+ */
+export const servicioUsdSchema = z
+  .number()
+  .finite()
+  .refine((v) => v >= 0, { message: SERVICIO_INVALIDO });
+
 /** Precio snapshot de una línea, expresado en USD y nunca negativo. */
 export const precioSnapshotSchema = z
   .number()
@@ -130,6 +142,8 @@ function xorPaciente(data: { paciente_id?: string; paciente_nombre_libre?: strin
  *
  * - XOR: exactamente uno de `paciente_id` (ficha) o `paciente_nombre_libre`.
  * - `descuento_pct`, `ganancia_pct`, `tasa_bs` validados en rango.
+ * - `toma_muestra_usd` / `domicilio_usd` opcionales, >= 0; se suman al total
+ *   después del descuento y la ganancia.
  * - `examenes` requerido y no vacío.
  * - `estado` no se envía: el backend lo fija a `Borrador`.
  * - `total_usd` / `total_bs` no se envían: los precomputa el backend con
@@ -142,6 +156,8 @@ export const presupuestoCreateSchema = z
     descuento_pct: descuentoPctSchema,
     ganancia_pct: gananciaPctSchema,
     tasa_bs: tasaBsSchema,
+    toma_muestra_usd: servicioUsdSchema.optional(),
+    domicilio_usd: servicioUsdSchema.optional(),
     examenes: z.array(lineaPresupuestoSchema).min(1, { message: EXAMENES_REQUERIDOS }),
   })
   .refine(xorPaciente, {
@@ -164,6 +180,8 @@ export const presupuestoUpdateSchema = z
     descuento_pct: descuentoPctSchema.optional(),
     ganancia_pct: gananciaPctSchema.optional(),
     tasa_bs: tasaBsSchema.optional(),
+    toma_muestra_usd: servicioUsdSchema.optional(),
+    domicilio_usd: servicioUsdSchema.optional(),
     estado: estadoPresupuestoSchema.optional(),
     orden_id: z.string().min(1).optional(),
     examenes: z.array(lineaPresupuestoSchema).min(1, { message: EXAMENES_REQUERIDOS }).optional(),

@@ -30,6 +30,7 @@ export interface ConfigPreloaded {
   colegio_bioanalistas: string | null;
   mpps: string | null;
   pdf_pie_pagina: string | null;
+  toma_muestra_default_usd: number;
 }
 
 export interface TasaPreloaded {
@@ -71,6 +72,7 @@ export function ConfigForm({ preloadedConfig, preloadedTasa }: ConfigFormProps) 
       colegio_bioanalistas: config?.colegio_bioanalistas || "",
       mpps: config?.mpps || "",
       pdf_pie_pagina: config?.pdf_pie_pagina || "",
+      toma_muestra_default_usd: config?.toma_muestra_default_usd ?? 0,
     },
   });
 
@@ -85,6 +87,7 @@ export function ConfigForm({ preloadedConfig, preloadedTasa }: ConfigFormProps) 
         colegio_bioanalistas: config.colegio_bioanalistas || "",
         mpps: config.mpps || "",
         pdf_pie_pagina: config.pdf_pie_pagina || "",
+        toma_muestra_default_usd: config.toma_muestra_default_usd,
       });
     }
   }, [config, reset]);
@@ -309,6 +312,36 @@ export function ConfigForm({ preloadedConfig, preloadedTasa }: ConfigFormProps) 
               placeholder="Ej. Consulte a su médico. No válido para efectos forenses."
               register={register("pdf_pie_pagina")}
               disabled={savingConfig}
+            />
+          </CardContent>
+        </Card>
+
+        {/* Presupuestos */}
+        <Card className="shadow-none">
+          <CardHeader className="border-b border-border py-3">
+            <CardTitle className="text-sm font-semibold">Presupuestos</CardTitle>
+            <CardDescription className="text-xs">
+              Valor con el que se precarga la toma de muestra en un presupuesto nuevo. Se
+              puede cambiar en cada presupuesto.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="p-4">
+            <FieldText
+              id="toma_muestra_default_usd"
+              label="Toma de muestra por defecto (USD)"
+              type="number"
+              placeholder="0.00"
+              register={register("toma_muestra_default_usd", {
+                // El input devuelve string; el schema espera number y el campo
+                // es opcional, así que el vacío tiene que llegar como undefined
+                // en vez de como NaN.
+                setValueAs: (value) =>
+                  value === "" || value === null || value === undefined
+                    ? undefined
+                    : Number(value),
+              })}
+              disabled={savingConfig}
+              error={errors.toma_muestra_default_usd?.message}
             />
           </CardContent>
         </Card>

@@ -67,6 +67,41 @@ function toErrorResponse(error: unknown): Response {
   return bad(500, "ERROR_GENERICO");
 }
 
+/**
+ * Renderiza el PDF de una orden. Compartido entre esta ruta (staff, con
+ * sesión) y `api/r/[slug]/pdf` (público, autorizado por slug vigente) para no
+ * duplicar la carga de assets ni el armado del documento.
+ */
+export async function renderResultadoPdf(
+  ordenId: string,
+): Promise<{ body: ReadableStream<Uint8Array>; filename: string }> {
+  const data = await getForPDF(getAdminDb(), ordenId, resolvePdfAsset);
+  if (!data) {
+    throw new Error(RESULTADO_NO_ENCONTRADO);
+  }
+
+  assertPdfConfig(data.config?.nombre);
+
+  // Afirmación solo en el límite del renderer: las props ya están chequeadas
+  // por createElement(ResultadoPDF, { data }) contra ResultadoPDFProps.
+  const element = createElement(ResultadoPDF, { data }) as ReactElement<DocumentProps>;
+  const stream = await renderToStream(element);
+  const body = Readable.toWeb(stream as unknown as Readable) as ReadableStream<Uint8Array>;
+
+  return { body, filename: `resultado-${ordenId}.pdf` };
+}
+
+export function pdfResponse(body: ReadableStream<Uint8Array>, filename: string): Response {
+  return new Response(body, {
+    status: 200,
+    headers: {
+      "Content-Type": "application/pdf",
+      "Content-Disposition": `inline; filename="${filename}"`,
+      "Cache-Control": "private, no-store, max-age=0",
+    },
+  });
+}
+
 export async function GET(_request: NextRequest, { params }: RouteParams): Promise<Response> {
   const startedAt = performance.now();
 
@@ -78,28 +113,8 @@ export async function GET(_request: NextRequest, { params }: RouteParams): Promi
       return bad(400, "VALIDACION_FALLIDA");
     }
 
-    const data = await getForPDF(getAdminDb(), params.id, resolvePdfAsset);
-    if (!data) {
-      return bad(404, RESULTADO_NO_ENCONTRADO);
-    }
-
-    assertPdfConfig(data.config?.nombre);
-
-    // Afirmación solo en el límite del renderer: las props ya están chequeadas
-    // por createElement(ResultadoPDF, { data }) contra ResultadoPDFProps.
-    const element = createElement(ResultadoPDF, { data }) as ReactElement<DocumentProps>;
-    const stream = await renderToStream(element);
-    const body = Readable.toWeb(stream as unknown as Readable) as ReadableStream<Uint8Array>;
-    const filename = `resultado-${params.id}.pdf`;
-
-    return new Response(body, {
-      status: 200,
-      headers: {
-        "Content-Type": "application/pdf",
-        "Content-Disposition": `inline; filename="${filename}"`,
-        "Cache-Control": "private, no-store, max-age=0",
-      },
-    });
+    const { body, filename } = await renderResultadoPdf(params.id);
+    return pdfResponse(body, filename);
   } catch (error) {
     return toErrorResponse(error);
   } finally {

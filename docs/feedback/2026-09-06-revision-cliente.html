@@ -1,0 +1,357 @@
+<title>Revisión de pruebas RV Laboratorio</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Serif:wght@500;600&display=swap">
+<style>
+  :root {
+    --bg: #f6f7f8;
+    --paper: #ffffff;
+    --ink: #17202a;
+    --ink-2: #4b5563;
+    --ink-3: #7c8794;
+    --rule: #dde2e7;
+    --accent: #0e6b70;
+    --accent-soft: #e2f1f1;
+    --ok: #1f7a4d;   --ok-bg: #e4f4ea;
+    --warn: #9a5b00; --warn-bg: #fbeed8;
+    --bad: #b3261e;  --bad-bg: #fbe5e3;
+    --new: #4b4f9a;  --new-bg: #e8e8f7;
+    --code-bg: #eef1f3;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #101418; --paper: #171c22; --ink: #e6eaee; --ink-2: #b4bcc6; --ink-3: #7f8a96;
+      --rule: #2a323b; --accent: #5cc3c6; --accent-soft: #14313380;
+      --ok: #6dd39a; --ok-bg: #12301f; --warn: #f0b95a; --warn-bg: #3a2a0e;
+      --bad: #f28b84; --bad-bg: #3f1a18; --new: #a9abec; --new-bg: #26274a; --code-bg: #20272e;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #101418; --paper: #171c22; --ink: #e6eaee; --ink-2: #b4bcc6; --ink-3: #7f8a96;
+    --rule: #2a323b; --accent: #5cc3c6; --accent-soft: #14313380;
+    --ok: #6dd39a; --ok-bg: #12301f; --warn: #f0b95a; --warn-bg: #3a2a0e;
+    --bad: #f28b84; --bad-bg: #3f1a18; --new: #a9abec; --new-bg: #26274a; --code-bg: #20272e;
+  }
+  * { box-sizing: border-box; }
+  body { background: var(--bg); color: var(--ink); font: 15px/1.55 "IBM Plex Sans", system-ui, sans-serif; margin: 0; }
+  main { max-width: 62rem; margin: 0 auto; padding: 2.5rem 1.25rem 5rem; }
+  h1, h2, h3 { font-family: "IBM Plex Serif", Georgia, serif; text-wrap: balance; margin: 0; }
+  h1 { font-size: 2rem; font-weight: 600; line-height: 1.15; }
+  h2 { font-size: 1.35rem; font-weight: 600; }
+  h3 { font-size: 1.05rem; font-weight: 600; font-family: "IBM Plex Sans", system-ui, sans-serif; }
+  p { margin: 0; max-width: 66ch; }
+  code { font: 0.86em "IBM Plex Mono", ui-monospace, monospace; background: var(--code-bg); padding: 0.1em 0.35em; border-radius: 3px; }
+  .eyebrow { font-size: 0.72rem; letter-spacing: 0.09em; text-transform: uppercase; color: var(--ink-3); font-weight: 500; }
+  header { display: flex; flex-direction: column; gap: 0.75rem; padding-bottom: 1.5rem; border-bottom: 1px solid var(--rule); }
+  header p.lede { color: var(--ink-2); font-size: 1.02rem; }
+  .meta { display: flex; flex-wrap: wrap; gap: 0.4rem 1.5rem; font-size: 0.82rem; color: var(--ink-3); font-variant-numeric: tabular-nums; }
+  .meta b { color: var(--ink-2); font-weight: 500; }
+
+  .summary { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.75rem; margin: 1.5rem 0 0; }
+  .tile { background: var(--paper); border: 1px solid var(--rule); padding: 0.9rem 1rem; display: flex; flex-direction: column; gap: 0.25rem; }
+  .tile .n { font: 500 1.8rem/1 "IBM Plex Mono", monospace; }
+  .tile .l { font-size: 0.8rem; color: var(--ink-2); }
+  .tile.ok .n { color: var(--ok); } .tile.warn .n { color: var(--warn); } .tile.bad .n { color: var(--bad); } .tile.new .n { color: var(--new); }
+
+  .index { margin-top: 1.5rem; background: var(--paper); border: 1px solid var(--rule); overflow-x: auto; }
+  table { border-collapse: collapse; width: 100%; font-size: 0.88rem; }
+  th { text-align: left; font-weight: 500; color: var(--ink-3); font-size: 0.72rem; letter-spacing: 0.06em; text-transform: uppercase; padding: 0.6rem 0.9rem; border-bottom: 1px solid var(--rule); }
+  td { padding: 0.6rem 0.9rem; border-bottom: 1px solid var(--rule); vertical-align: top; }
+  tr:last-child td { border-bottom: 0; }
+  td.num { font-family: "IBM Plex Mono", monospace; color: var(--ink-3); white-space: nowrap; }
+
+  .pill { display: inline-block; font-size: 0.72rem; font-weight: 500; letter-spacing: 0.03em; padding: 0.12rem 0.5rem; border-radius: 999px; white-space: nowrap; }
+  .pill.ok { color: var(--ok); background: var(--ok-bg); }
+  .pill.warn { color: var(--warn); background: var(--warn-bg); }
+  .pill.bad { color: var(--bad); background: var(--bad-bg); }
+  .pill.new { color: var(--new); background: var(--new-bg); }
+
+  section.topic { margin-top: 3rem; display: grid; grid-template-columns: 11rem 1fr; gap: 1.5rem; }
+  section.topic > aside { position: sticky; top: 1rem; align-self: start; display: flex; flex-direction: column; gap: 0.35rem; }
+  section.topic > aside .src { font-size: 0.8rem; color: var(--ink-3); }
+  .items { display: flex; flex-direction: column; gap: 1rem; }
+  article.item { background: var(--paper); border: 1px solid var(--rule); }
+  article.item .head { display: flex; align-items: center; gap: 0.75rem; padding: 0.8rem 1.1rem; border-bottom: 1px solid var(--rule); }
+  article.item .head h3 { flex: 1; }
+  article.item .body { display: grid; grid-template-columns: 7rem 1fr; gap: 0.6rem 1rem; padding: 0.9rem 1.1rem; }
+  article.item .body dt { font-size: 0.75rem; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-3); padding-top: 0.15rem; }
+  article.item .body dd { margin: 0; color: var(--ink); }
+  article.item .body dd.q { font-style: italic; color: var(--ink-2); border-left: 2px solid var(--accent); padding-left: 0.7rem; }
+  ul { margin: 0.2rem 0 0; padding-left: 1.1rem; }
+  li { margin: 0.2rem 0; }
+  .note { margin-top: 1.5rem; background: var(--accent-soft); border-left: 3px solid var(--accent); padding: 0.8rem 1rem; font-size: 0.9rem; }
+  .plan { margin-top: 3rem; padding-top: 1.5rem; border-top: 1px solid var(--rule); }
+  .plan ol { padding-left: 1.3rem; margin-top: 0.75rem; }
+  .plan li { margin: 0.45rem 0; }
+  @media (max-width: 720px) {
+    .summary { grid-template-columns: repeat(2, 1fr); }
+    section.topic { grid-template-columns: 1fr; }
+    section.topic > aside { position: static; }
+    article.item .body { grid-template-columns: 1fr; }
+  }
+</style>
+
+<main>
+  <header>
+    <span class="eyebrow">RV Laboratorio · sistema de gestión</span>
+    <h1>Revisión de las pruebas del cliente contra el código actual</h1>
+    <p class="lede">El cliente probó la app y dejó sus notas en un Google Doc, y después hubo una reunión con los dueños donde se tomaron decisiones. Acá va cada nota y cada decisión, qué encontramos en el código, y qué haría falta para cerrarla.</p>
+    <div class="meta">
+      <span>Fecha <b>6 sep 2026</b></span>
+      <span>Rama <b>agent/armando/coolify-staged</b> (commit 1092dbd)</span>
+      <span>Fuente <b>Google Doc + PDF con capturas + acta de reunión</b></span>
+      <span>Datos <b>base InsForge de producción (solo lectura)</b></span>
+    </div>
+  </header>
+
+  <div class="summary">
+    <div class="tile bad"><span class="n">3</span><span class="l">Bugs confirmados con capturas y datos</span></div>
+    <div class="tile warn"><span class="n">2</span><span class="l">Reportes con causa probable, sin reproducir</span></div>
+    <div class="tile ok"><span class="n">1</span><span class="l">Funciona, pero el cliente no lo esperaba</span></div>
+    <div class="tile new"><span class="n">2</span><span class="l">Funcionalidades que no existen</span></div>
+  </div>
+
+  <div class="index">
+    <table>
+      <thead><tr><th>#</th><th>Nota del cliente</th><th>Estado</th><th>Qué es</th></tr></thead>
+      <tbody>
+        <tr><td class="num">1</td><td>Al cargar un examen no se ve el botón de aceptar</td><td><span class="pill bad">Bug confirmado</span></td><td>El modal no hace scroll y corta el botón</td></tr>
+        <tr><td class="num">2</td><td>Al crear examen dentro de un grupo, no se ve el botón final</td><td><span class="pill bad">Bug confirmado</span></td><td>Mismo modal, misma causa</td></tr>
+        <tr><td class="num">3</td><td>Redujo el zoom y apareció un error</td><td><span class="pill bad">Error 500 confirmado</span></td><td>El examen nunca se guardó; falta el log del servidor</td></tr>
+        <tr><td class="num">4</td><td>Arrastrar exámenes al paquete no hace nada</td><td><span class="pill warn">Causa probable</span></td><td>Drag and drop incompleto en el builder</td></tr>
+        <tr><td class="num">5</td><td>¿Por qué hay tantas “ganancias” en el presupuesto?</td><td><span class="pill ok">Funciona como se diseñó</span></td><td>Decisión de producto a revisar</td></tr>
+        <tr><td class="num">6</td><td>¿Cómo se cobra la toma de muestra y el servicio a domicilio?</td><td><span class="pill new">No existe</span></td><td>Cargos por servicio</td></tr>
+        <tr><td class="num">7</td><td>No lo dejó guardar el presupuesto</td><td><span class="pill warn">Causa probable</span></td><td>Nunca llegó a la base; la tasa queda descartada</td></tr>
+        <tr><td class="num">8</td><td>Preguntas sobre inventario de reactivos</td><td><span class="pill new">No existe</span></td><td>Módulo nuevo completo</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <p class="note">Qué se usó: el texto del Google Doc, las tres capturas del PDF “Sistema RV”, el código de la rama y una lectura de solo consulta de la base de producción (tabla de auditoría, exámenes, presupuestos y tasa). El video del paquete no venía en el PDF. No reproduje los flujos en un navegador. Todas las pruebas del cliente fueron con el usuario <b>Admin Demo</b>, así que los permisos quedan descartados en todos los puntos.</p>
+
+  <!-- ─── Exámenes y grupos ─── -->
+  <section class="topic">
+    <aside>
+      <span class="eyebrow">Catálogo</span>
+      <h2>Exámenes y grupos</h2>
+      <span class="src">Notas 1, 2 y 3</span>
+    </aside>
+    <div class="items">
+      <article class="item">
+        <div class="head"><h3>El botón de guardar queda fuera de la pantalla</h3><span class="pill bad">Bug confirmado</span></div>
+        <dl class="body">
+          <dt>Cliente dijo</dt><dd class="q">“El aceptar no se ve, le di y guardó.” “Al intentar crear un nuevo examen no se ve el botón final de crear examen.”</dd>
+          <dt>Encontrado</dt><dd>El modal de examen (<code>ExamenFormDialog.tsx</code>) es un overlay fijo sin alto máximo ni scroll interno. Tiene ocho campos, dos de ellos áreas de texto de 4 y 3 líneas. Sumado al encabezado y al padding, el modal mide más que un portátil de 768 px de alto. El botón “Crear examen” queda por debajo del borde y no hay forma de llegar a él salvo achicar el zoom. Como el formulario sigue siendo válido, apretar Enter sí guarda, que es lo que le pasó al cliente. La captura lo muestra tal cual: el modal termina en “Observaciones” y el pie con los botones queda tapado por la barra de tareas. Dato aparte: ese examen, “Acido Urico”, quedó guardado dentro del grupo Hematología. Conviene preguntarle si iba ahí o en Química Sanguínea.</dd>
+          <dt>Qué hacer</dt><dd>
+            <ul>
+              <li>Darle al modal <code>max-h-[90vh]</code> con scroll interno y dejar el pie con los botones fijo abajo.</li>
+              <li>Revisar el mismo patrón en los otros modales que se arman a mano en vez de usar el Dialog de shadcn: paciente, grupo, invitar usuario.</li>
+              <li>Probar en 1366×768 y en tablet, que es donde el cliente carga catálogo.</li>
+            </ul>
+          </dd>
+        </dl>
+      </article>
+
+      <article class="item">
+        <div class="head"><h3>Crear un grupo nuevo funciona</h3><span class="pill ok">Funciona</span></div>
+        <dl class="body">
+          <dt>Cliente dijo</dt><dd class="q">“Creé un nuevo grupo de exámenes que se llama caninos.”</dd>
+          <dt>Encontrado</dt><dd>El modal de grupo es corto y no sufre el problema de altura. El grupo se creó bien. El bloqueo aparece recién al agregar exámenes dentro del grupo, que es el mismo modal de la nota anterior.</dd>
+        </dl>
+      </article>
+
+      <article class="item">
+        <div class="head"><h3>Error al reducir el zoom</h3><span class="pill bad">Error 500 confirmado</span></div>
+        <dl class="body">
+          <dt>Cliente dijo</dt><dd class="q">“Reduje el zoom y me dio este error.”</dd>
+          <dt>Captura</dt><dd>Formulario “Hematología Can” dentro del grupo Caninas, precio 10, unidad ml, tipo Análisis Hematológico, método Espectrofotometría, valores 4.5 - 10, observaciones vacías. Abajo el mensaje rojo <b>“Algo salió mal. Intentá de nuevo.”</b> El 5 de septiembre a las 10:37 pm.</dd>
+          <dt>Encontrado</dt><dd>
+            <ul>
+              <li>Ese mensaje es el genérico que la app muestra cuando la API responde 500 o un código que la interfaz no traduce.</li>
+              <li>En la base de producción el grupo Caninas existe desde las 10:35 pm de ese día y <b>no tiene ningún examen</b>. La auditoría tampoco registra ningún intento de crear examen esa noche. O sea: la API falló antes de insertar, y no fue un duplicado.</li>
+              <li>Al día siguiente el mismo formulario funcionó con “Acido Urico” en Hematología. La única diferencia visible es el grupo destino y las observaciones vacías, y ninguna de las dos debería romper el insert: la columna admite nulos y el grupo existe.</li>
+              <li>Permisos descartados: la sesión era del admin.</li>
+            </ul>
+          </dd>
+          <dt>Qué hacer</dt><dd>
+            <ul>
+              <li>Buscar en los logs del contenedor en Coolify el POST a <code>/api/examenes</code> del 6 de septiembre entre 02:35 y 02:45 UTC. El error real viene con prefijo <code>examenesCreate:</code>.</li>
+              <li>Registrar en auditoría también los intentos fallidos, o al menos loguear el cuerpo del 500, para no volver a quedarnos sin pista.</li>
+              <li>Agregar mensaje humano al código de examen duplicado, que hoy también cae en “Algo salió mal”.</li>
+            </ul>
+          </dd>
+        </dl>
+      </article>
+    </div>
+  </section>
+
+  <!-- ─── Paquetes ─── -->
+  <section class="topic">
+    <aside>
+      <span class="eyebrow">Paquetes</span>
+      <h2>Armar un paquete</h2>
+      <span class="src">Nota 4</span>
+    </aside>
+    <div class="items">
+      <article class="item">
+        <div class="head"><h3>Arrastrar exámenes al paquete no hace nada</h3><span class="pill warn">Causa probable</span></div>
+        <dl class="body">
+          <dt>Cliente dijo</dt><dd class="q">“Creé la Evaluación Hormonal Masculina, cuando quise agregarle exámenes los arrastraba a él pero no hacía nada, te paso un video.”</dd>
+          <dt>Encontrado</dt><dd>El constructor de paquetes (<code>PaqueteBuilder.tsx</code>) usa dnd-kit, pero la implementación está a medias:
+            <ul>
+              <li>La lista del paquete usa <code>useSortable</code> en cada fila sin envolverla en un <code>SortableContext</code>. El componente compartido que debería hacerlo es solo un div.</li>
+              <li>El <code>DndContext</code> no define sensores. Sin una distancia mínima de activación, cualquier toque empieza un arrastre y el clic sobre la fila se pierde. En pantallas táctiles el arrastre directamente no arranca.</li>
+              <li>La fila del catálogo es un botón que a la vez arrastra y agrega al hacer clic. El cliente probó arrastrar, que es lo que la UI sugiere con el ícono de agarre, y esa es la vía rota.</li>
+            </ul>
+            Lo que sí debería funcionar hoy: hacer clic sobre el examen en el catálogo, y el botón “Incluir grupo” para sumar un grupo entero. El cliente no lo descubrió porque la interfaz no lo dice. Guardar el paquete también exige rol admin.
+          </dd>
+          <dt>Qué hacer</dt><dd>
+            <ul>
+              <li>Sacar el arrastre entre columnas y poner un botón “Agregar” visible en cada fila del catálogo. Es más claro y funciona en tablet.</li>
+              <li>Si se mantiene el reordenamiento dentro del paquete, envolverlo en <code>SortableContext</code> y configurar sensores con distancia de activación.</li>
+              <li>Ver el video del cliente antes de cerrar, para confirmar que es esto y no un problema de permisos.</li>
+            </ul>
+          </dd>
+        </dl>
+      </article>
+    </div>
+  </section>
+
+  <!-- ─── Presupuestos ─── -->
+  <section class="topic">
+    <aside>
+      <span class="eyebrow">Presupuestos</span>
+      <h2>Precio, servicios y guardado</h2>
+      <span class="src">Notas 5, 6 y 7</span>
+    </aside>
+    <div class="items">
+      <article class="item">
+        <div class="head"><h3>Demasiadas “ganancias” en el formulario</h3><span class="pill ok">Funciona como se diseñó</span></div>
+        <dl class="body">
+          <dt>Cliente dijo</dt><dd class="q">“En el presupuesto, ¿por qué están todas esas ganancias?”</dd>
+          <dt>Encontrado</dt><dd>El presupuesto tiene un porcentaje de ganancia global, más una columna “Ganancia %” por cada línea que permite sobrescribirlo, más una fila “Ganancia” en el resumen. Son tres lugares para el mismo concepto. Viene de la fase F6 (precio por línea, migración 0007) y calcula bien. El problema no es técnico: el cliente no espera trabajar con margen sobre el precio de catálogo, porque el precio del examen ya es lo que cobra.<br><br>La captura lo deja claro. El cliente escribió <b>100</b> en la ganancia de Glicemia y <b>30</b> en la de TSH (la columna arranca vacía con el texto “Global”, así que los valores los puso él). El sistema hizo lo suyo: Glicemia pasó de 3,00 a 6,00 y TSH de 10,00 a 13,00, y el total subió de 13,00 a 19,00 USD. Marcó en amarillo las tres “ganancias” porque no sabía qué eran ni por qué el total cambió.</dd>
+          <dt>Qué hacer</dt><dd>
+            <ul>
+              <li>Preguntarle al cliente si alguna vez cobra por encima del precio de catálogo. Si la respuesta es no, ocultar la ganancia global y la columna por línea, y dejar solo el descuento.</li>
+              <li>Si quiere conservarla para casos puntuales, moverla a un bloque “Ajustes avanzados” plegado por defecto.</li>
+              <li>El detalle y el PDF ya no desglosan el porcentaje, así que el cambio queda contenido en el formulario.</li>
+            </ul>
+          </dd>
+        </dl>
+      </article>
+
+      <article class="item">
+        <div class="head"><h3>Toma de muestra y servicio a domicilio</h3><span class="pill new">No existe</span></div>
+        <dl class="body">
+          <dt>Cliente dijo</dt><dd class="q">“¿Cómo se cargará la toma de muestra y el servicio a domicilio?”</dd>
+          <dt>Captura</dt><dd>En el buscador de exámenes del presupuesto escribió “toma de muest” y obtuvo “Sin resultados”.</dd>
+          <dt>Encontrado</dt><dd>No hay ningún concepto de cargo por servicio en el sistema. Un presupuesto solo acepta líneas que apunten a un examen del catálogo, y la configuración del laboratorio no tiene tarifas de servicio. Tampoco aparece en los specs de F0 a F6.</dd>
+          <dt>Qué hacer</dt><dd>
+            <ul>
+              <li><b>Hoy, sin código:</b> crear un grupo “Servicios” en el catálogo con los exámenes “Toma de muestra” y “Servicio a domicilio” con su precio. Se agregan al presupuesto como cualquier línea.</li>
+              <li><b>Bien hecho:</b> agregar líneas de tipo servicio al presupuesto, que sumen al total pero no pasen a la orden de resultados ni al PDF de resultados. Requiere una columna de tipo en las líneas y un ajuste en la conversión presupuesto a orden.</li>
+            </ul>
+          </dd>
+        </dl>
+      </article>
+
+      <article class="item">
+        <div class="head"><h3>No lo dejó guardar el presupuesto</h3><span class="pill warn">Causa probable</span></div>
+        <dl class="body">
+          <dt>Cliente dijo</dt><dd class="q">“No me dejó guardar el presupuesto.”</dd>
+          <dt>Captura</dt><dd>Dos líneas (Glicemia en ayunas y TSH), descuento 0, ganancia global 0, tasa 807,31 con la etiqueta “Tasa desactualizada”, total 19,00 USD. La parte de arriba del formulario, donde va el paciente, no entra en la captura.</dd>
+          <dt>Encontrado</dt><dd>
+            <ul>
+              <li>En la base de producción no hay ningún presupuesto creado después del 31 de agosto, ni en la auditoría. El guardado nunca llegó al servidor.</li>
+              <li>El botón “Guardar presupuesto” se deshabilita si falta paciente, examen o tasa, y no dice cuál. Con la captura quedan descartadas la tasa (estaba cargada, aunque vieja) y los exámenes. Queda el paciente: lo más probable es que no eligió uno ni escribió un nombre libre, y vio un botón gris sin explicación.</li>
+              <li>Aparte: la tasa figuraba desactualizada en producción. El cron horario que la actualiza no estaba corriendo, o falló. Vale revisarlo.</li>
+            </ul>
+          </dd>
+          <dt>Qué hacer</dt><dd>
+            <ul>
+              <li>Listar junto al botón lo que falta: “Falta elegir paciente”, “Falta tasa Bs”.</li>
+              <li>Mover el bloque de paciente arriba y hacerlo visible como paso obligatorio, o marcarlo en rojo cuando está vacío.</li>
+              <li>Revisar el cron de tasa BCV en Coolify.</li>
+            </ul>
+          </dd>
+        </dl>
+      </article>
+    </div>
+  </section>
+
+  <!-- ─── Inventario ─── -->
+  <section class="topic">
+    <aside>
+      <span class="eyebrow">Inventario</span>
+      <h2>Reactivos y compras</h2>
+      <span class="src">Nota 8</span>
+    </aside>
+    <div class="items">
+      <article class="item">
+        <div class="head"><h3>No hay módulo de inventario</h3><span class="pill new">No existe</span></div>
+        <dl class="body">
+          <dt>Encontrado</dt><dd>No existe nada de inventario: ni tablas, ni pantallas, ni spec. La palabra “reactivo” no aparece en el código. El cliente pregunta como si el módulo estuviera prometido, así que conviene aclarar el alcance antes de que lo dé por hecho.</dd>
+          <dt>Pregunta 1</dt><dd class="q">“Configuración de reactivos, ¿esto debe hacerse cada vez que se haga un examen o se configura al principio?”</dd>
+          <dd style="grid-column: 2">Respuesta propuesta: una sola vez por examen. Cada examen tendría su receta de reactivos y cantidades. Al cargar un resultado, el sistema descuenta solo.</dd>
+          <dt>Pregunta 2</dt><dd class="q">“Al cargar los resultados, ¿se tendrá que colocar los reactivos usados?”</dd>
+          <dd style="grid-column: 2">Respuesta propuesta: no. El descuento sale de la receta. Solo se pediría ajuste manual cuando hay repetición de prueba o merma.</dd>
+          <dt>Pregunta 3</dt><dd class="q">“Registro de compra, ¿se podrá cargar el precio de compra? Nos gustaría llevar un histórico para saber si debemos ajustar el precio.”</dd>
+          <dd style="grid-column: 2">Respuesta propuesta: sí. Cada compra guarda precio unitario, cantidad, proveedor y fecha. De ahí sale el historial de precio por reactivo, el costo promedio por examen y un aviso cuando el costo sube por encima de un porcentaje del precio de venta.</dd>
+          <dt>Alcance</dt><dd>Es una fase nueva, no un arreglo. Lo mínimo para responder las tres preguntas:
+            <ul>
+              <li>Tablas: reactivos, receta examen a reactivo, compras y movimientos de stock.</li>
+              <li>Pantallas: catálogo de reactivos con stock actual, registro de compra, receta en la ficha del examen.</li>
+              <li>Integración: descuento automático al pasar la orden a “En proceso” o al cargar el valor.</li>
+              <li>Reportes: historial de precio de compra y costo por examen.</li>
+            </ul>
+          </dd>
+        </dl>
+      </article>
+    </div>
+  </section>
+
+
+  <!-- ─── Acta ─── -->
+  <section class="topic">
+    <aside>
+      <span class="eyebrow">Reunión 6 sep</span>
+      <h2>Decisiones del acta contra el código</h2>
+      <span class="src">Héctor, Miguel Franchi y Nayhin Ramírez</span>
+    </aside>
+    <div class="items">
+      <div class="index" style="margin-top:0">
+        <table>
+          <thead><tr><th>Decisión acordada</th><th>Estado en el código</th><th>Qué falta</th></tr></thead>
+          <tbody>
+            <tr><td>Botón que refina las observaciones con IA</td><td><span class="pill ok">Existe</span></td><td>Endpoint y asistente ya están en resultados. Validar que funcione en producción con la clave de Gemini cargada.</td></tr>
+            <tr><td>Dirección GPS obligatoria en pacientes</td><td><span class="pill warn">Parcial</span></td><td>Hay un campo “dirección” de texto libre y opcional. Falta hacerlo obligatorio y aceptar el enlace o las coordenadas GPS que manda el paciente por WhatsApp.</td></tr>
+            <tr><td>Métodos de análisis desde una tabla, no texto libre</td><td><span class="pill new">No existe</span></td><td>Hoy es texto libre con seis sugerencias fijas. Miguel pidió que se puedan crear métodos nuevos, así que hace falta una tabla de métodos administrable desde Config y un selector en el examen.</td></tr>
+            <tr><td>Campos manuales de toma de muestra y domicilio en el presupuesto</td><td><span class="pill new">No existe</span></td><td>Se acordó la forma: un campo “Toma de muestra” siempre visible y un check “Servicio a domicilio” que abre el monto. Ambos suman al total y salen en el PDF como servicios, no como exámenes.</td></tr>
+            <tr><td>QR en el PDF de resultados con página de validación</td><td><span class="pill warn">Parcial y con riesgo</span></td><td>Ya existe un enlace público por resultado con vencimiento, pero esa página muestra nombre completo, cédula completa y los valores. Es justo lo que se acordó no exponer. Falta: generar el QR en el PDF, y que la página de validación muestre solo laboratorio, fecha, hora, cédula enmascarada y un botón de WhatsApp.</td></tr>
+            <tr><td>El PDF del presupuesto debe mostrar la tasa usada</td><td><span class="pill ok">Casi</span></td><td>Ya imprime “Tasa BCV Bs. X por USD” y la fecha de emisión. Falta agregar la hora en el pie, como pidió Miguel.</td></tr>
+            <tr><td>Tasa de cambio manual desde Config</td><td><span class="pill warn">Verificar</span></td><td>El endpoint existe. Héctor dijo en la demo que “no funciona como quiero”. Probar en producción y ver si el problema es el scraper desde el servidor en Alemania o el guardado manual.</td></tr>
+            <tr><td>Orina y heces con criterios cualitativos en el PDF</td><td><span class="pill new">No existe</span></td><td>El valor de cada examen es un texto libre único. No hay estructura físico, químico y microscópico ni plantillas por tipo de examen. Requiere la sesión con la licenciada para definir los campos antes de tocar código.</td></tr>
+            <tr><td>Ganancia en modo cerrado y desglosado</td><td><span class="pill warn">Bug admitido</span></td><td>Héctor lo reconoció en la demo. Se junta con la decisión de ocultar la ganancia por línea: definir primero qué queda y después corregir.</td></tr>
+            <tr><td>Marketing y fidelización (cumpleaños)</td><td><span class="pill ok">Pospuesto</span></td><td>Acordado dejarlo para después de estabilizar el núcleo. No requiere trabajo ahora.</td></tr>
+            <tr><td>Descargar PDF desde el resultado</td><td><span class="pill warn">Verificar</span></td><td>Héctor dijo en la demo que “esta parte no está funcionando”. Las rutas de PDF existen. Hay que reproducirlo en producción.</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p style="font-size:0.85rem;color:var(--ink-3)">Leí completo el resumen y las decisiones del acta. De la transcripción revisé los pasajes sobre tasa, métodos, ganancia, servicios, orina y heces, QR e infraestructura, no la totalidad. Los problemas de latencia y el plan de mover el servidor de Alemania a hardware local quedan fuera de esta revisión.</p>
+    </div>
+  </section>
+
+  <div class="plan">
+    <span class="eyebrow">Orden sugerido</span>
+    <h2>Qué atacar primero</h2>
+    <ol>
+      <li><b>Modal de examen con scroll.</b> Bloquea la carga del catálogo, que es la tarea que el cliente tiene entre manos ahora. Revisar los otros modales de paso.</li>
+      <li><b>Buscar el 500 de exámenes en los logs de Coolify.</b> Es el único punto donde el código no explica el fallo.</li>
+      <li><b>Presupuesto: campos de toma de muestra y domicilio, decir qué falta para guardar, ocultar la ganancia por línea, hora en el pie del PDF.</b> Todo en el mismo módulo, conviene hacerlo junto.</li>
+      <li><b>Tasa: cron y tasa manual.</b> Verificar en producción; el cliente concilia cuentas con esa tasa.</li>
+      <li><b>Paquetes: botón “Agregar” en vez de arrastrar.</b></li>
+      <li><b>Página de validación pública: enmascarar datos ya.</b> Aunque el QR venga después, la página actual expone más de lo acordado.</li>
+      <li><b>Métodos como tabla y dirección GPS obligatoria.</b> Cambios chicos de catálogo y pacientes.</li>
+      <li><b>Orina y heces cualitativos.</b> Primero la sesión con la licenciada, después el diseño.</li>
+      <li><b>Inventario.</b> Fase aparte con alcance y fecha propios.</li>
+    </ol>
+  </div>
+</main>
