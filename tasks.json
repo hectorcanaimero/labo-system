@@ -2466,6 +2466,254 @@
       ],
       "specRef": "f6.md#F6.6.T3",
       "comments": []
+    },
+    {
+      "id": "F7.1.T1",
+      "phase": 7,
+      "title": "Migrar los siete modales a mano al Dialog de shadcn",
+      "description": "**Objetivo**\n\nReemplazar los overlays `fixed inset-0` armados a mano por el `Dialog` de `apps/web/components/ui/dialog.tsx`, que ya trae portal, foco, Escape y scroll interno. Cierra el bug del botón oculto que reportó el cliente en exámenes y previene el mismo fallo en el resto.\n\n**Alcance**\n\nSí hace:\n- Migrar `ExamenFormDialog`, `TituloFormDialog`, `PacienteFormDialog`, `InviteUserDialog`, el modal de `PresupuestosList`, el de `ResultadoForm` (orden nueva) y `CargarPaqueteButton`.\n- Pie con los botones siempre visible: `max-h-[90vh]`, cuerpo con `overflow-y-auto`, pie `sticky bottom-0`.\n- Probar en 1366×768 y en tablet 768×1024.\n\nNo hace:\n- Cambiar campos ni validaciones de los formularios.\n\n**Criterios de aceptación**\n\n- [ ] En 1366×768 con zoom 100% el botón “Crear examen” es visible y clickeable sin achicar el zoom.\n- [ ] Escape y click fuera cierran cada modal, salvo mientras guarda.\n- [ ] No queda ningún `fixed inset-0` fuera de `components/ui`.",
+      "model": "opencode/deepseek-v4-pro",
+      "reason": "Cambios de formulario, endpoints y migraciones con lógica de negocio.",
+      "status": "todo",
+      "dependencies": [],
+      "estimateHours": 4,
+      "files": [
+        "apps/web/app/(app)/examenes/ExamenFormDialog.tsx",
+        "apps/web/app/(app)/examenes/TituloFormDialog.tsx",
+        "apps/web/app/(app)/pacientes/PacienteFormDialog.tsx",
+        "apps/web/app/(app)/usuarios/InviteUserDialog.tsx",
+        "apps/web/app/(app)/presupuestos/PresupuestosList.tsx",
+        "apps/web/app/(app)/resultados/nuevo/ResultadoForm.tsx",
+        "packages/ui/paquetes/CargarPaqueteButton.tsx"
+      ],
+      "specRef": "F7/sprint-feedback-cliente.md#F7.1.T1",
+      "comments": []
+    },
+    {
+      "id": "F7.1.T2",
+      "phase": 7,
+      "title": "Mensajes de error faltantes y registro del 500 en exámenes",
+      "description": "**Objetivo**\n\nTraducir los códigos de dominio que hoy caen en “Algo salió mal” y dejar rastro en el log cuando una ruta devuelve 500, para poder diagnosticar el error que el cliente vio al crear un examen en el grupo Caninas.\n\n**Alcance**\n\nSí hace:\n- Agregar a `DOMAIN_ERROR_MESSAGES`: `EXAMEN_DUPLICADO_EN_TITULO`, `GANANCIA_NEGATIVA`, `EXAMENES_REQUERIDOS`, `TASA_INVALIDA`, `PRECIO_INVALIDO`.\n- En `toStatus` de `api/examenes/route.ts` y en `response` de `api/presupuestos/route.ts`, `console.error` con el mensaje original antes de devolver `ERROR_GENERICO`.\n- Buscar en los logs de Coolify el POST a `/api/examenes` del 2026-09-06 entre 02:35 y 02:45 UTC y anotar la causa en el spec.\n\nNo hace:\n- Cambiar el contrato de las rutas.\n\n**Criterios de aceptación**\n\n- [ ] Crear dos veces el mismo examen en un grupo muestra “Ya existe un examen con ese nombre en este grupo”.\n- [ ] Un 500 en exámenes o presupuestos deja el mensaje original en el log del contenedor.",
+      "model": "opencode-go/kimi-k2.6",
+      "reason": "Cambios acotados de UI, mensajes y documentación.",
+      "status": "todo",
+      "dependencies": [],
+      "estimateHours": 1,
+      "files": [
+        "packages/lib/error-messages.ts",
+        "apps/web/app/api/examenes/route.ts",
+        "apps/web/app/api/presupuestos/route.ts"
+      ],
+      "specRef": "F7/sprint-feedback-cliente.md#F7.1.T2",
+      "comments": []
+    },
+    {
+      "id": "F7.1.T3",
+      "phase": 7,
+      "title": "Paquetes: botón Agregar en vez de arrastrar y guardado en un solo request",
+      "description": "**Objetivo**\n\nQuitar el arrastre entre columnas del constructor de paquetes, que hoy no agrega nada porque `DndContext` no tiene sensores y `SortableList` no es un `SortableContext`, y dejar un botón explícito por fila. Unificar el guardado que hoy son tres requests en paralelo.\n\n**Alcance**\n\nSí hace:\n- Fila del catálogo: botón “Agregar” a la derecha; sin `useDraggable`.\n- Reorden dentro del paquete: `useSensors(PointerSensor{distance:6}, KeyboardSensor)` y `SortableContext` con `verticalListSortingStrategy`.\n- Nuevo `PUT /api/paquetes/[id]` que reciba `precio_base`, `examenIds` y `tituloIds` y los aplique en orden; el builder llama solo a ese.\n- Texto vacío del paquete: “Hacé clic en Agregar o incluí un grupo completo”.\n\nNo hace:\n- Cambiar el cálculo de suma sugerida ni de ahorro.\n\n**Criterios de aceptación**\n\n- [ ] Clic en “Agregar” suma el examen al paquete y lo deshabilita en el catálogo.\n- [ ] Reordenar con el mouse y con teclado funciona y persiste al guardar.\n- [ ] Si falla el guardado, el paquete queda como estaba antes.",
+      "model": "opencode/deepseek-v4-pro",
+      "reason": "Cambios de formulario, endpoints y migraciones con lógica de negocio.",
+      "status": "todo",
+      "dependencies": [],
+      "estimateHours": 3,
+      "files": [
+        "apps/web/app/(app)/paquetes/PaqueteBuilder.tsx",
+        "packages/ui/dnd/SortableList.tsx",
+        "apps/web/app/api/paquetes/[id]/route.ts",
+        "packages/db/repos/paquetes.ts"
+      ],
+      "specRef": "F7/sprint-feedback-cliente.md#F7.1.T3",
+      "comments": []
+    },
+    {
+      "id": "F7.2.T1",
+      "phase": 7,
+      "title": "Decir qué falta para guardar el presupuesto",
+      "description": "**Objetivo**\n\nEl botón “Guardar presupuesto” se deshabilita por seis condiciones sin decir cuál falla. El cliente vio un botón gris y no supo que faltaba el paciente. Mostrar la lista de faltantes y llevar al campo.\n\n**Alcance**\n\nSí hace:\n- Derivar `faltantes: string[]` de las mismas condiciones de `canSubmit`.\n- Botón siempre habilitado; al hacer clic con faltantes, mostrarlos junto al botón y hacer scroll al primero.\n- Marcar en rojo el bloque de paciente cuando está vacío.\n\nNo hace:\n- Cambiar las reglas de validación.\n\n**Criterios de aceptación**\n\n- [ ] Con dos exámenes y sin paciente, clic en guardar muestra “Falta elegir paciente” y lleva al campo.\n- [ ] Con todo cargado, guarda como hasta ahora.",
+      "model": "opencode-go/kimi-k2.6",
+      "reason": "Cambios acotados de UI, mensajes y documentación.",
+      "status": "todo",
+      "dependencies": [],
+      "estimateHours": 2,
+      "files": [
+        "apps/web/app/(app)/presupuestos/nuevo/PresupuestoForm.tsx"
+      ],
+      "specRef": "F7/sprint-feedback-cliente.md#F7.2.T1",
+      "comments": []
+    },
+    {
+      "id": "F7.2.T2",
+      "phase": 7,
+      "title": "Toma de muestra y domicilio: base, schema y cálculo",
+      "description": "**Objetivo**\n\nAgregar los dos cargos por servicio que el laboratorio cobra aparte de los exámenes, como columnas planas del presupuesto para no tocar la FK de líneas ni la conversión a orden.\n\n**Alcance**\n\nSí hace:\n- Migración `0015_presupuestos_servicios.sql`: `toma_muestra_usd numeric(12,2) NOT NULL DEFAULT 0 CHECK (>= 0)` y `domicilio_usd` igual, en `presupuestos`.\n- `laboratorio_config`: `toma_muestra_default_usd numeric(12,2) DEFAULT 0`.\n- `presupuestoCreateSchema` y `presupuestoUpdateSchema`: ambos campos opcionales, no negativos.\n- `calcularTotales`: nuevo input `serviciosUsd` que se suma al total después de descuento y ganancia, en USD y Bs. Tests.\n- `repos/presupuestos.ts` create y update persisten y devuelven los campos. La conversión a orden no los copia.\n- Aplicar la migración en la instancia hosted por el endpoint de migraciones (ver `docs/deploy/insforge-vps.md`).\n\nNo hace:\n- UI ni PDF (F7.2.T3).\n\n**Criterios de aceptación**\n\n- [ ] Un presupuesto con subtotal 13, ganancia 0, toma 4 y domicilio 6 da total 23 USD y el Bs correspondiente.\n- [ ] Los tests de `calcular-totales` y `schemas/presupuesto` pasan.",
+      "model": "opencode/deepseek-v4-pro",
+      "reason": "Cambios de formulario, endpoints y migraciones con lógica de negocio.",
+      "status": "todo",
+      "dependencies": [],
+      "estimateHours": 3,
+      "files": [
+        "packages/db/migrations/0015_presupuestos_servicios.sql",
+        "packages/lib/schemas/presupuesto.ts",
+        "packages/lib/calcular-totales.ts",
+        "packages/lib/calcular-totales.test.ts",
+        "packages/db/repos/presupuestos.ts"
+      ],
+      "specRef": "F7/sprint-feedback-cliente.md#F7.2.T2",
+      "comments": []
+    },
+    {
+      "id": "F7.2.T3",
+      "phase": 7,
+      "title": "Toma de muestra y domicilio en formulario, detalle y PDF, más hora de emisión",
+      "description": "**Objetivo**\n\nExponer los cargos por servicio como se acordó en la reunión: campo “Toma de muestra” siempre visible con valor por defecto de Config, y check “Servicio a domicilio” que abre el monto. Mostrarlos en el detalle y en el PDF, y agregar la hora a la fecha de emisión.\n\n**Alcance**\n\nSí hace:\n- Formulario: bloque “Servicios” entre la tabla de exámenes y el resumen.\n- Resumen en vivo con dos filas nuevas antes del total.\n- `PresupuestoDetalle` muestra ambos montos.\n- `PresupuestoPDF`: dos filas bajo la tabla de exámenes, y “Emitido el dd/mm/aaaa hh:mm” en zona `America/Caracas`.\n- Config: campo para el valor por defecto de toma de muestra.\n\nNo hace:\n- Servicios en la orden ni en el PDF de resultados.\n\n**Criterios de aceptación**\n\n- [ ] El PDF muestra tasa, fecha y hora de emisión y los dos servicios como filas separadas de los exámenes.\n- [ ] Desmarcar “Servicio a domicilio” lo pone en 0 y lo quita del PDF.",
+      "model": "opencode/deepseek-v4-pro",
+      "reason": "Cambios de formulario, endpoints y migraciones con lógica de negocio.",
+      "status": "todo",
+      "dependencies": [
+        "F7.2.T2"
+      ],
+      "estimateHours": 3,
+      "files": [
+        "apps/web/app/(app)/presupuestos/nuevo/PresupuestoForm.tsx",
+        "apps/web/app/(app)/presupuestos/[id]/PresupuestoDetalle.tsx",
+        "packages/pdf/PresupuestoPDF.tsx",
+        "apps/web/app/(app)/config/ConfigForm.tsx"
+      ],
+      "specRef": "F7/sprint-feedback-cliente.md#F7.2.T3",
+      "comments": []
+    },
+    {
+      "id": "F7.2.T4",
+      "phase": 7,
+      "title": "Ganancia: ocultar detrás de Ajustes avanzados y corregir el paquete cerrado",
+      "description": "**Objetivo**\n\nEl cliente escribió valores en la columna de ganancia por línea sin saber qué era y el total cambió. Ocultar ganancia global y por línea detrás de un toggle plegado, y corregir que en paquete cerrado la ganancia global se aplique sobre el precio ya repartido.\n\n**Alcance**\n\nSí hace:\n- Toggle “Ajustes avanzados” plegado por defecto que muestra ganancia global y la columna por línea.\n- Con el toggle cerrado no se manda `ganancia_pct` por línea.\n- Paquete cerrado: las líneas del paquete llevan `ganancia_pct: 0` explícito, para que el total del paquete sea el precio base fijado por el admin.\n- Confirmar con el cliente antes de mergear si la ganancia se queda o se elimina del todo.\n\nNo hace:\n- Cambiar el PDF, que ya no desglosa el porcentaje.\n\n**Criterios de aceptación**\n\n- [ ] Cargar un paquete cerrado de precio base 15 da total 15 con ganancia global 10.\n- [ ] Con el toggle cerrado, la tabla no muestra la columna Ganancia %.",
+      "model": "opencode/deepseek-v4-pro",
+      "reason": "Cambios de formulario, endpoints y migraciones con lógica de negocio.",
+      "status": "todo",
+      "dependencies": [],
+      "estimateHours": 2,
+      "files": [
+        "apps/web/app/(app)/presupuestos/nuevo/PresupuestoForm.tsx",
+        "packages/lib/calcular-totales.test.ts"
+      ],
+      "specRef": "F7/sprint-feedback-cliente.md#F7.2.T4",
+      "comments": []
+    },
+    {
+      "id": "F7.3.T1",
+      "phase": 7,
+      "title": "Enmascarar la página pública del resultado",
+      "description": "**Objetivo**\n\nLa página `/r/[slug]` muestra nombre completo, cédula completa y valores. Enmascarar la cédula y quitar los valores de la vista web, dejando el PDF como único lugar con el resultado.\n\n**Alcance**\n\nSí hace:\n- Cédula como `V-***.***.*45`.\n- Quitar la tabla de valores de la página; dejar laboratorio, paciente, fecha, botón de descarga del PDF y aviso de vencimiento.\n\nNo hace:\n- QR ni vista de verificación (F7.3.T2).\n\n**Criterios de aceptación**\n\n- [ ] Abrir el enlace muestra la cédula enmascarada y ningún valor de examen en el HTML.",
+      "model": "opencode-go/kimi-k2.6",
+      "reason": "Cambios acotados de UI, mensajes y documentación.",
+      "status": "todo",
+      "dependencies": [],
+      "estimateHours": 1,
+      "files": [
+        "apps/web/app/r/[slug]/page.tsx"
+      ],
+      "specRef": "F7/sprint-feedback-cliente.md#F7.3.T1",
+      "comments": []
+    },
+    {
+      "id": "F7.3.T2",
+      "phase": 7,
+      "title": "Vista de verificación y QR en el PDF de resultados",
+      "description": "**Objetivo**\n\nImplementar la decisión de la reunión: QR en el PDF que lleva a una página de validación con laboratorio, fecha, hora, cédula enmascarada y botón de WhatsApp. Nunca muestra el resultado.\n\n**Alcance**\n\nSí hace:\n- Migración `0016_enlaces_verificacion.sql`: tabla con `slug`, `orden_id`, sin vencimiento, o campo `tipo` en `enlaces_resultado`.\n- Ruta pública `/v/[slug]` con los datos mínimos y botón `wa.me` al teléfono de `laboratorio_config`.\n- Generar el QR en el servidor como SVG (`qrcode` npm, sin canvas) y embeberlo en `ResultadoPDF` junto a la firma.\n- El slug de verificación se crea al pasar la orden a “Entregada” si no existe.\n- Aplicar la migración en la instancia hosted.\n\nNo hace:\n- Token por SMS ni acceso al resultado desde la verificación.\n\n**Criterios de aceptación**\n\n- [ ] Escanear el QR del PDF abre `/v/[slug]` con laboratorio, fecha, hora y cédula enmascarada.\n- [ ] La vista de verificación no expone ningún valor ni el nombre completo.\n- [ ] Un PDF regenerado conserva el mismo slug.",
+      "model": "opencode/gemini-3.1-pro",
+      "reason": "Migración, ruta pública, generación de QR en PDF y flujo de privacidad.",
+      "status": "todo",
+      "dependencies": [
+        "F7.3.T1"
+      ],
+      "estimateHours": 6,
+      "files": [
+        "packages/db/migrations/0016_enlaces_verificacion.sql",
+        "packages/lib/enlace-resultado.ts",
+        "apps/web/app/v/[slug]/page.tsx",
+        "packages/pdf/ResultadoPDF.tsx",
+        "apps/web/app/api/pdf/resultado/[id]/route.ts",
+        "packages/db/repos/ordenes.ts"
+      ],
+      "specRef": "F7/sprint-feedback-cliente.md#F7.3.T2",
+      "comments": []
+    },
+    {
+      "id": "F7.3.T3",
+      "phase": 7,
+      "title": "Botón de IA para observaciones en el detalle del resultado",
+      "description": "**Objetivo**\n\nEl asistente de observaciones solo existe en el formulario de orden nueva. La licenciada carga valores desde el detalle, así que el botón tiene que estar ahí.\n\n**Alcance**\n\nSí hace:\n- Extraer el botón y su llamada a `api/ai/observaciones` a `packages/ui/resultados/RefinarObservacionesButton.tsx`.\n- Usarlo en `ResultadoDetalle` y en `ResultadoForm`.\n- Verificar en Coolify que `GEMINI_API_KEY` esté cargada en producción.\n\nNo hace:\n- Cambiar el prompt.\n\n**Criterios de aceptación**\n\n- [ ] Desde el detalle de una orden en proceso, el botón reescribe la observación y la deja editable antes de guardar.",
+      "model": "opencode-go/kimi-k2.6",
+      "reason": "Cambios acotados de UI, mensajes y documentación.",
+      "status": "todo",
+      "dependencies": [],
+      "estimateHours": 2,
+      "files": [
+        "packages/ui/resultados/RefinarObservacionesButton.tsx",
+        "apps/web/app/(app)/resultados/[id]/ResultadoDetalle.tsx",
+        "apps/web/app/(app)/resultados/nuevo/ResultadoForm.tsx"
+      ],
+      "specRef": "F7/sprint-feedback-cliente.md#F7.3.T3",
+      "comments": []
+    },
+    {
+      "id": "F7.4.T1",
+      "phase": 7,
+      "title": "Métodos de análisis como tabla administrable",
+      "description": "**Objetivo**\n\nReemplazar el texto libre con sugerencias por una tabla de métodos que el admin pueda ampliar, como se acordó en la reunión, sin romper el snapshot de método en las órdenes.\n\n**Alcance**\n\nSí hace:\n- Migración `0017_metodos_analisis.sql`: tabla `(id, nombre unique, activo, orden)` poblada con los distintos de `examenes.metodo`.\n- Endpoints `GET/POST/PATCH /api/examenes/metodos` con el patrón de `titulos`.\n- `ExamenFormDialog`: `select` de métodos activos con opción “Agregar método…” para admin.\n- Config: lista de métodos con renombrar y desactivar.\n- `examenes.metodo` sigue siendo texto: se guarda el nombre elegido.\n\nNo hace:\n- Migrar `metodo_snap` de órdenes.\n\n**Criterios de aceptación**\n\n- [ ] No se puede escribir un método a mano en el examen.\n- [ ] Un método desactivado no aparece en el selector pero se sigue viendo en exámenes que ya lo tenían.",
+      "model": "opencode/deepseek-v4-pro",
+      "reason": "Cambios de formulario, endpoints y migraciones con lógica de negocio.",
+      "status": "todo",
+      "dependencies": [],
+      "estimateHours": 5,
+      "files": [
+        "packages/db/migrations/0017_metodos_analisis.sql",
+        "packages/db/repos/metodos.ts",
+        "apps/web/app/api/examenes/metodos/route.ts",
+        "apps/web/app/(app)/examenes/ExamenFormDialog.tsx",
+        "apps/web/app/(app)/config/ConfigForm.tsx"
+      ],
+      "specRef": "F7/sprint-feedback-cliente.md#F7.4.T1",
+      "comments": []
+    },
+    {
+      "id": "F7.4.T2",
+      "phase": 7,
+      "title": "Dirección obligatoria y enlace de ubicación en pacientes",
+      "description": "**Objetivo**\n\nEl laboratorio toma muestras a domicilio y pide al paciente su ubicación por WhatsApp. Hacer la dirección obligatoria y agregar un campo para el enlace de mapa o las coordenadas.\n\n**Alcance**\n\nSí hace:\n- Migración `0018_pacientes_ubicacion.sql`: `ubicacion_url text`.\n- `schemas/paciente.ts`: `direccion` requerida con mínimo 5 caracteres; `ubicacion_url` opcional, URL o par `lat,long`.\n- Formulario: dirección marcada como requerida; campo “Ubicación (enlace o coordenadas)” con botón “Abrir en mapa”.\n- Ficha del paciente muestra el enlace.\n\nNo hace:\n- Mapa embebido.\n\n**Criterios de aceptación**\n\n- [ ] Crear paciente sin dirección muestra error en el campo.\n- [ ] Pegar `10.49,-66.88` guarda y abre Google Maps con esas coordenadas.",
+      "model": "opencode-go/kimi-k2.6",
+      "reason": "Cambios acotados de UI, mensajes y documentación.",
+      "status": "todo",
+      "dependencies": [],
+      "estimateHours": 2,
+      "files": [
+        "packages/db/migrations/0018_pacientes_ubicacion.sql",
+        "packages/lib/schemas/paciente.ts",
+        "apps/web/app/(app)/pacientes/PacienteFormDialog.tsx",
+        "apps/web/app/(app)/pacientes/[id]/FichaTabs.tsx"
+      ],
+      "specRef": "F7/sprint-feedback-cliente.md#F7.4.T2",
+      "comments": []
+    },
+    {
+      "id": "F7.5.T1",
+      "phase": 7,
+      "title": "Tasa BCV: cron en Coolify y rechazos visibles en Config",
+      "description": "**Objetivo**\n\nLa tasa estaba desactualizada durante las pruebas del cliente y los únicos refrescos en auditoría son manuales. Verificar la tarea programada y hacer visibles los rechazos de la guarda anti-outlier.\n\n**Alcance**\n\nSí hace:\n- Revisar en Coolify la tarea programada que llama a `refresh-bcv` con `CRON_SECRET`; documentar en `docs/deploy/coolify-staged.md` cómo está configurada.\n- Cuando `setManual` o el scraper rechazan por outlier, devolver `TASA_RECHAZADA_OUTLIER` y mostrarlo en Config con el valor anterior.\n- Reproducir el “tasa manual no funciona” de la demo con la consola abierta y anotar la causa.\n\nNo hace:\n- Cambiar el umbral del outlier sin dato.\n\n**Criterios de aceptación**\n\n- [ ] La tasa en producción se actualiza sola cada hora durante un día completo.\n- [ ] Cargar una tasa manual fuera de rango muestra el motivo en vez de éxito silencioso.",
+      "model": "opencode-go/kimi-k2.6",
+      "reason": "Cambios acotados de UI, mensajes y documentación.",
+      "status": "todo",
+      "dependencies": [],
+      "estimateHours": 2,
+      "files": [
+        "docs/deploy/coolify-staged.md",
+        "apps/web/app/api/tasa/manual/route.ts",
+        "packages/db/repos/tasa.ts",
+        "apps/web/app/(app)/config/ConfigForm.tsx"
+      ],
+      "specRef": "F7/sprint-feedback-cliente.md#F7.5.T1",
+      "comments": []
     }
   ],
   "phases": []

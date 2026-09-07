@@ -1,0 +1,169 @@
+<title>Sprint F7 RV Laboratorio</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Serif:wght@500;600&display=swap">
+<style>
+:root{--bg:#f6f7f8;--paper:#fff;--ink:#17202a;--ink-2:#4b5563;--ink-3:#7c8794;--rule:#dde2e7;--accent:#0e6b70;--accent-soft:#e2f1f1;--code-bg:#eef1f3;--w1:#d9eef0;--w2:#e8e8f7}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#101418;--paper:#171c22;--ink:#e6eaee;--ink-2:#b4bcc6;--ink-3:#7f8a96;--rule:#2a323b;--accent:#5cc3c6;--accent-soft:#14313380;--code-bg:#20272e;--w1:#143133;--w2:#26274a}}
+:root[data-theme="dark"]{--bg:#101418;--paper:#171c22;--ink:#e6eaee;--ink-2:#b4bcc6;--ink-3:#7f8a96;--rule:#2a323b;--accent:#5cc3c6;--accent-soft:#14313380;--code-bg:#20272e;--w1:#143133;--w2:#26274a}
+*{box-sizing:border-box}body{background:var(--bg);color:var(--ink);font:15px/1.55 "IBM Plex Sans",system-ui,sans-serif;margin:0}
+main{max-width:64rem;margin:0 auto;padding:2.5rem 1.25rem 5rem}
+h1,h2{font-family:"IBM Plex Serif",Georgia,serif;text-wrap:balance;margin:0}h1{font-size:2rem;font-weight:600;line-height:1.15}h2{font-size:1.3rem;font-weight:600}
+h3{font-size:1rem;font-weight:600;margin:0}p{margin:0;max-width:68ch}
+code{font:.84em "IBM Plex Mono",monospace;background:var(--code-bg);padding:.1em .35em;border-radius:3px}
+.eyebrow{font-size:.72rem;letter-spacing:.09em;text-transform:uppercase;color:var(--ink-3);font-weight:500}
+header{display:flex;flex-direction:column;gap:.75rem;padding-bottom:1.5rem;border-bottom:1px solid var(--rule)}
+header p.lede{color:var(--ink-2);font-size:1.02rem}
+.meta{display:flex;flex-wrap:wrap;gap:.4rem 1.5rem;font-size:.82rem;color:var(--ink-3);font-variant-numeric:tabular-nums}.meta b{color:var(--ink-2);font-weight:500}
+.wrap{background:var(--paper);border:1px solid var(--rule);overflow-x:auto;margin-top:1.5rem}
+table{border-collapse:collapse;width:100%;font-size:.86rem}th{text-align:left;font-weight:500;color:var(--ink-3);font-size:.72rem;letter-spacing:.06em;text-transform:uppercase;padding:.55rem .8rem;border-bottom:1px solid var(--rule)}
+td{padding:.55rem .8rem;border-bottom:1px solid var(--rule);vertical-align:top}tr:last-child td{border-bottom:0}td.id{font:500 .8rem "IBM Plex Mono",monospace;white-space:nowrap}td.h{font-family:"IBM Plex Mono",monospace;text-align:right;white-space:nowrap}
+.wk{display:inline-block;font:500 .7rem "IBM Plex Mono",monospace;padding:.1rem .4rem;border-radius:3px;white-space:nowrap}.wk.s1{background:var(--w1)}.wk.s2{background:var(--w2)}
+.note{margin-top:1.5rem;background:var(--accent-soft);border-left:3px solid var(--accent);padding:.8rem 1rem;font-size:.9rem}
+section{margin-top:2.5rem}section>h2{padding-bottom:.5rem;border-bottom:1px solid var(--rule);margin-bottom:1rem}
+.items{display:flex;flex-direction:column;gap:.9rem}article{background:var(--paper);border:1px solid var(--rule)}
+article .head{display:flex;align-items:center;gap:.7rem;padding:.7rem 1rem;border-bottom:1px solid var(--rule)}article .head h3{flex:1}
+article .head .id{font:500 .78rem "IBM Plex Mono",monospace;color:var(--ink-3)}article .head .hrs{font:500 .78rem "IBM Plex Mono",monospace;color:var(--ink-2)}
+article dl{display:grid;grid-template-columns:7.5rem 1fr;gap:.55rem 1rem;padding:.8rem 1rem;margin:0}article dt{font-size:.72rem;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-3);padding-top:.2rem}article dd{margin:0}
+ul{margin:.2rem 0 0;padding-left:1.1rem}li{margin:.2rem 0}
+.files{display:flex;flex-direction:column;gap:.15rem;font:.78rem "IBM Plex Mono",monospace;color:var(--ink-2)}.files span{display:block;overflow-x:auto;white-space:nowrap}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-top:1.5rem}.two>div{background:var(--paper);border:1px solid var(--rule);padding:.9rem 1rem}
+@media(max-width:720px){article dl{grid-template-columns:1fr}.two{grid-template-columns:1fr}}
+</style>
+
+<main>
+<header>
+<span class="eyebrow">RV Laboratorio · F7</span>
+<h1>Sprint de feedback del cliente</h1>
+<p class="lede">Dos semanas para cerrar lo que reportó Miguel Franchi y lo que se acordó en la reunión del 6 de septiembre. Sale del análisis técnico; cada tarea tiene alcance, criterios de aceptación y archivos.</p>
+<div class="meta"><span>Del <b>8 al 19 sep 2026</b></span><span>Tareas <b>13</b></span><span>Estimado <b>36h</b></span><span>Spec <b>specs/F7/sprint-feedback-cliente.md</b></span><span>Backlog <b>tasks.json</b></span></div>
+</header>
+<div class="wrap"><table><thead><tr><th>Cuándo</th><th>ID</th><th>Tarea</th><th>Depende de</th><th>Horas</th></tr></thead><tbody>
+<tr><td><span class="wk s1">S1 · d1-2</span></td><td class="id">F7.1.T1</td><td>Migrar los siete modales a mano al Dialog de shadcn</td><td>—</td><td class="h">4</td></tr>
+<tr><td><span class="wk s1">S1 · d1-2</span></td><td class="id">F7.1.T2</td><td>Mensajes de error faltantes y registro del 500 en exámenes</td><td>—</td><td class="h">1</td></tr>
+<tr><td><span class="wk s1">S1 · d1-2</span></td><td class="id">F7.2.T1</td><td>Decir qué falta para guardar el presupuesto</td><td>—</td><td class="h">2</td></tr>
+<tr><td><span class="wk s1">S1 · d1-2</span></td><td class="id">F7.3.T1</td><td>Enmascarar la página pública del resultado</td><td>—</td><td class="h">1</td></tr>
+<tr><td><span class="wk s1">S1 · d3-5</span></td><td class="id">F7.2.T2</td><td>Toma de muestra y domicilio: base, schema y cálculo</td><td>—</td><td class="h">3</td></tr>
+<tr><td><span class="wk s1">S1 · d3-5</span></td><td class="id">F7.2.T3</td><td>Toma de muestra y domicilio en formulario, detalle y PDF, más hora de emisión</td><td>F7.2.T2</td><td class="h">3</td></tr>
+<tr><td><span class="wk s1">S1 · d3-5</span></td><td class="id">F7.2.T4</td><td>Ganancia: ocultar detrás de Ajustes avanzados y corregir el paquete cerrado</td><td>—</td><td class="h">2</td></tr>
+<tr><td><span class="wk s1">S1 · d3-5</span></td><td class="id">F7.1.T3</td><td>Paquetes: botón Agregar en vez de arrastrar y guardado en un solo request</td><td>—</td><td class="h">3</td></tr>
+<tr><td><span class="wk s2">S2 · d1-3</span></td><td class="id">F7.4.T1</td><td>Métodos de análisis como tabla administrable</td><td>—</td><td class="h">5</td></tr>
+<tr><td><span class="wk s2">S2 · d1-3</span></td><td class="id">F7.4.T2</td><td>Dirección obligatoria y enlace de ubicación en pacientes</td><td>—</td><td class="h">2</td></tr>
+<tr><td><span class="wk s2">S2 · d1-3</span></td><td class="id">F7.3.T3</td><td>Botón de IA para observaciones en el detalle del resultado</td><td>—</td><td class="h">2</td></tr>
+<tr><td><span class="wk s2">S2 · d1-3</span></td><td class="id">F7.5.T1</td><td>Tasa BCV: cron en Coolify y rechazos visibles en Config</td><td>—</td><td class="h">2</td></tr>
+<tr><td><span class="wk s2">S2 · d4-5</span></td><td class="id">F7.3.T2</td><td>Vista de verificación y QR en el PDF de resultados</td><td>F7.3.T1</td><td class="h">6</td></tr>
+</tbody></table></div>
+<div class="two">
+<div><span class="eyebrow">Fuera del sprint</span><ul>
+<li><b>Orina y heces cualitativos.</b> Requiere la sesión con la licenciada. Va a F8.</li>
+<li><b>Inventario de reactivos.</b> Módulo nuevo, spec propio en F8.</li>
+<li><b>Fidelización y cumpleaños.</b> Pospuesto por acuerdo.</li>
+<li><b>Mover el servidor de Alemania.</b> Infraestructura, no código.</li></ul></div>
+<div><span class="eyebrow">Confirmar con el cliente durante el sprint</span><ul>
+<li>Si la ganancia por línea se oculta o se elimina (F7.2.T4).</li>
+<li>Valor por defecto de la toma de muestra. En la demo dijeron 4 USD (F7.2.T3).</li>
+<li>Qué WhatsApp atiende las verificaciones por QR (F7.3.T2).</li></ul></div>
+</div>
+<p class="note">Objetivo del sprint: que el cliente pueda cargar el catálogo, armar paquetes y emitir presupuestos con toma de muestra y domicilio sin toparse con ninguno de los bloqueos reportados, y que la página pública de resultados deje de exponer datos. Hay dos deploys intermedios: al final del día 2 y al final de la semana 1, con aviso al cliente.</p>
+<section><h2>F7.1 · Correcciones de interfaz</h2><div class="items">
+<article><div class="head"><span class="id">F7.1.T1</span><h3>Migrar los siete modales a mano al Dialog de shadcn</h3><span class="wk s1">S1 · d1-2</span><span class="hrs">4h</span></div><dl>
+<dt>Objetivo</dt><dd>Reemplazar los overlays <code>fixed inset-0</code> armados a mano por el <code>Dialog</code> de <code>apps/web/components/ui/dialog.tsx</code>, que ya trae portal, foco, Escape y scroll interno. Cierra el bug del botón oculto que reportó el cliente en exámenes y previene el mismo fallo en el resto.</dd>
+<dt>Sí hace</dt><dd><ul><li>Migrar <code>ExamenFormDialog</code>, <code>TituloFormDialog</code>, <code>PacienteFormDialog</code>, <code>InviteUserDialog</code>, el modal de <code>PresupuestosList</code>, el de <code>ResultadoForm</code> (orden nueva) y <code>CargarPaqueteButton</code>.</li><li>Pie con los botones siempre visible: <code>max-h-[90vh]</code>, cuerpo con <code>overflow-y-auto</code>, pie <code>sticky bottom-0</code>.</li><li>Probar en 1366×768 y en tablet 768×1024.</li></ul></dd>
+<dt>No hace</dt><dd><ul><li>Cambiar campos ni validaciones de los formularios.</li></ul></dd>
+<dt>Aceptación</dt><dd><ul><li>En 1366×768 con zoom 100% el botón “Crear examen” es visible y clickeable sin achicar el zoom.</li><li>Escape y click fuera cierran cada modal, salvo mientras guarda.</li><li>No queda ningún <code>fixed inset-0</code> fuera de <code>components/ui</code>.</li></ul></dd>
+<dt>Archivos</dt><dd class="files"><span>apps/web/app/(app)/examenes/ExamenFormDialog.tsx</span><span>apps/web/app/(app)/examenes/TituloFormDialog.tsx</span><span>apps/web/app/(app)/pacientes/PacienteFormDialog.tsx</span><span>apps/web/app/(app)/usuarios/InviteUserDialog.tsx</span><span>apps/web/app/(app)/presupuestos/PresupuestosList.tsx</span><span>apps/web/app/(app)/resultados/nuevo/ResultadoForm.tsx</span><span>packages/ui/paquetes/CargarPaqueteButton.tsx</span></dd>
+</dl></article>
+<article><div class="head"><span class="id">F7.1.T2</span><h3>Mensajes de error faltantes y registro del 500 en exámenes</h3><span class="wk s1">S1 · d1-2</span><span class="hrs">1h</span></div><dl>
+<dt>Objetivo</dt><dd>Traducir los códigos de dominio que hoy caen en “Algo salió mal” y dejar rastro en el log cuando una ruta devuelve 500, para poder diagnosticar el error que el cliente vio al crear un examen en el grupo Caninas.</dd>
+<dt>Sí hace</dt><dd><ul><li>Agregar a <code>DOMAIN_ERROR_MESSAGES</code>: <code>EXAMEN_DUPLICADO_EN_TITULO</code>, <code>GANANCIA_NEGATIVA</code>, <code>EXAMENES_REQUERIDOS</code>, <code>TASA_INVALIDA</code>, <code>PRECIO_INVALIDO</code>.</li><li>En <code>toStatus</code> de <code>api/examenes/route.ts</code> y en <code>response</code> de <code>api/presupuestos/route.ts</code>, <code>console.error</code> con el mensaje original antes de devolver <code>ERROR_GENERICO</code>.</li><li>Buscar en los logs de Coolify el POST a <code>/api/examenes</code> del 2026-09-06 entre 02:35 y 02:45 UTC y anotar la causa en el spec.</li></ul></dd>
+<dt>No hace</dt><dd><ul><li>Cambiar el contrato de las rutas.</li></ul></dd>
+<dt>Aceptación</dt><dd><ul><li>Crear dos veces el mismo examen en un grupo muestra “Ya existe un examen con ese nombre en este grupo”.</li><li>Un 500 en exámenes o presupuestos deja el mensaje original en el log del contenedor.</li></ul></dd>
+<dt>Archivos</dt><dd class="files"><span>packages/lib/error-messages.ts</span><span>apps/web/app/api/examenes/route.ts</span><span>apps/web/app/api/presupuestos/route.ts</span></dd>
+</dl></article>
+<article><div class="head"><span class="id">F7.1.T3</span><h3>Paquetes: botón Agregar en vez de arrastrar y guardado en un solo request</h3><span class="wk s1">S1 · d3-5</span><span class="hrs">3h</span></div><dl>
+<dt>Objetivo</dt><dd>Quitar el arrastre entre columnas del constructor de paquetes, que hoy no agrega nada porque <code>DndContext</code> no tiene sensores y <code>SortableList</code> no es un <code>SortableContext</code>, y dejar un botón explícito por fila. Unificar el guardado que hoy son tres requests en paralelo.</dd>
+<dt>Sí hace</dt><dd><ul><li>Fila del catálogo: botón “Agregar” a la derecha; sin <code>useDraggable</code>.</li><li>Reorden dentro del paquete: <code>useSensors(PointerSensor{distance:6}, KeyboardSensor)</code> y <code>SortableContext</code> con <code>verticalListSortingStrategy</code>.</li><li>Nuevo <code>PUT /api/paquetes/[id]</code> que reciba <code>precio_base</code>, <code>examenIds</code> y <code>tituloIds</code> y los aplique en orden; el builder llama solo a ese.</li><li>Texto vacío del paquete: “Hacé clic en Agregar o incluí un grupo completo”.</li></ul></dd>
+<dt>No hace</dt><dd><ul><li>Cambiar el cálculo de suma sugerida ni de ahorro.</li></ul></dd>
+<dt>Aceptación</dt><dd><ul><li>Clic en “Agregar” suma el examen al paquete y lo deshabilita en el catálogo.</li><li>Reordenar con el mouse y con teclado funciona y persiste al guardar.</li><li>Si falla el guardado, el paquete queda como estaba antes.</li></ul></dd>
+<dt>Archivos</dt><dd class="files"><span>apps/web/app/(app)/paquetes/PaqueteBuilder.tsx</span><span>packages/ui/dnd/SortableList.tsx</span><span>apps/web/app/api/paquetes/[id]/route.ts</span><span>packages/db/repos/paquetes.ts</span></dd>
+</dl></article>
+</div></section>
+<section><h2>F7.2 · Presupuestos</h2><div class="items">
+<article><div class="head"><span class="id">F7.2.T1</span><h3>Decir qué falta para guardar el presupuesto</h3><span class="wk s1">S1 · d1-2</span><span class="hrs">2h</span></div><dl>
+<dt>Objetivo</dt><dd>El botón “Guardar presupuesto” se deshabilita por seis condiciones sin decir cuál falla. El cliente vio un botón gris y no supo que faltaba el paciente. Mostrar la lista de faltantes y llevar al campo.</dd>
+<dt>Sí hace</dt><dd><ul><li>Derivar <code>faltantes: string[]</code> de las mismas condiciones de <code>canSubmit</code>.</li><li>Botón siempre habilitado; al hacer clic con faltantes, mostrarlos junto al botón y hacer scroll al primero.</li><li>Marcar en rojo el bloque de paciente cuando está vacío.</li></ul></dd>
+<dt>No hace</dt><dd><ul><li>Cambiar las reglas de validación.</li></ul></dd>
+<dt>Aceptación</dt><dd><ul><li>Con dos exámenes y sin paciente, clic en guardar muestra “Falta elegir paciente” y lleva al campo.</li><li>Con todo cargado, guarda como hasta ahora.</li></ul></dd>
+<dt>Archivos</dt><dd class="files"><span>apps/web/app/(app)/presupuestos/nuevo/PresupuestoForm.tsx</span></dd>
+</dl></article>
+<article><div class="head"><span class="id">F7.2.T2</span><h3>Toma de muestra y domicilio: base, schema y cálculo</h3><span class="wk s1">S1 · d3-5</span><span class="hrs">3h</span></div><dl>
+<dt>Objetivo</dt><dd>Agregar los dos cargos por servicio que el laboratorio cobra aparte de los exámenes, como columnas planas del presupuesto para no tocar la FK de líneas ni la conversión a orden.</dd>
+<dt>Sí hace</dt><dd><ul><li>Migración <code>0015_presupuestos_servicios.sql</code>: <code>toma_muestra_usd numeric(12,2) NOT NULL DEFAULT 0 CHECK (&gt;= 0)</code> y <code>domicilio_usd</code> igual, en <code>presupuestos</code>.</li><li><code>laboratorio_config</code>: <code>toma_muestra_default_usd numeric(12,2) DEFAULT 0</code>.</li><li><code>presupuestoCreateSchema</code> y <code>presupuestoUpdateSchema</code>: ambos campos opcionales, no negativos.</li><li><code>calcularTotales</code>: nuevo input <code>serviciosUsd</code> que se suma al total después de descuento y ganancia, en USD y Bs. Tests.</li><li><code>repos/presupuestos.ts</code> create y update persisten y devuelven los campos. La conversión a orden no los copia.</li><li>Aplicar la migración en la instancia hosted por el endpoint de migraciones (ver <code>docs/deploy/insforge-vps.md</code>).</li></ul></dd>
+<dt>No hace</dt><dd><ul><li>UI ni PDF (F7.2.T3).</li></ul></dd>
+<dt>Aceptación</dt><dd><ul><li>Un presupuesto con subtotal 13, ganancia 0, toma 4 y domicilio 6 da total 23 USD y el Bs correspondiente.</li><li>Los tests de <code>calcular-totales</code> y <code>schemas/presupuesto</code> pasan.</li></ul></dd>
+<dt>Archivos</dt><dd class="files"><span>packages/db/migrations/0015_presupuestos_servicios.sql</span><span>packages/lib/schemas/presupuesto.ts</span><span>packages/lib/calcular-totales.ts</span><span>packages/lib/calcular-totales.test.ts</span><span>packages/db/repos/presupuestos.ts</span></dd>
+</dl></article>
+<article><div class="head"><span class="id">F7.2.T3</span><h3>Toma de muestra y domicilio en formulario, detalle y PDF, más hora de emisión</h3><span class="wk s1">S1 · d3-5</span><span class="hrs">3h</span></div><dl>
+<dt>Objetivo</dt><dd>Exponer los cargos por servicio como se acordó en la reunión: campo “Toma de muestra” siempre visible con valor por defecto de Config, y check “Servicio a domicilio” que abre el monto. Mostrarlos en el detalle y en el PDF, y agregar la hora a la fecha de emisión.</dd>
+<dt>Sí hace</dt><dd><ul><li>Formulario: bloque “Servicios” entre la tabla de exámenes y el resumen.</li><li>Resumen en vivo con dos filas nuevas antes del total.</li><li><code>PresupuestoDetalle</code> muestra ambos montos.</li><li><code>PresupuestoPDF</code>: dos filas bajo la tabla de exámenes, y “Emitido el dd/mm/aaaa hh:mm” en zona <code>America/Caracas</code>.</li><li>Config: campo para el valor por defecto de toma de muestra.</li></ul></dd>
+<dt>No hace</dt><dd><ul><li>Servicios en la orden ni en el PDF de resultados.</li></ul></dd>
+<dt>Aceptación</dt><dd><ul><li>El PDF muestra tasa, fecha y hora de emisión y los dos servicios como filas separadas de los exámenes.</li><li>Desmarcar “Servicio a domicilio” lo pone en 0 y lo quita del PDF.</li></ul></dd>
+<dt>Archivos</dt><dd class="files"><span>apps/web/app/(app)/presupuestos/nuevo/PresupuestoForm.tsx</span><span>apps/web/app/(app)/presupuestos/[id]/PresupuestoDetalle.tsx</span><span>packages/pdf/PresupuestoPDF.tsx</span><span>apps/web/app/(app)/config/ConfigForm.tsx</span></dd>
+<dt>Depende de</dt><dd>F7.2.T2</dd>
+</dl></article>
+<article><div class="head"><span class="id">F7.2.T4</span><h3>Ganancia: ocultar detrás de Ajustes avanzados y corregir el paquete cerrado</h3><span class="wk s1">S1 · d3-5</span><span class="hrs">2h</span></div><dl>
+<dt>Objetivo</dt><dd>El cliente escribió valores en la columna de ganancia por línea sin saber qué era y el total cambió. Ocultar ganancia global y por línea detrás de un toggle plegado, y corregir que en paquete cerrado la ganancia global se aplique sobre el precio ya repartido.</dd>
+<dt>Sí hace</dt><dd><ul><li>Toggle “Ajustes avanzados” plegado por defecto que muestra ganancia global y la columna por línea.</li><li>Con el toggle cerrado no se manda <code>ganancia_pct</code> por línea.</li><li>Paquete cerrado: las líneas del paquete llevan <code>ganancia_pct: 0</code> explícito, para que el total del paquete sea el precio base fijado por el admin.</li><li>Confirmar con el cliente antes de mergear si la ganancia se queda o se elimina del todo.</li></ul></dd>
+<dt>No hace</dt><dd><ul><li>Cambiar el PDF, que ya no desglosa el porcentaje.</li></ul></dd>
+<dt>Aceptación</dt><dd><ul><li>Cargar un paquete cerrado de precio base 15 da total 15 con ganancia global 10.</li><li>Con el toggle cerrado, la tabla no muestra la columna Ganancia %.</li></ul></dd>
+<dt>Archivos</dt><dd class="files"><span>apps/web/app/(app)/presupuestos/nuevo/PresupuestoForm.tsx</span><span>packages/lib/calcular-totales.test.ts</span></dd>
+</dl></article>
+</div></section>
+<section><h2>F7.3 · Resultados y privacidad</h2><div class="items">
+<article><div class="head"><span class="id">F7.3.T1</span><h3>Enmascarar la página pública del resultado</h3><span class="wk s1">S1 · d1-2</span><span class="hrs">1h</span></div><dl>
+<dt>Objetivo</dt><dd>La página <code>/r/[slug]</code> muestra nombre completo, cédula completa y valores. Enmascarar la cédula y quitar los valores de la vista web, dejando el PDF como único lugar con el resultado.</dd>
+<dt>Sí hace</dt><dd><ul><li>Cédula como <code>V-***.***.*45</code>.</li><li>Quitar la tabla de valores de la página; dejar laboratorio, paciente, fecha, botón de descarga del PDF y aviso de vencimiento.</li></ul></dd>
+<dt>No hace</dt><dd><ul><li>QR ni vista de verificación (F7.3.T2).</li></ul></dd>
+<dt>Aceptación</dt><dd><ul><li>Abrir el enlace muestra la cédula enmascarada y ningún valor de examen en el HTML.</li></ul></dd>
+<dt>Archivos</dt><dd class="files"><span>apps/web/app/r/[slug]/page.tsx</span></dd>
+</dl></article>
+<article><div class="head"><span class="id">F7.3.T2</span><h3>Vista de verificación y QR en el PDF de resultados</h3><span class="wk s2">S2 · d4-5</span><span class="hrs">6h</span></div><dl>
+<dt>Objetivo</dt><dd>Implementar la decisión de la reunión: QR en el PDF que lleva a una página de validación con laboratorio, fecha, hora, cédula enmascarada y botón de WhatsApp. Nunca muestra el resultado.</dd>
+<dt>Sí hace</dt><dd><ul><li>Migración <code>0016_enlaces_verificacion.sql</code>: tabla con <code>slug</code>, <code>orden_id</code>, sin vencimiento, o campo <code>tipo</code> en <code>enlaces_resultado</code>.</li><li>Ruta pública <code>/v/[slug]</code> con los datos mínimos y botón <code>wa.me</code> al teléfono de <code>laboratorio_config</code>.</li><li>Generar el QR en el servidor como SVG (<code>qrcode</code> npm, sin canvas) y embeberlo en <code>ResultadoPDF</code> junto a la firma.</li><li>El slug de verificación se crea al pasar la orden a “Entregada” si no existe.</li><li>Aplicar la migración en la instancia hosted.</li></ul></dd>
+<dt>No hace</dt><dd><ul><li>Token por SMS ni acceso al resultado desde la verificación.</li></ul></dd>
+<dt>Aceptación</dt><dd><ul><li>Escanear el QR del PDF abre <code>/v/[slug]</code> con laboratorio, fecha, hora y cédula enmascarada.</li><li>La vista de verificación no expone ningún valor ni el nombre completo.</li><li>Un PDF regenerado conserva el mismo slug.</li></ul></dd>
+<dt>Archivos</dt><dd class="files"><span>packages/db/migrations/0016_enlaces_verificacion.sql</span><span>packages/lib/enlace-resultado.ts</span><span>apps/web/app/v/[slug]/page.tsx</span><span>packages/pdf/ResultadoPDF.tsx</span><span>apps/web/app/api/pdf/resultado/[id]/route.ts</span><span>packages/db/repos/ordenes.ts</span></dd>
+<dt>Depende de</dt><dd>F7.3.T1</dd>
+</dl></article>
+<article><div class="head"><span class="id">F7.3.T3</span><h3>Botón de IA para observaciones en el detalle del resultado</h3><span class="wk s2">S2 · d1-3</span><span class="hrs">2h</span></div><dl>
+<dt>Objetivo</dt><dd>El asistente de observaciones solo existe en el formulario de orden nueva. La licenciada carga valores desde el detalle, así que el botón tiene que estar ahí.</dd>
+<dt>Sí hace</dt><dd><ul><li>Extraer el botón y su llamada a <code>api/ai/observaciones</code> a <code>packages/ui/resultados/RefinarObservacionesButton.tsx</code>.</li><li>Usarlo en <code>ResultadoDetalle</code> y en <code>ResultadoForm</code>.</li><li>Verificar en Coolify que <code>GEMINI_API_KEY</code> esté cargada en producción.</li></ul></dd>
+<dt>No hace</dt><dd><ul><li>Cambiar el prompt.</li></ul></dd>
+<dt>Aceptación</dt><dd><ul><li>Desde el detalle de una orden en proceso, el botón reescribe la observación y la deja editable antes de guardar.</li></ul></dd>
+<dt>Archivos</dt><dd class="files"><span>packages/ui/resultados/RefinarObservacionesButton.tsx</span><span>apps/web/app/(app)/resultados/[id]/ResultadoDetalle.tsx</span><span>apps/web/app/(app)/resultados/nuevo/ResultadoForm.tsx</span></dd>
+</dl></article>
+</div></section>
+<section><h2>F7.4 · Catálogo y pacientes</h2><div class="items">
+<article><div class="head"><span class="id">F7.4.T1</span><h3>Métodos de análisis como tabla administrable</h3><span class="wk s2">S2 · d1-3</span><span class="hrs">5h</span></div><dl>
+<dt>Objetivo</dt><dd>Reemplazar el texto libre con sugerencias por una tabla de métodos que el admin pueda ampliar, como se acordó en la reunión, sin romper el snapshot de método en las órdenes.</dd>
+<dt>Sí hace</dt><dd><ul><li>Migración <code>0017_metodos_analisis.sql</code>: tabla <code>(id, nombre unique, activo, orden)</code> poblada con los distintos de <code>examenes.metodo</code>.</li><li>Endpoints <code>GET/POST/PATCH /api/examenes/metodos</code> con el patrón de <code>titulos</code>.</li><li><code>ExamenFormDialog</code>: <code>select</code> de métodos activos con opción “Agregar método…” para admin.</li><li>Config: lista de métodos con renombrar y desactivar.</li><li><code>examenes.metodo</code> sigue siendo texto: se guarda el nombre elegido.</li></ul></dd>
+<dt>No hace</dt><dd><ul><li>Migrar <code>metodo_snap</code> de órdenes.</li></ul></dd>
+<dt>Aceptación</dt><dd><ul><li>No se puede escribir un método a mano en el examen.</li><li>Un método desactivado no aparece en el selector pero se sigue viendo en exámenes que ya lo tenían.</li></ul></dd>
+<dt>Archivos</dt><dd class="files"><span>packages/db/migrations/0017_metodos_analisis.sql</span><span>packages/db/repos/metodos.ts</span><span>apps/web/app/api/examenes/metodos/route.ts</span><span>apps/web/app/(app)/examenes/ExamenFormDialog.tsx</span><span>apps/web/app/(app)/config/ConfigForm.tsx</span></dd>
+</dl></article>
+<article><div class="head"><span class="id">F7.4.T2</span><h3>Dirección obligatoria y enlace de ubicación en pacientes</h3><span class="wk s2">S2 · d1-3</span><span class="hrs">2h</span></div><dl>
+<dt>Objetivo</dt><dd>El laboratorio toma muestras a domicilio y pide al paciente su ubicación por WhatsApp. Hacer la dirección obligatoria y agregar un campo para el enlace de mapa o las coordenadas.</dd>
+<dt>Sí hace</dt><dd><ul><li>Migración <code>0018_pacientes_ubicacion.sql</code>: <code>ubicacion_url text</code>.</li><li><code>schemas/paciente.ts</code>: <code>direccion</code> requerida con mínimo 5 caracteres; <code>ubicacion_url</code> opcional, URL o par <code>lat,long</code>.</li><li>Formulario: dirección marcada como requerida; campo “Ubicación (enlace o coordenadas)” con botón “Abrir en mapa”.</li><li>Ficha del paciente muestra el enlace.</li></ul></dd>
+<dt>No hace</dt><dd><ul><li>Mapa embebido.</li></ul></dd>
+<dt>Aceptación</dt><dd><ul><li>Crear paciente sin dirección muestra error en el campo.</li><li>Pegar <code>10.49,-66.88</code> guarda y abre Google Maps con esas coordenadas.</li></ul></dd>
+<dt>Archivos</dt><dd class="files"><span>packages/db/migrations/0018_pacientes_ubicacion.sql</span><span>packages/lib/schemas/paciente.ts</span><span>apps/web/app/(app)/pacientes/PacienteFormDialog.tsx</span><span>apps/web/app/(app)/pacientes/[id]/FichaTabs.tsx</span></dd>
+</dl></article>
+</div></section>
+<section><h2>F7.5 · Operación</h2><div class="items">
+<article><div class="head"><span class="id">F7.5.T1</span><h3>Tasa BCV: cron en Coolify y rechazos visibles en Config</h3><span class="wk s2">S2 · d1-3</span><span class="hrs">2h</span></div><dl>
+<dt>Objetivo</dt><dd>La tasa estaba desactualizada durante las pruebas del cliente y los únicos refrescos en auditoría son manuales. Verificar la tarea programada y hacer visibles los rechazos de la guarda anti-outlier.</dd>
+<dt>Sí hace</dt><dd><ul><li>Revisar en Coolify la tarea programada que llama a <code>refresh-bcv</code> con <code>CRON_SECRET</code>; documentar en <code>docs/deploy/coolify-staged.md</code> cómo está configurada.</li><li>Cuando <code>setManual</code> o el scraper rechazan por outlier, devolver <code>TASA_RECHAZADA_OUTLIER</code> y mostrarlo en Config con el valor anterior.</li><li>Reproducir el “tasa manual no funciona” de la demo con la consola abierta y anotar la causa.</li></ul></dd>
+<dt>No hace</dt><dd><ul><li>Cambiar el umbral del outlier sin dato.</li></ul></dd>
+<dt>Aceptación</dt><dd><ul><li>La tasa en producción se actualiza sola cada hora durante un día completo.</li><li>Cargar una tasa manual fuera de rango muestra el motivo en vez de éxito silencioso.</li></ul></dd>
+<dt>Archivos</dt><dd class="files"><span>docs/deploy/coolify-staged.md</span><span>apps/web/app/api/tasa/manual/route.ts</span><span>packages/db/repos/tasa.ts</span><span>apps/web/app/(app)/config/ConfigForm.tsx</span></dd>
+</dl></article>
+</div></section>
+</main>

@@ -1,0 +1,339 @@
+<title>Análisis técnico RV Laboratorio</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Serif:wght@500;600&display=swap">
+<style>
+  :root {
+    --bg: #f6f7f8; --paper: #ffffff; --ink: #17202a; --ink-2: #4b5563; --ink-3: #7c8794; --rule: #dde2e7;
+    --accent: #0e6b70; --accent-soft: #e2f1f1;
+    --ok: #1f7a4d; --ok-bg: #e4f4ea; --warn: #9a5b00; --warn-bg: #fbeed8; --bad: #b3261e; --bad-bg: #fbe5e3; --new: #4b4f9a; --new-bg: #e8e8f7;
+    --code-bg: #eef1f3;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #101418; --paper: #171c22; --ink: #e6eaee; --ink-2: #b4bcc6; --ink-3: #7f8a96; --rule: #2a323b;
+      --accent: #5cc3c6; --accent-soft: #14313380;
+      --ok: #6dd39a; --ok-bg: #12301f; --warn: #f0b95a; --warn-bg: #3a2a0e; --bad: #f28b84; --bad-bg: #3f1a18; --new: #a9abec; --new-bg: #26274a; --code-bg: #20272e;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #101418; --paper: #171c22; --ink: #e6eaee; --ink-2: #b4bcc6; --ink-3: #7f8a96; --rule: #2a323b;
+    --accent: #5cc3c6; --accent-soft: #14313380;
+    --ok: #6dd39a; --ok-bg: #12301f; --warn: #f0b95a; --warn-bg: #3a2a0e; --bad: #f28b84; --bad-bg: #3f1a18; --new: #a9abec; --new-bg: #26274a; --code-bg: #20272e;
+  }
+  * { box-sizing: border-box; }
+  body { background: var(--bg); color: var(--ink); font: 15px/1.55 "IBM Plex Sans", system-ui, sans-serif; margin: 0; }
+  main { max-width: 64rem; margin: 0 auto; padding: 2.5rem 1.25rem 5rem; }
+  h1, h2 { font-family: "IBM Plex Serif", Georgia, serif; text-wrap: balance; margin: 0; }
+  h1 { font-size: 2rem; font-weight: 600; line-height: 1.15; }
+  h2 { font-size: 1.3rem; font-weight: 600; }
+  h3 { font-size: 1rem; font-weight: 600; margin: 0; }
+  p { margin: 0; max-width: 68ch; }
+  code { font: 0.84em "IBM Plex Mono", ui-monospace, monospace; background: var(--code-bg); padding: 0.1em 0.35em; border-radius: 3px; white-space: nowrap; }
+  pre { font: 0.82rem/1.5 "IBM Plex Mono", ui-monospace, monospace; background: var(--code-bg); padding: 0.75rem 0.9rem; overflow-x: auto; margin: 0.4rem 0 0; }
+  .eyebrow { font-size: 0.72rem; letter-spacing: 0.09em; text-transform: uppercase; color: var(--ink-3); font-weight: 500; }
+  header { display: flex; flex-direction: column; gap: 0.75rem; padding-bottom: 1.5rem; border-bottom: 1px solid var(--rule); }
+  header p.lede { color: var(--ink-2); font-size: 1.02rem; }
+  .meta { display: flex; flex-wrap: wrap; gap: 0.4rem 1.5rem; font-size: 0.82rem; color: var(--ink-3); }
+  .meta b { color: var(--ink-2); font-weight: 500; }
+  .pill { display: inline-block; font-size: 0.72rem; font-weight: 500; letter-spacing: 0.03em; padding: 0.12rem 0.5rem; border-radius: 999px; white-space: nowrap; }
+  .pill.ok { color: var(--ok); background: var(--ok-bg); } .pill.warn { color: var(--warn); background: var(--warn-bg); }
+  .pill.bad { color: var(--bad); background: var(--bad-bg); } .pill.new { color: var(--new); background: var(--new-bg); }
+  .size { font: 500 0.72rem "IBM Plex Mono", monospace; color: var(--ink-3); border: 1px solid var(--rule); padding: 0.1rem 0.4rem; }
+  .note { margin-top: 1.5rem; background: var(--accent-soft); border-left: 3px solid var(--accent); padding: 0.8rem 1rem; font-size: 0.9rem; }
+  .discrep { margin-top: 1.5rem; background: var(--paper); border: 1px solid var(--rule); }
+  .discrep .hd { padding: 0.7rem 1rem; border-bottom: 1px solid var(--rule); display: flex; gap: 0.6rem; align-items: baseline; }
+  .discrep ul { margin: 0; padding: 0.6rem 1rem 0.8rem 2.1rem; }
+  .discrep li { margin: 0.35rem 0; }
+  section { margin-top: 2.5rem; }
+  section > h2 { padding-bottom: 0.5rem; border-bottom: 1px solid var(--rule); margin-bottom: 1rem; }
+  .items { display: flex; flex-direction: column; gap: 0.9rem; }
+  article { background: var(--paper); border: 1px solid var(--rule); }
+  article .head { display: flex; align-items: center; gap: 0.7rem; padding: 0.7rem 1rem; border-bottom: 1px solid var(--rule); }
+  article .head h3 { flex: 1; }
+  article dl { display: grid; grid-template-columns: 7.5rem 1fr; gap: 0.55rem 1rem; padding: 0.8rem 1rem; margin: 0; }
+  article dt { font-size: 0.72rem; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-3); padding-top: 0.2rem; }
+  article dd { margin: 0; }
+  ul { margin: 0.2rem 0 0; padding-left: 1.1rem; } li { margin: 0.2rem 0; }
+  .files { display: flex; flex-direction: column; gap: 0.15rem; font: 0.8rem "IBM Plex Mono", monospace; color: var(--ink-2); }
+  .files span { display: block; overflow-x: auto; white-space: nowrap; }
+  table { border-collapse: collapse; width: 100%; font-size: 0.86rem; }
+  th { text-align: left; font-weight: 500; color: var(--ink-3); font-size: 0.72rem; letter-spacing: 0.06em; text-transform: uppercase; padding: 0.55rem 0.8rem; border-bottom: 1px solid var(--rule); }
+  td { padding: 0.55rem 0.8rem; border-bottom: 1px solid var(--rule); vertical-align: top; }
+  tr:last-child td { border-bottom: 0; }
+  .wrap { background: var(--paper); border: 1px solid var(--rule); overflow-x: auto; }
+  @media (max-width: 720px) { article dl { grid-template-columns: 1fr; } }
+</style>
+
+<main>
+  <header>
+    <span class="eyebrow">RV Laboratorio · para desarrollo</span>
+    <h1>Lo que dice el código, punto por punto</h1>
+    <p class="lede">Segunda pasada sobre el documento de revisión del 6 de septiembre. Cada afirmación de ese documento se contrastó contra el archivo real. Acá está lo que se confirma, lo que había que corregir, y qué habría que tocar para cerrar cada punto.</p>
+    <div class="meta">
+      <span>Fecha <b>7 sep 2026</b></span>
+      <span>Rama <b>agent/armando/coolify-staged</b> (1092dbd)</span>
+      <span>Método <b>lectura de código, sin ejecutar la app</b></span>
+    </div>
+  </header>
+
+  <div class="discrep">
+    <div class="hd"><span class="eyebrow">Correcciones al documento anterior</span></div>
+    <ul>
+      <li><b>El botón de IA no está donde se dijo.</b> Vive en el formulario de orden nueva (<code>resultados/nuevo/ResultadoForm.tsx:214</code>), no en el detalle del resultado. Si la licenciada carga valores desde el detalle, no lo va a encontrar ahí.</li>
+      <li><b>El problema del modal es más amplio.</b> No son tres modales, son seis armados a mano con <code>fixed inset-0</code> y sin scroll, mientras el Dialog de shadcn existe en <code>components/ui/dialog.tsx</code> y no se usa en ninguno. El formulario de orden nueva es uno de ellos y es el más largo de todos.</li>
+      <li><b>Faltan cuatro mensajes de error, no uno.</b> Los códigos de examen duplicado, ganancia negativa, presupuesto sin exámenes y tasa inválida no tienen traducción en <code>error-messages.ts</code>. Todos caen en “Algo salió mal”.</li>
+      <li><b>El cron de la tasa no está en el repo.</b> El compose de staging solo exporta el secreto. El cron vive como tarea programada en Coolify, así que no se puede verificar desde acá.</li>
+    </ul>
+  </div>
+
+  <!-- ─────────────── CATÁLOGO ─────────────── -->
+  <section>
+    <h2>Catálogo de exámenes</h2>
+    <div class="items">
+
+      <article>
+        <div class="head"><h3>Modales sin scroll</h3><span class="pill bad">Confirmado</span><span class="size">S</span></div>
+        <dl>
+          <dt>Verificado</dt><dd>
+            <code>ExamenFormDialog.tsx:162</code> abre un <code>div</code> con <code>fixed inset-0 flex items-center justify-center p-4</code> y adentro un panel <code>max-w-2xl p-6</code> sin <code>max-h</code> ni <code>overflow</code>. El formulario suma dos textareas (4 y 3 filas), cinco inputs de 44 px y el pie. Pasa de 768 px con margen.
+          </dd>
+          <dt>Mismo patrón</dt><dd class="files">
+            <span>apps/web/app/(app)/examenes/ExamenFormDialog.tsx:162</span>
+            <span>apps/web/app/(app)/examenes/TituloFormDialog.tsx:114</span>
+            <span>apps/web/app/(app)/pacientes/PacienteFormDialog.tsx:298</span>
+            <span>apps/web/app/(app)/usuarios/InviteUserDialog.tsx:151</span>
+            <span>apps/web/app/(app)/presupuestos/PresupuestosList.tsx:271</span>
+            <span>apps/web/app/(app)/resultados/nuevo/ResultadoForm.tsx:720</span>
+            <span>packages/ui/paquetes/CargarPaqueteButton.tsx:175</span>
+          </dd>
+          <dt>Cambio</dt><dd>
+            Mínimo: al panel de cada uno, <code>max-h-[90vh] overflow-y-auto</code> y el pie con <code>sticky bottom-0 bg-card</code>. Mejor: migrar los siete al Dialog de shadcn, que ya trae portal, foco, Escape y scroll, y borrar el overlay a mano. La migración es mecánica porque todos comparten la misma estructura de cabecera, formulario y pie.
+          </dd>
+        </dl>
+      </article>
+
+      <article>
+        <div class="head"><h3>500 al crear examen en Caninas</h3><span class="pill bad">Sin causa en el código</span><span class="size">?</span></div>
+        <dl>
+          <dt>Verificado</dt><dd>
+            El repo (<code>packages/db/repos/examenes.ts:451-512</code>) valida, comprueba que el grupo exista con un <code>head</code> count, inserta y audita con <code>auditBestEffort</code>. Los tres errores esperables (grupo inexistente, duplicado, FK) tienen código propio. Cualquier otro error del insert se relanza con prefijo <code>examenesCreate:</code> y la ruta lo convierte en 500 (<code>api/examenes/route.ts:43</code>). La columna <code>observaciones</code> admite nulos (migración 0010), y la fila del grupo existía.
+          </dd>
+          <dt>Descartado</dt><dd>Duplicado: no hay fila. Permisos: sesión admin. Columna faltante: migraciones 0001 a 0013 aplicadas según <code>docs/deploy/insforge-vps.md:364</code>.</dd>
+          <dt>Cambio</dt><dd>
+            <ul>
+              <li>Leer el log del contenedor en Coolify: el mensaje completo va a <code>console</code> vía la ruta. Ventana: 2026-09-06 02:35 a 02:45 UTC.</li>
+              <li>Loguear el cuerpo del error en <code>toStatus</code> antes de devolver el genérico, para que el próximo no se pierda.</li>
+              <li>Agregar en <code>error-messages.ts</code>: <code>EXAMEN_DUPLICADO_EN_TITULO</code>, <code>GANANCIA_NEGATIVA</code>, <code>EXAMENES_REQUERIDOS</code>, <code>TASA_INVALIDA</code>.</li>
+            </ul>
+          </dd>
+        </dl>
+      </article>
+
+      <article>
+        <div class="head"><h3>Método como tabla</h3><span class="pill new">No existe</span><span class="size">M</span></div>
+        <dl>
+          <dt>Verificado</dt><dd>El campo es un input de texto con <code>datalist</code> de seis valores fijos (<code>ExamenFormDialog.tsx:266-277</code>). En base es <code>examenes.metodo text</code> y <code>metodo_snap</code> en las líneas de orden (migración 0005). No hay tabla de métodos ni endpoint.</dd>
+          <dt>Cambio</dt><dd>
+            <ul>
+              <li>Migración 0015: tabla <code>metodos_analisis (id, nombre unique, activo, orden)</code>. Poblarla con los valores distintos que ya hay en <code>examenes.metodo</code>.</li>
+              <li>Endpoints <code>GET/POST/PATCH /api/examenes/metodos</code>, mismo patrón que <code>examenes/titulos</code>.</li>
+              <li>En el examen, cambiar el input por un <code>select</code> con opción “Agregar método” para admin. Mantener <code>metodo</code> como texto en <code>examenes</code> para no romper el snapshot en órdenes; la tabla es la fuente del selector.</li>
+              <li>Pantalla chica en Config para renombrar o desactivar.</li>
+            </ul>
+          </dd>
+        </dl>
+      </article>
+    </div>
+  </section>
+
+  <!-- ─────────────── PAQUETES ─────────────── -->
+  <section>
+    <h2>Paquetes</h2>
+    <div class="items">
+      <article>
+        <div class="head"><h3>Arrastre que no agrega</h3><span class="pill warn">Causa probable confirmada en código</span><span class="size">S</span></div>
+        <dl>
+          <dt>Verificado</dt><dd>
+            <code>PaqueteBuilder.tsx:536</code> monta <code>DndContext</code> solo con <code>collisionDetection</code>, sin <code>sensors</code>. La fila del paquete usa <code>useSortable</code> (línea 109) pero el envoltorio <code>SortableList</code> de <code>packages/ui/dnd</code> es un <code>div</code> plano, no un <code>SortableContext</code>. La fila del catálogo (línea 162) es un <code>button</code> con <code>useDraggable</code> y <code>onClick={onAdd}</code> en el mismo elemento.
+          </dd>
+          <dt>Efecto</dt><dd>Sin sensores con distancia de activación, el pointerdown arranca el arrastre y el click no se dispara. Sin <code>SortableContext</code>, el orden dentro del paquete no se recalcula. En táctil no hay <code>TouchSensor</code>, así que no arranca nada.</dd>
+          <dt>Cambio</dt><dd>
+            <ul>
+              <li>Sacar <code>useDraggable</code> de la fila del catálogo y dejar un botón “Agregar” explícito. Es lo que se decidió en la reunión.</li>
+              <li>Si se conserva el reorden interno: <code>useSensors(useSensor(PointerSensor, {activationConstraint:{distance:6}}))</code> y envolver las filas en <code>SortableContext</code> con <code>verticalListSortingStrategy</code>.</li>
+              <li>Guardar hace tres requests en paralelo (<code>PATCH</code>, <code>PUT examenes</code>, <code>PUT titulos</code>, línea 297). Si falla uno queda inconsistente. Vale unificarlo en un solo endpoint.</li>
+            </ul>
+          </dd>
+        </dl>
+      </article>
+    </div>
+  </section>
+
+  <!-- ─────────────── PRESUPUESTOS ─────────────── -->
+  <section>
+    <h2>Presupuestos</h2>
+    <div class="items">
+
+      <article>
+        <div class="head"><h3>Botón de guardar mudo</h3><span class="pill warn">Confirmado</span><span class="size">S</span></div>
+        <dl>
+          <dt>Verificado</dt><dd><code>PresupuestoForm.tsx:246</code> arma <code>canSubmit</code> con seis condiciones y el botón de la línea 894 se deshabilita con <code>!canSubmit</code>. El único mensaje (línea 394) solo aparece si se llama a <code>submit</code>, y un botón deshabilitado nunca la llama. El paciente vive arriba del formulario; en la captura del cliente no entra en pantalla.</dd>
+          <dt>Cambio</dt><dd>Derivar una lista <code>faltantes: string[]</code> de las mismas condiciones y mostrarla junto al botón. No deshabilitar el botón: dejar que <code>submit</code> muestre qué falta y haga scroll al primer campo.</dd>
+        </dl>
+      </article>
+
+      <article>
+        <div class="head"><h3>Ganancia por línea</h3><span class="pill ok">Funciona, decisión pendiente</span><span class="size">S</span></div>
+        <dl>
+          <dt>Verificado</dt><dd>Columna “Ganancia %” en la tabla (línea 688), input por línea con placeholder “Global” (línea 734), ganancia global (línea 807) y fila en el resumen. El cálculo en <code>packages/lib/calcular-totales.ts</code> prioriza la ganancia de la línea sobre la global y reparte el centavo de redondeo en la última línea. Correcto. En modo paquete cerrado la línea muestra “Global” y no permite editar; ahí está el caso que Héctor llamó bug en la demo: <code>distribuirPrecioBase</code> (línea 121) reparte el precio del paquete entre líneas y después la ganancia global se aplica sobre ese reparto, así que el total del paquete cerrado ya no es el precio base que fijó el admin.</dd>
+          <dt>Cambio</dt><dd>Si el cliente confirma que no usa margen, ocultar la columna y el campo global detrás de un toggle “Ajustes avanzados” y no mandar ganancia por línea. Para el paquete cerrado, aplicar ganancia 0 fijo en las líneas del paquete o excluirlas del cálculo global; hoy se cobra de más sin que se vea.</dd>
+        </dl>
+      </article>
+
+      <article>
+        <div class="head"><h3>Toma de muestra y domicilio</h3><span class="pill new">No existe</span><span class="size">M</span></div>
+        <dl>
+          <dt>Verificado</dt><dd><code>presupuestos_examenes.examen_id</code> es <code>NOT NULL</code> con FK a <code>examenes</code> (migración 0001, línea 180). El schema Zod exige <code>examen_id</code> por línea. La conversión a orden copia todas las líneas (<code>repos/presupuestos.ts:~800</code>). No hay dónde poner un cargo que no sea un examen.</dd>
+          <dt>Cambio</dt><dd>
+            <ul>
+              <li>Migración: en <code>presupuestos</code> agregar <code>toma_muestra_usd numeric(12,2) default 0</code> y <code>domicilio_usd numeric(12,2) default 0</code>. Dos columnas planas, no líneas, porque son siempre uno por presupuesto y así no tocan la FK ni la conversión.</li>
+              <li><code>calcularTotales</code>: sumar ambos al total después del descuento y la ganancia, en USD y Bs.</li>
+              <li>Formulario: campo “Toma de muestra” siempre visible con valor por defecto configurable en Config, y check “Servicio a domicilio” que abre el monto.</li>
+              <li><code>PresupuestoPDF.tsx</code>: dos filas bajo la tabla de exámenes, antes del total.</li>
+              <li>Conversión a orden: no copiar nada, la orden no los necesita.</li>
+            </ul>
+          </dd>
+        </dl>
+      </article>
+
+      <article>
+        <div class="head"><h3>Tasa y hora en el PDF</h3><span class="pill ok">Casi</span><span class="size">XS</span></div>
+        <dl>
+          <dt>Verificado</dt><dd><code>PresupuestoPDF.tsx:234</code> imprime “Tasa BCV Bs. X por USD” y la línea 300 “Emitido el dd/mm/aaaa” desde <code>formatDateDMY(created_at)</code> (línea 202). La tasa se guarda en <code>presupuestos.tasa_bs</code>, así que ya queda en registro.</dd>
+          <dt>Cambio</dt><dd>Agregar hora a la fecha de emisión en zona <code>America/Caracas</code>. El servidor corre en UTC, cuidado con formatear sin zona.</dd>
+        </dl>
+      </article>
+    </div>
+  </section>
+
+  <!-- ─────────────── TASA ─────────────── -->
+  <section>
+    <h2>Tasa de cambio</h2>
+    <div class="items">
+      <article>
+        <div class="head"><h3>Tasa manual y refresco</h3><span class="pill warn">Sin evidencia de falla en código</span><span class="size">?</span></div>
+        <dl>
+          <dt>Verificado</dt><dd><code>ConfigForm.tsx:105</code> hace <code>POST /api/tasa/manual</code> y la línea 131 <code>POST /api/tasa/refresh-bcv</code>. Ambas rutas existen y escriben en <code>tasa_cambio_bcv</code> vía <code>repos/tasa.ts</code>. La guarda anti-outlier del commit 7d84024 puede rechazar una tasa manual muy distinta a la última conocida y auditar el rechazo sin avisar en la UI.</dd>
+          <dt>Dato</dt><dd>En producción la auditoría muestra dos <code>tasa.setFromScraper</code> el 6 de septiembre a las 22:21 y 22:22 UTC, con valor idéntico. Coincide con dos clics en “Actualizar desde BCV” durante la demo, no con un cron horario. Antes de eso la tasa estaba en 807,31 y marcada como vieja.</dd>
+          <dt>Cambio</dt><dd>
+            <ul>
+              <li>Revisar la tarea programada en Coolify: no está en el repo, solo <code>CRON_SECRET</code> en el compose.</li>
+              <li>Cuando la guarda anti-outlier rechaza, devolver un código específico y mostrarlo en Config en vez de aparentar éxito.</li>
+              <li>Reproducir “tasa manual no funciona” en producción con la consola abierta. Del código no sale.</li>
+            </ul>
+          </dd>
+        </dl>
+      </article>
+    </div>
+  </section>
+
+  <!-- ─────────────── RESULTADOS ─────────────── -->
+  <section>
+    <h2>Resultados</h2>
+    <div class="items">
+
+      <article>
+        <div class="head"><h3>Página pública expone de más</h3><span class="pill bad">Confirmado</span><span class="size">S</span></div>
+        <dl>
+          <dt>Verificado</dt><dd><code>apps/web/app/r/[slug]/page.tsx</code> muestra nombre y apellido (línea 76), cédula completa (línea 81), cada valor (líneas 130 y 146) y referencia. Es la página a la que llega el enlace de WhatsApp y email. La reunión acordó que la validación pública muestre laboratorio, fecha, hora, cédula enmascarada y un botón de contacto.</dd>
+          <dt>Cambio</dt><dd>Separar dos vistas sobre el mismo <code>enlaces_resultado</code>: la del paciente (la actual, con el PDF) y una de verificación con datos mínimos, que es la que va en el QR. Mientras tanto, enmascarar la cédula en la actual.</dd>
+        </dl>
+      </article>
+
+      <article>
+        <div class="head"><h3>QR en el PDF</h3><span class="pill new">No existe</span><span class="size">M</span></div>
+        <dl>
+          <dt>Verificado</dt><dd>La palabra “qr” no aparece en el código de la app. Sí existe todo lo previo: slug único con vencimiento (migración 0014), <code>packages/lib/enlace-resultado.ts</code> y la ruta pública.</dd>
+          <dt>Cambio</dt><dd>Generar el QR como SVG en el servidor al renderizar <code>ResultadoPDF.tsx</code> apuntando a la vista de verificación. Un enlace de verificación no debería vencer a los 30 días como el del paciente, o el médico que escanea en octubre ve “enlace vencido” y desconfía. Conviene un slug aparte sin vencimiento, o con uno largo.</dd>
+        </dl>
+      </article>
+
+      <article>
+        <div class="head"><h3>Orina y heces cualitativos</h3><span class="pill new">No existe</span><span class="size">L</span></div>
+        <dl>
+          <dt>Verificado</dt><dd><code>ordenes_examenes.valor</code> es <code>text NOT NULL</code> (migración 0001, línea 167) y el schema lo trata como string único. El PDF imprime una fila por examen con valor, unidad y referencia. No hay concepto de sub-campos.</dd>
+          <dt>Cambio</dt><dd>Depende de lo que defina la licenciada. La opción menos invasiva: <code>examenes.plantilla jsonb</code> con la lista de campos (físico: color, aspecto, densidad; químico: pH, proteínas, glucosa; microscópico: leucocitos, hematíes, cristales) y <code>ordenes_examenes.valores jsonb</code> junto al <code>valor</code> actual. El PDF renderiza en bloque cuando hay plantilla y en fila cuando no.</dd>
+        </dl>
+      </article>
+
+      <article>
+        <div class="head"><h3>Botón de IA</h3><span class="pill warn">Existe en el lugar equivocado</span><span class="size">S</span></div>
+        <dl>
+          <dt>Verificado</dt><dd>La ruta <code>api/ai/observaciones</code> usa Gemini con rate limit. El único consumidor es <code>ResultadoForm.tsx:214</code>, el formulario de orden nueva. El detalle del resultado (<code>resultados/[id]/ResultadoDetalle.tsx</code>) no lo llama. En la demo Héctor lo mostró desde el detalle y dijo “aquí va a haber un botón”, así que él ya lo sabe.</dd>
+          <dt>Cambio</dt><dd>Extraer el botón a un componente y usarlo en el detalle, donde se cargan los valores después de la toma. Verificar en Coolify que <code>GEMINI_API_KEY</code> esté cargada.</dd>
+        </dl>
+      </article>
+    </div>
+  </section>
+
+  <!-- ─────────────── PACIENTES ─────────────── -->
+  <section>
+    <h2>Pacientes</h2>
+    <div class="items">
+      <article>
+        <div class="head"><h3>Dirección GPS obligatoria</h3><span class="pill warn">Parcial</span><span class="size">S</span></div>
+        <dl>
+          <dt>Verificado</dt><dd><code>schemas/paciente.ts:79</code> tiene <code>direccion: z.string().optional()</code> y el formulario la maneja como texto libre. No hay campo para coordenadas ni enlace de mapa.</dd>
+          <dt>Cambio</dt><dd>Hacer <code>direccion</code> requerida en el schema y el formulario, y agregar <code>ubicacion_url text</code> para pegar el enlace de Google Maps o WhatsApp que manda el paciente. Detectar un par lat,long en el texto y convertirlo a enlace es un extra chico. No hace falta mapa embebido.</dd>
+        </dl>
+      </article>
+    </div>
+  </section>
+
+  <!-- ─────────────── INVENTARIO ─────────────── -->
+  <section>
+    <h2>Inventario</h2>
+    <div class="items">
+      <article>
+        <div class="head"><h3>Módulo completo</h3><span class="pill new">No existe</span><span class="size">XL</span></div>
+        <dl>
+          <dt>Verificado</dt><dd>Cero coincidencias de reactivo, insumo, stock o compra en código, migraciones y specs. Confirmado en la reunión que nunca estuvo en el alcance del plugin original.</dd>
+          <dt>Esqueleto</dt><dd>
+            <pre>reactivos            (id, nombre, unidad, stock_minimo, activo)
+examenes_reactivos   (examen_id, reactivo_id, cantidad)      -- la receta
+compras              (id, reactivo_id, cantidad, precio_unit_usd, proveedor, fecha)
+movimientos_stock    (id, reactivo_id, cantidad, tipo, orden_id?, created_by)</pre>
+            Descuento automático al pasar la orden a “En proceso” en <code>repos/ordenes.ts</code>, con movimiento reversible si vuelve atrás. Costo por examen = suma de cantidad por último precio de compra. Es una fase con su propio spec en <code>specs/F7</code>.
+          </dd>
+        </dl>
+      </article>
+    </div>
+  </section>
+
+  <!-- ─────────────── TABLA FINAL ─────────────── -->
+  <section>
+    <h2>Resumen por tamaño</h2>
+    <div class="wrap">
+      <table>
+        <thead><tr><th>Punto</th><th>Tamaño</th><th>Toca base</th><th>Depende de</th></tr></thead>
+        <tbody>
+          <tr><td>Modales con scroll (7 archivos)</td><td>S</td><td>No</td><td>Nada</td></tr>
+          <tr><td>Mensajes de error faltantes + log del 500</td><td>XS</td><td>No</td><td>Log de Coolify para cerrar el 500</td></tr>
+          <tr><td>Presupuesto: qué falta para guardar</td><td>S</td><td>No</td><td>Nada</td></tr>
+          <tr><td>Presupuesto: toma de muestra y domicilio</td><td>M</td><td>Sí, migración 0015</td><td>Nada</td></tr>
+          <tr><td>Presupuesto: ocultar ganancia, arreglar cerrado</td><td>S</td><td>No</td><td>Confirmación del cliente</td></tr>
+          <tr><td>PDF presupuesto con hora</td><td>XS</td><td>No</td><td>Nada</td></tr>
+          <tr><td>Paquetes: botón agregar, sensores</td><td>S</td><td>No</td><td>Nada</td></tr>
+          <tr><td>Página pública: enmascarar</td><td>S</td><td>No</td><td>Nada</td></tr>
+          <tr><td>QR en PDF + vista de verificación</td><td>M</td><td>Sí, slug de verificación</td><td>Página pública enmascarada</td></tr>
+          <tr><td>Métodos como tabla</td><td>M</td><td>Sí, migración</td><td>Nada</td></tr>
+          <tr><td>Dirección GPS obligatoria</td><td>S</td><td>Sí, una columna</td><td>Nada</td></tr>
+          <tr><td>Botón IA en el detalle</td><td>S</td><td>No</td><td>Clave Gemini en Coolify</td></tr>
+          <tr><td>Tasa manual y cron</td><td>?</td><td>No</td><td>Reproducir en producción</td></tr>
+          <tr><td>Orina y heces cualitativos</td><td>L</td><td>Sí, jsonb</td><td>Sesión con la licenciada</td></tr>
+          <tr><td>Inventario</td><td>XL</td><td>Sí, cuatro tablas</td><td>Spec F7</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="note">Tamaños: XS menos de una hora, S medio día, M uno a dos días, L una semana, XL más de una semana. Son de lectura de código, no de estimación con el equipo.</p>
+  </section>
+</main>
