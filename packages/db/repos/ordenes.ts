@@ -656,11 +656,19 @@ export async function update(
   }
 
   // Regla de auto-cálculo cuando NO viene estado explícito:
-  //   - Si hay fecha_resultado → Entregada.
+  //   - Si el BODY trae fecha_resultado → Entregada.
   //   - Si no, mantener el estado actual (permite flujo intermedio: Muestra
   //     tomada / En proceso / Validando).
+  //
+  // La condición es sobre lo que trae el body, no sobre el valor final: antes
+  // alcanzaba con que la orden YA tuviera fecha_resultado para que cualquier
+  // patch la pasara a Entregada. Un PATCH de sólo `observaciones` sobre una
+  // orden anulada (que conserva su fecha de resultado, porque `updateEstado`
+  // sólo la limpia al volver a Registrada) la resucitaba como Entregada,
+  // salteando además la matriz de transiciones, que sólo valida `updateEstado`.
+  const traeFechaResultado = clearsFechaResultado || data.fecha_resultado !== undefined;
   const estadoFinal: EstadoOrden =
-    data.estado ?? (fechaResultado ? "Entregada" : current.estado);
+    data.estado ?? (traeFechaResultado && fechaResultado ? "Entregada" : current.estado);
 
   // Regla de entrega: si la orden queda (o sigue) Entregada, todas las líneas
   // resultantes deben tener valor. Se evalúa sobre lo que va a quedar guardado.

@@ -89,6 +89,10 @@ export function ResultadoDetalle({ role, initialData }: ResultadoDetalleProps) {
   const [savingObs, setSavingObs] = useState(false);
   const [obsError, setObsError] = useState<string | null>(null);
 
+  // Una orden anulada no se edita: no tiene sentido cambiarle la observación
+  // y era la puerta por la que un PATCH la volvía a entregar.
+  const puedeEditarObservaciones = initialData.estado !== "Anulada";
+
   function abrirEdicionObservaciones(): void {
     setObsDraft(observaciones ?? "");
     setObsError(null);
@@ -102,7 +106,10 @@ export function ResultadoDetalle({ role, initialData }: ResultadoDetalleProps) {
       await requestJson(`/api/resultados/${initialData.id}`, {
         method: "PATCH",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ observaciones: obsDraft }),
+        // El estado va explícito e igual al actual: editar una observación no
+        // es un cambio de estado, y mandarlo evita depender del auto-cálculo
+        // del repo. Cinturón y tirantes con el arreglo de `ordenes.update`.
+        body: JSON.stringify({ observaciones: obsDraft, estado: initialData.estado }),
       });
       setObservaciones(obsDraft);
       setIsEditingObs(false);
@@ -230,7 +237,7 @@ export function ResultadoDetalle({ role, initialData }: ResultadoDetalleProps) {
           <div className="rounded-md border border-border bg-background p-3">
             <div className="flex items-center justify-between gap-2">
               <p className="text-xs uppercase tracking-wide text-muted-foreground">Observaciones generales</p>
-              {!isEditingObs ? (
+              {!isEditingObs && puedeEditarObservaciones ? (
                 <button
                   type="button"
                   onClick={abrirEdicionObservaciones}
