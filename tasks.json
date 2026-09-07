@@ -2599,6 +2599,13 @@
           "session": "opus",
           "commit": "2f25ad7",
           "text": "Migración 0015 (toma_muestra_usd, domicilio_usd en presupuestos; toma_muestra_default_usd en laboratorio_config), probada en Postgres local e idempotente. calcularTotales suma serviciosUsd después de descuento y ganancia; schemas y repo persisten los campos. NO aplicada en hosted: debe aplicarse ANTES del deploy porque PRESUPUESTO_COLS ya pide las columnas. Tests de lib 313/313."
+        },
+        {
+          "date": "2026-09-07",
+          "author": "planner",
+          "session": "opus",
+          "commit": "bdf8cef",
+          "text": "Migración 0015 sin BEGIN/COMMIT: el endpoint de migraciones de InsForge la envuelve en su propia transacción. Aplicar por el endpoint, no por psql."
         }
       ]
     },
