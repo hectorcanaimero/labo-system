@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { LAB_TIMEZONE } from "@labo/lib/fecha";
 import {
   ClipboardList,
   Filter,
@@ -69,6 +70,7 @@ function formatDateTime(iso: string): string {
     hour: "2-digit",
     minute: "2-digit",
     second: "2-digit",
+    timeZone: LAB_TIMEZONE,
   });
 }
 

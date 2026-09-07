@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { LAB_TIMEZONE } from "@labo/lib/fecha";
 import { Banknote, DollarSign, FileText, FlaskConical, Users } from "lucide-react";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -33,6 +34,7 @@ function formatTasaFecha(iso: string): string {
     month: "2-digit",
     hour: "2-digit",
     minute: "2-digit",
+    timeZone: LAB_TIMEZONE,
   }).format(new Date(iso));
 }
 

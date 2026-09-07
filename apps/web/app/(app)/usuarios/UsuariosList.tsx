@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { LAB_TIMEZONE } from "@labo/lib/fecha";
 import { Ban, Loader2, RotateCcw, Shield, ShieldCheck } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -34,6 +35,7 @@ function formatFecha(iso: string): string {
     day: "2-digit",
     month: "short",
     year: "numeric",
+    timeZone: LAB_TIMEZONE,
   });
 }
 
