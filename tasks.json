@@ -2622,7 +2622,7 @@
       "description": "**Objetivo**\n\nEl cliente escribió valores en la columna de ganancia por línea sin saber qué era y el total cambió. Ocultar ganancia global y por línea detrás de un toggle plegado, y corregir que en paquete cerrado la ganancia global se aplique sobre el precio ya repartido.\n\n**Alcance**\n\nSí hace:\n- Toggle “Ajustes avanzados” plegado por defecto que muestra ganancia global y la columna por línea.\n- Con el toggle cerrado no se manda `ganancia_pct` por línea.\n- Paquete cerrado: las líneas del paquete llevan `ganancia_pct: 0` explícito, para que el total del paquete sea el precio base fijado por el admin.\n- Confirmar con el cliente antes de mergear si la ganancia se queda o se elimina del todo.\n\nNo hace:\n- Cambiar el PDF, que ya no desglosa el porcentaje.\n\n**Criterios de aceptación**\n\n- [ ] Cargar un paquete cerrado de precio base 15 da total 15 con ganancia global 10.\n- [ ] Con el toggle cerrado, la tabla no muestra la columna Ganancia %.",
       "model": "opencode/deepseek-v4-pro",
       "reason": "Cambios de formulario, endpoints y migraciones con lógica de negocio.",
-      "status": "todo",
+      "status": "done",
       "dependencies": [],
       "estimateHours": 2,
       "files": [
@@ -2630,7 +2630,15 @@
         "packages/lib/calcular-totales.test.ts"
       ],
       "specRef": "F7/sprint-feedback-cliente.md#F7.2.T4",
-      "comments": []
+      "comments": [
+        {
+          "date": "2026-09-07",
+          "author": "planner",
+          "session": "sonnet",
+          "commit": "dce358f",
+          "text": "Ganancia global, columna por línea y fila del resumen detrás de un toggle Ajustes avanzados plegado. Paquete cerrado: líneas con ganancia 0 explícita, test nuevo (15 repartido en 9+6 con ganancia global 10 da 15). Seguimiento anotado: al editar un presupuesto guardado, las líneas de paquete cerrado se reconstruyen como desglosadas; limitación previa."
+        }
+      ]
     },
     {
       "id": "F7.3.T1",
