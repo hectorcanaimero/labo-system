@@ -3169,6 +3169,31 @@
           "text": "PR #21. Sin tokens de estado nuevos; globs de Tailwind completados."
         }
       ]
+    },
+    {
+      "id": "F7.2.T7",
+      "phase": 7,
+      "title": "Enviar el presupuesto por WhatsApp o email",
+      "description": "Enlace público /p/[slug] (0021), POST /api/presupuestos/[id]/enviar espejo de resultados, paso Borrador→Enviado al enviar, botones compartidos en el detalle.",
+      "model": "opencode/deepseek-v4-pro",
+      "reason": "Réplica de un flujo existente con migración y ruta pública.",
+      "status": "in_progress",
+      "dependencies": [
+        "F7.2.T6"
+      ],
+      "estimateHours": 5,
+      "files": [
+        "packages/db/migrations/0021_enlaces_presupuesto.sql",
+        "packages/db/repos/enlaces.ts",
+        "packages/lib/enlace-presupuesto.ts",
+        "apps/web/app/api/presupuestos/[id]/enviar/route.ts",
+        "apps/web/app/p/[slug]/page.tsx",
+        "apps/web/middleware.ts",
+        "packages/ui/envio/EnviarButtons.tsx",
+        "apps/web/app/(app)/presupuestos/[id]/PresupuestoDetalle.tsx"
+      ],
+      "specRef": "F7/sprint-feedback-cliente.md#F7.2.T7",
+      "comments": []
     }
   ],
   "phases": []

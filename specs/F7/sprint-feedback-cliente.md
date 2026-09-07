@@ -837,6 +837,7 @@ Rama `sprint/f7-3`, base `staged` post PR #13. PR #14 abierto. Revisión de sonn
 | F7.7.T1 | opus | hecha | `a25aaed` | PipelineBoard genérico con MoveMenu y 12 tests; ambos pipelines reescritos; diálogo solo para Rechazado y Cerrado. Globs de Tailwind completados: destapó que el badge Borrador se purgaba. PR #21. Sin prueba en navegador. |
 | F7.2.T6 | sonnet | hecha | `04ef7a5` | Ganancia global solo al paquete cerrado y visible como monto en el resumen; por línea con default de Config en modo abierto; mixto: global solo al paquete. Flag cerrado persistido (0020, aplicada en hosted); el backend fuerza la global en cerradas. Tasa de solo lectura. Sin toggle. PR #22. Pendiente opcional: el detalle de solo lectura sigue mostrando el % del header. |
 | F7.4.T4 | sonnet | hecha | `1f68b21` | Tipos y Métodos en pestañas separadas con búsqueda y paginación. PR #19 mergeado. |
+| F7.2.T7 | sonnet | en curso | — | Pedido del usuario: enviar el presupuesto por WhatsApp o email, con enlace público /p/[slug] y paso automático a Enviado. |
 
 ## F7.4.T3 — Tipos de análisis como tabla administrable
 
@@ -1080,3 +1081,50 @@ No hace:
 ### Estimación
 
 6h
+
+## F7.2.T7 — Enviar el presupuesto por WhatsApp o email
+
+### Objetivo
+
+Un presupuesto en Borrador tiene como siguiente paso “Enviado”, pero hoy ese paso es sólo un cambio de estado en el tablero: no hay forma de mandárselo al paciente desde la app. Los resultados sí la tienen (`POST /api/resultados/[id]/enviar`, enlace público `/r/[slug]`, WhatsApp con `wa.me` y email por Resend). Replicar ese flujo para presupuestos.
+
+### Alcance
+
+Sí hace:
+- Migración `0021_enlaces_presupuesto.sql`: tabla `enlaces_presupuesto (id, slug unique, presupuesto_id FK ON DELETE CASCADE, expira_en, created_at, created_by)`, RLS igual que `enlaces_resultado`. Vigencia 7 días (el presupuesto vale 24 h, el enlace se puede releer una semana). Sin BEGIN/COMMIT, idempotente.
+- `packages/db/repos/enlaces.ts`: `crearOReutilizarPresupuesto`, `getPresupuestoBySlug`, código `ENLACES_PRESUPUESTO_TABLA_FALTANTE`.
+- `packages/lib/enlace-presupuesto.ts`: `mensajeWhatsApp`, `asuntoEmail`, `htmlEmail`, `mailtoPresupuesto`, con número, paciente, total USD y Bs, tasa, vigencia de 24 h y el enlace. Reusar los normalizadores de teléfono y email de `enlace-resultado.ts`.
+- `POST /api/presupuestos/[id]/enviar` con `{ canal: "whatsapp" | "email" }`, espejo de la ruta de resultados: crea o reutiliza el enlace, WhatsApp devuelve `whatsappUrl`, email envía por Resend o devuelve `mailtoUrl` si no hay proveedor. Si el presupuesto está en Borrador y el envío sale bien, pasa a Enviado por `cambiarEstado` con auditoría. Permitido en Borrador y en Enviado (reenvío). Paciente sin ficha o sin teléfono/email: 400 con código claro.
+- Ruta pública `/p/[slug]`: laboratorio, número, paciente, fecha, total USD y Bs, aviso de vigencia y botón “Descargar presupuesto (PDF)”; `GET /api/p/[slug]/pdf` sin sesión, 404 si venció. Middleware: dejar pasar `/p/` y `api/p/` con el mismo cuidado de la barra final que `api/r/`.
+- UI: extraer `EnviarResultadoButtons` a un componente compartido `packages/ui/envio/EnviarButtons.tsx` parametrizado por endpoint y textos; usarlo en el detalle del resultado (sin cambio de comportamiento) y en `PresupuestoDetalle` cuando el estado es Borrador o Enviado, junto a Descargar PDF. Botón deshabilitado con explicación si el paciente no tiene teléfono o email.
+- Tests de los mensajes en `packages/lib` y del repo de enlaces con Db falsa.
+
+No hace:
+- Adjuntar el PDF al email: va el enlace, como en resultados.
+
+### Criterios de aceptación
+
+- [ ] En un presupuesto en Borrador con paciente con teléfono, “Enviar por WhatsApp” abre `wa.me` con el mensaje y el enlace, y el presupuesto pasa a Enviado.
+- [ ] “Enviar por email” manda el correo por Resend y el presupuesto pasa a Enviado; sin proveedor, abre `mailto:`.
+- [ ] `/p/<slug>` sin sesión muestra el resumen y descarga el PDF; vencido, 404.
+- [ ] Reenviar desde Enviado no cambia el estado ni crea otro enlace.
+- [ ] `pnpm turbo run lint typecheck test build` en verde.
+
+### Archivos afectados
+
+- `packages/db/migrations/0021_enlaces_presupuesto.sql`
+- `packages/db/repos/enlaces.ts`
+- `packages/lib/enlace-presupuesto.ts` y test
+- `apps/web/app/api/presupuestos/[id]/enviar/route.ts`
+- `apps/web/app/p/[slug]/page.tsx`, `apps/web/app/api/p/[slug]/pdf/route.ts`
+- `apps/web/middleware.ts`
+- `packages/ui/envio/EnviarButtons.tsx`, `apps/web/app/(app)/resultados/[id]/EnviarResultadoButtons.tsx`, `apps/web/app/(app)/presupuestos/[id]/PresupuestoDetalle.tsx`
+- `apps/web/tailwind.config.ts`
+
+### Dependencias
+
+- F7.2.T6
+
+### Estimación
+
+5h
