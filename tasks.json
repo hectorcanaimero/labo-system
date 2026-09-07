@@ -2821,7 +2821,7 @@
       "description": "Cerrar los tres hallazgos de la revisión de sonnet sobre 78441b1 y 494930d: insert antes de delete en setExamenes/setTitulos, guard del diálogo de paquetes en ResultadoForm, refresh tras guardado fallido en PaqueteBuilder.",
       "model": "opencode-go/kimi-k2.6",
       "reason": "Correcciones acotadas con diagnóstico ya hecho.",
-      "status": "in_progress",
+      "status": "done",
       "dependencies": [
         "F7.1.T1",
         "F7.1.T3"
@@ -2840,6 +2840,13 @@
           "session": "sonnet",
           "commit": "",
           "text": "Revisión cruzada de sonnet: 1) setContenido no cubre el fallo del INSERT de su propio paso (DELETE-luego-INSERT); 2) diálogo de paquetes en ResultadoForm sin guard durante el fetch; 3) PresupuestosList sin guard de pending, no alcanzable hoy; 4) PaqueteBuilder no recarga tras guardado fallido."
+        },
+        {
+          "date": "2026-09-07",
+          "author": "planner",
+          "session": "sonnet",
+          "commit": "a380435",
+          "text": "setExamenes y setTitulos hacen upsert primero (onConflict sobre las PK compuestas, verificadas en 0001 y 0011) y borran el sobrante después: un insert fallido ya no vacía el paquete. Guard y spinner en el diálogo de paquetes de la orden nueva. PaqueteBuilder refetch y refresh tras guardado fallido. Sin prueba contra Postgres real ni navegador."
         }
       ]
     }
