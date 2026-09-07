@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { Check, Loader2, Pencil, Plus, X } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { Check, ChevronLeft, ChevronRight, Loader2, Pencil, Plus, Search, X } from "lucide-react";
 
 import { toHumanError } from "@labo/lib/error-messages";
 import { Button } from "@/components/ui/button";
@@ -26,6 +26,11 @@ import { notifyError, notifySuccess } from "@labo/ui/feedback/toast";
  * Renombrar NO reescribe los exámenes que ya usaban el nombre viejo, ni los
  * snapshots de las órdenes, que son registro histórico. Por eso el aviso al
  * renombrar: la lista y lo ya guardado pueden divergir a propósito.
+ *
+ * F7.4.T4 — búsqueda y paginación son puramente de cliente: el catálogo
+ * completo ya viaja en un solo GET (son listas chicas, decenas de filas como
+ * mucho), así que no hay necesidad de paginar contra la API. `PAGE_SIZE`
+ * sólo corta cuánto se renderiza a la vez.
  */
 
 interface ItemCatalogo {
@@ -44,6 +49,8 @@ export interface CatalogoPanelProps {
   singular: string;
   placeholderNuevo: string;
 }
+
+const PAGE_SIZE = 20;
 
 async function requestJson<T>(url: string, init?: RequestInit): Promise<T> {
   const response = await fetch(url, {
@@ -78,6 +85,29 @@ export function CatalogoPanel({
   const [editandoId, setEditandoId] = useState<string | null>(null);
   const [nombreEditado, setNombreEditado] = useState("");
   const [guardandoId, setGuardandoId] = useState<string | null>(null);
+
+  const [busqueda, setBusqueda] = useState("");
+  const [pagina, setPagina] = useState(1);
+
+  const filtrados = useMemo(() => {
+    const q = busqueda.trim().toLowerCase();
+    if (!q) return items;
+    return items.filter((item) => item.nombre.toLowerCase().includes(q));
+  }, [items, busqueda]);
+
+  const totalPaginas = Math.max(1, Math.ceil(filtrados.length / PAGE_SIZE));
+  // Buscar o desactivar/borrar puede dejar `pagina` apuntando más allá del
+  // final (p. ej. estabas en la página 3 y el filtro deja sólo 1) — clamplear
+  // acá en vez de en cada handler.
+  const paginaActual = Math.min(pagina, totalPaginas);
+  const desde = filtrados.length === 0 ? 0 : (paginaActual - 1) * PAGE_SIZE + 1;
+  const hasta = Math.min(paginaActual * PAGE_SIZE, filtrados.length);
+  const visibles = filtrados.slice((paginaActual - 1) * PAGE_SIZE, paginaActual * PAGE_SIZE);
+
+  function cambiarBusqueda(valor: string): void {
+    setBusqueda(valor);
+    setPagina(1);
+  }
 
   useEffect(() => {
     let cancelado = false;
@@ -207,6 +237,19 @@ export function CatalogoPanel({
           </Button>
         </div>
 
+        {!cargando && !error && items.length > 0 ? (
+          <div className="relative">
+            <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              value={busqueda}
+              onChange={(event) => cambiarBusqueda(event.target.value)}
+              placeholder={`Buscar ${singular}…`}
+              aria-label={`Buscar ${singular}`}
+              className="h-9 pl-8 sm:max-w-xs"
+            />
+          </div>
+        ) : null}
+
         {error ? (
           <p className="rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-xs text-destructive">
             {error}
@@ -219,9 +262,16 @@ export function CatalogoPanel({
             title={`Todavía no hay ${singular}s cargados`}
             description="Agregá el primero para que aparezca en el selector de los exámenes."
           />
+        ) : filtrados.length === 0 ? (
+          <EmptyState
+            compact
+            title="Sin resultados"
+            description={`Ningún ${singular} coincide con "${busqueda.trim()}".`}
+          />
         ) : (
+          <>
           <ul className="divide-y divide-border rounded-md border border-border">
-            {items.map((item) => {
+            {visibles.map((item) => {
               const ocupado = guardandoId === item.id;
               const editando = editandoId === item.id;
 
@@ -315,6 +365,39 @@ export function CatalogoPanel({
               );
             })}
           </ul>
+          <div className="flex items-center justify-between gap-3 text-xs text-muted-foreground">
+            <span>
+              {desde}-{hasta} de {filtrados.length}
+            </span>
+            <div className="flex items-center gap-1">
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                onClick={() => setPagina((p) => Math.max(1, p - 1))}
+                disabled={paginaActual <= 1}
+                aria-label={`Página anterior de ${singular}s`}
+                className="h-7 px-2"
+              >
+                <ChevronLeft className="h-3.5 w-3.5" />
+              </Button>
+              <span className="tabular-nums">
+                {paginaActual} / {totalPaginas}
+              </span>
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                onClick={() => setPagina((p) => Math.min(totalPaginas, p + 1))}
+                disabled={paginaActual >= totalPaginas}
+                aria-label={`Página siguiente de ${singular}s`}
+                className="h-7 px-2"
+              >
+                <ChevronRight className="h-3.5 w-3.5" />
+              </Button>
+            </div>
+          </div>
+          </>
         )}
       </CardContent>
     </Card>
