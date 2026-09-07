@@ -3026,6 +3026,29 @@
           "text": "La creación del enlace de verificación solo tolera tabla faltante; cualquier otro error queda en audit_log sin tumbar la entrega ni el PDF, con test. /v/[slug] sin Estado. QR y enlace solo cuando la orden está Entregada. Carrera sin UNIQUE en orden_id anotada."
         }
       ]
+    },
+    {
+      "id": "F7.4.T3",
+      "phase": 7,
+      "title": "Tipos de análisis como tabla administrable",
+      "description": "Tabla tipos_analisis sembrada con TIPO_ANALISIS_VALUES, repo y endpoints, selector en el examen con alta inline, panel de catálogo en Config con tipos y métodos.",
+      "model": "opencode/deepseek-v4-pro",
+      "reason": "Mismo patrón que métodos, con generalización del panel.",
+      "status": "in_progress",
+      "dependencies": [
+        "F7.4.T1"
+      ],
+      "estimateHours": 4,
+      "files": [
+        "packages/db/migrations/0019_tipos_analisis.sql",
+        "packages/db/repos/tipos-analisis.ts",
+        "apps/web/app/api/examenes/tipos-analisis/route.ts",
+        "packages/lib/schemas/examen.ts",
+        "apps/web/app/(app)/examenes/ExamenFormDialog.tsx",
+        "apps/web/app/(app)/config/ConfigForm.tsx"
+      ],
+      "specRef": "F7/sprint-feedback-cliente.md#F7.4.T3",
+      "comments": []
     }
   ],
   "phases": []

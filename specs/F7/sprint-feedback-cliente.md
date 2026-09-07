@@ -824,3 +824,56 @@ No hace:
 ### Estimación
 
 2h
+
+# Sprint 3 (correcciones y pedidos del usuario)
+
+Rama `sprint/f7-3`, base `staged` post PR #13.
+
+| Tarea | Sesión | Estado | Commit | Comentario |
+|---|---|---|---|---|
+| F7.4.T3 | opus | en curso | — | Pedido del usuario: tipos de análisis como tabla administrable, mismo patrón que métodos. |
+
+## F7.4.T3 — Tipos de análisis como tabla administrable
+
+### Objetivo
+
+Hoy el tipo de análisis del examen sale de una lista fija en `packages/lib/schemas/examen.ts` (`TIPO_ANALISIS_VALUES`). El usuario pide que, igual que los métodos, sea una tabla de mantenimiento administrable desde Config, y que al crear un examen tanto tipo como método sean selectores contra esas tablas.
+
+### Alcance
+
+Sí hace:
+- Migración `0019_tipos_analisis.sql`: tabla `tipos_analisis (id, nombre unique, activo, orden)`, sembrada con los ocho valores de `TIPO_ANALISIS_VALUES` en ese orden y con cualquier valor distinto que exista en `examenes.tipo_analisis`. Sin BEGIN/COMMIT, idempotente.
+- `packages/db/repos/tipos-analisis.ts` y `GET/POST/PATCH /api/examenes/tipos-analisis`, mismo patrón y roles que métodos.
+- `packages/lib/schemas/examen.ts`: `tipo_analisis` pasa a ser texto no vacío; el vocabulario lo da la tabla. Conservar `TIPO_ANALISIS_VALUES` solo como semilla de la migración o eliminarla si nada más la usa.
+- `ExamenFormDialog`: selector de tipos activos con "Agregar tipo…" para admin, mismo componente o patrón que el de métodos. Un examen con tipo desactivado o renombrado se muestra como "(fuera de la lista)" y no se pierde al guardar.
+- Config: generalizar `MetodosPanel` en un panel de catálogo reutilizable con dos pestañas o dos bloques: Tipos de análisis y Métodos. Alta, renombrar en línea, activar y desactivar.
+- Importación de exámenes (`examenes/import`): si valida el tipo contra la lista fija, pasar a validar contra la tabla.
+
+No hace:
+- Reescribir `examenes.tipo_analisis` al renombrar un tipo. Misma regla que métodos.
+
+### Criterios de aceptación
+
+- [ ] Crear un examen ofrece tipo y método como selectores alimentados por las tablas; no hay texto libre en ninguno.
+- [ ] El admin agrega un tipo nuevo desde el formulario del examen sin salir de él.
+- [ ] Un tipo desactivado desaparece del selector y se conserva en los exámenes que lo tenían.
+- [ ] Config muestra tipos y métodos en un mismo panel de catálogo.
+- [ ] La migración sembró los ocho tipos en orden y `pnpm turbo run lint typecheck test build` sigue en verde.
+
+### Archivos afectados
+
+- `packages/db/migrations/0019_tipos_analisis.sql`
+- `packages/db/repos/tipos-analisis.ts`
+- `apps/web/app/api/examenes/tipos-analisis/route.ts`
+- `packages/lib/schemas/examen.ts`
+- `apps/web/app/(app)/examenes/ExamenFormDialog.tsx`
+- `apps/web/app/(app)/config/ConfigForm.tsx`, `MetodosPanel.tsx`
+- `apps/web/app/(app)/examenes/import/*`
+
+### Dependencias
+
+- F7.4.T1
+
+### Estimación
+
+4h
