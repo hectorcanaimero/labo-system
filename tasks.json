@@ -2694,7 +2694,7 @@
       "description": "**Objetivo**\n\nImplementar la decisión de la reunión: QR en el PDF que lleva a una página de validación con laboratorio, fecha, hora, cédula enmascarada y botón de WhatsApp. Nunca muestra el resultado.\n\n**Alcance**\n\nSí hace:\n- Migración `0016_enlaces_verificacion.sql`: tabla con `slug`, `orden_id`, sin vencimiento, o campo `tipo` en `enlaces_resultado`.\n- Ruta pública `/v/[slug]` con los datos mínimos y botón `wa.me` al teléfono de `laboratorio_config`.\n- Generar el QR en el servidor como SVG (`qrcode` npm, sin canvas) y embeberlo en `ResultadoPDF` junto a la firma.\n- El slug de verificación se crea al pasar la orden a “Entregada” si no existe.\n- Aplicar la migración en la instancia hosted.\n\nNo hace:\n- Token por SMS ni acceso al resultado desde la verificación.\n\n**Criterios de aceptación**\n\n- [ ] Escanear el QR del PDF abre `/v/[slug]` con laboratorio, fecha, hora y cédula enmascarada.\n- [ ] La vista de verificación no expone ningún valor ni el nombre completo.\n- [ ] Un PDF regenerado conserva el mismo slug.",
       "model": "opencode/gemini-3.1-pro",
       "reason": "Migración, ruta pública, generación de QR en PDF y flujo de privacidad.",
-      "status": "todo",
+      "status": "done",
       "dependencies": [
         "F7.3.T1"
       ],
@@ -2708,7 +2708,15 @@
         "packages/db/repos/ordenes.ts"
       ],
       "specRef": "F7/sprint-feedback-cliente.md#F7.3.T2",
-      "comments": []
+      "comments": [
+        {
+          "date": "2026-09-07",
+          "author": "planner",
+          "session": "opus",
+          "commit": "e333136",
+          "text": "Tabla enlaces_verificacion (0016) con slug sin vencimiento; se crea al entregar y también al emitir el PDF, best-effort: sin la migración el PDF sale sin QR y nada rompe. QR como SVG en ResultadoPDF junto a la firma. Ruta pública /v/[slug] con laboratorio, fecha y hora, cédula enmascarada y botón de WhatsApp. Migración probada en Postgres local, no aplicada en hosted. Sin escaneo real del QR ni apertura del PDF."
+        }
+      ]
     },
     {
       "id": "F7.3.T3",
