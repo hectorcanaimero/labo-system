@@ -3133,6 +3133,26 @@
       ],
       "specRef": "F7/sprint-feedback-cliente.md#F7.2.T6",
       "comments": []
+    },
+    {
+      "id": "F7.7.T1",
+      "phase": 7,
+      "title": "Pipelines de presupuestos y órdenes como tablero tipo Trello",
+      "description": "PipelineBoard genérico: fila horizontal de columnas fijas en orden del proceso, terminales colapsadas, tarjeta compacta sin badge, menú Mover a accesible, filtros y totales en una barra.",
+      "model": "opencode/gemini-3.1-pro",
+      "reason": "Componente de UI compartido con interacción de arrastre y accesibilidad.",
+      "status": "in_progress",
+      "dependencies": [],
+      "estimateHours": 6,
+      "files": [
+        "packages/ui/pipeline/PipelineBoard.tsx",
+        "packages/ui/presupuestos/PresupuestoPipelineKanban.tsx",
+        "packages/ui/ordenes/OrdenPipelineKanban.tsx",
+        "apps/web/app/(app)/presupuestos/PresupuestosList.tsx",
+        "apps/web/app/(app)/resultados/OrdenesPipelineSection.tsx"
+      ],
+      "specRef": "F7/sprint-feedback-cliente.md#F7.7.T1",
+      "comments": []
     }
   ],
   "phases": []

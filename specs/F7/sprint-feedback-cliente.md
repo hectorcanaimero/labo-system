@@ -1011,3 +1011,69 @@ No hace:
 ### Estimación
 
 5h
+
+## F7.7.T1 — Pipelines de presupuestos y órdenes como tablero tipo Trello
+
+### Diagnóstico
+
+Los dos kanban existen y ya arrastran, pero no se leen como un flujo:
+- **Presupuestos** (`packages/ui/presupuestos/PresupuestoPipelineKanban.tsx:146`): las seis columnas van en una grilla que se parte en filas (1, 2, 3 o 6 columnas según el ancho). En un portátil son dos filas de tres bloques: Borrador, Enviado, Aprobado arriba; Rechazado, Cancelado, Cerrado abajo. El orden del proceso se pierde y el ojo lee cajas, no etapas.
+- **Órdenes** (`packages/ui/ordenes/OrdenPipelineKanban.tsx:205`): sí usa fila con scroll horizontal, pero las columnas no tienen ancho fijo ni el contenedor alto fijo, así que se estiran, y la tarjeta repite la información del encabezado.
+- Cada tarjeta lleva un badge del estado que ya dice la columna: ruido.
+- Las columnas terminales (Cancelado, Rechazado, Anulada) pesan igual que las activas y ocupan el mismo espacio.
+- No hay indicación visual de flujo entre columnas ni de qué destinos admite una tarjeta hasta que se arrastra.
+- Arrastrar es la única vía de mover salvo el diálogo al hacer clic; falta un “Mover a…” accesible en la tarjeta (WCAG 2.2, movimientos de arrastre).
+- Dos implementaciones distintas para el mismo patrón, con estilos distintos.
+
+### Objetivo
+
+Un solo componente de tablero, `packages/ui/pipeline/PipelineBoard.tsx`, parametrizado por columnas y tarjeta, que reemplace a los dos kanban con la lectura de un tablero tipo Trello: una fila horizontal de columnas del mismo ancho, en el orden del proceso, que se desplaza de lado y ocupa el alto disponible.
+
+### Reglas de diseño
+
+- **Fila horizontal, siempre.** Columnas de 280 px de ancho fijo, `flex-nowrap`, scroll horizontal del tablero con `scroll-snap`, sin partir en filas en ningún ancho. Alto del tablero: el viewport menos el encabezado; cada columna con scroll vertical propio y encabezado pegado arriba.
+- **Orden del proceso, de izquierda a derecha.** Presupuestos: Borrador, Enviado, Aprobado, Cerrado. Órdenes: Registrada, Muestra tomada, En proceso, Validando, Entregada. Los estados terminales negativos (Rechazado, Cancelado, Anulada) van al final, colapsados: una columna angosta de 56 px con el nombre en vertical y el conteo, que se expande al hacer clic.
+- **Encabezado de columna**: punto de color del estado, nombre, conteo en chip. En presupuestos, el total en USD de la columna en segunda línea. Sin badge del estado dentro de la tarjeta.
+- **Tarjeta compacta**: dos líneas, título en negrita (paciente) y una línea de metadatos (número y fecha; en órdenes cédula y cantidad de exámenes), más el monto a la derecha en presupuestos. Borde izquierdo de 3 px con el color del estado. Hover eleva; foco visible.
+- **Arrastre**: sensor con distancia de activación 6 px; al levantar, las columnas destino válidas se iluminan y las inválidas se atenúan, como ya hace órdenes. Overlay con la misma tarjeta a 95 % y rotación leve.
+- **Alternativa al arrastre**: menú “Mover a…” en cada tarjeta, con solo los destinos válidos, operable con teclado. Reemplaza al diálogo actual al hacer clic; el clic en el cuerpo de la tarjeta abre el detalle.
+- **Barra superior del tablero**: filtros rápidos (buscar por paciente o número, rango de fecha) y el resumen de totales, en una sola línea. Sin la caja gris actual.
+- **Estados**: cargando con esqueleto de columnas, columna vacía con texto breve, error de transición como toast y la tarjeta vuelve a su lugar.
+- Tokens del design system del repo; nada de colores crudos. Mobile: las columnas pasan a 85 vw con scroll-snap.
+
+### Alcance
+
+Sí hace:
+- `packages/ui/pipeline/PipelineBoard.tsx` genérico: columnas ordenadas, columnas colapsables, tarjeta por render prop, transiciones válidas por función, `onMove(id, destino)`, menú Mover a, filtros por callback.
+- Reescribir `PresupuestoPipelineKanban` y `OrdenPipelineKanban` sobre ese componente, manteniendo sus tarjetas y sus datos.
+- Adaptar `PresupuestosList.tsx` y `OrdenesPipelineSection.tsx` para usar el `onMove` y quitar el diálogo de acciones cuando sólo movía de estado (las acciones extra, como convertir a orden, pasan al menú de la tarjeta).
+- Agregar `packages/ui/pipeline` a los globs de Tailwind.
+- Tests unitarios de la lógica de columnas (orden, colapsadas, destinos válidos).
+
+No hace:
+- Cambiar transiciones de estado ni endpoints.
+
+### Criterios de aceptación
+
+- [ ] En 1366×768, presupuestos y órdenes muestran las columnas activas en una fila, en orden del proceso, sin partirse; los estados terminales aparecen colapsados a la derecha.
+- [ ] Arrastrar una tarjeta a una columna válida la mueve; a una inválida, vuelve y avisa.
+- [ ] Cada tarjeta tiene “Mover a…” con solo los destinos válidos, usable con teclado.
+- [ ] La tarjeta no repite el estado de su columna.
+- [ ] `pnpm turbo run lint typecheck test build` en verde.
+
+### Archivos afectados
+
+- `packages/ui/pipeline/PipelineBoard.tsx` (nuevo) y test
+- `packages/ui/presupuestos/PresupuestoPipelineKanban.tsx`
+- `packages/ui/ordenes/OrdenPipelineKanban.tsx`
+- `apps/web/app/(app)/presupuestos/PresupuestosList.tsx`
+- `apps/web/app/(app)/resultados/OrdenesPipelineSection.tsx`, `OrdenesShell.tsx`
+- `apps/web/tailwind.config.ts`
+
+### Dependencias
+
+- Ninguna
+
+### Estimación
+
+6h
