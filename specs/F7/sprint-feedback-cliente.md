@@ -832,6 +832,7 @@ Rama `sprint/f7-3`, base `staged` post PR #13.
 | Tarea | Sesión | Estado | Commit | Comentario |
 |---|---|---|---|---|
 | F7.4.T3 | opus | en curso | — | Pedido del usuario: tipos de análisis como tabla administrable, mismo patrón que métodos. |
+| F7.6.T1 | sonnet | en curso | — | Pedido del usuario: Configuración en pestañas. Toca ConfigForm junto con F7.4.T3; quien integre segundo rebasea. |
 
 ## F7.4.T3 — Tipos de análisis como tabla administrable
 
@@ -879,3 +880,42 @@ No hace:
 ### Estimación
 
 4h
+
+## F7.6.T1 — Configuración en pestañas
+
+### Objetivo
+
+La página de Configuración es una columna larga de tarjetas: identidad, contacto, datos institucionales, presupuestos, activos, tasa y métodos. El usuario la encuentra fea y pide pestañas.
+
+### Alcance
+
+Sí hace:
+- Reorganizar `ConfigForm.tsx` con el `Tabs` de shadcn (`apps/web/components/ui/tabs.tsx`) en cuatro pestañas: **Laboratorio** (identidad, contacto, datos institucionales), **Presupuestos** (defaults de presupuesto, toma de muestra), **Imagen** (logo, firma y sello con `AssetUploader`), **Tasa de cambio** (tasa actual, refresco BCV, carga manual con forzado).
+- Un solo `<form>` de configuración que abarque las tres primeras pestañas: cambiar de pestaña no pierde lo escrito, y el botón Guardar queda fijo abajo con indicador de cambios sin guardar.
+- Errores de validación: si hay un campo inválido en otra pestaña, marcar la pestaña con un punto y saltar a ella al intentar guardar.
+- La pestaña activa en la URL (`?tab=tasa`) para poder enlazarla.
+- `MetodosPanel` no entra: F7.4.T3 lo mueve a su página propia. Mientras ambas tareas convivan, dejarlo en una quinta pestaña **Métodos** que opus elimina al rebasear.
+- Encabezado con `PageHeader` del design system, como el resto de las páginas.
+
+No hace:
+- Cambiar campos, validaciones ni endpoints.
+
+### Criterios de aceptación
+
+- [ ] Configuración muestra pestañas y ninguna requiere scroll largo en 1366×768.
+- [ ] Escribir en Laboratorio, pasar a Presupuestos y guardar persiste ambos cambios.
+- [ ] Un error en un campo de otra pestaña lleva a esa pestaña al guardar.
+- [ ] `/config?tab=tasa` abre directamente la pestaña de tasa.
+
+### Archivos afectados
+
+- `apps/web/app/(app)/config/ConfigForm.tsx`
+- `apps/web/app/(app)/config/page.tsx`
+
+### Dependencias
+
+- F7.3.T4
+
+### Estimación
+
+3h

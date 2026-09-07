@@ -3049,6 +3049,25 @@
       ],
       "specRef": "F7/sprint-feedback-cliente.md#F7.4.T3",
       "comments": []
+    },
+    {
+      "id": "F7.6.T1",
+      "phase": 7,
+      "title": "Configuración en pestañas",
+      "description": "ConfigForm con Tabs de shadcn: Laboratorio, Presupuestos, Imagen, Tasa de cambio. Un solo form, Guardar fijo, errores saltan a la pestaña, pestaña en la URL.",
+      "model": "opencode-go/kimi-k2.6",
+      "reason": "Reorganización de UI sin cambios de lógica.",
+      "status": "in_progress",
+      "dependencies": [
+        "F7.3.T4"
+      ],
+      "estimateHours": 3,
+      "files": [
+        "apps/web/app/(app)/config/ConfigForm.tsx",
+        "apps/web/app/(app)/config/page.tsx"
+      ],
+      "specRef": "F7/sprint-feedback-cliente.md#F7.6.T1",
+      "comments": []
     }
   ],
   "phases": []
