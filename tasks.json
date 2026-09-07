@@ -3141,7 +3141,7 @@
       "description": "PipelineBoard genérico: fila horizontal de columnas fijas en orden del proceso, terminales colapsadas, tarjeta compacta sin badge, menú Mover a accesible, filtros y totales en una barra.",
       "model": "opencode/gemini-3.1-pro",
       "reason": "Componente de UI compartido con interacción de arrastre y accesibilidad.",
-      "status": "in_progress",
+      "status": "done",
       "dependencies": [],
       "estimateHours": 6,
       "files": [
@@ -3152,7 +3152,15 @@
         "apps/web/app/(app)/resultados/OrdenesPipelineSection.tsx"
       ],
       "specRef": "F7/sprint-feedback-cliente.md#F7.7.T1",
-      "comments": []
+      "comments": [
+        {
+          "date": "2026-09-07",
+          "author": "planner",
+          "session": "opus",
+          "commit": "a25aaed",
+          "text": "PR #21. Sin tokens de estado nuevos; globs de Tailwind completados."
+        }
+      ]
     }
   ],
   "phases": []
