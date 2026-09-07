@@ -9,6 +9,7 @@ import {
   FlaskConical,
   History,
   LayoutDashboard,
+  ListChecks,
   Package,
   Plus,
   Settings,
@@ -47,6 +48,16 @@ const OPERACION: NavItem[] = [
   { label: "Órdenes", href: "/resultados", icon: <FileText className="h-4 w-4" /> },
   { label: "Presupuestos", href: "/presupuestos", icon: <ClipboardList className="h-4 w-4" /> },
 ];
+
+/**
+ * Mantenimiento de tipos y métodos: va entre Exámenes y Paquetes, pero sólo
+ * para admin — es quien puede escribir en esos catálogos.
+ */
+const CATALOGO_TIPOS_Y_METODOS: NavItem = {
+  label: "Tipos y métodos",
+  href: "/catalogo/tipos-y-metodos",
+  icon: <ListChecks className="h-4 w-4" />,
+};
 
 const CATALOGO: NavItem[] = [
   { label: "Exámenes", href: "/examenes", icon: <FlaskConical className="h-4 w-4" /> },
@@ -113,13 +124,22 @@ export default function AppLayout({ children }: { children: ReactNode }) {
   useGlobalShortcuts(ACTIONS, setPaletteOpen);
 
   const groups = useMemo<NavGroup[]>(() => {
-    const base: NavGroup[] = [{ items: OPERACION }, { label: "Catálogo", items: CATALOGO }];
-    if (user?.role === "admin") base.push({ label: "Administración", items: ADMIN });
+    const esAdmin = user?.role === "admin";
+    const catalogo = esAdmin
+      ? [CATALOGO[0]!, CATALOGO_TIPOS_Y_METODOS, ...CATALOGO.slice(1)]
+      : CATALOGO;
+    const base: NavGroup[] = [{ items: OPERACION }, { label: "Catálogo", items: catalogo }];
+    if (esAdmin) base.push({ label: "Administración", items: ADMIN });
     return base;
   }, [user?.role]);
 
   const allItems = useMemo(() => groups.flatMap((g) => g.items), [groups]);
-  const activeHref = resolveActiveHref(pathname, [...OPERACION, ...CATALOGO, ...ADMIN]);
+  const activeHref = resolveActiveHref(pathname, [
+    ...OPERACION,
+    ...CATALOGO,
+    CATALOGO_TIPOS_Y_METODOS,
+    ...ADMIN,
+  ]);
 
   useEffect(() => {
     let cancelled = false;
