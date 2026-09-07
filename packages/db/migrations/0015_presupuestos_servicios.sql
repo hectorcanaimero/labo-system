@@ -18,9 +18,11 @@
 --   `laboratorio_config.toma_muestra_default_usd` es el valor con el que el
 --   formulario precarga el campo. Queda en 0 y lo fija el cliente desde Config
 --   (en la demo hablaron de 4 USD, pero sin confirmar).
+--
+-- Sin BEGIN/COMMIT a propósito: el endpoint de migraciones de InsForge corre
+-- el SQL en su propia transacción (docs/deploy/insforge-vps.md), igual que
+-- 0009-0014.
 -- =============================================================================
-
-BEGIN;
 
 ALTER TABLE presupuestos
   ADD COLUMN IF NOT EXISTS toma_muestra_usd numeric(12, 2) NOT NULL DEFAULT 0,
@@ -45,5 +47,3 @@ ALTER TABLE laboratorio_config
 ALTER TABLE laboratorio_config
   ADD CONSTRAINT laboratorio_config_toma_muestra_default_usd_check
     CHECK (toma_muestra_default_usd >= 0);
-
-COMMIT;
