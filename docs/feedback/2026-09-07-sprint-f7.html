@@ -34,7 +34,7 @@ ul{margin:.2rem 0 0;padding-left:1.1rem}li{margin:.2rem 0}
 <span class="eyebrow">RV Laboratorio · F7</span>
 <h1>Sprint de feedback del cliente</h1>
 <p class="lede">Dos semanas para cerrar lo que reportó Miguel Franchi y lo que se acordó en la reunión del 6 de septiembre. Sale del análisis técnico; cada tarea tiene alcance, criterios de aceptación y archivos.</p>
-<div class="meta"><span>Del <b>8 al 19 sep 2026</b></span><span>Tareas <b>19</b></span><span>Estimado <b>50h</b></span><span>Spec <b>specs/F7/sprint-feedback-cliente.md</b></span><span>Backlog <b>tasks.json</b></span></div>
+<div class="meta"><span>Del <b>8 al 19 sep 2026</b></span><span>Tareas <b>22</b></span><span>Estimado <b>60h</b></span><span>Spec <b>specs/F7/sprint-feedback-cliente.md</b></span><span>Backlog <b>tasks.json</b></span></div>
 </header>
 <div class="wrap"><table><thead><tr><th>Cuándo</th><th>ID</th><th>Tarea</th><th>Depende de</th><th>Horas</th></tr></thead><tbody>
 <tr><td><span class="wk s1">S1 · d5</span></td><td class="id">F7.0.T1</td><td>Dejar verde el CI de la raíz (bloquea staged → main)</td><td>—</td><td class="h">3</td></tr>
@@ -56,6 +56,9 @@ ul{margin:.2rem 0 0;padding-left:1.1rem}li{margin:.2rem 0}
 <tr><td><span class="wk s2">S2 · d4-5</span></td><td class="id">F7.3.T2</td><td>Vista de verificación y QR en el PDF de resultados</td><td>F7.3.T1</td><td class="h">6</td></tr>
 <tr><td><span class="wk s2">S2 · d5</span></td><td class="id">F7.3.T4</td><td>Correcciones de la revisión cruzada sobre observaciones y tasa</td><td>F7.3.T3, F7.5.T1</td><td class="h">3</td></tr>
 <tr><td><span class="wk s2">S2 · d5</span></td><td class="id">F7.3.T5</td><td>Correcciones de la revisión cruzada sobre QR y verificación</td><td>F7.3.T2</td><td class="h">2</td></tr>
+<tr><td><span class="wk s2">S3</span></td><td class="id">F7.4.T3</td><td>Tipos de análisis como tabla administrable (pedido del usuario)</td><td>F7.4.T1</td><td class="h">4</td></tr>
+<tr><td><span class="wk s2">S3</span></td><td class="id">F7.6.T1</td><td>Configuración en pestañas, con Tipos y métodos (pedido del usuario)</td><td>F7.4.T3</td><td class="h">3</td></tr>
+<tr><td><span class="wk s2">S3</span></td><td class="id">F7.6.T2</td><td>Las imágenes subidas en Configuración se pierden (pedido del usuario)</td><td>—</td><td class="h">3</td></tr>
 </tbody></table></div>
 <div class="two">
 <div><span class="eyebrow">Fuera del sprint</span><ul>
@@ -213,5 +216,12 @@ ul{margin:.2rem 0 0;padding-left:1.1rem}li{margin:.2rem 0}
 <tr data-task="F7.4.T1"><td class="id">F7.4.T1</td><td>opus</td><td>hecha</td><td class="id">517397a</td><td>Tabla metodos_analisis (0017) sembrada con los métodos existentes, repo y endpoints con patrón de títulos, select en el examen con alta inline para admin y panel de métodos en Config fuera del form. Un método desactivado se conserva en los exámenes como (fuera de la lista). Renombrar no reescribe examenes.metodo ni metodo_snap, a propósito. Sin la 0017 el selector muestra un mensaje y nada rompe. Probada en Postgres local, no aplicada en hosted. Sin prueba en navegador.</td></tr>
 <tr data-task="F7.3.T4"><td class="id">F7.3.T4</td><td>opus</td><td>hecha</td><td class="id">1b2d5cb</td><td>update de órdenes solo auto-entrega cuando el body trae fecha_resultado; el detalle manda estado explícito y no ofrece Editar en anuladas. Tasa manual con force y motivo obligatorio auditado, ofrecido en Config solo tras un 409 con el mismo valor; rechazos por outlier auditados. 14 tests nuevos en db (18 a 32), los de regresión fallan sin el fix. Sin prueba en navegador.</td></tr>
 <tr data-task="F7.3.T5"><td class="id">F7.3.T5</td><td>sonnet</td><td>hecha</td><td class="id">7e00aff</td><td>La creación del enlace de verificación solo tolera tabla faltante; cualquier otro error queda en audit_log sin tumbar la entrega ni el PDF, con test. /v/[slug] sin Estado. QR y enlace solo cuando la orden está Entregada. Carrera sin UNIQUE en orden_id anotada.</td></tr>
+</tbody></table></div></section>
+<section id="registro3"><h2>Registro del Sprint 3</h2>
+<p style="margin-bottom:1rem;color:var(--ink-2)">Correcciones y pedidos del usuario tras el merge del Sprint 2. Rama <code>sprint/f7-3</code> desde <code>staged</code>. PR #14 abierto. Revisión de sonnet sobre el commit de tipos: nada roto. Los commits de sonnet quedaron sin revisión cruzada porque la sesión de opus cerró.</p>
+<div class="wrap" style="margin-top:0"><table><thead><tr><th>Tarea</th><th>Sesión</th><th>Estado</th><th>Commit</th><th>Comentario</th></tr></thead><tbody id="registro3-body">
+<tr data-task="F7.4.T3"><td class="id">F7.4.T3</td><td>opus</td><td>hecha</td><td class="id">459f844</td><td>Tabla tipos_analisis (0019) sembrada con los ocho tipos más los existentes; repo compartido de catálogo para tipos y métodos con 23 tests; tipo y método como selectores con alta inline en el examen; página /catalogo/tipos-y-metodos en el sidebar, solo admin; MetodosPanel fuera de Config. La importación no valida tipos: quedan como fuera de la lista. Sin la 0019 no se pueden crear exámenes nuevos. Sin prueba en navegador.</td></tr>
+<tr data-task="F7.6.T1"><td class="id">F7.6.T1</td><td>sonnet</td><td>hecha</td><td class="id">abbad57</td><td>Cinco pestañas: Laboratorio, Presupuestos, Imagen, Tasa de cambio y Tipos y métodos con el CatalogoPanel embebido. Un solo form para las tres primeras, Guardar fijo con indicador, salto a la pestaña con error, ?tab= en la URL con history.replaceState porque router.replace re-ejecutaba el server component y reseteaba el form. Sidebar apunta a /config?tab=catalogo. Sin prueba en navegador.</td></tr>
+<tr data-task="F7.6.T2"><td class="id">F7.6.T2</td><td>sonnet</td><td>hecha</td><td class="id">8fba463</td><td>Bug real: assets/set borraba el archivo viejo antes de confirmar la config nueva; si el upsert fallaba, quedaba sin asset. Orden invertido. Verificado contra el contenedor real de staging: volumen montado y sin errores de storage en 72h; el reporte es probablemente anterior. Producción no tenía compose ni volumen: docker-compose.production.yml nuevo. Test de que el upsert de config no pisa las claves. Pendiente del usuario: confirmar en Coolify si producción apunta al compose nuevo; en este VPS solo corre el contenedor de staging.</td></tr>
 </tbody></table></div></section>
 </main>

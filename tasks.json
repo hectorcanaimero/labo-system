@@ -3026,6 +3026,91 @@
           "text": "La creación del enlace de verificación solo tolera tabla faltante; cualquier otro error queda en audit_log sin tumbar la entrega ni el PDF, con test. /v/[slug] sin Estado. QR y enlace solo cuando la orden está Entregada. Carrera sin UNIQUE en orden_id anotada."
         }
       ]
+    },
+    {
+      "id": "F7.4.T3",
+      "phase": 7,
+      "title": "Tipos de análisis como tabla administrable",
+      "description": "Tabla tipos_analisis sembrada con TIPO_ANALISIS_VALUES, repo y endpoints, selector en el examen con alta inline, panel de catálogo en Config con tipos y métodos.",
+      "model": "opencode/deepseek-v4-pro",
+      "reason": "Mismo patrón que métodos, con generalización del panel.",
+      "status": "done",
+      "dependencies": [
+        "F7.4.T1"
+      ],
+      "estimateHours": 4,
+      "files": [
+        "packages/db/migrations/0019_tipos_analisis.sql",
+        "packages/db/repos/tipos-analisis.ts",
+        "apps/web/app/api/examenes/tipos-analisis/route.ts",
+        "packages/lib/schemas/examen.ts",
+        "apps/web/app/(app)/examenes/ExamenFormDialog.tsx",
+        "apps/web/app/(app)/config/ConfigForm.tsx"
+      ],
+      "specRef": "F7/sprint-feedback-cliente.md#F7.4.T3",
+      "comments": [
+        {
+          "date": "2026-09-07",
+          "author": "planner",
+          "session": "opus",
+          "commit": "459f844",
+          "text": "Tabla tipos_analisis (0019) sembrada con los ocho tipos más los existentes; repo compartido de catálogo para tipos y métodos con 23 tests; tipo y método como selectores con alta inline en el examen; página /catalogo/tipos-y-metodos en el sidebar, solo admin; MetodosPanel fuera de Config. La importación no valida tipos: quedan como fuera de la lista. Sin la 0019 no se pueden crear exámenes nuevos. Sin prueba en navegador."
+        }
+      ]
+    },
+    {
+      "id": "F7.6.T1",
+      "phase": 7,
+      "title": "Configuración en pestañas",
+      "description": "ConfigForm con Tabs de shadcn: Laboratorio, Presupuestos, Imagen, Tasa de cambio. Un solo form, Guardar fijo, errores saltan a la pestaña, pestaña en la URL.",
+      "model": "opencode-go/kimi-k2.6",
+      "reason": "Reorganización de UI sin cambios de lógica.",
+      "status": "done",
+      "dependencies": [
+        "F7.3.T4"
+      ],
+      "estimateHours": 3,
+      "files": [
+        "apps/web/app/(app)/config/ConfigForm.tsx",
+        "apps/web/app/(app)/config/page.tsx"
+      ],
+      "specRef": "F7/sprint-feedback-cliente.md#F7.6.T1",
+      "comments": [
+        {
+          "date": "2026-09-07",
+          "author": "planner",
+          "session": "sonnet",
+          "commit": "abbad57",
+          "text": "Cinco pestañas: Laboratorio, Presupuestos, Imagen, Tasa de cambio y Tipos y métodos con el CatalogoPanel embebido. Un solo form para las tres primeras, Guardar fijo con indicador, salto a la pestaña con error, ?tab= en la URL con history.replaceState porque router.replace re-ejecutaba el server component y reseteaba el form. Sidebar apunta a /config?tab=catalogo. Sin prueba en navegador."
+        }
+      ]
+    },
+    {
+      "id": "F7.6.T2",
+      "phase": 7,
+      "title": "Las imágenes subidas en Configuración se pierden",
+      "description": "Diagnosticar y corregir la pérdida de logo, firma y sello subidos en Config: STORAGE_ROOT, firma, persistencia del object_key, volumen en producción.",
+      "model": "opencode-go/kimi-k2.6",
+      "reason": "Bug con diagnóstico acotado.",
+      "status": "done",
+      "dependencies": [],
+      "estimateHours": 3,
+      "files": [
+        "apps/web/app/api/config/assets",
+        "apps/web/app/api/storage/[bucket]/[...path]/route.ts",
+        "apps/web/app/(app)/config/AssetUploader.tsx",
+        "docs/deploy/coolify-staged.md"
+      ],
+      "specRef": "F7/sprint-feedback-cliente.md#F7.6.T2",
+      "comments": [
+        {
+          "date": "2026-09-07",
+          "author": "planner",
+          "session": "sonnet",
+          "commit": "8fba463",
+          "text": "Bug real: assets/set borraba el archivo viejo antes de confirmar la config nueva; si el upsert fallaba, quedaba sin asset. Orden invertido. Verificado contra el contenedor real de staging: volumen montado y sin errores de storage en 72h; el reporte es probablemente anterior. Producción no tenía compose ni volumen: docker-compose.production.yml nuevo. Test de que el upsert de config no pisa las claves. Pendiente del usuario: confirmar en Coolify si producción apunta al compose nuevo; en este VPS solo corre el contenedor de staging."
+        }
+      ]
     }
   ],
   "phases": []

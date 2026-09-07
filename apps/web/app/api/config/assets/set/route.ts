@@ -40,6 +40,13 @@ export async function POST(request: NextRequest): Promise<Response> {
     const currentConfig = await get(db);
     const oldKey = currentConfig ? currentConfig[`${type}_object_key` as const] : null;
 
+    // F7.6.T2 — el orden importa: si `updateAssetKey` fallara (DB caída,
+    // timeout) DESPUÉS de borrar el archivo viejo, el admin se queda sin
+    // logo/firma/sello (el nuevo no llegó a la config, el viejo ya no existe
+    // en disco). Persistir primero la referencia nueva; borrar el archivo
+    // viejo recién cuando la config ya apunta al nuevo.
+    const updatedConfig = await updateAssetKey(db, type as "logo" | "firma" | "sello", key, user.userId);
+
     if (oldKey && oldKey !== key) {
       try {
         await deleteObject("assets", oldKey);
@@ -47,8 +54,6 @@ export async function POST(request: NextRequest): Promise<Response> {
         console.error(`[assets/set] Error deleting old object ${oldKey}:`, delError);
       }
     }
-
-    const updatedConfig = await updateAssetKey(db, type as "logo" | "firma" | "sello", key, user.userId);
 
     // 7. Retornar configuración actualizada
     return NextResponse.json(updatedConfig);

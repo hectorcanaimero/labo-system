@@ -17,21 +17,32 @@ import { EmptyState } from "@labo/ui/feedback";
 import { notifyError, notifySuccess } from "@labo/ui/feedback/toast";
 
 /**
- * Administración de los métodos de análisis (F7.4.T1).
+ * Administración de un catálogo de mantenimiento (F7.4.T1, F7.4.T3).
  *
- * El examen ya no acepta texto libre: elige de esta lista. Acá el admin la
- * amplía, renombra y desactiva.
+ * Sirve para tipos de análisis y para métodos: el examen ya no acepta texto
+ * libre en ninguno de los dos, elige de estas listas. Acá el admin las amplía,
+ * renombra y desactiva.
  *
- * Renombrar NO reescribe los exámenes que ya usaban el nombre viejo, ni el
- * `metodo_snap` de las órdenes, que es un registro histórico. Por eso el aviso
- * al renombrar: la lista y lo ya guardado pueden divergir a propósito.
+ * Renombrar NO reescribe los exámenes que ya usaban el nombre viejo, ni los
+ * snapshots de las órdenes, que son registro histórico. Por eso el aviso al
+ * renombrar: la lista y lo ya guardado pueden divergir a propósito.
  */
 
-interface MetodoAnalisis {
+interface ItemCatalogo {
   id: string;
   nombre: string;
   activo: boolean;
   orden: number;
+}
+
+export interface CatalogoPanelProps {
+  titulo: string;
+  descripcion: string;
+  /** Endpoint del catálogo, p. ej. `/api/examenes/metodos`. */
+  endpoint: string;
+  /** Singular en minúscula para los textos: "método", "tipo". */
+  singular: string;
+  placeholderNuevo: string;
 }
 
 async function requestJson<T>(url: string, init?: RequestInit): Promise<T> {
@@ -50,8 +61,14 @@ async function requestJson<T>(url: string, init?: RequestInit): Promise<T> {
   return response.json() as Promise<T>;
 }
 
-export function MetodosPanel() {
-  const [metodos, setMetodos] = useState<MetodoAnalisis[]>([]);
+export function CatalogoPanel({
+  titulo,
+  descripcion,
+  endpoint,
+  singular,
+  placeholderNuevo,
+}: CatalogoPanelProps) {
+  const [items, setItems] = useState<ItemCatalogo[]>([]);
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -66,11 +83,11 @@ export function MetodosPanel() {
     let cancelado = false;
     void (async () => {
       try {
-        const payload = await requestJson<MetodoAnalisis[]>(
-          "/api/examenes/metodos?incluirInactivos=1",
+        const payload = await requestJson<ItemCatalogo[]>(
+          `${endpoint}?incluirInactivos=1`,
         );
         if (!cancelado) {
-          setMetodos(payload);
+          setItems(payload);
           setError(null);
         }
       } catch (err) {
@@ -82,10 +99,10 @@ export function MetodosPanel() {
     return () => {
       cancelado = true;
     };
-  }, []);
+  }, [endpoint]);
 
-  function reemplazar(actualizado: MetodoAnalisis): void {
-    setMetodos((actuales) =>
+  function reemplazar(actualizado: ItemCatalogo): void {
+    setItems((actuales) =>
       actuales.map((item) => (item.id === actualizado.id ? actualizado : item)),
     );
   }
@@ -95,13 +112,13 @@ export function MetodosPanel() {
     if (nombre.length === 0) return;
     try {
       setCreando(true);
-      const creado = await requestJson<MetodoAnalisis>("/api/examenes/metodos", {
+      const creado = await requestJson<ItemCatalogo>(endpoint, {
         method: "POST",
         body: JSON.stringify({ nombre }),
       });
-      setMetodos((actuales) => [...actuales, creado]);
+      setItems((actuales) => [...actuales, creado]);
       setNuevo("");
-      notifySuccess(`Método "${creado.nombre}" agregado.`);
+      notifySuccess(`Se agregó "${creado.nombre}".`);
     } catch (err) {
       notifyError(err);
     } finally {
@@ -109,22 +126,22 @@ export function MetodosPanel() {
     }
   }
 
-  async function guardarNombre(metodo: MetodoAnalisis): Promise<void> {
+  async function guardarNombre(item: ItemCatalogo): Promise<void> {
     const nombre = nombreEditado.trim();
-    if (nombre.length === 0 || nombre === metodo.nombre) {
+    if (nombre.length === 0 || nombre === item.nombre) {
       setEditandoId(null);
       return;
     }
     try {
-      setGuardandoId(metodo.id);
-      const actualizado = await requestJson<MetodoAnalisis>("/api/examenes/metodos", {
+      setGuardandoId(item.id);
+      const actualizado = await requestJson<ItemCatalogo>(endpoint, {
         method: "PATCH",
-        body: JSON.stringify({ id: metodo.id, nombre }),
+        body: JSON.stringify({ id: item.id, nombre }),
       });
       reemplazar(actualizado);
       setEditandoId(null);
       notifySuccess(
-        `Método renombrado. Los exámenes que ya usaban "${metodo.nombre}" conservan ese nombre.`,
+        `Renombrado. Los exámenes que ya usaban "${item.nombre}" conservan ese nombre.`,
       );
     } catch (err) {
       notifyError(err);
@@ -133,12 +150,12 @@ export function MetodosPanel() {
     }
   }
 
-  async function alternarActivo(metodo: MetodoAnalisis): Promise<void> {
+  async function alternarActivo(item: ItemCatalogo): Promise<void> {
     try {
-      setGuardandoId(metodo.id);
-      const actualizado = await requestJson<MetodoAnalisis>("/api/examenes/metodos", {
+      setGuardandoId(item.id);
+      const actualizado = await requestJson<ItemCatalogo>(endpoint, {
         method: "PATCH",
-        body: JSON.stringify({ id: metodo.id, activo: !metodo.activo }),
+        body: JSON.stringify({ id: item.id, activo: !item.activo }),
       });
       reemplazar(actualizado);
       notifySuccess(
@@ -154,13 +171,10 @@ export function MetodosPanel() {
   }
 
   return (
-    <Card className="shadow-none lg:col-span-3">
+    <Card className="shadow-none">
       <CardHeader className="border-b border-border py-3">
-        <CardTitle className="text-sm font-semibold">Métodos de análisis</CardTitle>
-        <CardDescription className="text-xs">
-          La lista que ofrece el selector de método en cada examen. Desactivar saca el método
-          del selector; los exámenes que ya lo tenían lo siguen mostrando.
-        </CardDescription>
+        <CardTitle className="text-sm font-semibold">{titulo}</CardTitle>
+        <CardDescription className="text-xs">{descripcion}</CardDescription>
       </CardHeader>
       <CardContent className="flex flex-col gap-4 p-4">
         <div className="flex flex-col gap-2 sm:flex-row">
@@ -173,8 +187,8 @@ export function MetodosPanel() {
                 void crear();
               }
             }}
-            placeholder="Ej. Quimioluminiscencia"
-            aria-label="Nombre del método nuevo"
+            placeholder={placeholderNuevo}
+            aria-label={`Nombre del ${singular} nuevo`}
             disabled={creando}
             className="h-9 sm:max-w-xs"
           />
@@ -189,7 +203,7 @@ export function MetodosPanel() {
             ) : (
               <Plus className="h-3.5 w-3.5" />
             )}
-            Agregar método
+            Agregar {singular}
           </Button>
         </div>
 
@@ -199,20 +213,20 @@ export function MetodosPanel() {
           </p>
         ) : cargando ? (
           <p className="text-xs text-muted-foreground">Cargando métodos…</p>
-        ) : metodos.length === 0 ? (
+        ) : items.length === 0 ? (
           <EmptyState
             compact
-            title="Todavía no hay métodos"
+            title={`Todavía no hay ${singular}s cargados`}
             description="Agregá el primero para que aparezca en el selector de los exámenes."
           />
         ) : (
           <ul className="divide-y divide-border rounded-md border border-border">
-            {metodos.map((metodo) => {
-              const ocupado = guardandoId === metodo.id;
-              const editando = editandoId === metodo.id;
+            {items.map((item) => {
+              const ocupado = guardandoId === item.id;
+              const editando = editandoId === item.id;
 
               return (
-                <li key={metodo.id} className="flex items-center gap-2 px-3 py-2">
+                <li key={item.id} className="flex items-center gap-2 px-3 py-2">
                   {editando ? (
                     <>
                       <Input
@@ -221,11 +235,11 @@ export function MetodosPanel() {
                         onKeyDown={(event) => {
                           if (event.key === "Enter") {
                             event.preventDefault();
-                            void guardarNombre(metodo);
+                            void guardarNombre(item);
                           }
                           if (event.key === "Escape") setEditandoId(null);
                         }}
-                        aria-label={`Nuevo nombre para ${metodo.nombre}`}
+                        aria-label={`Nuevo nombre para ${item.nombre}`}
                         autoFocus
                         disabled={ocupado}
                         className="h-8 max-w-xs"
@@ -234,7 +248,7 @@ export function MetodosPanel() {
                         type="button"
                         size="sm"
                         variant="ghost"
-                        onClick={() => void guardarNombre(metodo)}
+                        onClick={() => void guardarNombre(item)}
                         disabled={ocupado}
                         aria-label="Guardar nombre"
                       >
@@ -259,12 +273,12 @@ export function MetodosPanel() {
                     <>
                       <span
                         className={`min-w-0 flex-1 truncate text-sm ${
-                          metodo.activo ? "" : "text-muted-foreground line-through"
+                          item.activo ? "" : "text-muted-foreground line-through"
                         }`}
                       >
-                        {metodo.nombre}
+                        {item.nombre}
                       </span>
-                      {!metodo.activo ? (
+                      {!item.activo ? (
                         <span className="shrink-0 rounded bg-muted px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
                           Desactivado
                         </span>
@@ -274,11 +288,11 @@ export function MetodosPanel() {
                         size="sm"
                         variant="ghost"
                         onClick={() => {
-                          setEditandoId(metodo.id);
-                          setNombreEditado(metodo.nombre);
+                          setEditandoId(item.id);
+                          setNombreEditado(item.nombre);
                         }}
                         disabled={ocupado}
-                        aria-label={`Renombrar ${metodo.nombre}`}
+                        aria-label={`Renombrar ${item.nombre}`}
                       >
                         <Pencil className="h-3.5 w-3.5" />
                       </Button>
@@ -286,14 +300,14 @@ export function MetodosPanel() {
                         type="button"
                         size="sm"
                         variant="outline"
-                        onClick={() => void alternarActivo(metodo)}
+                        onClick={() => void alternarActivo(item)}
                         disabled={ocupado}
                         className="h-8 text-xs"
                       >
                         {ocupado ? (
                           <Loader2 className="h-3.5 w-3.5 animate-spin" />
                         ) : null}
-                        {metodo.activo ? "Desactivar" : "Activar"}
+                        {item.activo ? "Desactivar" : "Activar"}
                       </Button>
                     </>
                   )}

@@ -4,9 +4,14 @@ const VALIDACION_FALLIDA = "VALIDACION_FALLIDA";
 const TIPO_ANALISIS_REQUERIDO = "TIPO_ANALISIS_REQUERIDO";
 
 /**
- * Tipos de análisis permitidos para clasificar cada examen.
- * En DB `tipo_analisis` es `text NOT NULL` (sin CHECK) — el enum se enforcea
- * client-side vía este schema para poder ajustar vocabulario sin migración.
+ * Vocabulario inicial de tipos de análisis.
+ *
+ * Ya NO se valida contra esta lista: desde F7.4.T3 el vocabulario lo da la
+ * tabla `tipos_analisis` (migración 0019), que el admin mantiene desde
+ * Catálogo → Tipos y métodos. Estos ocho valores quedan como la semilla con la
+ * que se pobló esa tabla, y como referencia de qué había antes.
+ *
+ * `examenes.tipo_analisis` sigue siendo `text NOT NULL` en la base.
  */
 export const TIPO_ANALISIS_VALUES = [
   "Análisis Químico",
@@ -21,9 +26,18 @@ export const TIPO_ANALISIS_VALUES = [
 
 export type TipoAnalisis = (typeof TIPO_ANALISIS_VALUES)[number];
 
-const tipoAnalisisSchema = z.enum(TIPO_ANALISIS_VALUES, {
-  errorMap: () => ({ message: TIPO_ANALISIS_REQUERIDO }),
-});
+/**
+ * Texto no vacío. La lista de valores válidos vive en `tipos_analisis` y se
+ * ofrece en el selector; el schema sólo exige que el examen tenga alguno.
+ *
+ * No se valida contra la tabla acá a propósito: un examen cuyo tipo fue
+ * desactivado o renombrado tiene que poder volver a guardarse sin perderlo,
+ * igual que pasa con `metodo`.
+ */
+const tipoAnalisisSchema = z
+  .string({ required_error: TIPO_ANALISIS_REQUERIDO, invalid_type_error: TIPO_ANALISIS_REQUERIDO })
+  .trim()
+  .min(1, { message: TIPO_ANALISIS_REQUERIDO });
 
 const textoOpcionalSanitizado = z.string().trim().optional();
 

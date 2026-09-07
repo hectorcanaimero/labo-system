@@ -824,3 +824,139 @@ No hace:
 ### Estimación
 
 2h
+
+# Sprint 3 (correcciones y pedidos del usuario)
+
+Rama `sprint/f7-3`, base `staged` post PR #13. PR #14 abierto. Revisión de sonnet sobre 459f844: nada roto; un plausible de UX menor: con la tabla de tipos vacía, un operador no puede crear exámenes hasta que un admin cargue un tipo. Sin revisión cruzada sobre los commits de sonnet porque la sesión de opus cerró.
+
+| Tarea | Sesión | Estado | Commit | Comentario |
+|---|---|---|---|---|
+| F7.4.T3 | opus | hecha | `459f844` | Tabla tipos_analisis (0019) sembrada con los ocho tipos más los existentes; repo compartido de catálogo para tipos y métodos con 23 tests; tipo y método como selectores con alta inline en el examen; página /catalogo/tipos-y-metodos en el sidebar, solo admin; MetodosPanel fuera de Config. La importación no valida tipos: quedan como fuera de la lista. Sin la 0019 no se pueden crear exámenes nuevos. Sin prueba en navegador. |
+| F7.6.T1 | sonnet | hecha | `abbad57` | Cinco pestañas: Laboratorio, Presupuestos, Imagen, Tasa de cambio y Tipos y métodos con el CatalogoPanel embebido. Un solo form para las tres primeras, Guardar fijo con indicador, salto a la pestaña con error, ?tab= en la URL con history.replaceState porque router.replace re-ejecutaba el server component y reseteaba el form. Sidebar apunta a /config?tab=catalogo. Sin prueba en navegador. |
+| F7.6.T2 | sonnet | hecha | `8fba463` | Bug real: assets/set borraba el archivo viejo antes de confirmar la config nueva; si el upsert fallaba, quedaba sin asset. Orden invertido. Verificado contra el contenedor real de staging: volumen montado y sin errores de storage en 72h; el reporte es probablemente anterior. Producción no tenía compose ni volumen: docker-compose.production.yml nuevo. Test de que el upsert de config no pisa las claves. Pendiente del usuario: confirmar en Coolify si producción apunta al compose nuevo; en este VPS solo corre el contenedor de staging. |
+
+## F7.4.T3 — Tipos de análisis como tabla administrable
+
+### Objetivo
+
+Hoy el tipo de análisis del examen sale de una lista fija en `packages/lib/schemas/examen.ts` (`TIPO_ANALISIS_VALUES`). El usuario pide que, igual que los métodos, sea una tabla de mantenimiento administrable desde Config, y que al crear un examen tanto tipo como método sean selectores contra esas tablas.
+
+### Alcance
+
+Sí hace:
+- Migración `0019_tipos_analisis.sql`: tabla `tipos_analisis (id, nombre unique, activo, orden)`, sembrada con los ocho valores de `TIPO_ANALISIS_VALUES` en ese orden y con cualquier valor distinto que exista en `examenes.tipo_analisis`. Sin BEGIN/COMMIT, idempotente.
+- `packages/db/repos/tipos-analisis.ts` y `GET/POST/PATCH /api/examenes/tipos-analisis`, mismo patrón y roles que métodos.
+- `packages/lib/schemas/examen.ts`: `tipo_analisis` pasa a ser texto no vacío; el vocabulario lo da la tabla. Conservar `TIPO_ANALISIS_VALUES` solo como semilla de la migración o eliminarla si nada más la usa.
+- `ExamenFormDialog`: selector de tipos activos con "Agregar tipo…" para admin, mismo componente o patrón que el de métodos. Un examen con tipo desactivado o renombrado se muestra como "(fuera de la lista)" y no se pierde al guardar.
+- Página propia `/catalogo/tipos-y-metodos` en el grupo Catálogo del sidebar (`apps/web/app/(app)/layout.tsx`, entre Exámenes y Paquetes), con dos bloques: Tipos de análisis y Métodos. Alta, renombrar en línea, activar y desactivar. `MetodosPanel` se mueve ahí y desaparece de Config. Solo admin.
+- Importación de exámenes (`examenes/import`): si valida el tipo contra la lista fija, pasar a validar contra la tabla.
+
+No hace:
+- Reescribir `examenes.tipo_analisis` al renombrar un tipo. Misma regla que métodos.
+
+### Criterios de aceptación
+
+- [ ] Crear un examen ofrece tipo y método como selectores alimentados por las tablas; no hay texto libre en ninguno.
+- [ ] El admin agrega un tipo nuevo desde el formulario del examen sin salir de él.
+- [ ] Un tipo desactivado desaparece del selector y se conserva en los exámenes que lo tenían.
+- [ ] El sidebar muestra “Tipos y métodos” bajo Catálogo y la página administra ambos; Config ya no los muestra.
+- [ ] La migración sembró los ocho tipos en orden y `pnpm turbo run lint typecheck test build` sigue en verde.
+
+### Archivos afectados
+
+- `packages/db/migrations/0019_tipos_analisis.sql`
+- `packages/db/repos/tipos-analisis.ts`
+- `apps/web/app/api/examenes/tipos-analisis/route.ts`
+- `packages/lib/schemas/examen.ts`
+- `apps/web/app/(app)/examenes/ExamenFormDialog.tsx`
+- `apps/web/app/(app)/catalogo/tipos-y-metodos/page.tsx`
+- `apps/web/app/(app)/layout.tsx`
+- `apps/web/app/(app)/config/ConfigForm.tsx`, `MetodosPanel.tsx`
+- `apps/web/app/(app)/examenes/import/*`
+
+### Dependencias
+
+- F7.4.T1
+
+### Estimación
+
+4h
+
+## F7.6.T1 — Configuración en pestañas
+
+### Objetivo
+
+La página de Configuración es una columna larga de tarjetas: identidad, contacto, datos institucionales, presupuestos, activos, tasa y métodos. El usuario la encuentra fea y pide pestañas.
+
+### Alcance
+
+Sí hace:
+- Reorganizar `ConfigForm.tsx` con el `Tabs` de shadcn (`apps/web/components/ui/tabs.tsx`) en cuatro pestañas: **Laboratorio** (identidad, contacto, datos institucionales), **Presupuestos** (defaults de presupuesto, toma de muestra), **Imagen** (logo, firma y sello con `AssetUploader`), **Tasa de cambio** (tasa actual, refresco BCV, carga manual con forzado).
+- Un solo `<form>` de configuración que abarque las tres primeras pestañas: cambiar de pestaña no pierde lo escrito, y el botón Guardar queda fijo abajo con indicador de cambios sin guardar.
+- Errores de validación: si hay un campo inválido en otra pestaña, marcar la pestaña con un punto y saltar a ella al intentar guardar.
+- La pestaña activa en la URL (`?tab=tasa`) para poder enlazarla.
+- Quinta pestaña **Tipos y métodos** (pedido del usuario): renderiza el `CatalogoPanel` parametrizado que F7.4.T3 dejó en `catalogo/tipos-y-metodos/CatalogoPanel.tsx`, con los dos bloques. La entrada del sidebar “Tipos y métodos” pasa a apuntar a `/config?tab=catalogo` y la página `/catalogo/tipos-y-metodos` redirige ahí. Un solo lugar, dos accesos.
+- Encabezado con `PageHeader` del design system, como el resto de las páginas.
+
+No hace:
+- Cambiar campos, validaciones ni endpoints.
+
+### Criterios de aceptación
+
+- [ ] Configuración muestra pestañas y ninguna requiere scroll largo en 1366×768.
+- [ ] Escribir en Laboratorio, pasar a Presupuestos y guardar persiste ambos cambios.
+- [ ] Un error en un campo de otra pestaña lleva a esa pestaña al guardar.
+- [ ] `/config?tab=tasa` abre directamente la pestaña de tasa.
+- [ ] La pestaña Tipos y métodos administra ambos catálogos y el sidebar lleva a ella.
+
+### Archivos afectados
+
+- `apps/web/app/(app)/config/ConfigForm.tsx`
+- `apps/web/app/(app)/config/page.tsx`
+
+### Dependencias
+
+- F7.3.T4
+
+### Estimación
+
+3h
+
+## F7.6.T2 — Las imágenes subidas en Configuración se pierden
+
+### Objetivo
+
+El usuario reporta que el logo, la firma y el sello que sube en Configuración se pierden. Diagnosticar la causa real y corregirla.
+
+### Alcance
+
+Sí hace:
+- Reproducir con el flujo real: `GET /api/config/assets/url`, `POST /api/config/assets/upload`, `POST /api/config/assets/set`, y la lectura posterior por `/api/storage/[bucket]/[...path]`.
+- Revisar candidatos: `STORAGE_ROOT` sin default o apuntando a un directorio que Next limpia; `STORAGE_SIGNING_SECRET` ausente en dev; `set` no persistiendo el `object_key` en `laboratorio_config`; el formulario de Config pisando las claves de assets al guardar; el compose de producción sin volumen para `/app/.storage` (el de staging sí lo tiene).
+- Corregir la causa encontrada y dejar un test o una verificación reproducible.
+- Documentar en `docs/deploy/coolify-staged.md` qué necesita cada entorno para que los assets persistan.
+
+No hace:
+- Migrar el almacenamiento a InsForge Storage, salvo que sea la única salida; en ese caso, reportar antes de hacerlo.
+
+### Criterios de aceptación
+
+- [ ] Subir un logo en Config, guardar el formulario, recargar y reiniciar el servidor: el logo sigue.
+- [ ] El PDF de presupuesto y de resultado muestran el logo subido.
+- [ ] Causa raíz documentada en el commit.
+
+### Archivos afectados
+
+- `apps/web/app/api/config/assets/*`
+- `apps/web/app/api/storage/[bucket]/[...path]/route.ts`
+- `apps/web/lib/server/*storage*`
+- `apps/web/app/(app)/config/AssetUploader.tsx`, `ConfigForm.tsx`
+- `docs/deploy/coolify-staged.md`
+
+### Dependencias
+
+- Ninguna
+
+### Estimación
+
+3h

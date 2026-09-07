@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import {
   ClipboardList,
@@ -9,6 +9,7 @@ import {
   FlaskConical,
   History,
   LayoutDashboard,
+  ListChecks,
   Package,
   Plus,
   Settings,
@@ -48,6 +49,19 @@ const OPERACION: NavItem[] = [
   { label: "Presupuestos", href: "/presupuestos", icon: <ClipboardList className="h-4 w-4" /> },
 ];
 
+/**
+ * Mantenimiento de tipos y métodos: va entre Exámenes y Paquetes, pero sólo
+ * para admin — es quien puede escribir en esos catálogos.
+ *
+ * F7.6.T1 — vive en la pestaña "Tipos y métodos" de Configuración, no en su
+ * propia página (/catalogo/tipos-y-metodos ahora sólo redirige acá).
+ */
+const CATALOGO_TIPOS_Y_METODOS: NavItem = {
+  label: "Tipos y métodos",
+  href: "/config?tab=catalogo",
+  icon: <ListChecks className="h-4 w-4" />,
+};
+
 const CATALOGO: NavItem[] = [
   { label: "Exámenes", href: "/examenes", icon: <FlaskConical className="h-4 w-4" /> },
   { label: "Paquetes", href: "/paquetes", icon: <Package className="h-4 w-4" /> },
@@ -65,10 +79,38 @@ const ACTIONS: CommandAction[] = [
   { label: "Nuevo paciente", href: "/pacientes?nuevo=1", icon: <UserPlus className="h-4 w-4" />, hotkey: "p" },
 ];
 
-function resolveActiveHref(pathname: string, items: NavItem[]): string | undefined {
+/**
+ * F7.6.T1 — "Tipos y métodos" apunta a `/config?tab=catalogo`: mismo
+ * pathname que "Configuración" (`/config`), sólo se distinguen por el
+ * query string. `pathname` (de `usePathname()`) nunca trae el query, así
+ * que hay que comparar contra `search` aparte para los items cuyo href
+ * incluye uno. El item con el href más largo que matchea gana (mismo
+ * criterio de siempre), así que "Tipos y métodos" le gana a "Configuración"
+ * cuando el tab es exactamente "catalogo".
+ */
+function hrefMatchesLocation(
+  href: string,
+  pathname: string,
+  searchParams: URLSearchParams,
+): boolean {
+  const [hrefPath, hrefQuery] = href.split("?");
+  if (pathname !== hrefPath && !pathname.startsWith(`${hrefPath}/`)) return false;
+  if (!hrefQuery) return true;
+  const hrefParams = new URLSearchParams(hrefQuery);
+  for (const [key, value] of hrefParams) {
+    if (searchParams.get(key) !== value) return false;
+  }
+  return true;
+}
+
+function resolveActiveHref(
+  pathname: string,
+  searchParams: URLSearchParams,
+  items: NavItem[],
+): string | undefined {
   let best: string | undefined;
   for (const item of items) {
-    if (pathname === item.href || pathname.startsWith(`${item.href}/`)) {
+    if (hrefMatchesLocation(item.href, pathname, searchParams)) {
       if (!best || item.href.length > best.length) {
         best = item.href;
       }
@@ -102,6 +144,7 @@ function SidebarFooter({
 
 export default function AppLayout({ children }: { children: ReactNode }) {
   const pathname = usePathname();
+  const searchParams = useSearchParams();
   const router = useRouter();
 
   const [user, setUser] = useState<UserMenuUser | null>(null);
@@ -113,13 +156,22 @@ export default function AppLayout({ children }: { children: ReactNode }) {
   useGlobalShortcuts(ACTIONS, setPaletteOpen);
 
   const groups = useMemo<NavGroup[]>(() => {
-    const base: NavGroup[] = [{ items: OPERACION }, { label: "Catálogo", items: CATALOGO }];
-    if (user?.role === "admin") base.push({ label: "Administración", items: ADMIN });
+    const esAdmin = user?.role === "admin";
+    const catalogo = esAdmin
+      ? [CATALOGO[0]!, CATALOGO_TIPOS_Y_METODOS, ...CATALOGO.slice(1)]
+      : CATALOGO;
+    const base: NavGroup[] = [{ items: OPERACION }, { label: "Catálogo", items: catalogo }];
+    if (esAdmin) base.push({ label: "Administración", items: ADMIN });
     return base;
   }, [user?.role]);
 
   const allItems = useMemo(() => groups.flatMap((g) => g.items), [groups]);
-  const activeHref = resolveActiveHref(pathname, [...OPERACION, ...CATALOGO, ...ADMIN]);
+  const activeHref = resolveActiveHref(pathname, searchParams, [
+    ...OPERACION,
+    ...CATALOGO,
+    CATALOGO_TIPOS_Y_METODOS,
+    ...ADMIN,
+  ]);
 
   useEffect(() => {
     let cancelled = false;
