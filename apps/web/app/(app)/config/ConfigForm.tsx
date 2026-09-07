@@ -33,6 +33,7 @@ export interface ConfigPreloaded {
   mpps: string | null;
   pdf_pie_pagina: string | null;
   toma_muestra_default_usd: number;
+  ganancia_default_pct: number;
 }
 
 export interface TasaPreloaded {
@@ -164,6 +165,7 @@ export function ConfigForm({ preloadedConfig, preloadedTasa }: ConfigFormProps) 
       mpps: config?.mpps || "",
       pdf_pie_pagina: config?.pdf_pie_pagina || "",
       toma_muestra_default_usd: config?.toma_muestra_default_usd ?? 0,
+      ganancia_default_pct: config?.ganancia_default_pct ?? 0,
     },
   });
 
@@ -179,6 +181,7 @@ export function ConfigForm({ preloadedConfig, preloadedTasa }: ConfigFormProps) 
         mpps: config.mpps || "",
         pdf_pie_pagina: config.pdf_pie_pagina || "",
         toma_muestra_default_usd: config.toma_muestra_default_usd,
+        ganancia_default_pct: config.ganancia_default_pct,
       });
     }
   }, [config, reset]);
@@ -485,11 +488,10 @@ export function ConfigForm({ preloadedConfig, preloadedTasa }: ConfigFormProps) 
             <CardHeader className="border-b border-border py-3">
               <CardTitle className="text-sm font-semibold">Presupuestos</CardTitle>
               <CardDescription className="text-xs">
-                Valor con el que se precarga la toma de muestra en un presupuesto nuevo. Se
-                puede cambiar en cada presupuesto.
+                Valores con los que arranca un presupuesto nuevo. Se pueden cambiar en cada uno.
               </CardDescription>
             </CardHeader>
-            <CardContent className="p-4">
+            <CardContent className="grid grid-cols-1 gap-3 p-4 sm:grid-cols-2">
               <FieldText
                 id="toma_muestra_default_usd"
                 label="Toma de muestra por defecto (USD)"
@@ -506,6 +508,23 @@ export function ConfigForm({ preloadedConfig, preloadedTasa }: ConfigFormProps) 
                 })}
                 disabled={savingConfig}
                 error={errors.toma_muestra_default_usd?.message}
+              />
+              <FieldText
+                id="ganancia_default_pct"
+                label="Ganancia por defecto (%)"
+                type="number"
+                placeholder="0"
+                register={register("ganancia_default_pct", {
+                  // F7.2.T6 — con qué arranca cada línea nueva en modo
+                  // abierto (sueltos o paquete desglosado); en paquete
+                  // cerrado no aplica, ahí manda el % global del presupuesto.
+                  setValueAs: (value) =>
+                    value === "" || value === null || value === undefined
+                      ? undefined
+                      : Number(value),
+                })}
+                disabled={savingConfig}
+                error={errors.ganancia_default_pct?.message}
               />
             </CardContent>
           </Card>

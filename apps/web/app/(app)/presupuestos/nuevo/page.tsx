@@ -38,8 +38,18 @@ export default async function NuevoPresupuestoPage() {
 
       <PresupuestoForm
         mode="create"
-        initialTasa={latest ? { tasa: latest.tasa, stale: latest.stale } : null}
+        initialTasa={
+          latest
+            ? {
+                tasa: latest.tasa,
+                fuente: latest.fuente,
+                scraped_at: latest.scraped_at,
+                stale: latest.stale,
+              }
+            : null
+        }
         tomaMuestraDefault={config?.toma_muestra_default_usd ?? 0}
+        gananciaDefault={config?.ganancia_default_pct ?? 0}
       />
     </div>
   );

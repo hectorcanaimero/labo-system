@@ -121,6 +121,31 @@ describe('calcularTotales', () => {
     expect(result.totalUsd).toBe(170);
   });
 
+  it('modo mixto (F7.2.T6): el global sólo gobierna las líneas del paquete cerrado, el suelto usa la suya', () => {
+    // Paquete cerrado repartido en 9 + 6 (=15 base), ganancia global 10% →
+    // 16,50. Un suelto de 20 con su propia ganancia de 5% → 21,00. Cambiar
+    // la ganancia del suelto (segundo cálculo) no debe mover el total del
+    // paquete cerrado, sólo su propia línea.
+    const primero = calcularTotales({
+      lineas: [{ precioBase: 9 }, { precioBase: 6 }, { precioBase: 20, gananciaPct: 5 }],
+      descuentoPct: 0,
+      gananciaPct: 10,
+      tasa: 1,
+    });
+    expect(primero.lineas?.map((l) => l.precioFinal)).toEqual([9.9, 6.6, 21]);
+    expect(primero.totalUsd).toBe(37.5);
+
+    const sueltoConOtraGanancia = calcularTotales({
+      lineas: [{ precioBase: 9 }, { precioBase: 6 }, { precioBase: 20, gananciaPct: 50 }],
+      descuentoPct: 0,
+      gananciaPct: 10,
+      tasa: 1,
+    });
+    // El paquete (9+6 → 9.9+6.6=16.5) no cambió; sólo el suelto (20 → 30).
+    expect(sueltoConOtraGanancia.lineas?.slice(0, 2).map((l) => l.precioFinal)).toEqual([9.9, 6.6]);
+    expect(sueltoConOtraGanancia.lineas?.[2]?.precioFinal).toBe(30);
+  });
+
   it('reconcilia al centavo la suma de líneas con el total general', () => {
     const result = calcularTotales({
       lineas: [
@@ -151,22 +176,21 @@ describe('calcularTotales', () => {
     expect(result.lineas!.reduce((sum, linea) => sum + linea.precioFinal, 0)).toBe(result.totalUsd);
   });
 
-  it('paquete cerrado con ganancia 0 explícita por línea ignora la ganancia global', () => {
-    // F7.2.T4: antes, la ganancia global se aplicaba de nuevo sobre el
-    // reparto del precio base del paquete, así que el total del paquete
-    // cerrado ya no era el precio pactado. Con ganancia_pct: 0 explícito
-    // en cada línea, el total se mantiene igual al precio base del paquete.
+  it('paquete cerrado: la ganancia global se aplica sobre el precio ya repartido (F7.2.T6)', () => {
+    // F7.2.T4 forzaba ganancia_pct: 0 por línea para que el paquete cerrado
+    // no se recobrara con la ganancia global. F7.2.T6 revierte esa decisión
+    // por pedido del usuario: el paquete cerrado SÍ lleva la ganancia
+    // global, aplicada sobre el precio base ya repartido (9 + 6 = 15), no
+    // sobre el precio de catálogo de cada examen. Las líneas no mandan
+    // ganancia propia (undefined), así que caen a la global.
     const result = calcularTotales({
-      lineas: [
-        { precioBase: 9, gananciaPct: 0 },
-        { precioBase: 6, gananciaPct: 0 },
-      ],
+      lineas: [{ precioBase: 9 }, { precioBase: 6 }],
       descuentoPct: 0,
       gananciaPct: 10,
       tasa: 1,
     });
 
-    expect(result.totalUsd).toBe(15);
+    expect(result.totalUsd).toBe(16.5);
   });
 
   it('acepta los nombres snake_case de los snapshots SQL', () => {

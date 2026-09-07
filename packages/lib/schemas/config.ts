@@ -7,6 +7,7 @@ export const NOMBRE_REQUERIDO = "NOMBRE_REQUERIDO";
 export const RIF_INVALIDO = "RIF_INVALIDO";
 export const DIRECCION_REQUERIDA = "DIRECCION_REQUERIDA";
 export const TOMA_MUESTRA_DEFAULT_INVALIDA = "TOMA_MUESTRA_DEFAULT_INVALIDA";
+export const GANANCIA_DEFAULT_INVALIDA = "GANANCIA_DEFAULT_INVALIDA";
 
 /**
  * Errores de validación de assets (logo/firma/sello).
@@ -105,6 +106,17 @@ export const configUpdateSchema = z.object({
     .finite()
     .refine((v) => v >= 0, { message: TOMA_MUESTRA_DEFAULT_INVALIDA })
     .optional(),
+
+  /**
+   * Ganancia con la que arranca cada línea nueva en modo abierto (sueltos o
+   * paquete desglosado) del formulario de presupuesto (F7.2.T6). Refleja el
+   * CHECK `ganancia_default_pct >= 0` de la 0020.
+   */
+  ganancia_default_pct: z
+    .number()
+    .finite()
+    .refine((v) => v >= 0, { message: GANANCIA_DEFAULT_INVALIDA })
+    .optional(),
 });
 
 export type ConfigUpdateInput = z.infer<typeof configUpdateSchema>;
@@ -155,6 +167,17 @@ export const configUpdatePartialSchema = z.object({
     .number()
     .finite()
     .refine((v) => v >= 0, { message: TOMA_MUESTRA_DEFAULT_INVALIDA })
+    .optional(),
+
+  /**
+   * Ganancia con la que arranca cada línea nueva en modo abierto (sueltos o
+   * paquete desglosado) del formulario de presupuesto (F7.2.T6). Refleja el
+   * CHECK `ganancia_default_pct >= 0` de la 0020.
+   */
+  ganancia_default_pct: z
+    .number()
+    .finite()
+    .refine((v) => v >= 0, { message: GANANCIA_DEFAULT_INVALIDA })
     .optional(),
 });
 

@@ -64,6 +64,7 @@ const CONFIG_ACTUAL: LaboratorioConfig = {
   sello_object_key: null,
   pdf_pie_pagina: "Pie de página",
   toma_muestra_default_usd: 5,
+  ganancia_default_pct: 15,
   updated_at: "2026-09-01T00:00:00.000Z",
   updated_by: "user-1",
 };
