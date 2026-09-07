@@ -3202,6 +3202,42 @@
           "text": "PR #23. Migración 0021 aplicada en hosted. Bloqueado en estados distintos de Borrador y Enviado."
         }
       ]
+    },
+    {
+      "id": "F7.8.T1",
+      "phase": 7,
+      "title": "La sesión expira antes de tiempo",
+      "description": "Renovar el access token de InsForge con el refresh token en middleware y en getCurrentUser; login con aviso cuando venció de verdad.",
+      "model": "opencode/gemini-3.1-pro",
+      "reason": "Auth y middleware, con medición previa.",
+      "status": "in_progress",
+      "dependencies": [],
+      "estimateHours": 4,
+      "files": [
+        "apps/web/middleware.ts",
+        "apps/web/lib/server/auth.ts",
+        "apps/web/app/api/me/route.ts"
+      ],
+      "specRef": "F7/sprint-feedback-cliente.md#F7.8.T1",
+      "comments": []
+    },
+    {
+      "id": "F7.8.T2",
+      "phase": 7,
+      "title": "Toast de aviso en todas las acciones",
+      "description": "notifySuccess y notifyError en toda acción de escritura, inventario en el commit, Toaster único.",
+      "model": "opencode-go/kimi-k2.6",
+      "reason": "Cambio transversal de UI sin lógica nueva.",
+      "status": "in_progress",
+      "dependencies": [],
+      "estimateHours": 4,
+      "files": [
+        "apps/web/app/(app)",
+        "packages/ui",
+        "packages/ui/feedback/toast.ts"
+      ],
+      "specRef": "F7/sprint-feedback-cliente.md#F7.8.T2",
+      "comments": []
     }
   ],
   "phases": []

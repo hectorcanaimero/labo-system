@@ -838,6 +838,8 @@ Rama `sprint/f7-3`, base `staged` post PR #13. PR #14 abierto. Revisión de sonn
 | F7.2.T6 | sonnet | hecha | `04ef7a5` | Ganancia global solo al paquete cerrado y visible como monto en el resumen; por línea con default de Config en modo abierto; mixto: global solo al paquete. Flag cerrado persistido (0020, aplicada en hosted); el backend fuerza la global en cerradas. Tasa de solo lectura. Sin toggle. PR #22. Pendiente opcional: el detalle de solo lectura sigue mostrando el % del header. |
 | F7.4.T4 | sonnet | hecha | `1f68b21` | Tipos y Métodos en pestañas separadas con búsqueda y paginación. PR #19 mergeado. |
 | F7.2.T7 | sonnet | hecha | `89e34fb` | Enviar por WhatsApp o email desde Borrador o Enviado, enlace público /p/[slug] de 7 días, paso a Enviado con auditoría, bloqueado en otros estados. Botones compartidos en packages/ui/envio. Migración 0021 aplicada en hosted. PR #23. |
+| F7.8.T1 | opus | en curso | — | De la lista manuscrita: la sesión expira. Nada renueva el access token de InsForge con el refresh token guardado. |
+| F7.8.T2 | sonnet | en curso | — | De la lista manuscrita: toast de aviso en todas las acciones; hoy solo seis pantallas lo usan. |
 
 ## F7.4.T3 — Tipos de análisis como tabla administrable
 
@@ -1128,3 +1130,90 @@ No hace:
 ### Estimación
 
 5h
+
+## F7.8.T1 — La sesión expira antes de tiempo
+
+### Diagnóstico
+
+El login guarda dos cookies por 8 horas (`apps/web/app/api/me/route.ts:19`, `SESSION_MAX_AGE_S`): el access token de InsForge y el refresh token. Pero el access token es un JWT con vencimiento propio del proveedor, normalmente una hora, y nada lo renueva: `getCurrentUser` lo valida contra `/api/auth/sessions/current` de InsForge y, cuando InsForge lo rechaza, lanza `UNAUTHENTICATED`; `apiFetch` traduce ese 401 en “Tu sesión expiró” y redirige al login. El refresh token se guarda y nunca se usa. Resultado: la sesión “de 8 horas” dura lo que dure el JWT.
+
+### Objetivo
+
+Renovar el access token de forma transparente mientras el refresh token sea válido, y cerrar sesión limpio cuando ya no lo sea.
+
+### Alcance
+
+Sí hace:
+- Medir primero: decodificar el `exp` del access token en un login real contra la instancia hosted y anotar cuánto dura, para confirmar el diagnóstico.
+- Renovación en el servidor: función `refreshSession` en `apps/web/lib/server/auth.ts` que llama al endpoint de refresh de InsForge con el refresh token (ver el SDK en `node_modules/@insforge/sdk` para el nombre exacto del endpoint y el payload) y devuelve los tokens nuevos.
+- `apps/web/middleware.ts`: si hay access token y su `exp` está a menos de 5 minutos o ya venció, y hay refresh token, renovar y reescribir ambas cookies en la respuesta antes de seguir. Decodificar el JWT sin verificar firma, solo para leer `exp`. Si el refresh falla, borrar cookies y redirigir al login con `?motivo=expiro`.
+- Rutas API: `getCurrentUser` intenta una renovación única cuando InsForge responde 401 y hay refresh token, reescribiendo cookies con `cookies()`; si tampoco, `UNAUTHENTICATED` como hoy.
+- Login: mostrar “Tu sesión venció, ingresá de nuevo” solo cuando llega con `?motivo=expiro`; sin motivo, el login normal.
+- Tests unitarios de la decisión de renovar (exp cercano, vencido, sin refresh) con fetch falso.
+
+No hace:
+- Cambiar la duración de 8 horas ni el rate limit del login.
+
+### Criterios de aceptación
+
+- [ ] Con un access token vencido y un refresh token válido, navegar a cualquier página protegida sigue funcionando y las cookies quedan renovadas.
+- [ ] Con ambos vencidos, redirige al login con el aviso, sin errores en consola.
+- [ ] Una llamada a `/api/*` con access token vencido y refresh válido responde 200, no 401.
+- [ ] `pnpm turbo run lint typecheck test build` en verde.
+
+### Archivos afectados
+
+- `apps/web/middleware.ts`
+- `apps/web/lib/server/auth.ts` y test
+- `apps/web/app/api/me/route.ts`
+- `apps/web/app/(auth)/login/LoginForm.tsx`
+
+### Dependencias
+
+- Ninguna
+
+### Estimación
+
+4h
+
+## F7.8.T2 — Toast de aviso en todas las acciones
+
+### Diagnóstico
+
+Existe un sistema de toasts propio (`packages/ui/feedback/toast.ts`, `notifySuccess` y `notifyError`) pero solo seis pantallas lo usan. En el resto, guardar no confirma nada y los errores aparecen en un texto dentro del formulario o no aparecen.
+
+### Objetivo
+
+Que toda acción de escritura confirme con un toast al terminar y muestre el error con un toast al fallar, con el mismo tono en toda la app.
+
+### Alcance
+
+Sí hace:
+- Inventariar todas las llamadas de escritura desde componentes cliente (`apiFetch`, `requestJson`, `fetch` con POST, PATCH, PUT o DELETE) y listar en el commit cuáles ya tenían toast y cuáles no.
+- Agregar `notifySuccess` al completar y `notifyError(toHumanError(error))` al fallar en: crear y editar examen, grupo, tipo, método, paciente, paquete, presupuesto y orden; guardar Config y tasa; subir assets; invitar usuario y cambiar rol; enviar por WhatsApp o email; cambiar estado desde el tablero y desde el detalle; convertir presupuesto; eliminar.
+- Mensajes en la voz de la app, en español de Venezuela, cortos: “Examen guardado”, “No se pudo guardar el examen”. Los errores conservan el detalle del código de dominio traducido.
+- Mantener el mensaje en línea donde ya existe para errores de validación de campo; el toast es para el resultado de la acción.
+- Confirmar que el `Toaster` esté montado una sola vez en el layout de la app y que respete `prefers-reduced-motion`.
+
+No hace:
+- Cambiar textos de validación de campos.
+
+### Criterios de aceptación
+
+- [ ] Cada acción de la lista muestra un toast de éxito o de error; ninguna queda muda.
+- [ ] No hay toasts duplicados por una misma acción.
+- [ ] `pnpm turbo run lint typecheck test build` en verde.
+
+### Archivos afectados
+
+- Componentes cliente bajo `apps/web/app/(app)/**` y `packages/ui/**` que escriben
+- `packages/ui/feedback/toast.ts`
+- `apps/web/app/(app)/layout.tsx`
+
+### Dependencias
+
+- Ninguna
+
+### Estimación
+
+4h
