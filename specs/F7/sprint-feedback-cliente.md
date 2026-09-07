@@ -837,7 +837,7 @@ Rama `sprint/f7-3`, base `staged` post PR #13. PR #14 abierto. Revisión de sonn
 | F7.7.T1 | opus | hecha | `a25aaed` | PipelineBoard genérico con MoveMenu y 12 tests; ambos pipelines reescritos; diálogo solo para Rechazado y Cerrado. Globs de Tailwind completados: destapó que el badge Borrador se purgaba. PR #21. Sin prueba en navegador. |
 | F7.2.T6 | sonnet | hecha | `04ef7a5` | Ganancia global solo al paquete cerrado y visible como monto en el resumen; por línea con default de Config en modo abierto; mixto: global solo al paquete. Flag cerrado persistido (0020, aplicada en hosted); el backend fuerza la global en cerradas. Tasa de solo lectura. Sin toggle. PR #22. Pendiente opcional: el detalle de solo lectura sigue mostrando el % del header. |
 | F7.4.T4 | sonnet | hecha | `1f68b21` | Tipos y Métodos en pestañas separadas con búsqueda y paginación. PR #19 mergeado. |
-| F7.2.T7 | sonnet | en curso | — | Pedido del usuario: enviar el presupuesto por WhatsApp o email, con enlace público /p/[slug] y paso automático a Enviado. |
+| F7.2.T7 | sonnet | hecha | `89e34fb` | Enviar por WhatsApp o email desde Borrador o Enviado, enlace público /p/[slug] de 7 días, paso a Enviado con auditoría, bloqueado en otros estados. Botones compartidos en packages/ui/envio. Migración 0021 aplicada en hosted. PR #23. |
 
 ## F7.4.T3 — Tipos de análisis como tabla administrable
 

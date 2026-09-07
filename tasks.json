@@ -3177,7 +3177,7 @@
       "description": "Enlace público /p/[slug] (0021), POST /api/presupuestos/[id]/enviar espejo de resultados, paso Borrador→Enviado al enviar, botones compartidos en el detalle.",
       "model": "opencode/deepseek-v4-pro",
       "reason": "Réplica de un flujo existente con migración y ruta pública.",
-      "status": "in_progress",
+      "status": "done",
       "dependencies": [
         "F7.2.T6"
       ],
@@ -3193,7 +3193,15 @@
         "apps/web/app/(app)/presupuestos/[id]/PresupuestoDetalle.tsx"
       ],
       "specRef": "F7/sprint-feedback-cliente.md#F7.2.T7",
-      "comments": []
+      "comments": [
+        {
+          "date": "2026-09-07",
+          "author": "planner",
+          "session": "sonnet",
+          "commit": "89e34fb",
+          "text": "PR #23. Migración 0021 aplicada en hosted. Bloqueado en estados distintos de Borrador y Enviado."
+        }
+      ]
     }
   ],
   "phases": []
