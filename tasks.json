@@ -3076,6 +3076,25 @@
       ],
       "specRef": "F7/sprint-feedback-cliente.md#F7.6.T1",
       "comments": []
+    },
+    {
+      "id": "F7.6.T2",
+      "phase": 7,
+      "title": "Las imágenes subidas en Configuración se pierden",
+      "description": "Diagnosticar y corregir la pérdida de logo, firma y sello subidos en Config: STORAGE_ROOT, firma, persistencia del object_key, volumen en producción.",
+      "model": "opencode-go/kimi-k2.6",
+      "reason": "Bug con diagnóstico acotado.",
+      "status": "in_progress",
+      "dependencies": [],
+      "estimateHours": 3,
+      "files": [
+        "apps/web/app/api/config/assets",
+        "apps/web/app/api/storage/[bucket]/[...path]/route.ts",
+        "apps/web/app/(app)/config/AssetUploader.tsx",
+        "docs/deploy/coolify-staged.md"
+      ],
+      "specRef": "F7/sprint-feedback-cliente.md#F7.6.T2",
+      "comments": []
     }
   ],
   "phases": []

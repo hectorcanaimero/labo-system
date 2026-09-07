@@ -34,7 +34,7 @@ ul{margin:.2rem 0 0;padding-left:1.1rem}li{margin:.2rem 0}
 <span class="eyebrow">RV Laboratorio · F7</span>
 <h1>Sprint de feedback del cliente</h1>
 <p class="lede">Dos semanas para cerrar lo que reportó Miguel Franchi y lo que se acordó en la reunión del 6 de septiembre. Sale del análisis técnico; cada tarea tiene alcance, criterios de aceptación y archivos.</p>
-<div class="meta"><span>Del <b>8 al 19 sep 2026</b></span><span>Tareas <b>21</b></span><span>Estimado <b>57h</b></span><span>Spec <b>specs/F7/sprint-feedback-cliente.md</b></span><span>Backlog <b>tasks.json</b></span></div>
+<div class="meta"><span>Del <b>8 al 19 sep 2026</b></span><span>Tareas <b>22</b></span><span>Estimado <b>60h</b></span><span>Spec <b>specs/F7/sprint-feedback-cliente.md</b></span><span>Backlog <b>tasks.json</b></span></div>
 </header>
 <div class="wrap"><table><thead><tr><th>Cuándo</th><th>ID</th><th>Tarea</th><th>Depende de</th><th>Horas</th></tr></thead><tbody>
 <tr><td><span class="wk s1">S1 · d5</span></td><td class="id">F7.0.T1</td><td>Dejar verde el CI de la raíz (bloquea staged → main)</td><td>—</td><td class="h">3</td></tr>
@@ -57,7 +57,8 @@ ul{margin:.2rem 0 0;padding-left:1.1rem}li{margin:.2rem 0}
 <tr><td><span class="wk s2">S2 · d5</span></td><td class="id">F7.3.T4</td><td>Correcciones de la revisión cruzada sobre observaciones y tasa</td><td>F7.3.T3, F7.5.T1</td><td class="h">3</td></tr>
 <tr><td><span class="wk s2">S2 · d5</span></td><td class="id">F7.3.T5</td><td>Correcciones de la revisión cruzada sobre QR y verificación</td><td>F7.3.T2</td><td class="h">2</td></tr>
 <tr><td><span class="wk s2">S3</span></td><td class="id">F7.4.T3</td><td>Tipos de análisis como tabla administrable (pedido del usuario)</td><td>F7.4.T1</td><td class="h">4</td></tr>
-<tr><td><span class="wk s2">S3</span></td><td class="id">F7.6.T1</td><td>Configuración en pestañas (pedido del usuario)</td><td>F7.3.T4</td><td class="h">3</td></tr>
+<tr><td><span class="wk s2">S3</span></td><td class="id">F7.6.T1</td><td>Configuración en pestañas, con Tipos y métodos (pedido del usuario)</td><td>F7.4.T3</td><td class="h">3</td></tr>
+<tr><td><span class="wk s2">S3</span></td><td class="id">F7.6.T2</td><td>Las imágenes subidas en Configuración se pierden (pedido del usuario)</td><td>—</td><td class="h">3</td></tr>
 </tbody></table></div>
 <div class="two">
 <div><span class="eyebrow">Fuera del sprint</span><ul>
@@ -221,5 +222,6 @@ ul{margin:.2rem 0 0;padding-left:1.1rem}li{margin:.2rem 0}
 <div class="wrap" style="margin-top:0"><table><thead><tr><th>Tarea</th><th>Sesión</th><th>Estado</th><th>Commit</th><th>Comentario</th></tr></thead><tbody id="registro3-body">
 <tr data-task="F7.4.T3"><td class="id">F7.4.T3</td><td>opus</td><td>hecha</td><td class="id">459f844</td><td>Tabla tipos_analisis (0019) sembrada con los ocho tipos más los existentes; repo compartido de catálogo para tipos y métodos con 23 tests; tipo y método como selectores con alta inline en el examen; página /catalogo/tipos-y-metodos en el sidebar, solo admin; MetodosPanel fuera de Config. La importación no valida tipos: quedan como fuera de la lista. Sin la 0019 no se pueden crear exámenes nuevos. Sin prueba en navegador.</td></tr>
 <tr data-task="F7.6.T1"><td class="id">F7.6.T1</td><td>sonnet</td><td>en curso</td><td class="id">—</td><td>Configuración en pestañas: Laboratorio, Presupuestos, Imagen, Tasa de cambio. Un solo formulario, Guardar fijo, pestaña en la URL.</td></tr>
+<tr data-task="F7.6.T2"><td class="id">F7.6.T2</td><td>sonnet</td><td>en curso</td><td class="id">—</td><td>Logo, firma y sello subidos en Config se pierden. Diagnóstico y corrección.</td></tr>
 </tbody></table></div></section>
 </main>

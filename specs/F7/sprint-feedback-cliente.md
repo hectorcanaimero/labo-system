@@ -832,7 +832,8 @@ Rama `sprint/f7-3`, base `staged` post PR #13.
 | Tarea | Sesión | Estado | Commit | Comentario |
 |---|---|---|---|---|
 | F7.4.T3 | opus | hecha | `459f844` | Tabla tipos_analisis (0019) sembrada con los ocho tipos más los existentes; repo compartido de catálogo para tipos y métodos con 23 tests; tipo y método como selectores con alta inline en el examen; página /catalogo/tipos-y-metodos en el sidebar, solo admin; MetodosPanel fuera de Config. La importación no valida tipos: quedan como fuera de la lista. Sin la 0019 no se pueden crear exámenes nuevos. Sin prueba en navegador. |
-| F7.6.T1 | sonnet | en curso | — | Pedido del usuario: Configuración en pestañas. Toca ConfigForm junto con F7.4.T3; quien integre segundo rebasea. |
+| F7.6.T1 | sonnet | en curso | — | Pedido del usuario: Configuración en pestañas, con quinta pestaña Tipos y métodos que embebe el CatalogoPanel; el sidebar apunta a /config?tab=catalogo. Rebase sobre F7.4.T3. |
+| F7.6.T2 | sonnet | en curso | — | Pedido del usuario: las imágenes subidas en Config se pierden. Diagnóstico y corrección. |
 
 ## F7.4.T3 — Tipos de análisis como tabla administrable
 
@@ -894,7 +895,7 @@ Sí hace:
 - Un solo `<form>` de configuración que abarque las tres primeras pestañas: cambiar de pestaña no pierde lo escrito, y el botón Guardar queda fijo abajo con indicador de cambios sin guardar.
 - Errores de validación: si hay un campo inválido en otra pestaña, marcar la pestaña con un punto y saltar a ella al intentar guardar.
 - La pestaña activa en la URL (`?tab=tasa`) para poder enlazarla.
-- `MetodosPanel` no entra: F7.4.T3 lo mueve a su página propia. Mientras ambas tareas convivan, dejarlo en una quinta pestaña **Métodos** que opus elimina al rebasear.
+- Quinta pestaña **Tipos y métodos** (pedido del usuario): renderiza el `CatalogoPanel` parametrizado que F7.4.T3 dejó en `catalogo/tipos-y-metodos/CatalogoPanel.tsx`, con los dos bloques. La entrada del sidebar “Tipos y métodos” pasa a apuntar a `/config?tab=catalogo` y la página `/catalogo/tipos-y-metodos` redirige ahí. Un solo lugar, dos accesos.
 - Encabezado con `PageHeader` del design system, como el resto de las páginas.
 
 No hace:
@@ -906,6 +907,7 @@ No hace:
 - [ ] Escribir en Laboratorio, pasar a Presupuestos y guardar persiste ambos cambios.
 - [ ] Un error en un campo de otra pestaña lleva a esa pestaña al guardar.
 - [ ] `/config?tab=tasa` abre directamente la pestaña de tasa.
+- [ ] La pestaña Tipos y métodos administra ambos catálogos y el sidebar lleva a ella.
 
 ### Archivos afectados
 
@@ -915,6 +917,45 @@ No hace:
 ### Dependencias
 
 - F7.3.T4
+
+### Estimación
+
+3h
+
+## F7.6.T2 — Las imágenes subidas en Configuración se pierden
+
+### Objetivo
+
+El usuario reporta que el logo, la firma y el sello que sube en Configuración se pierden. Diagnosticar la causa real y corregirla.
+
+### Alcance
+
+Sí hace:
+- Reproducir con el flujo real: `GET /api/config/assets/url`, `POST /api/config/assets/upload`, `POST /api/config/assets/set`, y la lectura posterior por `/api/storage/[bucket]/[...path]`.
+- Revisar candidatos: `STORAGE_ROOT` sin default o apuntando a un directorio que Next limpia; `STORAGE_SIGNING_SECRET` ausente en dev; `set` no persistiendo el `object_key` en `laboratorio_config`; el formulario de Config pisando las claves de assets al guardar; el compose de producción sin volumen para `/app/.storage` (el de staging sí lo tiene).
+- Corregir la causa encontrada y dejar un test o una verificación reproducible.
+- Documentar en `docs/deploy/coolify-staged.md` qué necesita cada entorno para que los assets persistan.
+
+No hace:
+- Migrar el almacenamiento a InsForge Storage, salvo que sea la única salida; en ese caso, reportar antes de hacerlo.
+
+### Criterios de aceptación
+
+- [ ] Subir un logo en Config, guardar el formulario, recargar y reiniciar el servidor: el logo sigue.
+- [ ] El PDF de presupuesto y de resultado muestran el logo subido.
+- [ ] Causa raíz documentada en el commit.
+
+### Archivos afectados
+
+- `apps/web/app/api/config/assets/*`
+- `apps/web/app/api/storage/[bucket]/[...path]/route.ts`
+- `apps/web/lib/server/*storage*`
+- `apps/web/app/(app)/config/AssetUploader.tsx`, `ConfigForm.tsx`
+- `docs/deploy/coolify-staged.md`
+
+### Dependencias
+
+- Ninguna
 
 ### Estimación
 
