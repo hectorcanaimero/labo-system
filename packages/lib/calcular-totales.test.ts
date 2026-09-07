@@ -179,4 +179,79 @@ describe('calcularTotales', () => {
 
     expect(result.lineas?.[0]).toEqual({ precioBase: 10, gananciaPct: 25, precioFinal: 12.5 });
   });
+
+  // ───────────────────────────────────────────────────────────────────────────
+  // F7.2.T2 — cargos por servicio (toma de muestra + domicilio)
+  // ───────────────────────────────────────────────────────────────────────────
+
+  it('suma los servicios al total: subtotal 13, ganancia 0, toma 4 + domicilio 6 → 23 USD', () => {
+    const result = calcularTotales({
+      lineas: [{ precioBase: 8 }, { precioBase: 5 }],
+      descuentoPct: 0,
+      gananciaPct: 0,
+      tasa: 40,
+      serviciosUsd: 4 + 6,
+    });
+
+    expect(result.totalUsd).toBe(23);
+    expect(result.totalBs).toBe(920);
+    // Las líneas siguen sumando sólo los exámenes: 13, no 23.
+    expect(result.lineas!.reduce((sum, linea) => sum + linea.precioFinal, 0)).toBe(13);
+  });
+
+  it('los servicios quedan fuera del descuento y de la ganancia', () => {
+    const result = calcularTotales({
+      lineas: [{ precioBase: 100 }],
+      descuentoPct: 50,
+      gananciaPct: 100,
+      tasa: 1,
+      serviciosUsd: 10,
+    });
+
+    // 100 → +100% ganancia = 200 → -50% descuento = 100. Los 10 de servicio
+    // se suman enteros: 110, no 100 * 2 * 0.5 + 10 * 2 * 0.5.
+    expect(result.totalUsd).toBe(110);
+  });
+
+  it('acepta servicios en la API por subtotal', () => {
+    expect(
+      calcularTotales({ subtotal: 250, descuentoPct: 10, gananciaPct: 20, tasa: 60.5, serviciosUsd: 4 })
+    ).toEqual({
+      totalUsd: 274,
+      totalBs: 16577,
+    });
+  });
+
+  it('sin servicios el resultado es idéntico a omitir el campo', () => {
+    const base = { lineas: [{ precioBase: 10 }], descuentoPct: 0, gananciaPct: 0, tasa: 2 };
+
+    expect(calcularTotales({ ...base, serviciosUsd: 0 })).toEqual(calcularTotales(base));
+  });
+
+  it('redondea los servicios a dos decimales antes de sumarlos', () => {
+    const result = calcularTotales({
+      lineas: [{ precioBase: 10 }],
+      descuentoPct: 0,
+      gananciaPct: 0,
+      tasa: 1,
+      serviciosUsd: 4.005,
+    });
+
+    expect(result.totalUsd).toBe(14.01);
+  });
+
+  it.each([-0.01, Number.NaN, Number.POSITIVE_INFINITY])(
+    'rechaza servicios inválidos: %p',
+    (serviciosUsd) => {
+      expect(() =>
+        calcularTotales({
+          lineas: [{ precioBase: 10 }],
+          descuentoPct: 0,
+          gananciaPct: 0,
+          tasa: 1,
+          serviciosUsd,
+        })
+      ).toThrow('SERVICIO_INVALIDO');
+    }
+  );
 });
