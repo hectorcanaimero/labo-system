@@ -29,6 +29,8 @@ export const DOMAIN_ERROR_MESSAGES: Readonly<Record<string, string>> = {
   TITULO_NO_ENCONTRADO: "El grupo que buscás ya no existe.",
   TITULO_TIENE_EXAMENES:
     "No se puede eliminar el grupo porque tiene exámenes asociados.",
+  EXAMEN_DUPLICADO_EN_TITULO:
+    "Ya existe un examen con ese nombre en este grupo.",
 
   // ── Config (packages/convex/config.ts) ────────────────────────────────
   ASSET_NO_ENCONTRADO: "El recurso que intentás usar ya no existe.",
@@ -62,6 +64,10 @@ export const DOMAIN_ERROR_MESSAGES: Readonly<Record<string, string>> = {
   PAQUETE_EN_USO:
     "El paquete no se puede eliminar porque tiene presupuestos asociados.",
   EXAMEN_NO_ENCONTRADO: "El examen que buscás ya no existe.",
+  GANANCIA_NEGATIVA: "La ganancia no puede ser negativa.",
+  EXAMENES_REQUERIDOS: "Agregá al menos un examen.",
+  TASA_INVALIDA: "La tasa debe ser mayor a cero.",
+  PRECIO_INVALIDO: "El precio no puede ser negativo.",
 
   // ── General ───────────────────────────────────────────────────────────
   VALIDACION_FALLIDA: "Revisá los datos ingresados e intentá de nuevo.",

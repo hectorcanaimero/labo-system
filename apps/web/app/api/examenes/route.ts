@@ -40,6 +40,7 @@ function toStatus(error: unknown): { status: number; error: string } {
     case "VALIDACION_FALLIDA":
       return { status: 400, error: code };
     default:
+      console.error("examenes:", error);
       return { status: 500, error: "ERROR_GENERICO" };
   }
 }
