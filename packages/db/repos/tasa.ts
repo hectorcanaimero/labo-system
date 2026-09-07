@@ -90,7 +90,10 @@ export async function getLatest(db: Db): Promise<LatestTasa | null> {
   const { data, error } = await db
     .from("tasa_cambio_bcv")
     .select("tasa, fuente, scraped_at, motivo")
-    .order("fecha", { ascending: false })
+    // Sólo por `scraped_at`: `fecha` es la fecha de publicación del BCV
+    // (medianoche de Caracas) y una carga manual guarda `fecha = ahora`.
+    // Ordenar por `fecha` hacía que un registro del scraper con la fecha de
+    // mañana ganara para siempre a una tasa manual más nueva.
     .order("scraped_at", { ascending: false })
     .limit(1);
   if (error) throw new Error(`tasa.getLatest: ${error.message}`);
