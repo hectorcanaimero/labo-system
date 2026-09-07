@@ -209,8 +209,7 @@ export async function titulosUpdate(
     .from("examenes_titulos")
     .update(patch)
     .eq("id", input.id)
-    .select(TITULO_COLS)
-    .limit(1);
+    .select(TITULO_COLS);
   if (error) {
     if (isUniqueViolation(error, NOMBRE_UNIQUE_CONSTRAINT)) {
       throw new Error(TITULO_DUPLICADO);
@@ -293,8 +292,7 @@ export async function titulosReorder(
       .from("examenes_titulos")
       .update({ orden: i + 1 })
       .eq("id", ids[i])
-      .select("id")
-      .limit(1);
+      .select("id");
     if (error) throw new Error(`titulosReorder: ${error.message}`);
     if (!data?.[0]) throw new Error(TITULO_NO_ENCONTRADO);
   }
@@ -545,8 +543,7 @@ export async function examenesUpdate(
     .from("examenes")
     .update(patch)
     .eq("id", input.id)
-    .select(EXAMEN_COLS)
-    .limit(1);
+    .select(EXAMEN_COLS);
   if (error) {
     if (isUniqueViolation(error, EXAMEN_UNIQUE_CONSTRAINT)) {
       throw new Error(EXAMEN_DUPLICADO_EN_TITULO);
@@ -592,8 +589,7 @@ async function setExamenActivo(
     .from("examenes")
     .update({ activo, updated_at: new Date().toISOString() })
     .eq("id", input.id)
-    .select(EXAMEN_COLS)
-    .limit(1);
+    .select(EXAMEN_COLS);
   if (error) throw new Error(`${accion}: ${error.message}`);
   const row = data?.[0] as ExamenRow | undefined;
   if (!row) throw new Error(EXAMEN_NO_ENCONTRADO);

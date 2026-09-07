@@ -400,8 +400,7 @@ export async function update(
     .from("paquetes")
     .update(patch)
     .eq("id", id)
-    .select("id, nombre, descripcion, precio_base, created_at")
-    .limit(1);
+    .select("id, nombre, descripcion, precio_base, created_at");
   if (error) {
     if (isUniqueViolation(error, PAQUETE_UNIQUE_CONSTRAINT)) {
       throw new Error(PAQUETE_DUPLICADO);

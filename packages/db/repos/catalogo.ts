@@ -177,8 +177,7 @@ export function crearRepoCatalogo(
         .from(tabla)
         .update(patch)
         .eq("id", input.id)
-        .select(COLS)
-        .limit(1);
+        .select(COLS);
       if (error) {
         if (isUniqueViolation(error)) throw new Error(codigos.duplicado);
         fallar(`${tabla}.update`, error);
