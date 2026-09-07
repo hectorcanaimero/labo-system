@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   ArrowLeft,
@@ -206,6 +206,11 @@ export function PresupuestoForm({
 
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
+  const [intentoGuardar, setIntentoGuardar] = useState(false);
+
+  const pacienteSectionRef = useRef<HTMLElement>(null);
+  const examenesSectionRef = useRef<HTMLElement>(null);
+  const ajustesSectionRef = useRef<HTMLElement>(null);
 
   const selectedExamIds = useMemo(() => lineas.map((linea) => linea.examen_id), [lineas]);
 
@@ -250,6 +255,24 @@ export function PresupuestoForm({
     gananciaValida &&
     gananciaPorLineaValida &&
     tasaValida;
+
+  const faltantes = useMemo(() => {
+    const items: string[] = [];
+    if (!pacienteOk) items.push("Falta elegir paciente");
+    if (lineas.length === 0) items.push("Agregá al menos un examen");
+    if (!descuentoValido) items.push("El descuento debe estar entre 0 y 100");
+    if (!gananciaValida) items.push("La ganancia global no puede ser negativa");
+    if (!gananciaPorLineaValida) items.push("La ganancia por línea no puede ser negativa");
+    if (!tasaValida) items.push("Ingresá una tasa mayor a 0");
+    return items;
+  }, [
+    pacienteOk,
+    lineas.length,
+    descuentoValido,
+    gananciaValida,
+    gananciaPorLineaValida,
+    tasaValida,
+  ]);
 
   useEffect(() => {
     if (!paquetePanelOpen) {
@@ -390,8 +413,15 @@ export function PresupuestoForm({
   }
 
   async function submit(): Promise<void> {
+    setIntentoGuardar(true);
+
     if (!canSubmit) {
-      setMessage("Completá paciente, exámenes y una tasa válida antes de guardar.");
+      const target = !pacienteOk
+        ? pacienteSectionRef.current
+        : lineas.length === 0
+          ? examenesSectionRef.current
+          : ajustesSectionRef.current;
+      target?.scrollIntoView({ behavior: "smooth", block: "start" });
       return;
     }
 
@@ -461,7 +491,12 @@ export function PresupuestoForm({
         </p>
       ) : null}
 
-      <section className="grid gap-6 rounded-2xl border border-border bg-card p-6 shadow-sm">
+      <section
+        ref={pacienteSectionRef}
+        className={`grid gap-6 rounded-2xl border bg-card p-6 shadow-sm ${
+          intentoGuardar && !pacienteOk ? "border-destructive" : "border-border"
+        }`}
+      >
         <div>
           <h2 className="text-lg font-semibold">Paciente</h2>
           <p className="text-sm text-muted-foreground">
@@ -563,7 +598,7 @@ export function PresupuestoForm({
         )}
       </section>
 
-      <section className="rounded-2xl border border-border bg-card p-6 shadow-sm">
+      <section ref={examenesSectionRef} className="rounded-2xl border border-border bg-card p-6 shadow-sm">
         <div className="flex flex-col gap-3 border-b border-border pb-4 md:flex-row md:items-center md:justify-between">
           <div>
             <h2 className="text-lg font-semibold">Exámenes del presupuesto</h2>
@@ -778,7 +813,7 @@ export function PresupuestoForm({
         ) : null}
       </section>
 
-      <section className="rounded-2xl border border-border bg-card p-6 shadow-sm">
+      <section ref={ajustesSectionRef} className="rounded-2xl border border-border bg-card p-6 shadow-sm">
         <div className="grid gap-6 lg:grid-cols-2">
           <div className="grid gap-4 sm:grid-cols-3">
             <label className="space-y-2 text-sm font-medium">
@@ -884,16 +919,25 @@ export function PresupuestoForm({
         </div>
       </section>
 
-      <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
-        {mode === "edit" && onCancelEdit ? (
-          <Button type="button" variant="outline" onClick={onCancelEdit}>
-            Cancelar
-          </Button>
+      <div className="flex flex-col items-end gap-3">
+        {intentoGuardar && faltantes.length > 0 ? (
+          <ul className="w-full space-y-1 text-right text-sm text-destructive sm:w-auto">
+            {faltantes.map((item) => (
+              <li key={item}>{item}</li>
+            ))}
+          </ul>
         ) : null}
-        <Button type="button" onClick={() => void submit()} disabled={saving || !canSubmit}>
-          {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-          {saving ? "Guardando…" : mode === "create" ? "Guardar presupuesto" : "Guardar cambios"}
-        </Button>
+        <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+          {mode === "edit" && onCancelEdit ? (
+            <Button type="button" variant="outline" onClick={onCancelEdit}>
+              Cancelar
+            </Button>
+          ) : null}
+          <Button type="button" onClick={() => void submit()} disabled={saving}>
+            {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+            {saving ? "Guardando…" : mode === "create" ? "Guardar presupuesto" : "Guardar cambios"}
+          </Button>
+        </div>
       </div>
       <PacienteFormDialog
         open={crearPacienteOpen}
