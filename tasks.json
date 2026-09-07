@@ -3210,7 +3210,7 @@
       "description": "Renovar el access token de InsForge con el refresh token en middleware y en getCurrentUser; login con aviso cuando venció de verdad.",
       "model": "opencode/gemini-3.1-pro",
       "reason": "Auth y middleware, con medición previa.",
-      "status": "in_progress",
+      "status": "done",
       "dependencies": [],
       "estimateHours": 4,
       "files": [
@@ -3228,7 +3228,7 @@
       "description": "notifySuccess y notifyError en toda acción de escritura, inventario en el commit, Toaster único.",
       "model": "opencode-go/kimi-k2.6",
       "reason": "Cambio transversal de UI sin lógica nueva.",
-      "status": "in_progress",
+      "status": "done",
       "dependencies": [],
       "estimateHours": 4,
       "files": [

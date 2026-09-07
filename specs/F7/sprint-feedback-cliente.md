@@ -838,8 +838,8 @@ Rama `sprint/f7-3`, base `staged` post PR #13. PR #14 abierto. Revisión de sonn
 | F7.2.T6 | sonnet | hecha | `04ef7a5` | Ganancia global solo al paquete cerrado y visible como monto en el resumen; por línea con default de Config en modo abierto; mixto: global solo al paquete. Flag cerrado persistido (0020, aplicada en hosted); el backend fuerza la global en cerradas. Tasa de solo lectura. Sin toggle. PR #22. Pendiente opcional: el detalle de solo lectura sigue mostrando el % del header. |
 | F7.4.T4 | sonnet | hecha | `1f68b21` | Tipos y Métodos en pestañas separadas con búsqueda y paginación. PR #19 mergeado. |
 | F7.2.T7 | sonnet | hecha | `89e34fb` | Enviar por WhatsApp o email desde Borrador o Enviado, enlace público /p/[slug] de 7 días, paso a Enviado con auditoría, bloqueado en otros estados. Botones compartidos en packages/ui/envio. Migración 0021 aplicada en hosted. PR #23. |
-| F7.8.T1 | opus | en curso | — | De la lista manuscrita: la sesión expira. Nada renueva el access token de InsForge con el refresh token guardado. |
-| F7.8.T2 | sonnet | en curso | — | De la lista manuscrita: toast de aviso en todas las acciones; hoy solo seis pantallas lo usan. |
+| F7.8.T1 | planner | hecha | `f7/planner-sesion` | Las sesiones opus y sonnet cerraron; lo tomó el planner. Renovación del access token en middleware y en getCurrentUser con el refresh token, aviso en el login cuando venció. Helpers de JWT con 7 tests. PR #24. Sin medir la duración real del JWT. |
+| F7.8.T2 | sonnet + planner | hecha | `f7/sonnet-toasts` | Sonnet dejó el toast con reduced-motion y tres pantallas de exámenes; el planner completó las catorce restantes con inventario en el commit. PR #25. |
 
 ## F7.4.T3 — Tipos de análisis como tabla administrable
 
