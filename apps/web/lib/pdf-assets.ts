@@ -1,5 +1,8 @@
 import "server-only";
 
+import { readFile } from "node:fs/promises";
+import path from "node:path";
+
 import { readObject, resolveObjectPath } from "@labo/lib/storage-local";
 
 import { pdfAssetCache } from "@/lib/asset-cache";
@@ -47,11 +50,50 @@ async function readAssetDataUri(objectKey: string): Promise<string> {
   });
 }
 
+export type AssetTipo = "logo" | "firma" | "sello";
+
+/** `assets/logo/uuid.png` → `logo`; `null` si el key no sigue ese esquema. */
+export function tipoDesdeKey(objectKey: string): AssetTipo | null {
+  const tipo = objectKey.split("/")[1];
+  return tipo === "logo" || tipo === "firma" || tipo === "sello" ? tipo : null;
+}
+
+/**
+ * Ruta del asset de respaldo en `public/assets/<tipo>.png`.
+ *
+ * La fila `laboratorio_config` es compartida entre entornos pero el storage es
+ * local a cada servidor: un key subido en staging no existe en dev ni en
+ * producción. Cuando el archivo no está, se usa la copia versionada en
+ * `public/assets`, que es la misma imagen institucional.
+ */
+export function rutaAssetPublico(tipo: AssetTipo): string {
+  return path.join(process.cwd(), "public", "assets", `${tipo}.png`);
+}
+
+async function readPublicFallbackDataUri(tipo: AssetTipo): Promise<string> {
+  return pdfAssetCache.getOrSet(`public:${tipo}`, async () => {
+    const buf = await readFile(rutaAssetPublico(tipo));
+    return `data:image/png;base64,${buf.toString("base64")}`;
+  });
+}
+
 /** Contrato `AssetUrlResolver` de `@labo/db/repos/ordenes`: nunca lanza. */
 export async function resolvePdfAsset(objectKey: string): Promise<string> {
   try {
     return await readAssetDataUri(objectKey);
   } catch (error) {
+    const tipo = tipoDesdeKey(objectKey);
+    if (tipo) {
+      try {
+        const fallback = await readPublicFallbackDataUri(tipo);
+        console.warn(
+          `[pdf-assets] "${objectKey}" no está en el storage local; se usa public/assets/${tipo}.png.`,
+        );
+        return fallback;
+      } catch {
+        /* sin respaldo versionado: cae al PNG transparente */
+      }
+    }
     let ruta = objectKey;
     try {
       ruta = resolveObjectPath(ASSET_BUCKET, objectKey);

@@ -1,3 +1,6 @@
+import { existsSync } from "node:fs";
+
+import { resolveObjectPath } from "@labo/lib/storage-local";
 import { NextResponse, type NextRequest } from "next/server";
 
 import { getCurrentUser, AuthError } from "@/lib/server/auth";
@@ -29,6 +32,12 @@ export async function GET(request: NextRequest): Promise<Response> {
 
     const objectKey = config[`${type}_object_key` as const];
     if (!objectKey) return NextResponse.json({ url: null });
+
+    // El storage es local a cada servidor y la config es compartida: si el
+    // archivo no está acá, se muestra la copia versionada en public/assets.
+    if (!existsSync(resolveObjectPath("assets", objectKey))) {
+      return NextResponse.json({ url: `/assets/${type}.png`, fallback: true });
+    }
 
     const signedUrl = signDownloadUrl({
       bucket: "assets",
