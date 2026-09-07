@@ -34,7 +34,7 @@ ul{margin:.2rem 0 0;padding-left:1.1rem}li{margin:.2rem 0}
 <span class="eyebrow">RV Laboratorio · F7</span>
 <h1>Sprint de feedback del cliente</h1>
 <p class="lede">Dos semanas para cerrar lo que reportó Miguel Franchi y lo que se acordó en la reunión del 6 de septiembre. Sale del análisis técnico; cada tarea tiene alcance, criterios de aceptación y archivos.</p>
-<div class="meta"><span>Del <b>8 al 19 sep 2026</b></span><span>Tareas <b>18</b></span><span>Estimado <b>48h</b></span><span>Spec <b>specs/F7/sprint-feedback-cliente.md</b></span><span>Backlog <b>tasks.json</b></span></div>
+<div class="meta"><span>Del <b>8 al 19 sep 2026</b></span><span>Tareas <b>19</b></span><span>Estimado <b>50h</b></span><span>Spec <b>specs/F7/sprint-feedback-cliente.md</b></span><span>Backlog <b>tasks.json</b></span></div>
 </header>
 <div class="wrap"><table><thead><tr><th>Cuándo</th><th>ID</th><th>Tarea</th><th>Depende de</th><th>Horas</th></tr></thead><tbody>
 <tr><td><span class="wk s1">S1 · d5</span></td><td class="id">F7.0.T1</td><td>Dejar verde el CI de la raíz (bloquea staged → main)</td><td>—</td><td class="h">3</td></tr>
@@ -55,6 +55,7 @@ ul{margin:.2rem 0 0;padding-left:1.1rem}li{margin:.2rem 0}
 <tr><td><span class="wk s2">S2 · d1-3</span></td><td class="id">F7.5.T1</td><td>Tasa BCV: cron en Coolify y rechazos visibles en Config</td><td>—</td><td class="h">2</td></tr>
 <tr><td><span class="wk s2">S2 · d4-5</span></td><td class="id">F7.3.T2</td><td>Vista de verificación y QR en el PDF de resultados</td><td>F7.3.T1</td><td class="h">6</td></tr>
 <tr><td><span class="wk s2">S2 · d5</span></td><td class="id">F7.3.T4</td><td>Correcciones de la revisión cruzada sobre observaciones y tasa</td><td>F7.3.T3, F7.5.T1</td><td class="h">3</td></tr>
+<tr><td><span class="wk s2">S2 · d5</span></td><td class="id">F7.3.T5</td><td>Correcciones de la revisión cruzada sobre QR y verificación</td><td>F7.3.T2</td><td class="h">2</td></tr>
 </tbody></table></div>
 <div class="two">
 <div><span class="eyebrow">Fuera del sprint</span><ul>
@@ -211,5 +212,6 @@ ul{margin:.2rem 0 0;padding-left:1.1rem}li{margin:.2rem 0}
 <tr data-task="F7.3.T2"><td class="id">F7.3.T2</td><td>opus</td><td>hecha</td><td class="id">e333136</td><td>Tabla enlaces_verificacion (0016) con slug sin vencimiento; se crea al entregar y también al emitir el PDF, best-effort: sin la migración el PDF sale sin QR y nada rompe. QR como SVG en ResultadoPDF junto a la firma. Ruta pública /v/[slug] con laboratorio, fecha y hora, cédula enmascarada y botón de WhatsApp. Migración probada en Postgres local, no aplicada en hosted. Sin escaneo real del QR ni apertura del PDF.</td></tr>
 <tr data-task="F7.4.T1"><td class="id">F7.4.T1</td><td>opus</td><td>hecha</td><td class="id">517397a</td><td>Tabla metodos_analisis (0017) sembrada con los métodos existentes, repo y endpoints con patrón de títulos, select en el examen con alta inline para admin y panel de métodos en Config fuera del form. Un método desactivado se conserva en los exámenes como (fuera de la lista). Renombrar no reescribe examenes.metodo ni metodo_snap, a propósito. Sin la 0017 el selector muestra un mensaje y nada rompe. Probada en Postgres local, no aplicada en hosted. Sin prueba en navegador.</td></tr>
 <tr data-task="F7.3.T4"><td class="id">F7.3.T4</td><td>opus</td><td>en curso</td><td class="id">—</td><td>Revisión cruzada de opus: editar observaciones desde el detalle podía pasar la orden a Entregada, incluso una anulada, por una regla previa de auto-cálculo de estado. Se corrige, más forzado con motivo para la tasa manual y auditoría de rechazos.</td></tr>
+<tr data-task="F7.3.T5"><td class="id">F7.3.T5</td><td>sonnet</td><td>en curso</td><td class="id">—</td><td>Revisión cruzada de sonnet: la creación best-effort del enlace de verificación tragaba cualquier error; /v/[slug] mostraba el estado; el QR se generaba para órdenes sin entregar. Se corrigen los tres.</td></tr>
 </tbody></table></div></section>
 </main>

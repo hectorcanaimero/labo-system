@@ -2984,6 +2984,34 @@
           "text": "Revisión de opus: confirmado que PATCH solo con observaciones desde el detalle hereda fecha_resultado y update pasa la orden a Entregada, incluso desde Anulada, esquivando la matriz de transiciones. Plausibles: tasa manual sin forma de forzar tras un 409; rechazos por outlier no auditados; pacientes viejos sin dirección bloqueados al editar."
         }
       ]
+    },
+    {
+      "id": "F7.3.T5",
+      "phase": 7,
+      "title": "Correcciones de la revisión cruzada sobre QR y verificación",
+      "description": "Tragar solo VERIFICACION_TABLA_FALTANTE; quitar Estado de /v/[slug]; QR y enlace de verificación solo para órdenes Entregadas.",
+      "model": "opencode-go/kimi-k2.6",
+      "reason": "Correcciones acotadas con diagnóstico hecho.",
+      "status": "in_progress",
+      "dependencies": [
+        "F7.3.T2"
+      ],
+      "estimateHours": 2,
+      "files": [
+        "packages/db/repos/ordenes.ts",
+        "apps/web/app/api/pdf/resultado/[id]/route.ts",
+        "apps/web/app/v/[slug]/page.tsx"
+      ],
+      "specRef": "F7/sprint-feedback-cliente.md#F7.3.T5",
+      "comments": [
+        {
+          "date": "2026-09-07",
+          "author": "planner",
+          "session": "sonnet",
+          "commit": "",
+          "text": "Revisión de sonnet: catch indiscriminado en crearVerificacionBestEffort y resolverVerificacionUrl; /v/[slug] muestra Estado; QR para órdenes en cualquier estado; carrera sin UNIQUE en orden_id converge al enlace más viejo."
+        }
+      ]
     }
   ],
   "phases": []

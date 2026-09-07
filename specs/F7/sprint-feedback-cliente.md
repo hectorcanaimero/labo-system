@@ -745,6 +745,7 @@ Rama del sprint: `sprint/f7-2`, base `staged` (post PR #11). Cada tarea es un co
 | F7.3.T2 | opus | hecha | `e333136` | Tabla enlaces_verificacion (0016) con slug sin vencimiento; se crea al entregar y también al emitir el PDF, best-effort: sin la migración el PDF sale sin QR y nada rompe. QR como SVG en ResultadoPDF junto a la firma. Ruta pública /v/[slug] con laboratorio, fecha y hora, cédula enmascarada y botón de WhatsApp. Migración probada en Postgres local, no aplicada en hosted. Sin escaneo real del QR ni apertura del PDF. |
 | F7.4.T1 | opus | hecha | `517397a` | Tabla metodos_analisis (0017) sembrada con los métodos existentes, repo y endpoints con patrón de títulos, select en el examen con alta inline para admin y panel de métodos en Config fuera del form. Un método desactivado se conserva en los exámenes como (fuera de la lista). Renombrar no reescribe examenes.metodo ni metodo_snap, a propósito. Sin la 0017 el selector muestra un mensaje y nada rompe. Probada en Postgres local, no aplicada en hosted. Sin prueba en navegador. |
 | F7.3.T4 | opus | en curso | — | Revisión cruzada de opus: editar observaciones desde el detalle podía pasar la orden a Entregada, incluso una anulada, por el auto-cálculo de estado en update (regla previa, primer llamador nuevo). Se corrige más force con motivo para la tasa manual y auditoría de rechazos. Pendiente del cliente: pacientes viejos sin dirección quedan bloqueados al editar. |
+| F7.3.T5 | sonnet | en curso | — | Revisión cruzada de sonnet: la creación best-effort del enlace de verificación tragaba cualquier error, no solo tabla faltante; /v/[slug] mostraba Estado fuera de lo acordado; el QR se generaba para órdenes sin entregar. Carrera sin UNIQUE en orden_id queda anotada. |
 
 ## F7.3.T4 — Correcciones de la revisión cruzada sobre observaciones y tasa
 
@@ -787,3 +788,39 @@ No hace:
 ### Estimación
 
 3h
+
+## F7.3.T5 — Correcciones de la revisión cruzada sobre QR y verificación
+
+### Objetivo
+
+Cerrar los dos hallazgos confirmados de la revisión de sonnet sobre los commits de opus en el Sprint 2, más acotar el QR a informes entregados.
+
+### Alcance
+
+Sí hace:
+- `packages/db/repos/ordenes.ts` (`crearVerificacionBestEffort`) y `apps/web/app/api/pdf/resultado/[id]/route.ts` (`resolverVerificacionUrl`): tragar solo `VERIFICACION_TABLA_FALTANTE`; cualquier otro error se relanza o al menos se audita. Test del caso.
+- `apps/web/app/v/[slug]/page.tsx`: quitar el campo Estado. Solo laboratorio, fecha, hora, cédula enmascarada y WhatsApp.
+- El enlace de verificación y el QR se generan solo para órdenes en estado Entregada. Un PDF de una orden sin entregar sale sin QR y sin crear enlace.
+
+No hace:
+- UNIQUE sobre `orden_id` en `enlaces_verificacion`: la carrera converge al enlace más viejo, queda anotada.
+
+### Criterios de aceptación
+
+- [ ] Un error distinto de tabla faltante al crear la verificación no pasa desapercibido: se relanza o queda en `audit_log`.
+- [ ] `/v/[slug]` no muestra el estado de la orden.
+- [ ] El PDF de una orden no entregada no lleva QR ni crea enlace de verificación.
+
+### Archivos afectados
+
+- `packages/db/repos/ordenes.ts`
+- `apps/web/app/api/pdf/resultado/[id]/route.ts`
+- `apps/web/app/v/[slug]/page.tsx`
+
+### Dependencias
+
+- F7.3.T2
+
+### Estimación
+
+2h
