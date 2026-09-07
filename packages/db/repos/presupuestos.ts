@@ -58,6 +58,8 @@ export interface PresupuestoLinea {
   precio_snap: number;
   precio_base_snap: number;
   ganancia_pct: number;
+  /** F7.2.T6 — true si la línea es de un paquete cerrado (0020). */
+  cerrado: boolean;
   precio_final_snap: number;
   orden: number;
 }
@@ -154,6 +156,7 @@ type LineaRow = {
   precio_snap: Numeric;
   precio_base_snap: Numeric;
   ganancia_pct: Numeric;
+  cerrado: boolean;
   precio_final_snap: Numeric;
   orden: number;
 };
@@ -190,6 +193,7 @@ function mapLinea(row: LineaRow): PresupuestoLinea {
     precio_snap: numberOf(row.precio_snap),
     precio_base_snap: numberOf(row.precio_base_snap),
     ganancia_pct: numberOf(row.ganancia_pct),
+    cerrado: Boolean(row.cerrado),
     precio_final_snap: numberOf(row.precio_final_snap),
     orden: row.orden,
   };
@@ -204,7 +208,7 @@ async function hydrate(
   const { data: lineas, error } = await db
     .from("presupuestos_examenes")
     .select(
-      "id, presupuesto_id, examen_id, paquete_id, nombre_snap, precio_snap, precio_base_snap, ganancia_pct, precio_final_snap, orden",
+      "id, presupuesto_id, examen_id, paquete_id, nombre_snap, precio_snap, precio_base_snap, ganancia_pct, cerrado, precio_final_snap, orden",
     )
     .in("presupuesto_id", ids)
     .order("orden", { ascending: true })
@@ -398,12 +402,20 @@ export async function create(
 
   const lineasInput = parsed.data.examenes.map((linea) => {
     const exam = examById.get(linea.examen_id)!;
+    // F7.2.T6 — una línea cerrada no tiene ganancia propia: la fija SIEMPRE
+    // la global del presupuesto, sin importar qué haya mandado el cliente en
+    // `ganancia_pct` para esa línea (evita guardar un valor inconsistente si
+    // el estado del form quedó desincronizado).
+    const cerrado = Boolean(linea.cerrado && linea.paquete_id);
     return {
       linea,
       nombreSnap: exam.nombre,
       precioSnap: numberOf(exam.precio_usd),
       precioBase: linea.precio_base_snap ?? numberOf(exam.precio_usd),
-      gananciaEfectiva: linea.ganancia_pct ?? parsed.data.ganancia_pct,
+      cerrado,
+      gananciaEfectiva: cerrado
+        ? parsed.data.ganancia_pct
+        : (linea.ganancia_pct ?? parsed.data.ganancia_pct),
     };
   });
 
@@ -450,6 +462,7 @@ export async function create(
     precio_snap: item.precioSnap,
     precio_base_snap: item.precioBase,
     ganancia_pct: item.gananciaEfectiva,
+    cerrado: item.cerrado,
     precio_final_snap: totals.lineas![orden]!.precioFinal,
     orden,
   }));
@@ -523,12 +536,16 @@ export async function update(
 
     const lineasInput = examenes.map((linea) => {
       const exam = byId.get(linea.examen_id)!;
+      const cerrado = Boolean(linea.cerrado && linea.paquete_id);
       return {
         linea,
         nombreSnap: exam.nombre,
         precioSnap: numberOf(exam.precio_usd),
         precioBase: linea.precio_base_snap ?? numberOf(exam.precio_usd),
-        gananciaEfectiva: linea.ganancia_pct ?? gananciaGlobal,
+        cerrado,
+        // F7.2.T6 — igual que en create(): cerrado siempre hereda la global,
+        // nunca lo que haya mandado el cliente para esa línea puntual.
+        gananciaEfectiva: cerrado ? gananciaGlobal : (linea.ganancia_pct ?? gananciaGlobal),
       };
     });
     const totals = calcularTotales({
@@ -558,6 +575,7 @@ export async function update(
       precio_snap: item.precioSnap,
       precio_base_snap: item.precioBase,
       ganancia_pct: item.gananciaEfectiva,
+      cerrado: item.cerrado,
       precio_final_snap: totals.lineas![orden]!.precioFinal,
       orden,
     }));
@@ -577,6 +595,12 @@ export async function update(
     const gananciaPct = gananciaGlobal ?? existing.ganancia_pct;
     const tasaBs = data.tasa_bs ?? existing.tasa_bs;
 
+    // F7.2.T6 — sin reenviar `examenes`, sólo las líneas CERRADAS siguen a la
+    // ganancia global si cambió: una abierta tiene la suya propia y no debe
+    // moverse porque alguien tocó el % del paquete.
+    const gananciaLinea = (line: PresupuestoLinea): number =>
+      line.cerrado && gananciaGlobal !== undefined ? gananciaGlobal : line.ganancia_pct;
+
     const totals = calcularTotales({
       descuentoPct,
       gananciaPct,
@@ -584,7 +608,7 @@ export async function update(
       serviciosUsd,
       lineas: existing.lineas.map((line) => ({
         precioBase: line.precio_base_snap,
-        ...(gananciaGlobal === undefined ? { gananciaPct: line.ganancia_pct } : {}),
+        gananciaPct: gananciaLinea(line),
       })),
     });
     totalUsd = totals.totalUsd;
@@ -592,7 +616,7 @@ export async function update(
 
     for (const [index, line] of existing.lineas.entries()) {
       const patch = {
-        ganancia_pct: gananciaGlobal === undefined ? line.ganancia_pct : gananciaGlobal,
+        ganancia_pct: gananciaLinea(line),
         precio_final_snap: totals.lineas![index]!.precioFinal,
       };
       const upd = await db

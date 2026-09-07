@@ -1,6 +1,8 @@
 import { notFound, redirect } from "next/navigation";
 
 import { getById } from "@labo/db/repos/presupuestos";
+import { get as getConfig } from "@labo/db/repos/config";
+import { getLatest } from "@labo/db/repos/tasa";
 import { AuthError, getCurrentUser } from "@/lib/server/auth";
 import { getAdminDb } from "@/lib/db-server";
 
@@ -23,13 +25,24 @@ async function requireOperadorOrRedirect(): Promise<{ role: string }> {
 
 export default async function PresupuestoDetallePage({ params }: { params: { id: string } }) {
   const { role } = await requireOperadorOrRedirect();
-  const presupuesto = await getById(getAdminDb(), params.id);
+  const db = getAdminDb();
+  const [presupuesto, latest, config] = await Promise.all([
+    getById(db, params.id),
+    getLatest(db),
+    getConfig(db),
+  ]);
   if (!presupuesto) notFound();
 
   return (
     <div className="mx-auto flex max-w-6xl flex-col gap-6">
       <PresupuestoDetalle
         role={role}
+        vigenteTasa={
+          latest
+            ? { tasa: latest.tasa, fuente: latest.fuente, scraped_at: latest.scraped_at }
+            : null
+        }
+        gananciaDefault={config?.ganancia_default_pct ?? 0}
         initialData={{
           id: presupuesto.id,
           numero_correlativo: presupuesto.numero_correlativo,
@@ -60,6 +73,7 @@ export default async function PresupuestoDetallePage({ params }: { params: { id:
             paquete_id: linea.paquete_id,
             precio_base_snap: linea.precio_base_snap,
             ganancia_pct: linea.ganancia_pct,
+            cerrado: linea.cerrado,
           })),
         }}
       />

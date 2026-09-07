@@ -27,6 +27,11 @@ export interface LaboratorioConfig {
   pdf_pie_pagina: string | null;
   /** Valor por defecto de "Toma de muestra" en el presupuesto, en USD. */
   toma_muestra_default_usd: number;
+  /**
+   * Ganancia con la que arranca cada línea nueva en modo abierto (sueltos o
+   * paquete desglosado) del presupuesto (F7.2.T6).
+   */
+  ganancia_default_pct: number;
   updated_at: string;
   updated_by: string;
 }
@@ -41,6 +46,7 @@ export interface UpdateConfigInput {
   mpps?: string;
   pdf_pie_pagina?: string;
   toma_muestra_default_usd?: number;
+  ganancia_default_pct?: number;
 }
 
 const AUDIT_ACTION = "config.update";
@@ -49,7 +55,7 @@ const ENTITY_TYPE = "laboratorio_config";
 const CONFIG_COLS =
   "id, nombre, direccion, telefono, email, rif, colegio_bioanalistas, mpps, " +
   "logo_object_key, firma_object_key, sello_object_key, pdf_pie_pagina, " +
-  "toma_muestra_default_usd, updated_at, updated_by";
+  "toma_muestra_default_usd, ganancia_default_pct, updated_at, updated_by";
 
 function toDomainValidationError(error: {
   issues?: Array<{ message?: unknown }>;
@@ -65,10 +71,14 @@ function toDomainValidationError(error: {
  * el tipo correcto, así que sólo hay que normalizar la columna numérica.
  */
 function mapConfig(row: unknown): LaboratorioConfig {
-  const raw = row as LaboratorioConfig & { toma_muestra_default_usd: number | string | null };
+  const raw = row as LaboratorioConfig & {
+    toma_muestra_default_usd: number | string | null;
+    ganancia_default_pct: number | string | null;
+  };
   return {
     ...raw,
     toma_muestra_default_usd: Number(raw.toma_muestra_default_usd ?? 0),
+    ganancia_default_pct: Number(raw.ganancia_default_pct ?? 0),
   };
 }
 
@@ -152,6 +162,10 @@ export async function update(
     data.toma_muestra_default_usd !== undefined
       ? data.toma_muestra_default_usd
       : (current?.toma_muestra_default_usd ?? 0);
+  const gananciaDefault =
+    data.ganancia_default_pct !== undefined
+      ? data.ganancia_default_pct
+      : (current?.ganancia_default_pct ?? 0);
 
   if (!nombre || nombre.trim().length === 0) {
     throw new Error(NOMBRE_REQUERIDO);
@@ -168,6 +182,7 @@ export async function update(
     mpps,
     pdf_pie_pagina: pdf,
     toma_muestra_default_usd: tomaMuestraDefault,
+    ganancia_default_pct: gananciaDefault,
     updated_by: usuarioId,
     updated_at: new Date().toISOString(),
   };
@@ -219,6 +234,7 @@ export async function updateAssetKey(
     mpps: current?.mpps ?? null,
     pdf_pie_pagina: current?.pdf_pie_pagina ?? null,
     toma_muestra_default_usd: current?.toma_muestra_default_usd ?? 0,
+    ganancia_default_pct: current?.ganancia_default_pct ?? 0,
     logo_object_key: logoKey,
     firma_object_key: firmaKey,
     sello_object_key: selloKey,

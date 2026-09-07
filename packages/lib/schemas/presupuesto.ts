@@ -125,6 +125,15 @@ export const lineaPresupuestoSchema = z.object({
   precio_base_snap: precioSnapshotSchema.optional(),
   ganancia_pct: gananciaPctSchema.optional(),
   precio_final_snap: precioSnapshotSchema.optional(),
+  /**
+   * F7.2.T6 — true sólo para una línea de paquete CERRADO: su ganancia no es
+   * propia, la fija la ganancia global del presupuesto sobre el precio ya
+   * repartido del paquete. Reemplaza la inferencia por `ganancia_pct === 0`
+   * de F7.2.T5 (`esPaqueteCerrado`), que dejó de servir porque ahora una
+   * línea cerrada guarda la ganancia global REALMENTE aplicada (no un 0
+   * explícito) para que el total cuadre si se recalcula.
+   */
+  cerrado: z.boolean().optional(),
 });
 export type LineaPresupuestoInput = z.infer<typeof lineaPresupuestoSchema>;
 

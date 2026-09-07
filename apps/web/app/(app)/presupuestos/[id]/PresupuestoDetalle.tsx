@@ -58,6 +58,10 @@ import { PageHeader } from "@/components/layout/PageHeader";
 
 interface PresupuestoDetalleProps {
   role: string;
+  /** F7.2.T6 — tasa vigente (no la guardada) para avisar si difieren al editar. */
+  vigenteTasa: { tasa: number; fuente: string; scraped_at: string } | null;
+  /** F7.2.T6 — con qué arranca una línea abierta nueva que se agregue al editar. */
+  gananciaDefault: number;
   initialData: {
     id: string;
     numero_correlativo: number;
@@ -87,6 +91,7 @@ interface PresupuestoDetalleProps {
       paquete_id: string | null;
       precio_base_snap: number;
       ganancia_pct: number;
+      cerrado: boolean;
       precio_final_snap?: number;
     }>;
   };
@@ -122,7 +127,11 @@ async function requestJson<T>(url: string, init?: RequestInit): Promise<T> {
   return response.json() as Promise<T>;
 }
 
-export function PresupuestoDetalle({ initialData }: PresupuestoDetalleProps) {
+export function PresupuestoDetalle({
+  initialData,
+  vigenteTasa,
+  gananciaDefault,
+}: PresupuestoDetalleProps) {
   const router = useRouter();
   const [isEditing, setIsEditing] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -215,6 +224,8 @@ export function PresupuestoDetalle({ initialData }: PresupuestoDetalleProps) {
             estado: initialData.estado,
             lineas: initialData.lineas,
           }}
+          vigenteTasa={vigenteTasa}
+          gananciaDefault={gananciaDefault}
           onCancelEdit={() => setIsEditing(false)}
           onSaved={() => {
             setIsEditing(false);
