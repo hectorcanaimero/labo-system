@@ -960,3 +960,54 @@ No hace:
 ### Estimación
 
 3h
+
+## F7.2.T6 — Presupuesto: ganancia según el modo y tasa de solo lectura
+
+### Objetivo
+
+El formulario de presupuesto confunde: la ganancia aparece en tres lugares detrás de un toggle, y el paquete cerrado fuerza ganancia 0. El usuario define el modelo: la ganancia global se aplica al paquete cerrado; en modo abierto la ganancia va por línea y el campo global desaparece; la tasa se muestra pero no se edita.
+
+### Reglas
+
+- **Paquete cerrado**: sus líneas no tienen ganancia editable. El cuadro de descuento y tasa muestra el campo **Ganancia %** global, que se aplica sobre el precio base del paquete, y el resumen en vivo muestra la fila Ganancia con el monto resultante. Se elimina el forzado a 0 de F7.2.T4.
+- **Modo abierto** (exámenes sueltos o paquete desglosado): cada línea tiene su ganancia editable en la columna; el campo global no se muestra. Cada línea arranca con la ganancia por defecto de Configuración.
+- **Mixto** (paquete cerrado más sueltos): el campo global se muestra y aplica solo a las líneas del paquete cerrado; los sueltos usan su columna.
+- **Tasa**: visible con fuente y fecha, no editable. Sale de la última registrada; se cambia desde Configuración. El presupuesto sigue guardando `tasa_bs` como snapshot.
+- Desaparece el toggle "Ajustes avanzados".
+
+### Alcance
+
+Sí hace:
+- Migración `0020_config_ganancia_default.sql`: `laboratorio_config.ganancia_default_pct numeric(5,2) NOT NULL DEFAULT 0 CHECK (>= 0)`. Sin BEGIN/COMMIT, idempotente.
+- Config, pestaña Presupuestos: campo "Ganancia por defecto (%)".
+- `PresupuestoForm.tsx`: quitar el toggle; derivar el modo de las líneas (hay cerrado, hay abiertas); mostrar u ocultar el campo global y la columna según las reglas; líneas abiertas inicializadas con el default de Config; tasa como texto con badge de estado, sin input.
+- `calcularTotales` y `submit`: las líneas del paquete cerrado no mandan `ganancia_pct` propia y heredan la global; las abiertas mandan la suya. Ajustar `reconstruirLineaGuardada` y `esPaqueteCerrado` para que al editar se conserve el modo. Tests en `packages/lib` para los tres modos.
+- Edición de presupuesto: si la tasa guardada difiere de la vigente, mostrar ambas y mantener la guardada.
+- Actualizar el texto de ayuda del resumen y del PDF si describen el porcentaje.
+
+No hace:
+- Cambiar el PDF del presupuesto, que ya imprime precios finales.
+
+### Criterios de aceptación
+
+- [ ] Paquete cerrado de base 15 con ganancia global 10: total 16,50 y la fila Ganancia del resumen muestra 1,50.
+- [ ] Solo sueltos: no hay campo global; cada línea arranca con el default de Config y el total suma los precios con su ganancia.
+- [ ] Mixto: el global afecta solo al paquete; cambiar la ganancia de un suelto no toca el paquete.
+- [ ] La tasa no tiene input en el formulario; se ve valor, fuente y fecha.
+- [ ] Abrir y guardar sin cambios un presupuesto de cada modo no altera el total.
+
+### Archivos afectados
+
+- `packages/db/migrations/0020_config_ganancia_default.sql`
+- `packages/lib/schemas/config.ts`, `packages/db/repos/config.ts`
+- `apps/web/app/(app)/config/ConfigForm.tsx`
+- `apps/web/app/(app)/presupuestos/nuevo/PresupuestoForm.tsx`, `page.tsx`
+- `packages/lib/presupuesto-lineas.ts`, `calcular-totales.ts` y tests
+
+### Dependencias
+
+- F7.2.T5
+
+### Estimación
+
+5h

@@ -3111,6 +3111,28 @@
           "text": "Bug real: assets/set borraba el archivo viejo antes de confirmar la config nueva; si el upsert fallaba, quedaba sin asset. Orden invertido. Verificado contra el contenedor real de staging: volumen montado y sin errores de storage en 72h; el reporte es probablemente anterior. Producción no tenía compose ni volumen: docker-compose.production.yml nuevo. Test de que el upsert de config no pisa las claves. Pendiente del usuario: confirmar en Coolify si producción apunta al compose nuevo; en este VPS solo corre el contenedor de staging."
         }
       ]
+    },
+    {
+      "id": "F7.2.T6",
+      "phase": 7,
+      "title": "Presupuesto: ganancia según el modo y tasa de solo lectura",
+      "description": "Ganancia global aplica al paquete cerrado y se ve en resumen; en modo abierto la ganancia va por línea con default de Config y el campo global desaparece; mixto: global solo al paquete; tasa visible no editable; sin toggle Ajustes avanzados. Migración 0020 ganancia_default_pct.",
+      "model": "opencode/deepseek-v4-pro",
+      "reason": "Reglas de negocio con tests en tres modos.",
+      "status": "in_progress",
+      "dependencies": [
+        "F7.2.T5"
+      ],
+      "estimateHours": 5,
+      "files": [
+        "packages/db/migrations/0020_config_ganancia_default.sql",
+        "apps/web/app/(app)/presupuestos/nuevo/PresupuestoForm.tsx",
+        "apps/web/app/(app)/config/ConfigForm.tsx",
+        "packages/lib/presupuesto-lineas.ts",
+        "packages/lib/calcular-totales.ts"
+      ],
+      "specRef": "F7/sprint-feedback-cliente.md#F7.2.T6",
+      "comments": []
     }
   ],
   "phases": []
