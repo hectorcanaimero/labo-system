@@ -168,6 +168,8 @@ ul{margin:.2rem 0 0;padding-left:1.1rem}li{margin:.2rem 0}
 </div></section>
 <section id="registro"><h2>Registro del Sprint 1</h2>
 <div class="wrap" style="margin-top:0"><table><thead><tr><th>Tarea</th><th>Sesión</th><th>Estado</th><th>Commit</th><th>Comentario</th></tr></thead><tbody id="registro-body">
+<tr data-task="F7.3.T1"><td class="id">F7.3.T1</td><td>sonnet</td><td>hecha, con seguimiento</td><td class="id">1085ba2</td><td>Cédula enmascarada y tabla de valores quitada de /r/[slug]. Seguimiento: la página quedó sin forma de bajar el PDF porque api/pdf/resultado exige sesión de staff; el paciente no ve su resultado. Se agrega F7.3.T1b: endpoint público de PDF autorizado por slug y botón de descarga.</td></tr>
+<tr data-task="F7.1.T1"><td class="id">F7.1.T1</td><td>opus</td><td>hecha</td><td class="id">78441b1</td><td>Siete modales migrados al Dialog de shadcn con DialogBody desplazable y pie fijo. packages/ui suma @radix-ui/react-dialog y un overlay/Dialog.tsx propio para CargarPaqueteButton. Escape y click fuera no cancelan un guardado en curso. Falta verificar a ojo en 1366x768 y tablet.</td></tr>
 <tr data-task="F7.1.T2"><td class="id">F7.1.T2</td><td>sonnet</td><td>hecha</td><td class="id">9094277</td><td>Cinco códigos traducidos y console.error del 500 en exámenes y presupuestos. Pendiente: buscar en los logs de Coolify el POST a /api/examenes del 2026-09-06 02:35-02:45 UTC; la sesión no tiene acceso. Hallazgo: pnpm test y pnpm typecheck fallan en la raíz por errores preexistentes (tsup de @labo/lib sin inputs, tests de integración de @labo/db); por paquete, lib y web pasan.</td></tr>
 </tbody></table></div></section>
 </main>

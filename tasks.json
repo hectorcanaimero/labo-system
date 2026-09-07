@@ -2474,7 +2474,7 @@
       "description": "**Objetivo**\n\nReemplazar los overlays `fixed inset-0` armados a mano por el `Dialog` de `apps/web/components/ui/dialog.tsx`, que ya trae portal, foco, Escape y scroll interno. Cierra el bug del botón oculto que reportó el cliente en exámenes y previene el mismo fallo en el resto.\n\n**Alcance**\n\nSí hace:\n- Migrar `ExamenFormDialog`, `TituloFormDialog`, `PacienteFormDialog`, `InviteUserDialog`, el modal de `PresupuestosList`, el de `ResultadoForm` (orden nueva) y `CargarPaqueteButton`.\n- Pie con los botones siempre visible: `max-h-[90vh]`, cuerpo con `overflow-y-auto`, pie `sticky bottom-0`.\n- Probar en 1366×768 y en tablet 768×1024.\n\nNo hace:\n- Cambiar campos ni validaciones de los formularios.\n\n**Criterios de aceptación**\n\n- [ ] En 1366×768 con zoom 100% el botón “Crear examen” es visible y clickeable sin achicar el zoom.\n- [ ] Escape y click fuera cierran cada modal, salvo mientras guarda.\n- [ ] No queda ningún `fixed inset-0` fuera de `components/ui`.",
       "model": "opencode/deepseek-v4-pro",
       "reason": "Cambios de formulario, endpoints y migraciones con lógica de negocio.",
-      "status": "todo",
+      "status": "done",
       "dependencies": [],
       "estimateHours": 4,
       "files": [
@@ -2487,7 +2487,15 @@
         "packages/ui/paquetes/CargarPaqueteButton.tsx"
       ],
       "specRef": "F7/sprint-feedback-cliente.md#F7.1.T1",
-      "comments": []
+      "comments": [
+        {
+          "date": "2026-09-07",
+          "author": "planner",
+          "session": "opus",
+          "commit": "78441b1",
+          "text": "Siete modales migrados al Dialog de shadcn con DialogBody desplazable y pie fijo. packages/ui suma @radix-ui/react-dialog y un overlay/Dialog.tsx propio para CargarPaqueteButton. Escape y click fuera no cancelan un guardado en curso. Falta verificar a ojo en 1366x768 y tablet."
+        }
+      ]
     },
     {
       "id": "F7.1.T2",
@@ -2615,14 +2623,22 @@
       "description": "**Objetivo**\n\nLa página `/r/[slug]` muestra nombre completo, cédula completa y valores. Enmascarar la cédula y quitar los valores de la vista web, dejando el PDF como único lugar con el resultado.\n\n**Alcance**\n\nSí hace:\n- Cédula como `V-***.***.*45`.\n- Quitar la tabla de valores de la página; dejar laboratorio, paciente, fecha, botón de descarga del PDF y aviso de vencimiento.\n\nNo hace:\n- QR ni vista de verificación (F7.3.T2).\n\n**Criterios de aceptación**\n\n- [ ] Abrir el enlace muestra la cédula enmascarada y ningún valor de examen en el HTML.",
       "model": "opencode-go/kimi-k2.6",
       "reason": "Cambios acotados de UI, mensajes y documentación.",
-      "status": "todo",
+      "status": "hecha, con seguimiento",
       "dependencies": [],
       "estimateHours": 1,
       "files": [
         "apps/web/app/r/[slug]/page.tsx"
       ],
       "specRef": "F7/sprint-feedback-cliente.md#F7.3.T1",
-      "comments": []
+      "comments": [
+        {
+          "date": "2026-09-07",
+          "author": "planner",
+          "session": "sonnet",
+          "commit": "1085ba2",
+          "text": "Cédula enmascarada y tabla de valores quitada de /r/[slug]. Seguimiento: la página quedó sin forma de bajar el PDF porque api/pdf/resultado exige sesión de staff; el paciente no ve su resultado. Se agrega F7.3.T1b: endpoint público de PDF autorizado por slug y botón de descarga."
+        }
+      ]
     },
     {
       "id": "F7.3.T2",
@@ -2721,6 +2737,26 @@
         "apps/web/app/(app)/config/ConfigForm.tsx"
       ],
       "specRef": "F7/sprint-feedback-cliente.md#F7.5.T1",
+      "comments": []
+    },
+    {
+      "id": "F7.3.T1b",
+      "phase": 7,
+      "title": "PDF público por slug para el enlace del paciente",
+      "description": "Seguimiento de F7.3.T1: endpoint GET /api/r/[slug]/pdf autorizado por slug vigente y botón de descarga en /r/[slug].",
+      "model": "opencode-go/kimi-k2.6",
+      "reason": "Endpoint acotado que reutiliza el render existente.",
+      "status": "todo",
+      "dependencies": [
+        "F7.3.T1"
+      ],
+      "estimateHours": 2,
+      "files": [
+        "apps/web/app/api/r/[slug]/pdf/route.ts",
+        "apps/web/app/api/pdf/resultado/[id]/route.ts",
+        "apps/web/app/r/[slug]/page.tsx"
+      ],
+      "specRef": "F7/sprint-feedback-cliente.md#F7.3.T1b",
       "comments": []
     }
   ],

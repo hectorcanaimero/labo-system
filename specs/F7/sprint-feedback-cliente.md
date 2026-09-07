@@ -569,11 +569,48 @@ Rama del sprint: `sprint/f7-1`, base `staged`. Cada tarea es un commit; al cerra
 
 | Tarea | Sesión | Estado | Commit | Comentario |
 |---|---|---|---|---|
-| F7.1.T1 | opus | asignada | — | — |
+| F7.1.T1 | opus | hecha | `78441b1` | Siete modales migrados al Dialog de shadcn con DialogBody desplazable y pie fijo. packages/ui suma @radix-ui/react-dialog y un overlay/Dialog.tsx propio para CargarPaqueteButton. Escape y click fuera no cancelan un guardado en curso. Falta verificar a ojo en 1366x768 y tablet. |
 | F7.1.T2 | sonnet | hecha | `9094277` | Cinco códigos traducidos y console.error del 500 en exámenes y presupuestos. Pendiente: buscar en los logs de Coolify el POST a /api/examenes del 2026-09-06 02:35-02:45 UTC; la sesión no tiene acceso. Hallazgo: pnpm test y pnpm typecheck fallan en la raíz por errores preexistentes (tsup de @labo/lib sin inputs, tests de integración de @labo/db); por paquete, lib y web pasan. |
 | F7.2.T1 | sonnet | asignada | — | — |
-| F7.3.T1 | sonnet | asignada | — | — |
+| F7.3.T1 | sonnet | hecha, con seguimiento | `1085ba2` | Cédula enmascarada y tabla de valores quitada de /r/[slug]. Seguimiento: la página quedó sin forma de bajar el PDF porque api/pdf/resultado exige sesión de staff; el paciente no ve su resultado. Se agrega F7.3.T1b: endpoint público de PDF autorizado por slug y botón de descarga. |
+| F7.3.T1b | sonnet | asignada | — | — |
 | F7.2.T4 | sonnet | asignada | — | — |
 | F7.1.T3 | opus | asignada | — | — |
 | F7.2.T2 | opus | asignada | — | — |
 | F7.2.T3 | opus | asignada | — | — |
+
+## F7.3.T1b — PDF público por slug para el enlace del paciente (seguimiento de F7.3.T1)
+
+### Objetivo
+
+Al quitar los valores de `/r/[slug]`, el paciente que llega por WhatsApp o email ya no ve su resultado, porque la ruta de PDF existente exige sesión de staff. Dar un endpoint de PDF autorizado por el slug vigente y un botón de descarga en la página pública.
+
+### Alcance
+
+Sí hace:
+- `GET /api/r/[slug]/pdf`: valida el slug con `enlaces_resultado` (existe, no vencido), renderiza el mismo `ResultadoPDF` de la orden y responde `application/pdf`. Sin sesión.
+- Botón “Descargar resultado (PDF)” en `/r/[slug]`. Enlace vencido: mensaje, sin botón.
+- Reutilizar la función de render de `api/pdf/resultado/[id]`, sin duplicar la carga de assets.
+
+No hace:
+- QR ni vista de verificación (F7.3.T2).
+
+### Criterios de aceptación
+
+- [ ] Con un slug vigente, el botón descarga el PDF sin iniciar sesión.
+- [ ] Con un slug vencido o inexistente, el endpoint responde 404 y la página no muestra el botón.
+- [ ] El PDF es idéntico al que descarga el staff para la misma orden.
+
+### Archivos afectados
+
+- `apps/web/app/api/r/[slug]/pdf/route.ts`
+- `apps/web/app/api/pdf/resultado/[id]/route.ts`
+- `apps/web/app/r/[slug]/page.tsx`
+
+### Dependencias
+
+- F7.3.T1
+
+### Estimación
+
+2h
