@@ -40,17 +40,26 @@ export default async function PresupuestoDetallePage({ params }: { params: { id:
           descuento_pct: presupuesto.descuento_pct,
           ganancia_pct: presupuesto.ganancia_pct,
           tasa_bs: presupuesto.tasa_bs,
+          toma_muestra_usd: presupuesto.toma_muestra_usd,
+          domicilio_usd: presupuesto.domicilio_usd,
           total_usd: presupuesto.total_usd,
           total_bs: presupuesto.total_bs,
           estado: presupuesto.estado,
           orden_id: presupuesto.orden_id,
           created_at: presupuesto.created_at,
+          // `paquete_id`, `precio_base_snap` y `ganancia_pct` son necesarios
+          // para reconstruir las líneas al editar: sin ellos un paquete
+          // cerrado vuelve como líneas sueltas y al guardar se le aplica otra
+          // vez la ganancia global sobre el precio ya repartido.
           lineas: presupuesto.lineas.map((linea) => ({
             id: linea.id,
             examen_id: linea.examen_id,
             nombre_snap: linea.nombre_snap,
             precio_snap: linea.precio_snap,
             orden: linea.orden,
+            paquete_id: linea.paquete_id,
+            precio_base_snap: linea.precio_base_snap,
+            ganancia_pct: linea.ganancia_pct,
           })),
         }}
       />

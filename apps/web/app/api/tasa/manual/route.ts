@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from 'next/server';
 
-import { setManual } from '@labo/db/repos/tasa';
+import { MOTIVO_REQUERIDO_PARA_FORZAR, setManual } from '@labo/db/repos/tasa';
 import { AuthError, requireRole } from '@/lib/server/auth';
 import { getAdminDb } from '@/lib/db-server';
 
@@ -10,13 +10,16 @@ export const dynamic = 'force-dynamic';
 interface ManualTasaBody {
   tasa?: unknown;
   motivo?: unknown;
+  force?: unknown;
 }
 
 function bad(status: number, error: string): Response {
   return NextResponse.json({ error }, { status });
 }
 
-function parseBody(body: ManualTasaBody | null): { tasa: number; motivo?: string } | null {
+function parseBody(
+  body: ManualTasaBody | null,
+): { tasa: number; motivo?: string; force: boolean } | null {
   if (!body || typeof body.tasa !== 'number' || !Number.isFinite(body.tasa) || body.tasa <= 0) {
     return null;
   }
@@ -25,10 +28,15 @@ function parseBody(body: ManualTasaBody | null): { tasa: number; motivo?: string
     return null;
   }
 
+  if (body.force !== undefined && typeof body.force !== 'boolean') {
+    return null;
+  }
+
   const motivo = body.motivo?.trim();
   return {
     tasa: body.tasa,
     motivo: motivo && motivo.length > 0 ? motivo : undefined,
+    force: body.force === true,
   };
 }
 
@@ -42,16 +50,34 @@ export async function POST(request: NextRequest): Promise<Response> {
       return bad(400, 'INVALID_INPUT');
     }
 
-    const id = await setManual(getAdminDb(), {
+    const outcome = await setManual(getAdminDb(), {
       tasa: input.tasa,
       motivo: input.motivo,
       usuarioId: user.userId,
+      force: input.force,
     });
 
-    return NextResponse.json({ ok: true, id });
+    if (outcome.skipped) {
+      return NextResponse.json(
+        {
+          error: 'TASA_RECHAZADA_OUTLIER',
+          reason: outcome.reason,
+          tasa_anterior: outcome.tasaAnterior,
+          tasa_intentada: input.tasa,
+        },
+        { status: 409 },
+      );
+    }
+
+    return NextResponse.json({ ok: true, id: outcome.id });
   } catch (error) {
     if (error instanceof AuthError) {
       return bad(error.code === 'UNAUTHENTICATED' ? 401 : 403, error.code);
+    }
+
+    // Forzar sin motivo es un error del cliente, no del servidor.
+    if (error instanceof Error && error.message === MOTIVO_REQUERIDO_PARA_FORZAR) {
+      return bad(400, MOTIVO_REQUERIDO_PARA_FORZAR);
     }
 
     console.error('No se pudo registrar la tasa manual:', error);

@@ -1,9 +1,18 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Loader2, PencilLine, Plus, X } from "lucide-react";
+import { Loader2, PencilLine, Plus } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogBody,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { toHumanError } from "@labo/lib/error-messages";
 
 import { apiFetch } from "@/lib/api-client";
@@ -58,13 +67,13 @@ export function TituloFormDialog({
     setErrorMessage(null);
   }, [open, titulo]);
 
-  if (!open) {
-    return null;
-  }
+  const handleOpenChange = (next: boolean) => {
+    if (!next && submitting) return;
+    onOpenChange(next);
+  };
 
   const handleClose = () => {
-    if (submitting) return;
-    onOpenChange(false);
+    handleOpenChange(false);
   };
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
@@ -111,52 +120,42 @@ export function TituloFormDialog({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-      <div className="w-full max-w-md rounded-xl border border-border bg-card p-6 text-card-foreground shadow-lg">
-        <div className="flex items-start justify-between gap-4">
-          <div className="flex flex-col gap-1">
-            <h2 className="text-lg font-semibold leading-none tracking-tight">
-              {dialogTitle}
-            </h2>
-            <p className="text-sm text-muted-foreground">
-              {isEdit
-                ? "Actualizá el nombre visible del grupo en el catálogo."
-                : "Creá un nuevo grupo para organizar exámenes relacionados."}
-            </p>
-          </div>
-          <button
-            type="button"
-            onClick={handleClose}
-            className="rounded-md p-1.5 text-muted-foreground transition hover:bg-muted hover:text-foreground"
-          >
-            <X className="h-4 w-4" />
-            <span className="sr-only">Cerrar</span>
-          </button>
-        </div>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
+      <DialogContent className="flex max-h-[90vh] w-full max-w-md flex-col gap-0 overflow-hidden p-0 text-card-foreground">
+        <DialogHeader className="px-6 pb-4 pr-12 pt-6">
+          <DialogTitle>{dialogTitle}</DialogTitle>
+          <DialogDescription>
+            {isEdit
+              ? "Actualizá el nombre visible del grupo en el catálogo."
+              : "Creá un nuevo grupo para organizar exámenes relacionados."}
+          </DialogDescription>
+        </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="mt-6 flex flex-col gap-4">
-          <div className="flex flex-col gap-2">
-            <label htmlFor="titulo-nombre" className="text-sm font-medium">
-              Nombre del grupo
-            </label>
-            <input
-              id="titulo-nombre"
-              type="text"
-              value={nombre}
-              onChange={(event) => setNombre(event.target.value)}
-              disabled={submitting}
-              placeholder="Ej. Hematología"
-              className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-            />
-          </div>
+        <form onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col">
+          <DialogBody className="flex flex-col gap-4">
+            <div className="flex flex-col gap-2">
+              <label htmlFor="titulo-nombre" className="text-sm font-medium">
+                Nombre del grupo
+              </label>
+              <input
+                id="titulo-nombre"
+                type="text"
+                value={nombre}
+                onChange={(event) => setNombre(event.target.value)}
+                disabled={submitting}
+                placeholder="Ej. Hematología"
+                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+              />
+            </div>
 
-          {errorMessage ? (
-            <p className="rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
-              {errorMessage}
-            </p>
-          ) : null}
+            {errorMessage ? (
+              <p className="rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+                {errorMessage}
+              </p>
+            ) : null}
+          </DialogBody>
 
-          <div className="flex justify-end gap-2 pt-2">
+          <DialogFooter className="shrink-0 gap-2 border-t border-border bg-card px-6 py-4">
             <Button
               type="button"
               variant="outline"
@@ -183,9 +182,9 @@ export function TituloFormDialog({
                 </>
               )}
             </Button>
-          </div>
+          </DialogFooter>
         </form>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 }

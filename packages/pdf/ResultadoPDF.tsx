@@ -3,6 +3,7 @@ import { Document, Page, StyleSheet, Text, View } from "@react-pdf/renderer";
 import { ExamenesTable, type ExamenTableRow } from "./components/ExamenesTable";
 import { PacienteInfo } from "./components/PacienteInfo";
 import { PDFFirma } from "./components/PDFFirma";
+import { PDFQr } from "./components/PDFQr";
 import { PDFFooter } from "./components/PDFFooter";
 import { PDFHeader } from "./components/PDFHeader";
 import { PDF_COLORS, PDF_FONT, PDF_PAGE, formatDateDMY, type LaboratorioPDFConfig } from "./theme";
@@ -42,6 +43,12 @@ export interface ResultadoPDFData {
   };
   examenes: ExamenPDFRow[];
   config: LaboratorioPDFConfig | null;
+  /**
+   * URL absoluta de la vista de verificación (`/v/{slug}`). Si falta, el
+   * informe se emite sin QR en vez de romperse: un PDF sin recuadro de
+   * verificación sigue siendo válido.
+   */
+  verificacion_url?: string | null;
 }
 
 /** Grupo residual para líneas cuyo examen ya no existe en el catálogo (sin título). */
@@ -147,6 +154,18 @@ const styles = StyleSheet.create({
     marginBottom: 2,
     paddingHorizontal: 6,
     textTransform: "uppercase",
+  },
+  cierre: {
+    flexDirection: "row",
+    alignItems: "flex-end",
+    justifyContent: "space-between",
+  },
+  cierreQr: {
+    justifyContent: "flex-end",
+    paddingBottom: 6,
+  },
+  cierreFirma: {
+    flexGrow: 1,
   },
   notes: {
     borderColor: PDF_COLORS.border,
@@ -254,13 +273,22 @@ export function ResultadoPDF({ data }: ResultadoPDFProps) {
           </View>
         ) : null}
 
-        <PDFFirma
-          firma={config?.firma_url ?? null}
-          sello={config?.sello_url ?? null}
-          nombre={laboratoryName}
-          colegioBioanalistas={config?.colegio_bioanalistas ?? null}
-          mpps={config?.mpps ?? null}
-        />
+        {/* Cierre: el QR de verificación a la izquierda, firma y sello a la
+            derecha. Van en la misma fila y sin cortar entre páginas. */}
+        <View wrap={false} style={styles.cierre}>
+          <View style={styles.cierreQr}>
+            {data.verificacion_url ? <PDFQr url={data.verificacion_url} /> : null}
+          </View>
+          <View style={styles.cierreFirma}>
+            <PDFFirma
+              firma={config?.firma_url ?? null}
+              sello={config?.sello_url ?? null}
+              nombre={laboratoryName}
+              colegioBioanalistas={config?.colegio_bioanalistas ?? null}
+              mpps={config?.mpps ?? null}
+            />
+          </View>
+        </View>
 
         <PDFFooter
           aviso={AVISO_RESULTADO}

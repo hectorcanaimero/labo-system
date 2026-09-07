@@ -1,0 +1,84 @@
+# ============================================================================
+# docker-compose.production.yml — despliegue de PRODUCCIÓN en Coolify
+#
+# Uso en Coolify: recurso de producción (mismo `app` que staging, entorno
+# `production` — ver .coolify / .coolify.staging), branch `main`, compose
+# file `docker-compose.production.yml`. Ver docs/deploy/coolify-staged.md
+# (sección "Producción") para el detalle de por qué existe este archivo.
+#
+# Espejo de docker-compose.staged.yml con dos diferencias: nombre del
+# volumen (para que producción NUNCA comparta almacenamiento con staging,
+# aun si ambos corrieran en el mismo host) y el nombre del servicio de
+# Coolify que recibe el dominio público.
+#
+# No hay todavía un Dockerfile de build de producción (Next standalone):
+# esto sigue corriendo `next dev` dentro del container, igual que staging.
+# Cerrar esa brecha es aparte; lo que este archivo resuelve es que, el día
+# que se prenda el entorno de producción, no repita el incidente de F7.6.T2
+# (assets que se pierden porque STORAGE_ROOT no apunta a un volumen).
+#
+# Local (opcional, para reproducir producción en la máquina):
+#   docker compose -f docker-compose.production.yml up --build
+# ============================================================================
+
+services:
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    restart: unless-stopped
+    environment:
+      # Coolify inyecta aquí el dominio público y publica el puerto 3000.
+      # Fuera de Coolify la variable queda vacía y no molesta.
+      - SERVICE_FQDN_WEB_3000
+      - NODE_ENV=development
+      - NEXT_TELEMETRY_DISABLED=1
+
+      # ─── Obligatorias: sin estas dos la app tira 500 en la primera render ──
+      # (`apps/web/app/providers.tsx` lanza si falta cualquiera de las dos)
+      - NEXT_PUBLIC_INSFORGE_URL=${NEXT_PUBLIC_INSFORGE_URL}
+      - NEXT_PUBLIC_INSFORGE_ANON_KEY=${NEXT_PUBLIC_INSFORGE_ANON_KEY}
+
+      # ─── Backend server-side ──────────────────────────────────────────────
+      - INSFORGE_URL=${INSFORGE_URL}
+      - INSFORGE_ANON_KEY=${INSFORGE_ANON_KEY}
+      - INSFORGE_API_KEY=${INSFORGE_API_KEY}
+      - DATABASE_URL=${DATABASE_URL}
+      - CRON_SECRET=${CRON_SECRET}
+
+      # ─── Email (Resend). Sin RESEND_API_KEY el botón "Email" cae a mailto ──
+      - RESEND_API_KEY=${RESEND_API_KEY:-}
+      - EMAIL_FROM=${EMAIL_FROM:-}
+
+      # ─── Necesaria para subir/servir archivos (mínimo 32 caracteres) ──────
+      - STORAGE_SIGNING_SECRET=${STORAGE_SIGNING_SECRET}
+      - STORAGE_ROOT=/app/.storage
+
+      # ─── Opcionales (tienen default en código) ────────────────────────────
+      - NEXT_PUBLIC_APP_URL=${NEXT_PUBLIC_APP_URL:-}
+      - BCV_MAX_CHANGE_RATIO=${BCV_MAX_CHANGE_RATIO:-0.5}
+      - AI_OBSERVACIONES_ENABLED=${AI_OBSERVACIONES_ENABLED:-false}
+      - NEXT_PUBLIC_AI_OBSERVACIONES_ENABLED=${NEXT_PUBLIC_AI_OBSERVACIONES_ENABLED:-false}
+      - GEMINI_API_KEY=${GEMINI_API_KEY:-}
+    volumes:
+      # Volumen propio de producción — nunca el mismo nombre que
+      # labo-staged-storage, para que un compose mal apuntado no mezcle
+      # archivos de los dos entornos.
+      - labo-production-storage:/app/.storage
+    expose:
+      - "3000"
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://127.0.0.1:3000/').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))",
+        ]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 180s
+
+volumes:
+  labo-production-storage:

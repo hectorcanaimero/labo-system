@@ -459,23 +459,117 @@ export async function setExamenes(
     }
   }
 
-  const delRes = await db
+  const actualRes = await db
     .from("paquetes_examenes")
-    .delete()
+    .select("examen_id")
     .eq("paquete_id", id);
-  if (delRes.error) throw new Error(`paquetes.setExamenes: ${delRes.error.message}`);
+  if (actualRes.error) throw new Error(`paquetes.setExamenes: ${actualRes.error.message}`);
+  const actualIds = ((actualRes.data ?? []) as Array<{ examen_id: string }>).map(
+    (row) => row.examen_id,
+  );
 
+  // Insertar/actualizar primero y borrar lo que sobra después: si el upsert
+  // falla, las asociaciones previas siguen intactas — no quedan en cero como
+  // pasaba con delete-todo-luego-insert-todo, donde un insert fallido dejaba
+  // el paquete sin exámenes.
   if (examenIds.length > 0) {
     const values = examenIds.map((examenId, idx) => ({
       paquete_id: id,
       examen_id: examenId,
       orden: idx + 1,
     }));
-    const insRes = await db.from("paquetes_examenes").insert(values);
-    if (insRes.error) throw new Error(`paquetes.setExamenes: ${insRes.error.message}`);
+    const upsertRes = await db
+      .from("paquetes_examenes")
+      .upsert(values, { onConflict: "paquete_id,examen_id" });
+    if (upsertRes.error) throw new Error(`paquetes.setExamenes: ${upsertRes.error.message}`);
+  }
+
+  const sobrantes = actualIds.filter((examenId) => !examenIds.includes(examenId));
+  if (sobrantes.length > 0) {
+    const delRes = await db
+      .from("paquetes_examenes")
+      .delete()
+      .eq("paquete_id", id)
+      .in("examen_id", sobrantes);
+    if (delRes.error) throw new Error(`paquetes.setExamenes: ${delRes.error.message}`);
   }
 
   return loadPaqueteExamenes(db, id, true);
+}
+
+/**
+ * Guarda el paquete completo en un solo llamado: precio base, exámenes sueltos
+ * y grupos incluidos, aplicados en ese orden.
+ *
+ * El cliente de InsForge no expone transacciones, así que la atomicidad es por
+ * compensación: se lee el estado previo, y si un paso falla se deshacen los
+ * anteriores en orden inverso antes de relanzar el error original. Si la
+ * compensación también falla, gana el error original: el paquete puede quedar
+ * a medias y el llamador tiene que recargar.
+ */
+export async function setContenido(
+  db: Db,
+  id: string,
+  input: unknown,
+): Promise<PaqueteDetail> {
+  if (typeof input !== "object" || input === null || Array.isArray(input)) {
+    throw new Error(VALIDACION_FALLIDA);
+  }
+  const body = input as Record<string, unknown>;
+
+  const quierePrecio = Object.prototype.hasOwnProperty.call(body, "precio_base");
+  const quiereExamenes = Object.prototype.hasOwnProperty.call(body, "examenIds");
+  const quiereTitulos = Object.prototype.hasOwnProperty.call(body, "tituloIds");
+
+  // Validar todo antes de escribir nada: si el body está mal, no se toca la base.
+  const parsedPrecio = quierePrecio
+    ? paqueteUpdate.safeParse({ precio_base: body.precio_base })
+    : null;
+  if (parsedPrecio && !parsedPrecio.success) {
+    throw toDomainValidationError(parsedPrecio.error);
+  }
+  const precioBase = parsedPrecio?.data.precio_base;
+  const examenIds = quiereExamenes ? parseIds(body.examenIds) : null;
+  const tituloIds = quiereTitulos ? parseIds(body.tituloIds) : null;
+
+  const previo = await getById(db, id);
+  if (!previo) throw new Error(PAQUETE_NO_ENCONTRADO);
+
+  const deshacer: Array<() => Promise<unknown>> = [];
+
+  try {
+    if (precioBase !== undefined && precioBase !== previo.precio_base) {
+      await update(db, id, { precio_base: precioBase });
+      deshacer.push(() => update(db, id, { precio_base: previo.precio_base }));
+    }
+
+    if (examenIds) {
+      await setExamenes(db, id, examenIds);
+      deshacer.push(() =>
+        setExamenes(db, id, previo.examenes.map((examen) => examen.id)),
+      );
+    }
+
+    if (tituloIds) {
+      await setTitulos(db, id, tituloIds);
+      deshacer.push(() =>
+        setTitulos(db, id, previo.titulos.map((titulo) => titulo.id)),
+      );
+    }
+  } catch (error) {
+    for (const revertir of deshacer.reverse()) {
+      try {
+        await revertir();
+      } catch {
+        // La compensación es best-effort: el error que importa es el original.
+      }
+    }
+    throw error;
+  }
+
+  const actualizado = await getById(db, id);
+  if (!actualizado) throw new Error(PAQUETE_NO_ENCONTRADO);
+  return actualizado;
 }
 
 /**
@@ -503,20 +597,39 @@ export async function setTitulos(
     }
   }
 
-  const delRes = await db
+  const actualRes = await db
     .from("paquetes_titulos")
-    .delete()
+    .select("titulo_id")
     .eq("paquete_id", id);
-  if (delRes.error) throw new Error(`paquetes.setTitulos: ${delRes.error.message}`);
+  if (actualRes.error) throw new Error(`paquetes.setTitulos: ${actualRes.error.message}`);
+  const actualIds = ((actualRes.data ?? []) as Array<{ titulo_id: string }>).map(
+    (row) => row.titulo_id,
+  );
 
+  // Insertar/actualizar primero y borrar lo que sobra después: si el upsert
+  // falla, las asociaciones previas siguen intactas — no quedan en cero como
+  // pasaba con delete-todo-luego-insert-todo, donde un insert fallido dejaba
+  // el paquete sin grupos.
   if (tituloIds.length > 0) {
     const values = tituloIds.map((tituloId, idx) => ({
       paquete_id: id,
       titulo_id: tituloId,
       orden: idx + 1,
     }));
-    const insRes = await db.from("paquetes_titulos").insert(values);
-    if (insRes.error) throw new Error(`paquetes.setTitulos: ${insRes.error.message}`);
+    const upsertRes = await db
+      .from("paquetes_titulos")
+      .upsert(values, { onConflict: "paquete_id,titulo_id" });
+    if (upsertRes.error) throw new Error(`paquetes.setTitulos: ${upsertRes.error.message}`);
+  }
+
+  const sobrantes = actualIds.filter((tituloId) => !tituloIds.includes(tituloId));
+  if (sobrantes.length > 0) {
+    const delRes = await db
+      .from("paquetes_titulos")
+      .delete()
+      .eq("paquete_id", id)
+      .in("titulo_id", sobrantes);
+    if (delRes.error) throw new Error(`paquetes.setTitulos: ${delRes.error.message}`);
   }
 
   return loadPaqueteTitulos(db, id);

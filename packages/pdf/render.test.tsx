@@ -238,6 +238,114 @@ describe("PDF templates render", () => {
     expect(chunks.length).toBeGreaterThan(0);
   });
 
+  it("renders ResultadoPDF con QR de verificación", async () => {
+    const base = {
+      id: "f9fede93-9830-406f-be54-4c2fae9c11f8",
+      estado: "Entregada",
+      fecha_muestra: "2026-09-06",
+      fecha_resultado: "2026-09-06",
+      medico_solicitante: null,
+      observaciones: null,
+      paciente: {
+        nombre: "Juan",
+        apellido: "Pérez",
+        cedula: "V-23456789",
+        fecha_nacimiento: "1979-01-01",
+        sexo: "M" as const,
+      },
+      examenes: [examenRow({ id: "e1" })],
+      config: null,
+    };
+
+    const conQr = await renderBytes(
+      <ResultadoPDF data={{ ...base, verificacion_url: "https://lab.test/v/AbCd123456" }} />,
+    );
+    const sinQr = await renderBytes(<ResultadoPDF data={base} />);
+
+    expect(conQr).toBeGreaterThan(0);
+    expect(sinQr).toBeGreaterThan(0);
+    // El QR agrega geometría real al documento, no es un no-op.
+    expect(conQr).toBeGreaterThan(sinQr);
+  });
+
+  it("renders ResultadoPDF sin QR cuando no hay URL de verificación", async () => {
+    // Una orden sin enlace de verificación (migración 0016 sin aplicar, por
+    // ejemplo) tiene que emitir el informe igual, sin recuadro de QR.
+    const data = {
+      id: "f9fede93-9830-406f-be54-4c2fae9c11f8",
+      estado: "Entregada",
+      fecha_muestra: "2026-09-06",
+      fecha_resultado: null,
+      medico_solicitante: null,
+      observaciones: null,
+      paciente: {
+        nombre: "Juan",
+        apellido: "Pérez",
+        cedula: "V-23456789",
+        fecha_nacimiento: "1979-01-01",
+        sexo: "M" as const,
+      },
+      examenes: [examenRow({ id: "e1" })],
+      config: null,
+      verificacion_url: null,
+    };
+
+    expect(await renderBytes(<ResultadoPDF data={data} />)).toBeGreaterThan(0);
+  });
+
+  it("renders PresupuestoPDF con toma de muestra y domicilio como filas aparte", async () => {
+    // Exámenes 13, toma 4, domicilio 6 → total 23. Las líneas siguen sumando
+    // 13: los servicios van como filas propias, no como exámenes.
+    const data = {
+      id: "PRE-003",
+      paciente_id: null,
+      paciente_nombre_libre: "Jane Doe",
+      paciente_nombre: null,
+      paciente_apellido: null,
+      descuento_pct: 0,
+      tasa_bs: 40,
+      toma_muestra_usd: 4,
+      domicilio_usd: 6,
+      total_usd: 23,
+      total_bs: 920,
+      estado: "Borrador",
+      created_at: new Date(Date.UTC(2026, 8, 7, 1, 30)),
+      lineas: [
+        { id: "l1", nombre_snap: "Hematología", precio_final_snap: 8, orden: 1 },
+        { id: "l2", nombre_snap: "Glicemia", precio_final_snap: 5, orden: 2 },
+      ],
+      config: null,
+    };
+
+    expect(await renderBytes(<PresupuestoPDF data={data} />)).toBeGreaterThan(0);
+
+    const sumaLineas = data.lineas.reduce((sum, line) => sum + line.precio_final_snap, 0);
+    expect(sumaLineas).toBe(13);
+    expect(sumaLineas + data.toma_muestra_usd + data.domicilio_usd).toBe(data.total_usd);
+  });
+
+  it("renders PresupuestoPDF con domicilio en 0 (no se imprime la fila)", async () => {
+    const data = {
+      id: "PRE-004",
+      paciente_id: null,
+      paciente_nombre_libre: "Jane Doe",
+      paciente_nombre: null,
+      paciente_apellido: null,
+      descuento_pct: 0,
+      tasa_bs: 40,
+      toma_muestra_usd: 4,
+      domicilio_usd: 0,
+      total_usd: 17,
+      total_bs: 680,
+      estado: "Borrador",
+      created_at: new Date(Date.UTC(2026, 8, 7, 1, 30)),
+      lineas: [{ id: "l1", nombre_snap: "Hematología", precio_final_snap: 13, orden: 1 }],
+      config: null,
+    };
+
+    expect(await renderBytes(<PresupuestoPDF data={data} />)).toBeGreaterThan(0);
+  });
+
   it("renders PresupuestoPDF with reconciled line totals matching the grand total", async () => {
     // Espeja la salida de calcularTotales con descuento 10% y ganancia 25%:
     // base 40 × 1.25 × 0.9 = 45 por línea; Σ finales = 90 = total_usd.

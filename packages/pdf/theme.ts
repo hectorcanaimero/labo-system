@@ -41,6 +41,14 @@ export function formatDateDMY(value: Date | string | null | undefined): string {
   return `${day}/${month}/${d.getUTCFullYear()}`;
 }
 
+/**
+ * Fecha y hora en la zona del laboratorio: `dd/mm/aaaa hh:mm`.
+ *
+ * Reexportado desde `@labo/lib/fecha`: la conversión de zona vive en un solo
+ * lugar, compartida con las páginas públicas.
+ */
+export { LAB_TIMEZONE, formatFechaHoraLab as formatDateTimeDMY } from "@labo/lib/fecha";
+
 export interface LaboratorioPDFConfig {
   nombre: string;
   direccion: string;

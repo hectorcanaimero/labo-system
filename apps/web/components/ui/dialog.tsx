@@ -67,6 +67,22 @@ const DialogHeader = ({
 )
 DialogHeader.displayName = "DialogHeader"
 
+/**
+ * Cuerpo desplazable del diálogo. Va entre `DialogHeader` y `DialogFooter`
+ * cuando el contenido puede pasarse de alto: el pie queda siempre visible
+ * aunque el formulario no entre en pantalla (1366x768, tablet).
+ */
+const DialogBody = ({
+  className,
+  ...props
+}: React.HTMLAttributes<HTMLDivElement>) => (
+  <div
+    className={cn("min-h-0 flex-1 overflow-y-auto px-6 py-4", className)}
+    {...props}
+  />
+)
+DialogBody.displayName = "DialogBody"
+
 const DialogFooter = ({
   className,
   ...props
@@ -116,6 +132,7 @@ export {
   DialogClose,
   DialogContent,
   DialogHeader,
+  DialogBody,
   DialogFooter,
   DialogTitle,
   DialogDescription,

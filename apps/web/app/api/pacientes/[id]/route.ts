@@ -38,6 +38,8 @@ function toStatus(error: unknown): { status: number; error: string } {
     case "NOMBRE_REQUERIDO":
     case "APELLIDO_REQUERIDO":
     case "FECHA_NACIMIENTO_FUTURA":
+    case "DIRECCION_REQUERIDA":
+    case "UBICACION_INVALIDA":
       return { status: 400, error: code };
     default:
       return { status: 500, error: "ERROR_GENERICO" };

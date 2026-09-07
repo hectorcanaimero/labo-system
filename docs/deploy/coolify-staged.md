@@ -152,6 +152,108 @@ En Coolify, **Logs** del servicio `web` debe mostrar:
 ✓ Ready in …
 ```
 
+## 5. Scheduled Task del scrape de tasa BCV (F7.5.T1)
+
+Verificado en el repo, pendiente de confirmar en el panel de Coolify de
+producción (esta sesión no tiene acceso al panel).
+
+- **Qué debe existir**: una *Scheduled Task* en la aplicación `labo-web` de
+  Coolify llamada `scrape-bcv-hourly` que llama a
+  `POST /api/cron/scrape-bcv` con el header `x-cron-secret: $CRON_SECRET`,
+  cada hora en punto de 06:00 a 20:00 VET (15 disparos/día). El paso a paso
+  completo — comando exacto, expresión cron según el `TZ` del contenedor, y
+  cómo leer las respuestas (`success`, `skipped` por outlier, `401`, `500`) —
+  está en `docs/deploy/insforge-vps.md`, sección "Scrape horario de la tasa
+  BCV". No se duplica acá para no desincronizar los dos documentos.
+- **Por qué importa**: durante las pruebas del cliente la tasa quedó
+  desactualizada; la auditoría en producción mostró dos
+  `tasa.setFromScraper` casi seguidos (dos clics manuales en "Actualizar
+  desde BCV"), no una cadencia horaria — indicio de que la Scheduled Task no
+  estaba corriendo, o nunca se creó.
+- **Pendiente del usuario**: entrar a Coolify → `labo-web` → **Scheduled
+  Tasks** y confirmar que `scrape-bcv-hourly` existe, está activa y tiene
+  "Last Run" reciente. Si no existe, crearla siguiendo el paso a paso de
+  `insforge-vps.md`. El criterio de aceptación de F7.5.T1 ("la tasa se
+  actualiza sola cada hora durante un día completo") sólo se puede verificar
+  ahí, no desde el código.
+
+## 6. Persistencia de archivos (logo/firma/sello) — qué necesita cada entorno
+
+F7.6.T2: el usuario reportó que el logo/firma/sello subidos en
+Configuración "se pierden". El almacenamiento local
+(`packages/lib/storage-local.ts`) guarda esos archivos en
+`STORAGE_ROOT/assets/...` y sirve el flujo completo `GET
+/api/config/assets/url` → `POST /api/config/assets/upload` → `POST
+/api/config/assets/set` → lectura por `/api/storage/[bucket]/[...path]`.
+El diagnóstico contra este mismo VPS (donde corre el Coolify real del
+proyecto) encontró:
+
+- **El upsert de `laboratorio_config` no pisa las claves de asset al
+  guardar el formulario principal.** Candidato descartado: `update()`
+  (PUT /api/config) nunca incluye `logo_object_key`/`firma_object_key`/
+  `sello_object_key` en su payload, y el upsert de PostgREST sólo toca en
+  el `ON CONFLICT DO UPDATE SET` las columnas presentes en el payload —
+  las omitidas quedan intactas. Cubierto con test
+  (`packages/db/repos/config.test.ts`).
+- **Bug real encontrado y corregido**: `POST /api/config/assets/set`
+  borraba el archivo viejo **antes** de confirmar que la config ya
+  apuntaba al nuevo. Si el `upsert` fallaba después del borrado (DB caída,
+  timeout), el admin se quedaba sin logo/firma/sello: el viejo ya no
+  existía en disco y el nuevo nunca quedó referenciado. Se invirtió el
+  orden (`apps/web/app/api/config/assets/set/route.ts`).
+- **`STORAGE_ROOT` sin configurar fallaba en silencio.** Si la variable no
+  está seteada, el código cae a `<cwd>/.storage` sin avisar — un entorno
+  nuevo que se levanta sin copiar la config de staging sube y sirve
+  archivos con normalidad hasta el primer redeploy/reinicio, que los borra
+  sin dejar rastro. Ahora `storage-local.ts` emite un `console.warn` la
+  primera vez que resuelve una key sin `STORAGE_ROOT` seteado, para que
+  quede en los logs de arranque.
+- **Staging SÍ tiene volumen persistente** (verificado con `docker inspect`
+  contra el contenedor real: el volumen `..._labo-staged-storage` está
+  montado en `/app/.storage`) y sus env vars (`STORAGE_ROOT`,
+  `STORAGE_SIGNING_SECRET`) están seteadas correctamente. El directorio
+  está vacío al momento de este diagnóstico y no hay errores de storage en
+  los logs de las últimas 72h — no hay evidencia de que el bug de pérdida
+  esté activo hoy en staging; lo más probable es que el reporte del
+  usuario sea anterior al fix de GUR-16 (`packages/lib/storage-local.ts`,
+  ver el comentario "ponytail"/"Ceiling" ahí) y a un archivo que ya no se
+  puede recuperar, no una pérdida en curso.
+- **Producción no tenía NADA preparado.** No existía `docker-compose.yml`
+  ni volumen para el entorno de `main` — sólo `docker-compose.staged.yml`.
+  Se agregó `docker-compose.production.yml` (mismo servicio, volumen
+  propio `labo-production-storage` para que nunca comparta archivos con
+  staging aunque corran en el mismo host).
+
+### Qué necesita cada entorno
+
+| Entorno | Compose | Volumen | `STORAGE_ROOT` | `STORAGE_SIGNING_SECRET` |
+| --- | --- | --- | --- | --- |
+| Staging | `docker-compose.staged.yml` | `labo-staged-storage` | `/app/.storage` (ya seteado en el compose) | Cargar en Coolify, ≥32 caracteres (`openssl rand -hex 32`) |
+| Producción | `docker-compose.production.yml` (nuevo) | `labo-production-storage` | `/app/.storage` (ya seteado en el compose) | Cargar en Coolify — **un secreto propio, no reusar el de staging** |
+| Local (sin Docker) | — | carpeta `.storage/` en el repo (gitignored) | opcional; default `<cwd>/.storage` | obligatorio en `.env.local`, ≥32 caracteres |
+
+Pendiente del usuario (esta sesión no tiene acceso al panel de Coolify):
+en el recurso de **producción**, cambiar el "Docker Compose location" a
+`/docker-compose.production.yml` si todavía apunta al de staging o no
+está configurado, y cargar un `STORAGE_SIGNING_SECRET` propio. Verificado
+en este VPS que hoy sólo hay un contenedor de labo-system corriendo
+(staging); producción parece no estar desplegada todavía — confirmar
+antes de asumir que ya sirve tráfico real.
+
+### Verificación reproducible
+
+1. `pnpm turbo run test` — corre `packages/lib/storage-local.test.ts`
+   (guarda/lee/borra un objeto, firma y verifica una URL) y
+   `packages/lib/storage-local.warn.test.ts` (el aviso de `STORAGE_ROOT`
+   faltante sale una sola vez por proceso) y `packages/db/repos/config.test.ts`
+   (el upsert de config nunca pisa las claves de asset).
+2. Manual, en cualquier entorno con Docker: `docker compose -f
+   docker-compose.staged.yml up --build`, subir un logo desde Configuración,
+   `docker compose down` (sin `-v`) y volver a levantar: el logo sigue. Con
+   `docker compose down -v` (borra el volumen) el logo desaparece — es el
+   comportamiento esperado, confirma que la persistencia depende del volumen
+   y no de la imagen.
+
 ## Notas y limitaciones
 
 - **`next dev` no es para producción.** Sirve páginas sin optimizar, expone

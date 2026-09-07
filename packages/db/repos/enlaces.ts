@@ -20,17 +20,23 @@ export const ENLACE_NO_ENCONTRADO = "ENLACE_NO_ENCONTRADO";
  */
 export const ENLACES_TABLA_FALTANTE = "ENLACES_TABLA_FALTANTE";
 
+/** Ídem para `enlaces_verificacion` (migración 0016). */
+export const VERIFICACION_TABLA_FALTANTE = "VERIFICACION_TABLA_FALTANTE";
+
 /**
  * PostgREST reporta la tabla ausente de dos formas según si el error viene del
  * planner (`42P01 undefined_table`) o del schema cache (`PGRST205`, típico
  * cuando la migración corrió pero el cache no se recargó).
  */
-function esTablaFaltante(error: { code?: string; message?: string }): boolean {
+function esTablaFaltante(
+  error: { code?: string; message?: string },
+  tabla = "enlaces_resultado",
+): boolean {
   const code = error.code ?? "";
   if (code === "42P01" || code === "PGRST205") return true;
   const message = (error.message ?? "").toLowerCase();
   return (
-    message.includes("enlaces_resultado") &&
+    message.includes(tabla) &&
     (message.includes("does not exist") || message.includes("schema cache"))
   );
 }
@@ -115,4 +121,106 @@ export async function getBySlug(db: Db, slug: string): Promise<EnlaceResultado |
   if (!row) return null;
   if (new Date(row.expira_en).getTime() <= Date.now()) return null;
   return row;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Enlaces de verificación (migración 0016)
+//
+// El QR del informe apunta acá. A diferencia del enlace del paciente, este NO
+// vence: el papel con el QR se escanea meses después y un "enlace vencido"
+// sobre un informe legítimo haría desconfiar de él. Tampoco da acceso al
+// resultado: `/v/[slug]` sólo confirma que el informe existe.
+// ─────────────────────────────────────────────────────────────────────────────
+
+const VERIFICACION_COLS = "id, slug, orden_id, created_at, created_by";
+
+export interface EnlaceVerificacion {
+  id: string;
+  slug: string;
+  orden_id: string;
+  created_at: string;
+  created_by: string | null;
+}
+
+function fallarVerificacion(
+  scope: string,
+  error: { code?: string; message?: string },
+): never {
+  if (esTablaFaltante(error, "enlaces_verificacion")) {
+    throw new Error(VERIFICACION_TABLA_FALTANTE);
+  }
+  throw new Error(`${scope}: ${error.message ?? "error desconocido"}`);
+}
+
+/**
+ * Devuelve el enlace de verificación de la orden, o `null` si no tiene.
+ *
+ * No crea nada: sirve para los caminos que no deben escribir (por ejemplo,
+ * decidir si el PDF lleva QR sin tocar la base cuando no hace falta).
+ */
+export async function getVerificacionPorOrden(
+  db: Db,
+  ordenId: string,
+): Promise<EnlaceVerificacion | null> {
+  const { data, error } = await db
+    .from("enlaces_verificacion")
+    .select(VERIFICACION_COLS)
+    .eq("orden_id", ordenId)
+    // `id` desempata: si una carrera dejó dos enlaces con el mismo
+    // `created_at`, sin criterio estable el PDF regenerado podría tomar uno
+    // distinto y el QR dejaría de coincidir con el de la copia impresa.
+    .order("created_at", { ascending: true })
+    .order("id", { ascending: true })
+    .limit(1);
+  if (error) fallarVerificacion("enlaces.getVerificacionPorOrden", error);
+  return (data?.[0] as EnlaceVerificacion | undefined) ?? null;
+}
+
+/**
+ * Devuelve el enlace de verificación de la orden y lo crea si no existe.
+ *
+ * Reutilizar es lo que hace que un PDF regenerado conserve el mismo slug: si
+ * cada emisión creara uno nuevo, el QR de una copia impresa dejaría de
+ * coincidir con el de la copia digital.
+ */
+export async function crearOReutilizarVerificacion(
+  db: Db,
+  ordenId: string,
+  userId: string | null = null,
+): Promise<EnlaceVerificacion> {
+  const existente = await getVerificacionPorOrden(db, ordenId);
+  if (existente) return existente;
+
+  const ins = await db
+    .from("enlaces_verificacion")
+    .insert({ slug: generarSlug(), orden_id: ordenId, created_by: userId })
+    .select(VERIFICACION_COLS)
+    .limit(1);
+
+  if (ins.error) {
+    // Carrera: dos emisiones simultáneas del mismo informe. El UNIQUE sobre
+    // `slug` no la cubre (cada una genera el suyo), así que se resuelve
+    // releyendo: gana el que insertó primero y ambos devuelven el mismo.
+    const previo = await getVerificacionPorOrden(db, ordenId);
+    if (previo) return previo;
+    fallarVerificacion("enlaces.crearOReutilizarVerificacion", ins.error);
+  }
+
+  const creado = (ins.data?.[0] as EnlaceVerificacion | undefined) ?? null;
+  if (!creado) throw new Error("enlaces.crearOReutilizarVerificacion: insert sin retorno");
+  return creado;
+}
+
+/** Resuelve un slug de verificación. `null` si no existe. Nunca vence. */
+export async function getVerificacionBySlug(
+  db: Db,
+  slug: string,
+): Promise<EnlaceVerificacion | null> {
+  const { data, error } = await db
+    .from("enlaces_verificacion")
+    .select(VERIFICACION_COLS)
+    .eq("slug", slug)
+    .limit(1);
+  if (error) fallarVerificacion("enlaces.getVerificacionBySlug", error);
+  return (data?.[0] as EnlaceVerificacion | undefined) ?? null;
 }

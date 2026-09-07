@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 
+import { get as getConfig } from "@labo/db/repos/config";
 import { getLatest } from "@labo/db/repos/tasa";
 import { AuthError, getCurrentUser } from "@/lib/server/auth";
 import { getAdminDb } from "@/lib/db-server";
@@ -24,7 +25,8 @@ async function requireOperadorOrRedirect(): Promise<void> {
 export default async function NuevoPresupuestoPage() {
   await requireOperadorOrRedirect();
 
-  const latest = await getLatest(getAdminDb());
+  const db = getAdminDb();
+  const [latest, config] = await Promise.all([getLatest(db), getConfig(db)]);
 
   return (
     <div className="mx-auto flex max-w-6xl flex-col gap-4">
@@ -37,6 +39,7 @@ export default async function NuevoPresupuestoPage() {
       <PresupuestoForm
         mode="create"
         initialTasa={latest ? { tasa: latest.tasa, stale: latest.stale } : null}
+        tomaMuestraDefault={config?.toma_muestra_default_usd ?? 0}
       />
     </div>
   );

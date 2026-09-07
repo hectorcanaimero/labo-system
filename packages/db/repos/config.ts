@@ -25,6 +25,8 @@ export interface LaboratorioConfig {
   firma_object_key: string | null;
   sello_object_key: string | null;
   pdf_pie_pagina: string | null;
+  /** Valor por defecto de "Toma de muestra" en el presupuesto, en USD. */
+  toma_muestra_default_usd: number;
   updated_at: string;
   updated_by: string;
 }
@@ -38,6 +40,7 @@ export interface UpdateConfigInput {
   colegio_bioanalistas?: string;
   mpps?: string;
   pdf_pie_pagina?: string;
+  toma_muestra_default_usd?: number;
 }
 
 const AUDIT_ACTION = "config.update";
@@ -46,7 +49,7 @@ const ENTITY_TYPE = "laboratorio_config";
 const CONFIG_COLS =
   "id, nombre, direccion, telefono, email, rif, colegio_bioanalistas, mpps, " +
   "logo_object_key, firma_object_key, sello_object_key, pdf_pie_pagina, " +
-  "updated_at, updated_by";
+  "toma_muestra_default_usd, updated_at, updated_by";
 
 function toDomainValidationError(error: {
   issues?: Array<{ message?: unknown }>;
@@ -55,6 +58,18 @@ function toDomainValidationError(error: {
   const message =
     typeof first?.message === "string" ? first.message : "VALIDACION_FALLIDA";
   throw new Error(message);
+}
+
+/**
+ * PostgREST devuelve `numeric` como string; el resto de la fila ya viene con
+ * el tipo correcto, así que sólo hay que normalizar la columna numérica.
+ */
+function mapConfig(row: unknown): LaboratorioConfig {
+  const raw = row as LaboratorioConfig & { toma_muestra_default_usd: number | string | null };
+  return {
+    ...raw,
+    toma_muestra_default_usd: Number(raw.toma_muestra_default_usd ?? 0),
+  };
 }
 
 function trimOrNull(value: string | undefined): string | null {
@@ -91,7 +106,8 @@ export async function get(db: Db): Promise<LaboratorioConfig | null> {
     .eq("singleton", true)
     .limit(1);
   if (error) throw new Error(`config.get: ${error.message}`);
-  return ((data?.[0] as unknown) as LaboratorioConfig | undefined) ?? null;
+  const row = data?.[0];
+  return row ? mapConfig(row) : null;
 }
 
 /**
@@ -132,6 +148,10 @@ export async function update(
     data.pdf_pie_pagina !== undefined
       ? trimOrNull(data.pdf_pie_pagina)
       : (current?.pdf_pie_pagina ?? null);
+  const tomaMuestraDefault =
+    data.toma_muestra_default_usd !== undefined
+      ? data.toma_muestra_default_usd
+      : (current?.toma_muestra_default_usd ?? 0);
 
   if (!nombre || nombre.trim().length === 0) {
     throw new Error(NOMBRE_REQUERIDO);
@@ -147,6 +167,7 @@ export async function update(
     colegio_bioanalistas: colegioBioanalistas,
     mpps,
     pdf_pie_pagina: pdf,
+    toma_muestra_default_usd: tomaMuestraDefault,
     updated_by: usuarioId,
     updated_at: new Date().toISOString(),
   };
@@ -157,8 +178,9 @@ export async function update(
     .select(CONFIG_COLS)
     .limit(1);
   if (error) throw new Error(`config.update: ${error.message}`);
-  const row = (rows?.[0] as unknown) as LaboratorioConfig | undefined;
-  if (!row) throw new Error("No se pudo guardar la configuración del laboratorio.");
+  const raw = rows?.[0];
+  if (!raw) throw new Error("No se pudo guardar la configuración del laboratorio.");
+  const row = mapConfig(raw);
 
   await auditBestEffort(db, {
     usuarioId,
@@ -196,6 +218,7 @@ export async function updateAssetKey(
     colegio_bioanalistas: current?.colegio_bioanalistas ?? null,
     mpps: current?.mpps ?? null,
     pdf_pie_pagina: current?.pdf_pie_pagina ?? null,
+    toma_muestra_default_usd: current?.toma_muestra_default_usd ?? 0,
     logo_object_key: logoKey,
     firma_object_key: firmaKey,
     sello_object_key: selloKey,
@@ -209,8 +232,9 @@ export async function updateAssetKey(
     .select(CONFIG_COLS)
     .limit(1);
   if (error) throw new Error(`config.updateAssetKey: ${error.message}`);
-  const row = (rows?.[0] as unknown) as LaboratorioConfig | undefined;
-  if (!row) throw new Error(`No se pudo actualizar el asset ${type} en la configuración.`);
+  const raw = rows?.[0];
+  if (!raw) throw new Error(`No se pudo actualizar el asset ${type} en la configuración.`);
+  const row = mapConfig(raw);
 
   await auditBestEffort(db, {
     usuarioId,

@@ -9,6 +9,7 @@ import {
   PACIENTE_XOR_REQUERIDO,
   PRECIO_INVALIDO,
   PresupuestoEstadoEnum,
+  SERVICIO_INVALIDO,
   TASA_INVALIDA,
   descuentoPctSchema,
   estadoPresupuestoSchema,
@@ -17,6 +18,7 @@ import {
   presupuestoCambiarEstadoSchema,
   presupuestoCreateSchema,
   presupuestoUpdateSchema,
+  servicioUsdSchema,
   tasaBsSchema,
 } from "./presupuesto";
 
@@ -366,4 +368,67 @@ describe("presupuestoCambiarEstadoSchema", () => {
       ).toBe(true);
     }
   });
+});
+
+describe("servicioUsdSchema", () => {
+  it.each([0, 4, 6.5, 1234.56])("acepta %p", (value) => {
+    expect(servicioUsdSchema.safeParse(value).success).toBe(true);
+  });
+
+  it.each([-0.01, -4])("rechaza %p con SERVICIO_INVALIDO", (value) => {
+    const res = servicioUsdSchema.safeParse(value);
+    expect(res.success).toBe(false);
+    expect(res.error?.issues[0]?.message).toBe(SERVICIO_INVALIDO);
+  });
+
+  // NaN e Infinity los corta Zod (`.number()` / `.finite()`) antes del refine,
+  // con su propio mensaje. Mismo comportamiento que `precioSnapshotSchema`.
+  it.each([Number.NaN, Number.POSITIVE_INFINITY, "4", null])(
+    "rechaza %p",
+    (value) => {
+      expect(servicioUsdSchema.safeParse(value).success).toBe(false);
+    },
+  );
+});
+
+describe("cargos por servicio en create/update (F7.2.T2)", () => {
+  it("los servicios son opcionales: un presupuesto sin ellos sigue siendo válido", () => {
+    const res = presupuestoCreateSchema.safeParse(createInput());
+    expect(res.success).toBe(true);
+    expect(res.data?.toma_muestra_usd).toBeUndefined();
+    expect(res.data?.domicilio_usd).toBeUndefined();
+  });
+
+  it("acepta toma de muestra y domicilio en create", () => {
+    const res = presupuestoCreateSchema.safeParse(
+      createInput({ toma_muestra_usd: 4, domicilio_usd: 6 }),
+    );
+    expect(res.success).toBe(true);
+    expect(res.data?.toma_muestra_usd).toBe(4);
+    expect(res.data?.domicilio_usd).toBe(6);
+  });
+
+  it.each(["toma_muestra_usd", "domicilio_usd"] as const)(
+    "rechaza %s negativo en create",
+    (campo) => {
+      const res = presupuestoCreateSchema.safeParse(createInput({ [campo]: -1 }));
+      expect(res.success).toBe(false);
+      expect(res.error?.issues[0]?.message).toBe(SERVICIO_INVALIDO);
+    },
+  );
+
+  it("acepta actualizar sólo el domicilio", () => {
+    const res = presupuestoUpdateSchema.safeParse({ domicilio_usd: 0 });
+    expect(res.success).toBe(true);
+    expect(res.data?.domicilio_usd).toBe(0);
+  });
+
+  it.each(["toma_muestra_usd", "domicilio_usd"] as const)(
+    "rechaza %s negativo en update",
+    (campo) => {
+      const res = presupuestoUpdateSchema.safeParse({ [campo]: -0.5 });
+      expect(res.success).toBe(false);
+      expect(res.error?.issues[0]?.message).toBe(SERVICIO_INVALIDO);
+    },
+  );
 });

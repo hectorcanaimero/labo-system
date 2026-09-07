@@ -1,5 +1,6 @@
 import type { Db } from "../sdk";
 import { ENTREGA_REQUIERE_VALORES, assertPuedeEntregarse } from "@labo/lib/entrega-orden";
+import { crearOReutilizarVerificacion, VERIFICACION_TABLA_FALTANTE } from "./enlaces";
 import {
   estadoOrdenSchema,
   ordenCreateSchema,
@@ -655,11 +656,19 @@ export async function update(
   }
 
   // Regla de auto-cálculo cuando NO viene estado explícito:
-  //   - Si hay fecha_resultado → Entregada.
+  //   - Si el BODY trae fecha_resultado → Entregada.
   //   - Si no, mantener el estado actual (permite flujo intermedio: Muestra
   //     tomada / En proceso / Validando).
+  //
+  // La condición es sobre lo que trae el body, no sobre el valor final: antes
+  // alcanzaba con que la orden YA tuviera fecha_resultado para que cualquier
+  // patch la pasara a Entregada. Un PATCH de sólo `observaciones` sobre una
+  // orden anulada (que conserva su fecha de resultado, porque `updateEstado`
+  // sólo la limpia al volver a Registrada) la resucitaba como Entregada,
+  // salteando además la matriz de transiciones, que sólo valida `updateEstado`.
+  const traeFechaResultado = clearsFechaResultado || data.fecha_resultado !== undefined;
   const estadoFinal: EstadoOrden =
-    data.estado ?? (fechaResultado ? "Entregada" : current.estado);
+    data.estado ?? (traeFechaResultado && fechaResultado ? "Entregada" : current.estado);
 
   // Regla de entrega: si la orden queda (o sigue) Entregada, todas las líneas
   // resultantes deben tener valor. Se evalúa sobre lo que va a quedar guardado.
@@ -701,6 +710,41 @@ export async function update(
   return updated;
 }
 
+/**
+ * Crea el enlace de verificación de la orden si todavía no tiene.
+ *
+ * Best-effort SOLO para `VERIFICACION_TABLA_FALTANTE` (la 0016 no está
+ * aplicada en este entorno): eso no puede tumbar la entrega del informe, que
+ * es la operación que el usuario pidió, y el PDF vuelve a intentarlo al
+ * emitirse. Cualquier OTRO error (FK inválida, timeout, un bug) antes se
+ * perdía en un `console.warn` sin dejar rastro (revisión cruzada F7.3.T5) —
+ * ahora queda en `audit_log` para que no pase desapercibido, sin romper la
+ * entrega tampoco: perder el QR es preferible a que la licenciada no pueda
+ * marcar la orden como entregada por un problema ajeno.
+ */
+async function crearVerificacionBestEffort(
+  db: Db,
+  ordenId: string,
+  usuarioId: string,
+): Promise<void> {
+  try {
+    await crearOReutilizarVerificacion(db, ordenId, usuarioId);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    if (message === VERIFICACION_TABLA_FALTANTE) {
+      console.warn("[ordenes] no se pudo crear el enlace de verificación (tabla 0016 sin aplicar)");
+      return;
+    }
+    console.error("[ordenes] error inesperado al crear el enlace de verificación", message);
+    await auditBestEffort(db, {
+      usuarioId,
+      accion: "ordenes.verificacion_error",
+      entityId: ordenId,
+      metadata: { message },
+    });
+  }
+}
+
 export async function updateEstado(
   db: Db,
   id: string,
@@ -734,6 +778,12 @@ export async function updateEstado(
 
   const upd = await db.from("ordenes").update(patch).eq("id", id);
   if (upd.error) throw new Error(`ordenes.updateEstado: ${upd.error.message}`);
+
+  // El QR del informe apunta a este slug; se crea al entregar, y se reutiliza
+  // en cada emisión para que un PDF regenerado conserve el mismo.
+  if (parsed.data === "Entregada") {
+    await crearVerificacionBestEffort(db, id, usuarioId);
+  }
 
   await auditBestEffort(db, {
     usuarioId,

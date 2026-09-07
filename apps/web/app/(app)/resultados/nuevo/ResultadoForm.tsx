@@ -10,12 +10,19 @@ import {
   Plus,
   Save,
   Search,
-  Sparkles,
   Trash2,
   UserRound,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogBody,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { indicesSinValor, mensajeSinValor, tieneValor } from "@labo/lib/entrega-orden";
 import { toHumanError } from "@labo/lib/error-messages";
 import { ESTADO_ORDEN, type EstadoOrden } from "@labo/lib/schemas/orden";
@@ -23,6 +30,7 @@ import {
   PacienteAutocomplete,
   type PacienteAutocompleteItem,
 } from "@labo/ui/pacientes/PacienteAutocomplete";
+import { RefinarObservacionesButton } from "@labo/ui/resultados/RefinarObservacionesButton";
 
 import { apiFetch } from "@/lib/api-client";
 import { aItemAutocomplete, valoresInicialesDesdeBusqueda } from "@/lib/paciente-quick-create";
@@ -194,54 +202,9 @@ export function ResultadoForm({ mode, initialData, onSaved, onCancelEdit }: Resu
   const [paquetesOpen, setPaquetesOpen] = useState(false);
   const [paquetesLoading, setPaquetesLoading] = useState(false);
   const [packageError, setPackageError] = useState<string | null>(null);
+  const [addingPaqueteId, setAddingPaqueteId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
-  const [aiLoading, setAiLoading] = useState(false);
-  const [aiError, setAiError] = useState<string | null>(null);
-  const [aiNotice, setAiNotice] = useState<string | null>(null);
-  const aiEnabled = process.env.NEXT_PUBLIC_AI_OBSERVACIONES_ENABLED === "true";
-
-  async function handleSugerirObservacion(): Promise<void> {
-    const texto = observaciones.trim();
-    if (!texto) {
-      setAiError("Escribe primero un borrador para que el asistente lo mejore.");
-      return;
-    }
-    setAiError(null);
-    setAiNotice(null);
-    setAiLoading(true);
-    try {
-      const res = await apiFetch("/api/ai/observaciones", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ texto }),
-      });
-      const data = (await res.json().catch(() => ({}))) as {
-        sugerencia?: string;
-        error?: string;
-        message?: string;
-        retry_after_sec?: number;
-      };
-      if (!res.ok || !data.sugerencia) {
-        if (res.status === 429) {
-          setAiError(
-            `Demasiadas solicitudes. Intenta nuevamente en ${data.retry_after_sec ?? 30}s.`,
-          );
-        } else if (data.error === "AI_DISABLED") {
-          setAiError("El asistente está deshabilitado en este entorno.");
-        } else {
-          setAiError(data.message ?? "No se pudo generar la sugerencia. Intenta de nuevo.");
-        }
-        return;
-      }
-      setObservaciones(data.sugerencia);
-      setAiNotice("Sugerencia aplicada. Revisa y edita antes de guardar.");
-    } catch (err) {
-      setAiError(err instanceof Error ? err.message : "Error de red al contactar el asistente.");
-    } finally {
-      setAiLoading(false);
-    }
-  }
 
   const canSubmit = Boolean(selectedPaciente?.id || initialData?.paciente_id) && Boolean(fechaMuestra) && lineas.length > 0;
   // Al entregar no puede quedar ningún examen sin valor. Se anticipa acá lo
@@ -331,7 +294,9 @@ export function ResultadoForm({ mode, initialData, onSaved, onCancelEdit }: Resu
   }
 
   async function addPaquete(paqueteId: string): Promise<void> {
+    if (addingPaqueteId) return;
     try {
+      setAddingPaqueteId(paqueteId);
       setPackageError(null);
       const examenes = await requestJson<PaqueteExamen[]>(`/api/paquetes/${paqueteId}/examenes`);
       setLineas((current) =>
@@ -347,7 +312,14 @@ export function ResultadoForm({ mode, initialData, onSaved, onCancelEdit }: Resu
       setPaquetesOpen(false);
     } catch (error) {
       setPackageError(toHumanError(error));
+    } finally {
+      setAddingPaqueteId(null);
     }
+  }
+
+  function handlePaquetesOpenChange(next: boolean): void {
+    if (!next && addingPaqueteId) return;
+    setPaquetesOpen(next);
   }
 
   function updateLinea(index: number, patch: Partial<ResultadoLineaForm>): void {
@@ -533,46 +505,20 @@ export function ResultadoForm({ mode, initialData, onSaved, onCancelEdit }: Resu
             <label htmlFor="observaciones-generales" className="cursor-pointer">
               Observaciones generales
             </label>
-            {aiEnabled ? (
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                onClick={handleSugerirObservacion}
-                disabled={aiLoading || !observaciones.trim()}
-                className="h-8 gap-1.5 px-2 text-xs font-medium"
-                title="Reescribe el borrador en registro técnico venezolano"
-              >
-                {aiLoading ? (
-                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                ) : (
-                  <Sparkles className="h-3.5 w-3.5" />
-                )}
-                {aiLoading ? "Sugiriendo…" : "Sugerir redacción"}
-              </Button>
-            ) : null}
+            <RefinarObservacionesButton
+              value={observaciones}
+              onChange={setObservaciones}
+              hint="El asistente reescribe tu borrador en registro técnico. La revisión final la haces tú."
+            />
           </div>
           <textarea
             id="observaciones-generales"
             rows={4}
             value={observaciones}
-            onChange={(event) => {
-              setObservaciones(event.target.value);
-              if (aiError) setAiError(null);
-              if (aiNotice) setAiNotice(null);
-            }}
+            onChange={(event) => setObservaciones(event.target.value)}
             placeholder="Notas para el informe, hallazgos o aclaratorias."
             className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
           />
-          {aiError ? (
-            <p className="text-xs font-normal text-destructive">{aiError}</p>
-          ) : aiNotice ? (
-            <p className="text-xs font-normal text-muted-foreground">{aiNotice}</p>
-          ) : aiEnabled ? (
-            <p className="text-xs font-normal text-muted-foreground">
-              El asistente reescribe tu borrador en registro técnico. La revisión final la haces tú.
-            </p>
-          ) : null}
         </div>
       </section>
 
@@ -716,20 +662,19 @@ export function ResultadoForm({ mode, initialData, onSaved, onCancelEdit }: Resu
         </Button>
       </div>
 
-      {paquetesOpen ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="w-full max-w-2xl rounded-lg border border-border bg-card p-6 shadow-xl">
-            <div className="flex items-start justify-between gap-4">
-              <div>
-                <h3 className="text-xl font-semibold">Cargar paquete</h3>
-                <p className="mt-1 text-sm text-muted-foreground">Elegí un paquete para agregar todos sus exámenes al resultado.</p>
-              </div>
-              <Button type="button" variant="ghost" onClick={() => setPaquetesOpen(false)}>Cerrar</Button>
-            </div>
+      <Dialog open={paquetesOpen} onOpenChange={handlePaquetesOpenChange}>
+        <DialogContent className="flex max-h-[90vh] w-full max-w-2xl flex-col gap-0 overflow-hidden p-0">
+          <DialogHeader className="px-6 pb-4 pr-12 pt-6">
+            <DialogTitle className="text-xl">Cargar paquete</DialogTitle>
+            <DialogDescription>
+              Elegí un paquete para agregar todos sus exámenes al resultado.
+            </DialogDescription>
+          </DialogHeader>
 
-            {packageError ? <p className="mt-4 text-sm text-destructive">{packageError}</p> : null}
+          <DialogBody>
+            {packageError ? <p className="mb-4 text-sm text-destructive">{packageError}</p> : null}
 
-            <div className="mt-4 max-h-[28rem] overflow-auto rounded-md border border-border">
+            <div className="rounded-md border border-border">
               {paquetesLoading ? (
                 <div className="flex items-center gap-2 px-4 py-6 text-sm text-muted-foreground">
                   <Loader2 className="h-4 w-4 animate-spin" /> Cargando paquetes…
@@ -742,22 +687,29 @@ export function ResultadoForm({ mode, initialData, onSaved, onCancelEdit }: Resu
                     key={paquete.id}
                     type="button"
                     onClick={() => void addPaquete(paquete.id)}
-                    className="flex w-full items-center justify-between border-b border-border px-4 py-4 text-left last:border-b-0 hover:bg-muted/30"
+                    disabled={Boolean(addingPaqueteId)}
+                    className="flex w-full items-center justify-between border-b border-border px-4 py-4 text-left last:border-b-0 hover:bg-muted/30 disabled:cursor-not-allowed disabled:opacity-60"
                   >
                     <div>
                       <p className="font-medium text-foreground">{paquete.nombre}</p>
                       <p className="text-sm text-muted-foreground">{paquete.descripcion || "Sin descripción"}</p>
                     </div>
-                    <span className="rounded-full bg-primary/10 px-2.5 py-1 text-xs font-semibold text-primary">
-                      {paquete.examenes_count} {paquete.examenes_count === 1 ? "examen" : "exámenes"}
+                    <span className="inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-2.5 py-1 text-xs font-semibold text-primary">
+                      {addingPaqueteId === paquete.id ? (
+                        <>
+                          <Loader2 className="h-3 w-3 animate-spin" /> Cargando…
+                        </>
+                      ) : (
+                        `${paquete.examenes_count} ${paquete.examenes_count === 1 ? "examen" : "exámenes"}`
+                      )}
                     </span>
                   </button>
                 ))
               )}
             </div>
-          </div>
-        </div>
-      ) : null}
+          </DialogBody>
+        </DialogContent>
+      </Dialog>
       <PacienteFormDialog
         open={crearPacienteOpen}
         initialValues={crearPacienteInicial}

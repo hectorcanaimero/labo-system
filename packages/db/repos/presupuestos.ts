@@ -72,6 +72,10 @@ export interface Presupuesto {
   descuento_pct: number;
   ganancia_pct: number;
   tasa_bs: number;
+  /** Cargo por toma de muestra, en USD. Fuera del descuento y la ganancia. */
+  toma_muestra_usd: number;
+  /** Cargo por servicio a domicilio, en USD. 0 si no aplica. */
+  domicilio_usd: number;
   total_usd: number;
   total_bs: number;
   estado: EstadoPresupuesto;
@@ -118,7 +122,8 @@ function normalizePagination(
 
 const PRESUPUESTO_COLS =
   "id, numero_correlativo, paciente_id, paciente_nombre_libre, " +
-  "descuento_pct, ganancia_pct, tasa_bs, total_usd, total_bs, estado, " +
+  "descuento_pct, ganancia_pct, tasa_bs, toma_muestra_usd, domicilio_usd, " +
+  "total_usd, total_bs, estado, " +
   "orden_id, created_at, created_by, pacientes ( nombre, apellido )";
 
 type PresupuestoRow = {
@@ -129,6 +134,8 @@ type PresupuestoRow = {
   descuento_pct: Numeric;
   ganancia_pct: Numeric;
   tasa_bs: Numeric;
+  toma_muestra_usd: Numeric;
+  domicilio_usd: Numeric;
   total_usd: Numeric;
   total_bs: Numeric;
   estado: EstadoPresupuesto;
@@ -162,6 +169,8 @@ function mapHeader(row: PresupuestoRow): Omit<Presupuesto, "lineas"> {
     descuento_pct: numberOf(row.descuento_pct),
     ganancia_pct: numberOf(row.ganancia_pct),
     tasa_bs: numberOf(row.tasa_bs),
+    toma_muestra_usd: numberOf(row.toma_muestra_usd),
+    domicilio_usd: numberOf(row.domicilio_usd),
     total_usd: numberOf(row.total_usd),
     total_bs: numberOf(row.total_bs),
     estado: row.estado,
@@ -398,10 +407,14 @@ export async function create(
     };
   });
 
+  const tomaMuestraUsd = parsed.data.toma_muestra_usd ?? 0;
+  const domicilioUsd = parsed.data.domicilio_usd ?? 0;
+
   const totals = calcularTotales({
     descuentoPct: parsed.data.descuento_pct,
     gananciaPct: parsed.data.ganancia_pct,
     tasa: parsed.data.tasa_bs,
+    serviciosUsd: tomaMuestraUsd + domicilioUsd,
     lineas: lineasInput.map((item) => ({
       precioBase: item.precioBase,
       gananciaPct: item.gananciaEfectiva,
@@ -416,6 +429,8 @@ export async function create(
       descuento_pct: parsed.data.descuento_pct,
       ganancia_pct: parsed.data.ganancia_pct,
       tasa_bs: parsed.data.tasa_bs,
+      toma_muestra_usd: tomaMuestraUsd,
+      domicilio_usd: domicilioUsd,
       total_usd: totals.totalUsd,
       total_bs: totals.totalBs,
       estado: "Borrador",
@@ -482,6 +497,10 @@ export async function update(
   let totalBs = existing.total_bs;
   const examenes = data.examenes;
 
+  const tomaMuestraUsd = data.toma_muestra_usd ?? existing.toma_muestra_usd;
+  const domicilioUsd = data.domicilio_usd ?? existing.domicilio_usd;
+  const serviciosUsd = tomaMuestraUsd + domicilioUsd;
+
   if (examenes) {
     const ids = examenes.map((linea) => linea.examen_id);
     const examsRes = await db
@@ -516,6 +535,7 @@ export async function update(
       descuentoPct,
       gananciaPct: gananciaGlobal,
       tasa: tasaBs,
+      serviciosUsd,
       lineas: lineasInput.map((item) => ({
         precioBase: item.precioBase,
         gananciaPct: item.gananciaEfectiva,
@@ -548,7 +568,9 @@ export async function update(
   } else if (
     data.descuento_pct !== undefined ||
     data.ganancia_pct !== undefined ||
-    data.tasa_bs !== undefined
+    data.tasa_bs !== undefined ||
+    data.toma_muestra_usd !== undefined ||
+    data.domicilio_usd !== undefined
   ) {
     const descuentoPct = data.descuento_pct ?? existing.descuento_pct;
     const gananciaGlobal = data.ganancia_pct;
@@ -559,6 +581,7 @@ export async function update(
       descuentoPct,
       gananciaPct,
       tasa: tasaBs,
+      serviciosUsd,
       lineas: existing.lineas.map((line) => ({
         precioBase: line.precio_base_snap,
         ...(gananciaGlobal === undefined ? { gananciaPct: line.ganancia_pct } : {}),
@@ -586,6 +609,8 @@ export async function update(
     descuento_pct: data.descuento_pct ?? existing.descuento_pct,
     ganancia_pct: data.ganancia_pct ?? existing.ganancia_pct,
     tasa_bs: data.tasa_bs ?? existing.tasa_bs,
+    toma_muestra_usd: tomaMuestraUsd,
+    domicilio_usd: domicilioUsd,
     total_usd: totalUsd,
     total_bs: totalBs,
   };
@@ -764,6 +789,10 @@ export async function convertToOrden(
 
   // Copiar líneas del presupuesto → ordenes_examenes (con datos vigentes del
   // examen para unidad/valores/tipo/método).
+  //
+  // `toma_muestra_usd` y `domicilio_usd` NO se copian: son cargos del
+  // presupuesto, no exámenes, y la orden no los necesita. Al vivir como
+  // columnas del encabezado quedan afuera solos, sin filtro explícito.
   const linesRes = await db
     .from("presupuestos_examenes")
     .select("examen_id, nombre_snap, precio_snap, orden")

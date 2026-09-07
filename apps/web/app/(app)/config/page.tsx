@@ -37,6 +37,7 @@ export default async function ConfigPage() {
         colegio_bioanalistas: config.colegio_bioanalistas,
         mpps: config.mpps,
         pdf_pie_pagina: config.pdf_pie_pagina,
+        toma_muestra_default_usd: config.toma_muestra_default_usd,
       }
     : null;
 

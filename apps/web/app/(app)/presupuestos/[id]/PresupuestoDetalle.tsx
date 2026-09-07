@@ -68,6 +68,8 @@ interface PresupuestoDetalleProps {
     descuento_pct: number;
     ganancia_pct: number;
     tasa_bs: number;
+    toma_muestra_usd: number;
+    domicilio_usd: number;
     total_usd: number;
     total_bs: number;
     estado: EstadoPresupuesto;
@@ -79,9 +81,12 @@ interface PresupuestoDetalleProps {
       nombre_snap: string;
       precio_snap: number;
       orden: number;
-      paquete_id?: string | null;
-      precio_base_snap?: number;
-      ganancia_pct?: number;
+      // Requeridos: el formulario de edición los necesita para reconstruir
+      // las líneas. Eran opcionales y la página no los pasaba, así que un
+      // paquete cerrado volvía como líneas sueltas sin que nada fallara.
+      paquete_id: string | null;
+      precio_base_snap: number;
+      ganancia_pct: number;
       precio_final_snap?: number;
     }>;
   };
@@ -205,6 +210,8 @@ export function PresupuestoDetalle({ initialData }: PresupuestoDetalleProps) {
             descuento_pct: initialData.descuento_pct,
             ganancia_pct: initialData.ganancia_pct,
             tasa_bs: initialData.tasa_bs,
+            toma_muestra_usd: initialData.toma_muestra_usd,
+            domicilio_usd: initialData.domicilio_usd,
             estado: initialData.estado,
             lineas: initialData.lineas,
           }}
@@ -321,11 +328,17 @@ export function PresupuestoDetalle({ initialData }: PresupuestoDetalleProps) {
       {/* Metadata denso */}
       <Card className="shadow-none">
         <CardContent className="p-4">
-          <dl className="grid grid-cols-2 gap-x-4 gap-y-2 text-xs sm:grid-cols-3 lg:grid-cols-6">
+          <dl className="grid grid-cols-2 gap-x-4 gap-y-2 text-xs sm:grid-cols-4 lg:grid-cols-8">
             <MetaCell label="Fecha" mono>{formatDate(initialData.created_at)}</MetaCell>
             <MetaCell label="Tasa Bs" mono>{formatBs(initialData.tasa_bs)}</MetaCell>
             <MetaCell label="Descuento" mono>{initialData.descuento_pct}%</MetaCell>
             <MetaCell label="Ganancia" mono>{initialData.ganancia_pct}%</MetaCell>
+            <MetaCell label="Toma de muestra" mono>
+              {formatUsd(initialData.toma_muestra_usd)}
+            </MetaCell>
+            <MetaCell label="Domicilio" mono>
+              {initialData.domicilio_usd > 0 ? formatUsd(initialData.domicilio_usd) : "—"}
+            </MetaCell>
             <MetaCell label="Total USD" mono strong>
               {formatUsd(initialData.total_usd)}
             </MetaCell>

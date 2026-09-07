@@ -26,15 +26,30 @@ describe("examenCreate", () => {
     });
   });
 
-  it("acepta todos los valores del enum de tipo_analisis", () => {
+  it("acepta los ocho valores con los que se sembró la tabla", () => {
     for (const tipo of TIPO_ANALISIS_VALUES) {
       expect(examenCreate.safeParse(createInput({ tipo_analisis: tipo })).success).toBe(true);
     }
   });
 
-  it("rechaza un tipo_analisis fuera del enum (aunque sea texto plausible)", () => {
-    expect(examenCreate.safeParse(createInput({ tipo_analisis: "Hematología" })).success).toBe(false);
-    expect(examenCreate.safeParse(createInput({ tipo_analisis: 123 })).success).toBe(false);
+  // F7.4.T3: el vocabulario lo da `tipos_analisis`, no un enum en el código.
+  // El schema sólo exige texto con contenido; validar contra la lista acá
+  // haría que un examen con el tipo desactivado o renombrado no se pudiera
+  // volver a guardar.
+  it("acepta un tipo fuera de la semilla, porque el vocabulario es la tabla", () => {
+    expect(examenCreate.safeParse(createInput({ tipo_analisis: "Citogenética" })).success).toBe(
+      true,
+    );
+  });
+
+  it.each(["", "   ", 123, null, undefined])("rechaza un tipo vacío o no textual: %p", (tipo) => {
+    const res = examenCreate.safeParse(createInput({ tipo_analisis: tipo }));
+    expect(res.success).toBe(false);
+  });
+
+  it("recorta los espacios del tipo", () => {
+    const res = examenCreate.parse(createInput({ tipo_analisis: "  Análisis Hormonal  " }));
+    expect(res.tipo_analisis).toBe("Análisis Hormonal");
   });
 
   it("sanitiza metodo y rechaza metodo que no sea string", () => {

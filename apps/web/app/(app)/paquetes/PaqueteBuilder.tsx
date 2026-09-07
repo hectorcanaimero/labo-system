@@ -5,14 +5,21 @@ import {
   closestCenter,
   DndContext,
   DragOverlay,
-  useDraggable,
-  useDroppable,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
 } from "@dnd-kit/core";
-import { arrayMove, useSortable } from "@dnd-kit/sortable";
+import {
+  arrayMove,
+  sortableKeyboardCoordinates,
+  useSortable,
+} from "@dnd-kit/sortable";
 import type { DragEndEvent, DragStartEvent } from "@dnd-kit/core";
 import {
   Search,
   GripVertical,
+  Plus,
   X,
   Save,
   ArrowLeft,
@@ -22,6 +29,7 @@ import {
   Wand2,
 } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -121,12 +129,16 @@ function SortableExamRow({
         transition,
       }}
     >
-      <div className="flex items-center gap-3 px-4 py-2" {...attributes}>
+      <div className="flex items-center gap-3 px-4 py-2">
+        {/* `attributes` y `listeners` van juntos en el asa: es lo que dnd-kit
+            necesita para que el reorden por teclado (Espacio, flechas, Espacio)
+            funcione, no solo el arrastre con el mouse. */}
         <button
           type="button"
           aria-label={`Mover ${item.nombre}`}
           className="cursor-grab text-muted-foreground disabled:cursor-default"
           disabled={!canEdit}
+          {...attributes}
           {...listeners}
         >
           <GripVertical className="h-4 w-4" />
@@ -148,6 +160,12 @@ function SortableExamRow({
   );
 }
 
+/**
+ * Fila del catálogo. Ya no se arrastra: el alta es por el botón "Agregar", que
+ * es lo que se acordó con el cliente. Antes la fila era un `useDraggable` y un
+ * `onClick` sobre el mismo elemento, así que el pointerdown arrancaba el
+ * arrastre y el click no llegaba a dispararse nunca.
+ */
 function CatalogRow({
   exam,
   selected,
@@ -159,29 +177,32 @@ function CatalogRow({
   disabled: boolean;
   onAdd: () => void;
 }) {
-  const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
-    id: `catalog:${exam.id}`,
-    disabled: disabled || selected,
-  });
   return (
-    <button
-      ref={setNodeRef}
-      type="button"
-      onClick={onAdd}
-      disabled={disabled || selected}
-      style={{
-        transform: transform
-          ? `translate3d(${transform.x}px, ${transform.y}px, 0)`
-          : undefined,
-      }}
-      className={`flex w-full items-center gap-3 border-b border-border/70 px-4 py-2 text-left transition hover:bg-muted/60 disabled:cursor-default disabled:opacity-45 ${isDragging ? "opacity-40" : ""}`}
-      {...listeners}
-      {...attributes}
-    >
-      <GripVertical className="h-4 w-4 shrink-0 text-muted-foreground" />
-      <span className="min-w-0 flex-1 truncate text-sm">{exam.nombre}</span>
+    <div className="flex w-full items-center gap-3 border-b border-border/70 px-4 py-2">
+      <span
+        className={`min-w-0 flex-1 truncate text-sm ${selected ? "text-muted-foreground" : ""}`}
+      >
+        {exam.nombre}
+      </span>
       <span className="text-xs text-muted-foreground">{formatUsd(exam.precio_usd)}</span>
-    </button>
+      <Button
+        type="button"
+        variant="outline"
+        size="sm"
+        className="h-7 shrink-0 text-xs"
+        onClick={onAdd}
+        disabled={disabled || selected}
+        aria-label={selected ? `${exam.nombre} ya está en el paquete` : `Agregar ${exam.nombre}`}
+      >
+        {selected ? (
+          "Agregado"
+        ) : (
+          <>
+            <Plus className="h-3 w-3" /> Agregar
+          </>
+        )}
+      </Button>
+    </div>
   );
 }
 
@@ -192,6 +213,7 @@ export function PaqueteBuilder({
   initialData: PaqueteBuilderData;
   canEdit: boolean;
 }) {
+  const router = useRouter();
   const [items, setItems] = useState<PackageExam[]>(initialData.examenes);
   const [precioBase, setPrecioBase] = useState<string>(
     initialData.precio_base.toString(),
@@ -259,7 +281,12 @@ export function PaqueteBuilder({
     return map;
   }, [catalog, examsByTitulo]);
 
-  const { setNodeRef: setDropRef, isOver } = useDroppable({ id: "package-drop" });
+  // Sin sensores, el `DndContext` no arranca ningún arrastre. La distancia de
+  // activación evita que un click cuente como arrastre.
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+  );
 
   async function loadCatalog(value: string): Promise<void> {
     setSearch(value);
@@ -347,13 +374,7 @@ export function PaqueteBuilder({
     setActiveId(null);
     const source = String(event.active.id);
     const over = event.over ? String(event.over.id) : null;
-    if (source.startsWith("catalog:")) {
-      if (over === "package-drop" || over?.startsWith("exam:")) {
-        addExamById(source.slice(8));
-      }
-      return;
-    }
-    if (!over || over === "package-drop") return;
+    if (!over) return;
     const from = items.findIndex((item) => `exam:${item.id}` === source);
     const to = items.findIndex((item) => `exam:${item.id}` === over);
     if (from >= 0 && to >= 0 && from !== to) {
@@ -366,23 +387,30 @@ export function PaqueteBuilder({
     setMessage(null);
     try {
       const pBase = parseFloat(precioBase) || 0;
-      await Promise.all([
-        requestJson(`/api/paquetes/${initialData.id}`, {
-          method: "PATCH",
-          body: JSON.stringify({ precio_base: pBase }),
+      await requestJson(`/api/paquetes/${initialData.id}`, {
+        method: "PUT",
+        body: JSON.stringify({
+          precio_base: pBase,
+          examenIds: items.map((item) => item.id),
+          tituloIds: selectedTitulos.map((t) => t.id),
         }),
-        requestJson(`/api/paquetes/${initialData.id}/examenes`, {
-          method: "PUT",
-          body: JSON.stringify({ examenIds: items.map((item) => item.id) }),
-        }),
-        requestJson(`/api/paquetes/${initialData.id}/titulos`, {
-          method: "PUT",
-          body: JSON.stringify({ tituloIds: selectedTitulos.map((t) => t.id) }),
-        }),
-      ]);
+      });
       setMessage("Paquete guardado.");
     } catch (error) {
       setMessage(toHumanError(error));
+      // El guardado pudo fallar a medio camino del lado del servidor (ver
+      // setContenido). Recargamos el estado real antes de dejar reintentar,
+      // para no reintentar sobre un borrador que ya no coincide con la base.
+      try {
+        const fresh = await requestJson<PaqueteBuilderData>(`/api/paquetes/${initialData.id}`);
+        setItems(fresh.examenes);
+        setPrecioBase(fresh.precio_base.toString());
+        setSelectedTitulos(fresh.titulos);
+      } catch {
+        // Best-effort: si el refetch también falla, queda el borrador local
+        // y el mensaje de error de arriba.
+      }
+      router.refresh();
     } finally {
       setBusy(false);
     }
@@ -534,6 +562,7 @@ export function PaqueteBuilder({
       </Card>
 
       <DndContext
+        sensors={sensors}
         collisionDetection={closestCenter}
         onDragStart={handleDragStart}
         onDragEnd={handleDragEnd}
@@ -652,10 +681,7 @@ export function PaqueteBuilder({
             </div>
           </section>
 
-          <section
-            ref={setDropRef}
-            className={`flex h-[38rem] flex-col overflow-hidden rounded-md border bg-card transition ${isOver ? "border-primary bg-primary/5" : "border-border"}`}
-          >
+          <section className="flex h-[38rem] flex-col overflow-hidden rounded-md border border-border bg-card transition">
             <div className="flex shrink-0 items-center justify-between border-b border-border bg-muted/30 p-2.5">
               <div>
                 <h2 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
@@ -724,7 +750,7 @@ export function PaqueteBuilder({
                     ))
                   ) : selectedTitulos.length === 0 ? (
                     <p className="p-10 text-center text-sm text-muted-foreground">
-                      Arrastrá exámenes acá, hacé clic en el catálogo, o incluí un grupo completo desde la izquierda.
+                      Hacé clic en Agregar o incluí un grupo completo
                     </p>
                   ) : (
                     <p className="px-4 py-3 text-xs text-muted-foreground">
@@ -740,9 +766,7 @@ export function PaqueteBuilder({
         <DragOverlay>
           {activeId ? (
             <div className="rounded-lg border border-primary bg-card px-4 py-3 text-sm shadow-xl">
-              {activeId.startsWith("catalog:")
-                ? allKnownExams.get(activeId.slice(8))?.nombre
-                : items.find((exam) => `exam:${exam.id}` === activeId)?.nombre}
+              {items.find((exam) => `exam:${exam.id}` === activeId)?.nombre}
             </div>
           ) : null}
         </DragOverlay>

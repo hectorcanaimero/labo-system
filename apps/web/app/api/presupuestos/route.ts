@@ -10,7 +10,9 @@ function response(error: unknown): Response {
   if (error instanceof AuthError) return NextResponse.json({ error: error.code }, { status: error.code === "UNAUTHENTICATED" ? 401 : 403 });
   const code = error instanceof Error ? error.message : "ERROR_GENERICO";
   const status = code === "PRESUPUESTO_NO_ENCONTRADO" ? 404 : code === "EXAMEN_NO_ENCONTRADO" ? 404 : code === "PACIENTE_XOR_REQUIRED" ? 400 : code === "CREATED_BY_REQUERIDO" ? 500 : code === "VALIDACION_FALLIDA" ? 400 : 500;
-  return NextResponse.json({ error: code === "CREATED_BY_REQUERIDO" ? "ERROR_GENERICO" : code }, { status });
+  const outCode = code === "CREATED_BY_REQUERIDO" ? "ERROR_GENERICO" : code;
+  if (status === 500) console.error("presupuestos:", error);
+  return NextResponse.json({ error: outCode }, { status });
 }
 
 export async function GET(request: NextRequest): Promise<Response> {

@@ -6,9 +6,11 @@ import {
   pacienteUpdate,
   CEDULA_INVALIDA,
   CEDULA_PREFIJO_INVALIDO,
+  DIRECCION_REQUERIDA,
   FECHA_NACIMIENTO_FUTURA,
   NOMBRE_REQUERIDO,
   SEXO_REQUERIDO,
+  UBICACION_INVALIDA,
 } from "./paciente";
 
 function pacienteBase(overrides: Record<string, unknown> = {}) {
@@ -18,6 +20,7 @@ function pacienteBase(overrides: Record<string, unknown> = {}) {
     cedula: "V-21197865",
     fecha_nacimiento: new Date("1990-05-15T00:00:00.000Z"),
     sexo: "M",
+    direccion: "Av. Principal, Casa 12",
     ...overrides,
   };
 }
@@ -145,6 +148,51 @@ describe("pacienteCreate — sexo", () => {
     expect(result.success).toBe(false);
     if (!result.success) {
       expect(result.error.issues[0].message).toBe(SEXO_REQUERIDO);
+    }
+  });
+});
+
+describe("pacienteCreate — direccion", () => {
+  it("rechaza dirección ausente", () => {
+    const result = pacienteCreate.safeParse(pacienteBase({ direccion: undefined }));
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.issues[0].message).toBe(DIRECCION_REQUERIDA);
+    }
+  });
+
+  it("rechaza dirección con menos de 5 caracteres", () => {
+    expect(pacienteCreate.safeParse(pacienteBase({ direccion: "Casa" })).success).toBe(false);
+  });
+
+  it("trimea dirección válida", () => {
+    const result = pacienteCreate.parse(pacienteBase({ direccion: "  Av. Bolívar  " }));
+    expect(result.direccion).toBe("Av. Bolívar");
+  });
+});
+
+describe("pacienteCreate — ubicacion_url", () => {
+  it("acepta ausente (opcional)", () => {
+    expect(pacienteCreate.safeParse(pacienteBase()).success).toBe(true);
+  });
+
+  it("acepta un par de coordenadas", () => {
+    const result = pacienteCreate.parse(pacienteBase({ ubicacion_url: "10.49,-66.88" }));
+    expect(result.ubicacion_url).toBe("10.49,-66.88");
+  });
+
+  it("acepta un enlace de Maps", () => {
+    expect(
+      pacienteCreate.safeParse(pacienteBase({ ubicacion_url: "https://maps.app.goo.gl/abc" }))
+        .success,
+    ).toBe(true);
+  });
+
+  it("rechaza texto libre que no es coordenadas ni URL", () => {
+    const result = pacienteCreate.safeParse(pacienteBase({ ubicacion_url: "cerca del terminal" }));
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.issues[0].message).toBe(UBICACION_INVALIDA);
     }
   });
 });
