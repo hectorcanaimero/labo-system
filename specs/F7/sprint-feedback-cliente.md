@@ -739,8 +739,8 @@ Rama del sprint: `sprint/f7-2`, base `staged` (post PR #11). Cada tarea es un co
 
 | Tarea | Sesión | Estado | Commit | Comentario |
 |---|---|---|---|---|
-| F7.5.T1 | sonnet | en curso | — | Primera de sonnet: toca ConfigForm antes que F7.4.T1. |
-| F7.4.T2 | sonnet | asignada | — | — |
+| F7.5.T1 | sonnet | hecha | `13f3753` | setManual no tenía guarda anti-outlier: se agregó la misma de setFromScraper y POST /api/tasa/manual responde 409 TASA_RECHAZADA_OUTLIER con tasa anterior e intentada; Config lo muestra. Doc de la Scheduled Task horaria en coolify-staged.md. Pendiente del usuario: confirmar en el panel de Coolify que scrape-bcv-hourly exista y esté activa. |
+| F7.4.T2 | sonnet | en curso | — | — |
 | F7.3.T3 | sonnet | asignada | — | — |
 | F7.3.T2 | opus | en curso | — | Migración 0016 sin aplicar en hosted hasta decisión del usuario. |
 | F7.4.T1 | opus | asignada | — | Última de opus: rebase sobre F7.5.T1 por ConfigForm. |

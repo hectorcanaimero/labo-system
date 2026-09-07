@@ -2774,7 +2774,7 @@
       "description": "**Objetivo**\n\nLa tasa estaba desactualizada durante las pruebas del cliente y los únicos refrescos en auditoría son manuales. Verificar la tarea programada y hacer visibles los rechazos de la guarda anti-outlier.\n\n**Alcance**\n\nSí hace:\n- Revisar en Coolify la tarea programada que llama a `refresh-bcv` con `CRON_SECRET`; documentar en `docs/deploy/coolify-staged.md` cómo está configurada.\n- Cuando `setManual` o el scraper rechazan por outlier, devolver `TASA_RECHAZADA_OUTLIER` y mostrarlo en Config con el valor anterior.\n- Reproducir el “tasa manual no funciona” de la demo con la consola abierta y anotar la causa.\n\nNo hace:\n- Cambiar el umbral del outlier sin dato.\n\n**Criterios de aceptación**\n\n- [ ] La tasa en producción se actualiza sola cada hora durante un día completo.\n- [ ] Cargar una tasa manual fuera de rango muestra el motivo en vez de éxito silencioso.",
       "model": "opencode-go/kimi-k2.6",
       "reason": "Cambios acotados de UI, mensajes y documentación.",
-      "status": "todo",
+      "status": "done",
       "dependencies": [],
       "estimateHours": 2,
       "files": [
@@ -2784,7 +2784,15 @@
         "apps/web/app/(app)/config/ConfigForm.tsx"
       ],
       "specRef": "F7/sprint-feedback-cliente.md#F7.5.T1",
-      "comments": []
+      "comments": [
+        {
+          "date": "2026-09-07",
+          "author": "planner",
+          "session": "sonnet",
+          "commit": "13f3753",
+          "text": "setManual no tenía guarda anti-outlier: se agregó la misma de setFromScraper y POST /api/tasa/manual responde 409 TASA_RECHAZADA_OUTLIER con tasa anterior e intentada; Config lo muestra. Doc de la Scheduled Task horaria en coolify-staged.md. Pendiente del usuario: confirmar en el panel de Coolify que scrape-bcv-hourly exista y esté activa."
+        }
+      ]
     },
     {
       "id": "F7.3.T1b",
