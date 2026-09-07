@@ -479,6 +479,81 @@ export async function setExamenes(
 }
 
 /**
+ * Guarda el paquete completo en un solo llamado: precio base, exámenes sueltos
+ * y grupos incluidos, aplicados en ese orden.
+ *
+ * El cliente de InsForge no expone transacciones, así que la atomicidad es por
+ * compensación: se lee el estado previo, y si un paso falla se deshacen los
+ * anteriores en orden inverso antes de relanzar el error original. Si la
+ * compensación también falla, gana el error original: el paquete puede quedar
+ * a medias y el llamador tiene que recargar.
+ */
+export async function setContenido(
+  db: Db,
+  id: string,
+  input: unknown,
+): Promise<PaqueteDetail> {
+  if (typeof input !== "object" || input === null || Array.isArray(input)) {
+    throw new Error(VALIDACION_FALLIDA);
+  }
+  const body = input as Record<string, unknown>;
+
+  const quierePrecio = Object.prototype.hasOwnProperty.call(body, "precio_base");
+  const quiereExamenes = Object.prototype.hasOwnProperty.call(body, "examenIds");
+  const quiereTitulos = Object.prototype.hasOwnProperty.call(body, "tituloIds");
+
+  // Validar todo antes de escribir nada: si el body está mal, no se toca la base.
+  const parsedPrecio = quierePrecio
+    ? paqueteUpdate.safeParse({ precio_base: body.precio_base })
+    : null;
+  if (parsedPrecio && !parsedPrecio.success) {
+    throw toDomainValidationError(parsedPrecio.error);
+  }
+  const precioBase = parsedPrecio?.data.precio_base;
+  const examenIds = quiereExamenes ? parseIds(body.examenIds) : null;
+  const tituloIds = quiereTitulos ? parseIds(body.tituloIds) : null;
+
+  const previo = await getById(db, id);
+  if (!previo) throw new Error(PAQUETE_NO_ENCONTRADO);
+
+  const deshacer: Array<() => Promise<unknown>> = [];
+
+  try {
+    if (precioBase !== undefined && precioBase !== previo.precio_base) {
+      await update(db, id, { precio_base: precioBase });
+      deshacer.push(() => update(db, id, { precio_base: previo.precio_base }));
+    }
+
+    if (examenIds) {
+      await setExamenes(db, id, examenIds);
+      deshacer.push(() =>
+        setExamenes(db, id, previo.examenes.map((examen) => examen.id)),
+      );
+    }
+
+    if (tituloIds) {
+      await setTitulos(db, id, tituloIds);
+      deshacer.push(() =>
+        setTitulos(db, id, previo.titulos.map((titulo) => titulo.id)),
+      );
+    }
+  } catch (error) {
+    for (const revertir of deshacer.reverse()) {
+      try {
+        await revertir();
+      } catch {
+        // La compensación es best-effort: el error que importa es el original.
+      }
+    }
+    throw error;
+  }
+
+  const actualizado = await getById(db, id);
+  if (!actualizado) throw new Error(PAQUETE_NO_ENCONTRADO);
+  return actualizado;
+}
+
+/**
  * Reemplaza el set de GRUPOS (títulos) incluidos por referencia dinámica.
  */
 export async function setTitulos(
