@@ -51,6 +51,9 @@ export const DOMAIN_ERROR_MESSAGES: Readonly<Record<string, string>> = {
   CEDULA_INVALIDA: "El formato de la cédula no es válido.",
   PACIENTE_NO_ENCONTRADO: "El paciente que buscás ya no existe.",
   SEXO_REQUERIDO: "El sexo biológico es requerido (M o F).",
+  DIRECCION_REQUERIDA: "La dirección es requerida (mínimo 5 caracteres).",
+  UBICACION_INVALIDA:
+    "La ubicación debe ser un enlace de mapa o coordenadas \"lat,long\".",
 
   // ── Presupuestos / Resultados / Paquetes (F2, F3) ─────────────────────
   PRESUPUESTO_NO_ENCONTRADO: "El presupuesto que buscás ya no existe.",

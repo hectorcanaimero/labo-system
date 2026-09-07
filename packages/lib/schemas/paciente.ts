@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 import { normalizeCedula } from "../cedula";
+import { esUbicacionValida } from "../ubicacion";
 
 /**
  * Códigos de error de validación de pacientes.
@@ -14,6 +15,8 @@ export const CEDULA_INVALIDA = "CEDULA_INVALIDA";
 export const CEDULA_PREFIJO_INVALIDO = "CEDULA_PREFIJO_INVALIDO";
 export const FECHA_NACIMIENTO_FUTURA = "FECHA_NACIMIENTO_FUTURA";
 export const SEXO_REQUERIDO = "SEXO_REQUERIDO";
+export const DIRECCION_REQUERIDA = "DIRECCION_REQUERIDA";
+export const UBICACION_INVALIDA = "UBICACION_INVALIDA";
 
 /**
  * Sexo biológico admitido para pacientes (ADR-06 / §6 modelo de datos).
@@ -76,7 +79,16 @@ export const pacienteCreate = z.object({
   sexo: sexoSchema,
   telefono: z.string().optional(),
   email: z.string().optional(),
-  direccion: z.string().optional(),
+  direccion: z
+    .string({ required_error: DIRECCION_REQUERIDA })
+    .trim()
+    .min(5, { message: DIRECCION_REQUERIDA }),
+  ubicacion_url: z
+    .string()
+    .optional()
+    .refine((value) => value === undefined || esUbicacionValida(value), {
+      message: UBICACION_INVALIDA,
+    }),
 });
 
 export type PacienteCreateInput = z.infer<typeof pacienteCreate>;
