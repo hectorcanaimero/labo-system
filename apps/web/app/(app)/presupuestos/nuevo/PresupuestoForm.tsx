@@ -33,6 +33,7 @@ import { StaleTasaBadge } from "@labo/ui/tasa/StaleTasaBadge";
 import { apiFetch } from "@/lib/api-client";
 import { aItemAutocomplete, valoresInicialesDesdeBusqueda } from "@/lib/paciente-quick-create";
 import { PacienteFormDialog, type PacienteFormValues } from "@/app/(app)/pacientes/PacienteFormDialog";
+import { notifyError, notifySuccess } from "@labo/ui/feedback/toast";
 type PresupuestoMode = "create" | "edit";
 type ModoCargaPaquete = "cerrado" | "desglosado";
 
@@ -564,6 +565,7 @@ export function PresupuestoForm({
         },
       );
 
+      notifySuccess(mode === "create" ? "Presupuesto guardado." : "Presupuesto actualizado.");
       if (onSaved) {
         onSaved(response.id);
         return;
@@ -573,6 +575,7 @@ export function PresupuestoForm({
       router.refresh();
     } catch (error) {
       setMessage(toHumanError(error));
+      notifyError(error);
     } finally {
       setSaving(false);
     }

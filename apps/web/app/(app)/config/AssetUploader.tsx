@@ -5,6 +5,7 @@ import { Loader2, Upload, FileImage } from "lucide-react";
 import { validateAssetFile } from "@labo/lib/schemas/config";
 import { Skeleton } from "@labo/ui/feedback";
 
+import { notifyError, notifySuccess } from "@labo/ui/feedback/toast";
 interface AssetUploaderProps {
   type: "logo" | "firma" | "sello";
   label: string;
@@ -113,9 +114,11 @@ export function AssetUploader({ type, label, description, onSuccess, onError }: 
       setCurrentAssetUrl(objectUrl);
       setLocalPreview(null);
       onSuccess(`¡Se actualizó el ${label} correctamente!`);
+      notifySuccess(`${label} actualizado.`);
     } catch (err) {
       console.error(err);
       onError(err instanceof Error ? err.message : `Ocurrió un error al subir el ${label}.`);
+      notifyError(err);
       setLocalPreview(null);
     } finally {
       setUploading(false);

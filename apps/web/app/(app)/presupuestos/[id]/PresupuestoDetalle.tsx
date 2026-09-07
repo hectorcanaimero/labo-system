@@ -57,6 +57,7 @@ import { PresupuestoForm } from "../nuevo/PresupuestoForm";
 import { EnviarPresupuestoButtons } from "./EnviarPresupuestoButtons";
 import { PageHeader } from "@/components/layout/PageHeader";
 
+import { notifyError, notifySuccess } from "@labo/ui/feedback/toast";
 interface PresupuestoDetalleProps {
   role: string;
   /** F7.2.T6 — tasa vigente (no la guardada) para avisar si difieren al editar. */
@@ -163,9 +164,11 @@ export function PresupuestoDetalle({
         method: "PATCH",
         body: JSON.stringify({ estado: "Aprobado" }),
       });
+      notifySuccess("Presupuesto aprobado.");
       router.refresh();
     } catch (reason) {
       setError(toHumanError(reason));
+      notifyError(reason);
     } finally {
       setApproving(false);
     }
@@ -184,6 +187,7 @@ export function PresupuestoDetalle({
       );
       setConfirmOpen(false);
       setPacienteAsignado(null);
+      notifySuccess("Orden de laboratorio creada.");
       router.push(`/resultados/${result.orden_id}`);
       router.refresh();
     } catch (reason) {
@@ -198,6 +202,7 @@ export function PresupuestoDetalle({
         return;
       }
       setError(toHumanError(reason));
+      notifyError(reason);
       setConverting(false);
     }
   }

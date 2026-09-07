@@ -5,6 +5,7 @@ import { Loader2 } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { toHumanError } from '@labo/lib/error-messages';
+import { notifyError, notifySuccess } from '@labo/ui/feedback/toast';
 import { apiFetch } from '@/lib/api-client';
 
 /**
@@ -121,8 +122,10 @@ export function CatalogoSelect({
       onChange(creado.nombre);
       setAltaAbierta(false);
       setNuevo('');
+      notifySuccess(`${label} agregado.`);
     } catch (error) {
       onError?.(toHumanError(error));
+      notifyError(error);
     } finally {
       setCreando(false);
     }

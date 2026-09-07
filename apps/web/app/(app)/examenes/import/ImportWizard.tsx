@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { UploadCloud, FileSpreadsheet, Download, AlertCircle, CheckCircle2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 
+import { notifyError, notifySuccess } from "@labo/ui/feedback/toast";
 interface ImportResult {
   titulos_creados: number;
   examenes_creados: number;
@@ -90,10 +91,12 @@ export function ImportWizard() {
       }
 
       setResult(data as ImportResult);
+      notifySuccess("Importación completada.");
       router.refresh();
       
     } catch (err) {
       setError(err instanceof Error ? err.message : "Error de conexión");
+      notifyError(err);
     } finally {
       setLoading(false);
     }

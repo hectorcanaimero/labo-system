@@ -44,6 +44,13 @@ const ROLE_BY_KIND: Readonly<Record<ToastKind, "status" | "alert">> = {
 let container: HTMLDivElement | null = null;
 let toastCounter = 0;
 
+function prefersReducedMotion(): boolean {
+  return (
+    typeof window !== "undefined" &&
+    window.matchMedia?.("(prefers-reduced-motion: reduce)").matches === true
+  );
+}
+
 function getContainer(): HTMLDivElement {
   if (container && document.body.contains(container)) return container;
 
@@ -144,7 +151,9 @@ function buildToast(
   el.style.pointerEvents = "auto";
   el.style.opacity = "0";
   el.style.transform = "translateY(8px)";
-  el.style.transition = `opacity 150ms ease-out, transform 150ms ease-out`;
+  el.style.transition = prefersReducedMotion()
+    ? "none"
+    : "opacity 150ms ease-out, transform 150ms ease-out";
   el.setAttribute("role", ROLE_BY_KIND[kind]);
   el.id = `labo-toast-${++toastCounter}`;
 

@@ -35,6 +35,7 @@ import { RefinarObservacionesButton } from "@labo/ui/resultados/RefinarObservaci
 import { apiFetch } from "@/lib/api-client";
 import { aItemAutocomplete, valoresInicialesDesdeBusqueda } from "@/lib/paciente-quick-create";
 import { PacienteFormDialog, type PacienteFormValues } from "@/app/(app)/pacientes/PacienteFormDialog";
+import { notifyError, notifySuccess } from "@labo/ui/feedback/toast";
 type ResultadoMode = "create" | "edit";
 
 /** Estados que se pueden elegir al cargar o editar. Anular es una acción aparte. */
@@ -368,6 +369,7 @@ export function ResultadoForm({ mode, initialData, onSaved, onCancelEdit }: Resu
         },
       );
 
+      notifySuccess("Orden guardada.");
       if (onSaved) {
         onSaved(response.id);
         return;
@@ -377,6 +379,7 @@ export function ResultadoForm({ mode, initialData, onSaved, onCancelEdit }: Resu
       router.refresh();
     } catch (error) {
       setMessage(toHumanError(error));
+      notifyError(error);
     } finally {
       setSaving(false);
     }

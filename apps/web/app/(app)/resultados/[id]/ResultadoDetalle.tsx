@@ -20,6 +20,7 @@ import { EnviarResultadoButtons } from "./EnviarResultadoButtons";
 import { ResultadoForm } from "../nuevo/ResultadoForm";
 import { PageHeader } from "@/components/layout/PageHeader";
 
+import { notifyError, notifySuccess } from "@labo/ui/feedback/toast";
 interface ResultadoDetalleProps {
   role: string;
   initialData: {
@@ -111,11 +112,13 @@ export function ResultadoDetalle({ role, initialData }: ResultadoDetalleProps) {
         // del repo. Cinturón y tirantes con el arreglo de `ordenes.update`.
         body: JSON.stringify({ observaciones: obsDraft, estado: initialData.estado }),
       });
+      notifySuccess("Observaciones guardadas.");
       setObservaciones(obsDraft);
       setIsEditingObs(false);
       router.refresh();
     } catch (reason) {
       setObsError(reason instanceof Error ? reason.message : "No se pudo guardar la observación.");
+      notifyError(reason);
     } finally {
       setSavingObs(false);
     }
@@ -129,10 +132,12 @@ export function ResultadoDetalle({ role, initialData }: ResultadoDetalleProps) {
       setDeleting(true);
       setError(null);
       await requestJson(`/api/resultados/${initialData.id}`, { method: "DELETE" });
+      notifySuccess("Resultado eliminado.");
       router.push("/resultados");
       router.refresh();
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : "No se pudo eliminar el resultado.");
+      notifyError(reason);
     } finally {
       setDeleting(false);
     }
