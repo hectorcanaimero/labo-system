@@ -1,6 +1,6 @@
 import type { Db } from "../sdk";
 import { ENTREGA_REQUIERE_VALORES, assertPuedeEntregarse } from "@labo/lib/entrega-orden";
-import { crearOReutilizarVerificacion } from "./enlaces";
+import { crearOReutilizarVerificacion, VERIFICACION_TABLA_FALTANTE } from "./enlaces";
 import {
   estadoOrdenSchema,
   ordenCreateSchema,
@@ -713,9 +713,14 @@ export async function update(
 /**
  * Crea el enlace de verificación de la orden si todavía no tiene.
  *
- * Best-effort: si falla (tabla 0016 sin aplicar, por ejemplo) no puede tumbar
- * la entrega del informe, que es la operación que el usuario pidió. El PDF lo
- * vuelve a intentar al emitirse, así que el QR se recupera solo.
+ * Best-effort SOLO para `VERIFICACION_TABLA_FALTANTE` (la 0016 no está
+ * aplicada en este entorno): eso no puede tumbar la entrega del informe, que
+ * es la operación que el usuario pidió, y el PDF vuelve a intentarlo al
+ * emitirse. Cualquier OTRO error (FK inválida, timeout, un bug) antes se
+ * perdía en un `console.warn` sin dejar rastro (revisión cruzada F7.3.T5) —
+ * ahora queda en `audit_log` para que no pase desapercibido, sin romper la
+ * entrega tampoco: perder el QR es preferible a que la licenciada no pueda
+ * marcar la orden como entregada por un problema ajeno.
  */
 async function crearVerificacionBestEffort(
   db: Db,
@@ -725,10 +730,18 @@ async function crearVerificacionBestEffort(
   try {
     await crearOReutilizarVerificacion(db, ordenId, usuarioId);
   } catch (error) {
-    console.warn(
-      "[ordenes] no se pudo crear el enlace de verificación",
-      error instanceof Error ? error.message : error,
-    );
+    const message = error instanceof Error ? error.message : String(error);
+    if (message === VERIFICACION_TABLA_FALTANTE) {
+      console.warn("[ordenes] no se pudo crear el enlace de verificación (tabla 0016 sin aplicar)");
+      return;
+    }
+    console.error("[ordenes] error inesperado al crear el enlace de verificación", message);
+    await auditBestEffort(db, {
+      usuarioId,
+      accion: "ordenes.verificacion_error",
+      entityId: ordenId,
+      metadata: { message },
+    });
   }
 }
 
