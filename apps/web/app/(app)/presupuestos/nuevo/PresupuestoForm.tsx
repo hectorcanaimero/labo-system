@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import {
   ArrowLeft,
   BadgePercent,
+  ChevronDown,
   Loader2,
   PackageOpen,
   Save,
@@ -207,6 +208,7 @@ export function PresupuestoForm({
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [intentoGuardar, setIntentoGuardar] = useState(false);
+  const [ajustesAvanzadosOpen, setAjustesAvanzadosOpen] = useState(false);
 
   const pacienteSectionRef = useRef<HTMLElement>(null);
   const examenesSectionRef = useRef<HTMLElement>(null);
@@ -381,7 +383,10 @@ export function PresupuestoForm({
           precio_snap: precios[index],
           paquete_id: paquete.id,
           precio_base_snap: bases[index],
-          gananciaPctInput: "",
+          // Paquete cerrado: ganancia 0 explícita para que el total sea el
+          // precio base fijado por el admin, no ese precio + la ganancia
+          // global aplicada de nuevo sobre el reparto (bug reportado).
+          gananciaPctInput: modo === "cerrado" ? "0" : "",
           cerrado: modo === "cerrado",
         })),
       );
@@ -439,9 +444,13 @@ export function PresupuestoForm({
           examen_id: linea.examen_id,
           ...(linea.paquete_id ? { paquete_id: linea.paquete_id } : {}),
           precio_base_snap: linea.precio_base_snap,
-          ...(hasValue(linea.gananciaPctInput)
-            ? { ganancia_pct: toNumber(linea.gananciaPctInput) }
-            : {}),
+          // Paquete cerrado: ganancia 0 siempre, aunque Ajustes avanzados
+          // esté cerrado — es lo que mantiene el precio pactado del paquete.
+          ...(linea.cerrado
+            ? { ganancia_pct: 0 }
+            : ajustesAvanzadosOpen && hasValue(linea.gananciaPctInput)
+              ? { ganancia_pct: toNumber(linea.gananciaPctInput) }
+              : {}),
         })),
       };
 
@@ -720,7 +729,9 @@ export function PresupuestoForm({
                 <th className="px-4 py-3 font-medium">Examen</th>
                 <th className="px-4 py-3 font-medium">Origen</th>
                 <th className="px-4 py-3 font-medium">Precio base USD</th>
-                <th className="px-4 py-3 font-medium">Ganancia %</th>
+                {ajustesAvanzadosOpen ? (
+                  <th className="px-4 py-3 font-medium">Ganancia %</th>
+                ) : null}
                 <th className="px-4 py-3 text-right font-medium">Precio final USD</th>
                 <th className="px-4 py-3 text-right font-medium">Acción</th>
               </tr>
@@ -728,7 +739,10 @@ export function PresupuestoForm({
             <tbody className="divide-y divide-border">
               {lineas.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="px-4 py-8 text-center text-sm text-muted-foreground">
+                  <td
+                    colSpan={ajustesAvanzadosOpen ? 6 : 5}
+                    className="px-4 py-8 text-center text-sm text-muted-foreground"
+                  >
                     Todavía no agregaste exámenes. Usá el buscador o cargá un paquete.
                   </td>
                 </tr>
@@ -756,26 +770,28 @@ export function PresupuestoForm({
                       <td className="px-4 py-3 font-mono text-muted-foreground">
                         {formatUsd(linea.precio_base_snap)}
                       </td>
-                      <td className="px-4 py-3">
-                        {linea.cerrado ? (
-                          <span className="text-xs text-muted-foreground">Global</span>
-                        ) : (
-                          <input
-                            type="number"
-                            min={0}
-                            step="0.01"
-                            value={linea.gananciaPctInput}
-                            onChange={(event) => updateGananciaLinea(index, event.target.value)}
-                            placeholder="Global"
-                            aria-label={`Ganancia % de ${linea.nombre_snap}`}
-                            className={`h-9 w-24 rounded-md border bg-background px-2 text-sm ${
-                              gananciaInvalida
-                                ? "border-destructive text-destructive"
-                                : "border-input"
-                            }`}
-                          />
-                        )}
-                      </td>
+                      {ajustesAvanzadosOpen ? (
+                        <td className="px-4 py-3">
+                          {linea.cerrado ? (
+                            <span className="text-xs text-muted-foreground">0 (cerrado)</span>
+                          ) : (
+                            <input
+                              type="number"
+                              min={0}
+                              step="0.01"
+                              value={linea.gananciaPctInput}
+                              onChange={(event) => updateGananciaLinea(index, event.target.value)}
+                              placeholder="Global"
+                              aria-label={`Ganancia % de ${linea.nombre_snap}`}
+                              className={`h-9 w-24 rounded-md border bg-background px-2 text-sm ${
+                                gananciaInvalida
+                                  ? "border-destructive text-destructive"
+                                  : "border-input"
+                              }`}
+                            />
+                          )}
+                        </td>
+                      ) : null}
                       <td className="px-4 py-3 text-right font-mono text-foreground">
                         {precioFinalLinea === undefined ? "—" : formatUsd(precioFinalLinea)}
                       </td>
@@ -815,64 +831,84 @@ export function PresupuestoForm({
 
       <section ref={ajustesSectionRef} className="rounded-2xl border border-border bg-card p-6 shadow-sm">
         <div className="grid gap-6 lg:grid-cols-2">
-          <div className="grid gap-4 sm:grid-cols-3">
-            <label className="space-y-2 text-sm font-medium">
-              <span className="inline-flex items-center gap-1.5">
-                <BadgePercent className="h-4 w-4 text-muted-foreground" />
-                Descuento %
-              </span>
-              <input
-                type="number"
-                min={0}
-                max={100}
-                step="0.01"
-                value={descuentoPct}
-                onChange={(event) => setDescuentoPct(event.target.value)}
-                placeholder="0"
-                className="h-11 w-full rounded-md border border-input bg-background px-3 text-sm"
-              />
-              {!descuentoValido ? (
-                <span className="text-xs text-destructive">Debe estar entre 0 y 100.</span>
-              ) : null}
-            </label>
+          <div className="space-y-4">
+            <div className="grid gap-4 sm:grid-cols-2">
+              <label className="space-y-2 text-sm font-medium">
+                <span className="inline-flex items-center gap-1.5">
+                  <BadgePercent className="h-4 w-4 text-muted-foreground" />
+                  Descuento %
+                </span>
+                <input
+                  type="number"
+                  min={0}
+                  max={100}
+                  step="0.01"
+                  value={descuentoPct}
+                  onChange={(event) => setDescuentoPct(event.target.value)}
+                  placeholder="0"
+                  className="h-11 w-full rounded-md border border-input bg-background px-3 text-sm"
+                />
+                {!descuentoValido ? (
+                  <span className="text-xs text-destructive">Debe estar entre 0 y 100.</span>
+                ) : null}
+              </label>
 
-            <label className="space-y-2 text-sm font-medium">
-              <span className="inline-flex items-center gap-1.5">
-                <BadgePercent className="h-4 w-4 text-muted-foreground" />
-                Ganancia %
-              </span>
-              <input
-                type="number"
-                min={0}
-                step="0.01"
-                value={gananciaPct}
-                onChange={(event) => setGananciaPct(event.target.value)}
-                placeholder="0"
-                className="h-11 w-full rounded-md border border-input bg-background px-3 text-sm"
-              />
-              {!gananciaValida ? (
-                <span className="text-xs text-destructive">No puede ser negativa.</span>
-              ) : null}
-            </label>
+              <label className="space-y-2 text-sm font-medium">
+                <span className="inline-flex items-center gap-1.5">
+                  Tasa Bs
+                  <StaleTasaBadge />
+                </span>
+                <input
+                  type="number"
+                  min={0}
+                  step="0.0001"
+                  value={tasaBs}
+                  onChange={(event) => setTasaBs(event.target.value)}
+                  placeholder="0.00"
+                  className="h-11 w-full rounded-md border border-input bg-background px-3 text-sm"
+                />
+                {!tasaValida ? (
+                  <span className="text-xs text-destructive">Ingresá una tasa mayor a 0.</span>
+                ) : null}
+              </label>
+            </div>
 
-            <label className="space-y-2 text-sm font-medium">
-              <span className="inline-flex items-center gap-1.5">
-                Tasa Bs
-                <StaleTasaBadge />
-              </span>
-              <input
-                type="number"
-                min={0}
-                step="0.0001"
-                value={tasaBs}
-                onChange={(event) => setTasaBs(event.target.value)}
-                placeholder="0.00"
-                className="h-11 w-full rounded-md border border-input bg-background px-3 text-sm"
-              />
-              {!tasaValida ? (
-                <span className="text-xs text-destructive">Ingresá una tasa mayor a 0.</span>
+            <div>
+              <button
+                type="button"
+                onClick={() => setAjustesAvanzadosOpen((open) => !open)}
+                className="inline-flex items-center gap-1.5 text-sm font-medium text-muted-foreground hover:text-foreground"
+                aria-expanded={ajustesAvanzadosOpen}
+              >
+                <ChevronDown
+                  className={`h-4 w-4 transition-transform ${
+                    ajustesAvanzadosOpen ? "rotate-180" : ""
+                  }`}
+                />
+                Ajustes avanzados
+              </button>
+
+              {ajustesAvanzadosOpen ? (
+                <label className="mt-3 block max-w-xs space-y-2 text-sm font-medium">
+                  <span className="inline-flex items-center gap-1.5">
+                    <BadgePercent className="h-4 w-4 text-muted-foreground" />
+                    Ganancia %
+                  </span>
+                  <input
+                    type="number"
+                    min={0}
+                    step="0.01"
+                    value={gananciaPct}
+                    onChange={(event) => setGananciaPct(event.target.value)}
+                    placeholder="0"
+                    className="h-11 w-full rounded-md border border-input bg-background px-3 text-sm"
+                  />
+                  {!gananciaValida ? (
+                    <span className="text-xs text-destructive">No puede ser negativa.</span>
+                  ) : null}
+                </label>
               ) : null}
-            </label>
+            </div>
           </div>
 
           <div className="flex flex-col justify-between rounded-xl border border-border bg-background/60 p-5">
@@ -892,12 +928,14 @@ export function PresupuestoForm({
                   {hasValue(descuentoPct) ? `${descuentoNum}%` : "—"}
                 </span>
               </div>
-              <div className="flex items-center justify-between">
-                <span className="text-muted-foreground">Ganancia</span>
-                <span className="font-mono text-foreground">
-                  {hasValue(gananciaPct) ? `${gananciaNum}%` : "—"}
-                </span>
-              </div>
+              {ajustesAvanzadosOpen ? (
+                <div className="flex items-center justify-between">
+                  <span className="text-muted-foreground">Ganancia</span>
+                  <span className="font-mono text-foreground">
+                    {hasValue(gananciaPct) ? `${gananciaNum}%` : "—"}
+                  </span>
+                </div>
+              ) : null}
               <div className="mt-3 flex items-center justify-between border-t border-border pt-3">
                 <span className="font-medium text-foreground">Total USD</span>
                 <span className="font-mono text-lg font-semibold text-foreground">

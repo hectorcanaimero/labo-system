@@ -151,6 +151,24 @@ describe('calcularTotales', () => {
     expect(result.lineas!.reduce((sum, linea) => sum + linea.precioFinal, 0)).toBe(result.totalUsd);
   });
 
+  it('paquete cerrado con ganancia 0 explícita por línea ignora la ganancia global', () => {
+    // F7.2.T4: antes, la ganancia global se aplicaba de nuevo sobre el
+    // reparto del precio base del paquete, así que el total del paquete
+    // cerrado ya no era el precio pactado. Con ganancia_pct: 0 explícito
+    // en cada línea, el total se mantiene igual al precio base del paquete.
+    const result = calcularTotales({
+      lineas: [
+        { precioBase: 9, gananciaPct: 0 },
+        { precioBase: 6, gananciaPct: 0 },
+      ],
+      descuentoPct: 0,
+      gananciaPct: 10,
+      tasa: 1,
+    });
+
+    expect(result.totalUsd).toBe(15);
+  });
+
   it('acepta los nombres snake_case de los snapshots SQL', () => {
     const result = calcularTotales({
       lineas: [{ precio_base_snap: 10, ganancia_pct: 25 }],
