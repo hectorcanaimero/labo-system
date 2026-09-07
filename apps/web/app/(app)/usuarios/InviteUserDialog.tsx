@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { LAB_TIMEZONE } from "@labo/lib/fecha";
 import { Loader2, Mail, Shield, UserPlus, Clock, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -142,6 +143,7 @@ export function InviteUserDialog({ onSuccess, onError }: InviteUserDialogProps) 
                     {new Date(inv.expires_at).toLocaleDateString("es-VE", {
                       day: "2-digit",
                       month: "short",
+                      timeZone: LAB_TIMEZONE,
                     })}
                   </span>
                 </div>
