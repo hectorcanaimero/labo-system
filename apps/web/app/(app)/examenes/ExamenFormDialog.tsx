@@ -1,9 +1,18 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import { FlaskConical, Loader2, PencilLine, Plus, X } from 'lucide-react';
+import { FlaskConical, Loader2, PencilLine, Plus } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
+import {
+  Dialog,
+  DialogBody,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { toHumanError } from '@labo/lib/error-messages';
 import { TIPO_ANALISIS_VALUES } from '@labo/lib/schemas/examen';
 
@@ -81,13 +90,13 @@ export function ExamenFormDialog({
     setErrorMessage(null);
   }, [examen, open]);
 
-  if (!open) {
-    return null;
-  }
+  const handleOpenChange = (next: boolean) => {
+    if (!next && submitting) return;
+    onOpenChange(next);
+  };
 
   const handleClose = () => {
-    if (submitting) return;
-    onOpenChange(false);
+    handleOpenChange(false);
   };
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
@@ -159,164 +168,156 @@ export function ExamenFormDialog({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-      <div className="w-full max-w-2xl rounded-xl border border-border bg-card p-6 text-card-foreground shadow-lg">
-        <div className="flex items-start justify-between gap-4">
-          <div className="flex flex-col gap-1">
-            <h2 className="text-lg font-semibold leading-none tracking-tight">{dialogTitle}</h2>
-            <p className="text-sm text-muted-foreground">
-              {isEdit
-                ? `Actualizá nombre, precio y referencia de ${tituloNombre}.`
-                : `Agregá un nuevo examen dentro de ${tituloNombre}.`}
-            </p>
-          </div>
-          <button
-            type="button"
-            onClick={handleClose}
-            className="rounded-md p-1.5 text-muted-foreground transition hover:bg-muted hover:text-foreground"
-          >
-            <X className="h-4 w-4" />
-            <span className="sr-only">Cerrar</span>
-          </button>
-        </div>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
+      <DialogContent className="flex max-h-[90vh] w-full max-w-2xl flex-col gap-0 overflow-hidden p-0 text-card-foreground">
+        <DialogHeader className="px-6 pb-4 pt-6 pr-12">
+          <DialogTitle>{dialogTitle}</DialogTitle>
+          <DialogDescription>
+            {isEdit
+              ? `Actualizá nombre, precio y referencia de ${tituloNombre}.`
+              : `Agregá un nuevo examen dentro de ${tituloNombre}.`}
+          </DialogDescription>
+        </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="mt-6 grid gap-4 md:grid-cols-2">
-          <div className="flex flex-col gap-2 md:col-span-2">
-            <label htmlFor="examen-nombre" className="text-sm font-medium">
-              Nombre del examen
-            </label>
-            <div className="relative">
-              <FlaskConical className="absolute left-3 top-3.5 h-4 w-4 text-muted-foreground/60" />
+        <form onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col">
+          <DialogBody className="grid gap-4 md:grid-cols-2">
+            <div className="flex flex-col gap-2 md:col-span-2">
+              <label htmlFor="examen-nombre" className="text-sm font-medium">
+                Nombre del examen
+              </label>
+              <div className="relative">
+                <FlaskConical className="absolute left-3 top-3.5 h-4 w-4 text-muted-foreground/60" />
+                <input
+                  id="examen-nombre"
+                  type="text"
+                  value={nombre}
+                  onChange={(event) => setNombre(event.target.value)}
+                  disabled={submitting}
+                  placeholder="Ej. Hemograma completo"
+                  className="flex h-11 w-full rounded-md border border-input bg-background py-2 pl-9 pr-3 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                />
+              </div>
+            </div>
+
+            <div className="flex flex-col gap-2">
+              <label htmlFor="examen-precio" className="text-sm font-medium">
+                Precio base (USD)
+              </label>
               <input
-                id="examen-nombre"
-                type="text"
-                value={nombre}
-                onChange={(event) => setNombre(event.target.value)}
+                id="examen-precio"
+                type="number"
+                min="0"
+                step="0.01"
+                inputMode="decimal"
+                value={precioUsd}
+                onChange={(event) => setPrecioUsd(event.target.value)}
                 disabled={submitting}
-                placeholder="Ej. Hemograma completo"
-                className="flex h-11 w-full rounded-md border border-input bg-background py-2 pl-9 pr-3 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                placeholder="0.00"
+                className="flex h-11 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
               />
             </div>
-          </div>
 
-          <div className="flex flex-col gap-2">
-            <label htmlFor="examen-precio" className="text-sm font-medium">
-              Precio base (USD)
-            </label>
-            <input
-              id="examen-precio"
-              type="number"
-              min="0"
-              step="0.01"
-              inputMode="decimal"
-              value={precioUsd}
-              onChange={(event) => setPrecioUsd(event.target.value)}
-              disabled={submitting}
-              placeholder="0.00"
-              className="flex h-11 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-            />
-          </div>
+            <div className="flex flex-col gap-2">
+              <label htmlFor="examen-unidad" className="text-sm font-medium">
+                Unidad
+              </label>
+              <input
+                id="examen-unidad"
+                type="text"
+                value={unidad}
+                onChange={(event) => setUnidad(event.target.value)}
+                disabled={submitting}
+                placeholder="Ej. mg/dL"
+                className="flex h-11 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+              />
+            </div>
 
-          <div className="flex flex-col gap-2">
-            <label htmlFor="examen-unidad" className="text-sm font-medium">
-              Unidad
-            </label>
-            <input
-              id="examen-unidad"
-              type="text"
-              value={unidad}
-              onChange={(event) => setUnidad(event.target.value)}
-              disabled={submitting}
-              placeholder="Ej. mg/dL"
-              className="flex h-11 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-            />
-          </div>
+            <div className="flex flex-col gap-2">
+              <label htmlFor="examen-tipo-analisis" className="text-sm font-medium">
+                Tipo de análisis
+                <span className="ml-1 text-destructive">*</span>
+              </label>
+              <select
+                id="examen-tipo-analisis"
+                value={tipoAnalisis}
+                onChange={(event) => setTipoAnalisis(event.target.value)}
+                disabled={submitting}
+                className="flex h-11 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                <option value="">Seleccionar tipo...</option>
+                {TIPO_ANALISIS_VALUES.map((tipo) => (
+                  <option key={tipo} value={tipo}>
+                    {tipo}
+                  </option>
+                ))}
+              </select>
+            </div>
 
-          <div className="flex flex-col gap-2">
-            <label htmlFor="examen-tipo-analisis" className="text-sm font-medium">
-              Tipo de análisis
-              <span className="ml-1 text-destructive">*</span>
-            </label>
-            <select
-              id="examen-tipo-analisis"
-              value={tipoAnalisis}
-              onChange={(event) => setTipoAnalisis(event.target.value)}
-              disabled={submitting}
-              className="flex h-11 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              <option value="">Seleccionar tipo...</option>
-              {TIPO_ANALISIS_VALUES.map((tipo) => (
-                <option key={tipo} value={tipo}>
-                  {tipo}
-                </option>
-              ))}
-            </select>
-          </div>
+            <div className="flex flex-col gap-2 md:col-span-2">
+              <label htmlFor="examen-metodo" className="text-sm font-medium">
+                Método
+              </label>
+              <input
+                id="examen-metodo"
+                type="text"
+                value={metodo}
+                onChange={(event) => setMetodo(event.target.value)}
+                disabled={submitting}
+                list="metodos-list"
+                placeholder="Ej. Espectrofotometría, ELISA"
+                className="flex h-11 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+              />
+              <datalist id="metodos-list">
+                <option value="Espectrofotometría" />
+                <option value="Quimioluminiscencia" />
+                <option value="ELISA" />
+                <option value="Microscopía" />
+                <option value="PCR" />
+                <option value="Inmunocromatografía" />
+              </datalist>
+            </div>
 
-          <div className="flex flex-col gap-2 md:col-span-2">
-            <label htmlFor="examen-metodo" className="text-sm font-medium">
-              Método
-            </label>
-            <input
-              id="examen-metodo"
-              type="text"
-              value={metodo}
-              onChange={(event) => setMetodo(event.target.value)}
-              disabled={submitting}
-              list="metodos-list"
-              placeholder="Ej. Espectrofotometría, ELISA"
-              className="flex h-11 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-            />
-            <datalist id="metodos-list">
-              <option value="Espectrofotometría" />
-              <option value="Quimioluminiscencia" />
-              <option value="ELISA" />
-              <option value="Microscopía" />
-              <option value="PCR" />
-              <option value="Inmunocromatografía" />
-            </datalist>
-          </div>
+            <div className="flex flex-col gap-2 md:col-span-2">
+              <label htmlFor="examen-referencia" className="text-sm font-medium">
+                Valores normales
+              </label>
+              <textarea
+                id="examen-referencia"
+                value={valoresReferencia}
+                onChange={(event) => setValoresReferencia(event.target.value)}
+                disabled={submitting}
+                placeholder="Ej. Adultos: 4.5 - 11.0 x10³/µL"
+                rows={4}
+                className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+              />
+            </div>
 
-          <div className="flex flex-col gap-2 md:col-span-2">
-            <label htmlFor="examen-referencia" className="text-sm font-medium">
-              Valores normales
-            </label>
-            <textarea
-              id="examen-referencia"
-              value={valoresReferencia}
-              onChange={(event) => setValoresReferencia(event.target.value)}
-              disabled={submitting}
-              placeholder="Ej. Adultos: 4.5 - 11.0 x10³/µL"
-              rows={4}
-              className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-            />
-          </div>
+            <div className="flex flex-col gap-2 md:col-span-2">
+              <label htmlFor="examen-observaciones" className="text-sm font-medium">
+                Observaciones
+              </label>
+              <textarea
+                id="examen-observaciones"
+                value={observaciones}
+                onChange={(event) => setObservaciones(event.target.value)}
+                disabled={submitting}
+                placeholder="Ej. Requiere ayuno de 8 horas. Muestra en tubo con EDTA."
+                rows={3}
+                className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+              />
+              <p className="text-xs text-muted-foreground">
+                Notas para el paciente o el operador. Opcional.
+              </p>
+            </div>
 
-          <div className="flex flex-col gap-2 md:col-span-2">
-            <label htmlFor="examen-observaciones" className="text-sm font-medium">
-              Observaciones
-            </label>
-            <textarea
-              id="examen-observaciones"
-              value={observaciones}
-              onChange={(event) => setObservaciones(event.target.value)}
-              disabled={submitting}
-              placeholder="Ej. Requiere ayuno de 8 horas. Muestra en tubo con EDTA."
-              rows={3}
-              className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-            />
-            <p className="text-xs text-muted-foreground">
-              Notas para el paciente o el operador. Opcional.
-            </p>
-          </div>
+            {errorMessage ? (
+              <p className="rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive md:col-span-2">
+                {errorMessage}
+              </p>
+            ) : null}
+          </DialogBody>
 
-          {errorMessage ? (
-            <p className="rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive md:col-span-2">
-              {errorMessage}
-            </p>
-          ) : null}
-
-          <div className="flex justify-end gap-2 pt-2 md:col-span-2">
+          <DialogFooter className="shrink-0 gap-2 border-t border-border bg-card px-6 py-4">
             <Button type="button" variant="outline" onClick={handleClose} disabled={submitting}>
               Cancelar
             </Button>
@@ -338,9 +339,9 @@ export function ExamenFormDialog({
                 </>
               )}
             </Button>
-          </div>
+          </DialogFooter>
         </form>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 }

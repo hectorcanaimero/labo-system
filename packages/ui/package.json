@@ -9,6 +9,7 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "@radix-ui/react-dialog": "^1.1.23",
     "lucide-react": "^1.33.0",
     "react": "^18.3.1"
   },

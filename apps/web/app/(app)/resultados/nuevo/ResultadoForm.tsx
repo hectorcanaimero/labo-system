@@ -16,6 +16,14 @@ import {
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogBody,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { indicesSinValor, mensajeSinValor, tieneValor } from "@labo/lib/entrega-orden";
 import { toHumanError } from "@labo/lib/error-messages";
 import { ESTADO_ORDEN, type EstadoOrden } from "@labo/lib/schemas/orden";
@@ -716,20 +724,19 @@ export function ResultadoForm({ mode, initialData, onSaved, onCancelEdit }: Resu
         </Button>
       </div>
 
-      {paquetesOpen ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="w-full max-w-2xl rounded-lg border border-border bg-card p-6 shadow-xl">
-            <div className="flex items-start justify-between gap-4">
-              <div>
-                <h3 className="text-xl font-semibold">Cargar paquete</h3>
-                <p className="mt-1 text-sm text-muted-foreground">Elegí un paquete para agregar todos sus exámenes al resultado.</p>
-              </div>
-              <Button type="button" variant="ghost" onClick={() => setPaquetesOpen(false)}>Cerrar</Button>
-            </div>
+      <Dialog open={paquetesOpen} onOpenChange={setPaquetesOpen}>
+        <DialogContent className="flex max-h-[90vh] w-full max-w-2xl flex-col gap-0 overflow-hidden p-0">
+          <DialogHeader className="px-6 pb-4 pr-12 pt-6">
+            <DialogTitle className="text-xl">Cargar paquete</DialogTitle>
+            <DialogDescription>
+              Elegí un paquete para agregar todos sus exámenes al resultado.
+            </DialogDescription>
+          </DialogHeader>
 
-            {packageError ? <p className="mt-4 text-sm text-destructive">{packageError}</p> : null}
+          <DialogBody>
+            {packageError ? <p className="mb-4 text-sm text-destructive">{packageError}</p> : null}
 
-            <div className="mt-4 max-h-[28rem] overflow-auto rounded-md border border-border">
+            <div className="rounded-md border border-border">
               {paquetesLoading ? (
                 <div className="flex items-center gap-2 px-4 py-6 text-sm text-muted-foreground">
                   <Loader2 className="h-4 w-4 animate-spin" /> Cargando paquetes…
@@ -755,9 +762,9 @@ export function ResultadoForm({ mode, initialData, onSaved, onCancelEdit }: Resu
                 ))
               )}
             </div>
-          </div>
-        </div>
-      ) : null}
+          </DialogBody>
+        </DialogContent>
+      </Dialog>
       <PacienteFormDialog
         open={crearPacienteOpen}
         initialValues={crearPacienteInicial}

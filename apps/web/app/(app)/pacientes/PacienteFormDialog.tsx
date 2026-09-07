@@ -2,9 +2,18 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useForm, type FieldErrors, type Resolver } from "react-hook-form";
-import { Loader2, PencilLine, Trash2, UserRound, X } from "lucide-react";
+import { Loader2, PencilLine, Trash2, UserRound } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogBody,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { toHumanError } from "@labo/lib/error-messages";
 import { calcularEdadDesglosada } from "@labo/lib/edad";
 import {
@@ -220,8 +229,9 @@ export function PacienteFormDialog({
     // interesa su valor al abrir, por eso no va en las dependencias.
   }, [open, paciente, reset]);
 
-  if (!open) {
-    return null;
+  function handleOpenChange(next: boolean): void {
+    if (!next && (submitting || deleting)) return;
+    onOpenChange(next);
   }
 
   const cedulaField = register("cedula");
@@ -295,183 +305,175 @@ export function PacienteFormDialog({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-      <div className="w-full max-w-3xl rounded-xl border border-border bg-card p-6 text-card-foreground shadow-lg">
-        <div className="flex items-start justify-between gap-4">
-          <div className="flex flex-col gap-1">
-            <h2 className="text-lg font-semibold leading-none tracking-tight">{dialogTitle}</h2>
-            <p className="text-sm text-muted-foreground">
-              {isEdit
-                ? "Actualizá la ficha base del paciente y mantené el historial alineado."
-                : "Completá los datos mínimos para registrar una nueva ficha."}
-            </p>
-          </div>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
+      <DialogContent className="flex max-h-[90vh] w-full max-w-3xl flex-col gap-0 overflow-hidden p-0 text-card-foreground">
+        <DialogHeader className="px-6 pb-4 pr-12 pt-6">
+          <DialogTitle>{dialogTitle}</DialogTitle>
+          <DialogDescription>
+            {isEdit
+              ? "Actualizá la ficha base del paciente y mantené el historial alineado."
+              : "Completá los datos mínimos para registrar una nueva ficha."}
+          </DialogDescription>
+        </DialogHeader>
 
-          <button
-            type="button"
-            onClick={() => !submitting && !deleting && onOpenChange(false)}
-            className="rounded-md p-1.5 text-muted-foreground transition hover:bg-muted hover:text-foreground"
-          >
-            <X className="h-4 w-4" />
-            <span className="sr-only">Cerrar</span>
-          </button>
-        </div>
+        <form onSubmit={handleSubmit(onSubmit)} className="flex min-h-0 flex-1 flex-col">
+          <DialogBody className="grid gap-4 md:grid-cols-2">
+            <div className="flex flex-col gap-2">
+              <label htmlFor="paciente-nombre" className="text-sm font-medium">
+                Nombre
+              </label>
+              <div className="relative">
+                <UserRound className="absolute left-3 top-3.5 h-4 w-4 text-muted-foreground/60" />
+                <input
+                  id="paciente-nombre"
+                  type="text"
+                  disabled={submitting || deleting}
+                  placeholder="Ej. María"
+                  className="flex h-11 w-full rounded-md border border-input bg-background py-2 pl-9 pr-3 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                  {...register("nombre")}
+                />
+              </div>
+              {errors.nombre ? <p className="text-xs text-destructive">{errors.nombre.message}</p> : null}
+            </div>
 
-        <form onSubmit={handleSubmit(onSubmit)} className="mt-6 grid gap-4 md:grid-cols-2">
-          <div className="flex flex-col gap-2">
-            <label htmlFor="paciente-nombre" className="text-sm font-medium">
-              Nombre
-            </label>
-            <div className="relative">
-              <UserRound className="absolute left-3 top-3.5 h-4 w-4 text-muted-foreground/60" />
+            <div className="flex flex-col gap-2">
+              <label htmlFor="paciente-apellido" className="text-sm font-medium">
+                Apellido
+              </label>
               <input
-                id="paciente-nombre"
+                id="paciente-apellido"
                 type="text"
                 disabled={submitting || deleting}
-                placeholder="Ej. María"
-                className="flex h-11 w-full rounded-md border border-input bg-background py-2 pl-9 pr-3 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                {...register("nombre")}
+                placeholder="Ej. Pérez"
+                className="flex h-11 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                {...register("apellido")}
+              />
+              {errors.apellido ? <p className="text-xs text-destructive">{errors.apellido.message}</p> : null}
+            </div>
+
+            <div className="flex flex-col gap-2">
+              <label htmlFor="paciente-cedula" className="text-sm font-medium">
+                Cédula
+              </label>
+              <input
+                id="paciente-cedula"
+                type="text"
+                inputMode="numeric"
+                disabled={submitting || deleting}
+                placeholder="V-12.345.678"
+                className="flex h-11 w-full rounded-md border border-input bg-background px-3 py-2 text-sm uppercase ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                {...cedulaField}
+                onChange={(e) => {
+                  e.target.value = formatCedulaMask(e.target.value);
+                  cedulaField.onChange(e);
+                }}
+              />
+              <p className="text-xs text-muted-foreground">
+                Formato: V-12.345.678 — prefijo V, E, J, G o P + hasta 8 dígitos.
+              </p>
+              {errors.cedula ? <p className="text-xs text-destructive">{errors.cedula.message}</p> : null}
+            </div>
+
+            <div className="flex flex-col gap-2">
+              <label htmlFor="paciente-fecha" className="text-sm font-medium">
+                Fecha de nacimiento
+              </label>
+              <input
+                id="paciente-fecha"
+                type="date"
+                disabled={submitting || deleting}
+                className="flex h-11 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                {...register("fecha_nacimiento")}
+              />
+              {edadInfo ? (
+                <div className="mt-1 inline-flex items-center gap-1.5 self-start rounded-full bg-blue-50 px-2.5 py-0.5 text-xs font-semibold text-blue-700 dark:bg-blue-950 dark:text-blue-300">
+                  <span>{edadInfo.textoFormateado}</span>
+                  <span className="opacity-60">•</span>
+                  <span>{edadInfo.etapa}</span>
+                </div>
+              ) : null}
+              {errors.fecha_nacimiento ? (
+                <p className="text-xs text-destructive">{errors.fecha_nacimiento.message}</p>
+              ) : null}
+            </div>
+
+            <div className="flex flex-col gap-2">
+              <label htmlFor="paciente-sexo" className="text-sm font-medium">
+                Sexo
+              </label>
+              <select
+                id="paciente-sexo"
+                disabled={submitting || deleting}
+                className="flex h-11 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                {...register("sexo")}
+              >
+                <option value="">Seleccione sexo...</option>
+                <option value="M">Masculino</option>
+                <option value="F">Femenino</option>
+              </select>
+              {errors.sexo ? <p className="text-xs text-destructive">{errors.sexo.message}</p> : null}
+            </div>
+
+            <div className="flex flex-col gap-2">
+              <label htmlFor="paciente-telefono" className="text-sm font-medium">
+                Teléfono
+              </label>
+              <input
+                id="paciente-telefono"
+                type="text"
+                inputMode="tel"
+                disabled={submitting || deleting}
+                placeholder="Ej. +58 414-5551234"
+                className="flex h-11 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                {...telefonoField}
+                onChange={(e) => {
+                  e.target.value = formatTelefonoVeMask(e.target.value);
+                  telefonoField.onChange(e);
+                }}
+              />
+              <p className="text-xs text-muted-foreground">
+                Formato: +58 412-1234567 (móvil) o 0212-555-0123 (fijo). Opcional.
+              </p>
+            </div>
+
+            <div className="flex flex-col gap-2">
+              <label htmlFor="paciente-email" className="text-sm font-medium">
+                Correo electrónico
+              </label>
+              <input
+                id="paciente-email"
+                type="email"
+                disabled={submitting || deleting}
+                placeholder="ejemplo@correo.com"
+                className="flex h-11 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                {...register("email")}
+              />
+              {errors.email ? <p className="text-xs text-destructive">{errors.email.message}</p> : null}
+            </div>
+
+            <div className="flex flex-col gap-2 md:col-span-2">
+              <label htmlFor="paciente-direccion" className="text-sm font-medium">
+                Dirección
+              </label>
+              <textarea
+                id="paciente-direccion"
+                rows={3}
+                disabled={submitting || deleting}
+                placeholder="Dirección o referencia útil para contacto"
+                className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                {...register("direccion")}
               />
             </div>
-            {errors.nombre ? <p className="text-xs text-destructive">{errors.nombre.message}</p> : null}
-          </div>
 
-          <div className="flex flex-col gap-2">
-            <label htmlFor="paciente-apellido" className="text-sm font-medium">
-              Apellido
-            </label>
-            <input
-              id="paciente-apellido"
-              type="text"
-              disabled={submitting || deleting}
-              placeholder="Ej. Pérez"
-              className="flex h-11 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-              {...register("apellido")}
-            />
-            {errors.apellido ? <p className="text-xs text-destructive">{errors.apellido.message}</p> : null}
-          </div>
-
-          <div className="flex flex-col gap-2">
-            <label htmlFor="paciente-cedula" className="text-sm font-medium">
-              Cédula
-            </label>
-            <input
-              id="paciente-cedula"
-              type="text"
-              inputMode="numeric"
-              disabled={submitting || deleting}
-              placeholder="V-12.345.678"
-              className="flex h-11 w-full rounded-md border border-input bg-background px-3 py-2 text-sm uppercase ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-              {...cedulaField}
-              onChange={(e) => {
-                e.target.value = formatCedulaMask(e.target.value);
-                cedulaField.onChange(e);
-              }}
-            />
-            <p className="text-xs text-muted-foreground">
-              Formato: V-12.345.678 — prefijo V, E, J, G o P + hasta 8 dígitos.
-            </p>
-            {errors.cedula ? <p className="text-xs text-destructive">{errors.cedula.message}</p> : null}
-          </div>
-
-          <div className="flex flex-col gap-2">
-            <label htmlFor="paciente-fecha" className="text-sm font-medium">
-              Fecha de nacimiento
-            </label>
-            <input
-              id="paciente-fecha"
-              type="date"
-              disabled={submitting || deleting}
-              className="flex h-11 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-              {...register("fecha_nacimiento")}
-            />
-            {edadInfo ? (
-              <div className="mt-1 inline-flex items-center gap-1.5 self-start rounded-full bg-blue-50 px-2.5 py-0.5 text-xs font-semibold text-blue-700 dark:bg-blue-950 dark:text-blue-300">
-                <span>{edadInfo.textoFormateado}</span>
-                <span className="opacity-60">•</span>
-                <span>{edadInfo.etapa}</span>
-              </div>
+            {errorMessage ? (
+              <p className="rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive md:col-span-2">
+                {errorMessage}
+              </p>
             ) : null}
-            {errors.fecha_nacimiento ? (
-              <p className="text-xs text-destructive">{errors.fecha_nacimiento.message}</p>
-            ) : null}
-          </div>
 
-          <div className="flex flex-col gap-2">
-            <label htmlFor="paciente-sexo" className="text-sm font-medium">
-              Sexo
-            </label>
-            <select
-              id="paciente-sexo"
-              disabled={submitting || deleting}
-              className="flex h-11 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-              {...register("sexo")}
-            >
-              <option value="">Seleccione sexo...</option>
-              <option value="M">Masculino</option>
-              <option value="F">Femenino</option>
-            </select>
-            {errors.sexo ? <p className="text-xs text-destructive">{errors.sexo.message}</p> : null}
-          </div>
+          </DialogBody>
 
-          <div className="flex flex-col gap-2">
-            <label htmlFor="paciente-telefono" className="text-sm font-medium">
-              Teléfono
-            </label>
-            <input
-              id="paciente-telefono"
-              type="text"
-              inputMode="tel"
-              disabled={submitting || deleting}
-              placeholder="Ej. +58 414-5551234"
-              className="flex h-11 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-              {...telefonoField}
-              onChange={(e) => {
-                e.target.value = formatTelefonoVeMask(e.target.value);
-                telefonoField.onChange(e);
-              }}
-            />
-            <p className="text-xs text-muted-foreground">
-              Formato: +58 412-1234567 (móvil) o 0212-555-0123 (fijo). Opcional.
-            </p>
-          </div>
-
-          <div className="flex flex-col gap-2">
-            <label htmlFor="paciente-email" className="text-sm font-medium">
-              Correo electrónico
-            </label>
-            <input
-              id="paciente-email"
-              type="email"
-              disabled={submitting || deleting}
-              placeholder="ejemplo@correo.com"
-              className="flex h-11 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-              {...register("email")}
-            />
-            {errors.email ? <p className="text-xs text-destructive">{errors.email.message}</p> : null}
-          </div>
-
-          <div className="flex flex-col gap-2 md:col-span-2">
-            <label htmlFor="paciente-direccion" className="text-sm font-medium">
-              Dirección
-            </label>
-            <textarea
-              id="paciente-direccion"
-              rows={3}
-              disabled={submitting || deleting}
-              placeholder="Dirección o referencia útil para contacto"
-              className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-              {...register("direccion")}
-            />
-          </div>
-
-          {errorMessage ? (
-            <p className="rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive md:col-span-2">
-              {errorMessage}
-            </p>
-          ) : null}
-
-          <div className="flex flex-col gap-3 pt-2 md:col-span-2 md:flex-row md:items-center md:justify-between">
+          <DialogFooter className="shrink-0 flex-col gap-3 border-t border-border bg-card px-6 py-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
               {isEdit ? (
                 <Button
@@ -490,7 +492,7 @@ export function PacienteFormDialog({
               <Button
                 type="button"
                 variant="outline"
-                onClick={() => onOpenChange(false)}
+                onClick={() => handleOpenChange(false)}
                 disabled={submitting || deleting}
               >
                 Cancelar
@@ -509,9 +511,9 @@ export function PacienteFormDialog({
                 )}
               </Button>
             </div>
-          </div>
+          </DialogFooter>
         </form>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 }

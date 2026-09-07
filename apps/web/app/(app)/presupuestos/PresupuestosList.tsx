@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useId, useMemo, useRef, useState, type ReactNode } from "react";
+import { useEffect, useId, useMemo, useState, type ReactNode } from "react";
 import {
   closestCorners,
   DndContext,
@@ -23,10 +23,16 @@ import {
   MoreVertical,
   Plus,
   Search,
-  X,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogBody,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Pagination } from "@/components/layout/Pagination";
 import {
   Table,
@@ -238,14 +244,9 @@ function AccionesRapidasModal({
 }: AccionesRapidasModalProps) {
   const titleId = useId();
   const motivoId = `${titleId}-motivo`;
-  const dialogRef = useRef<HTMLDivElement | null>(null);
   const [modo, setModo] = useState<"acciones" | "motivo" | "convertir">(state.mode);
   const [motivo, setMotivo] = useState("");
   const [motivoError, setMotivoError] = useState<string | null>(null);
-
-  useEffect(() => {
-    dialogRef.current?.focus();
-  }, []);
 
   const { card } = state;
   const destinos = TRANSICIONES_ESTADO_UI[card.estado];
@@ -267,41 +268,25 @@ function AccionesRapidasModal({
         : "Acciones rápidas";
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 p-4"
-      onMouseDown={(event) => {
-        if (event.target === event.currentTarget) onClose();
-      }}
-      onKeyDown={(event) => {
-        if (event.key === "Escape") onClose();
+    <Dialog
+      open
+      onOpenChange={(next) => {
+        if (!next) onClose();
       }}
     >
-      <div
-        ref={dialogRef}
-        tabIndex={-1}
-        role="dialog"
-        aria-modal="true"
+      <DialogContent
         aria-labelledby={titleId}
-        className="w-full max-w-md rounded-xl border border-border bg-card p-4 shadow-lg outline-none"
+        className="flex max-h-[90vh] w-full max-w-md flex-col gap-0 overflow-hidden p-0"
       >
-        <div className="flex items-start justify-between gap-2">
+        <DialogHeader className="px-4 pb-2 pr-12 pt-4">
           <p className="text-xs font-semibold uppercase tracking-[0.2em] text-primary">Pipeline</p>
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon"
-            onClick={onClose}
-            aria-label="Cerrar acciones rápidas"
-            className="-mr-2 -mt-2 h-8 w-8"
-          >
-            <X className="h-4 w-4" />
-          </Button>
-        </div>
-        <h2 id={titleId} className="text-lg font-semibold text-foreground">
-          {titulo}
-        </h2>
+          <DialogTitle id={titleId} className="text-lg text-foreground">
+            {titulo}
+          </DialogTitle>
+        </DialogHeader>
 
-        <div className="mt-3 flex items-center justify-between gap-2 rounded-lg border border-border bg-muted/30 px-3 py-2">
+        <DialogBody className="px-4 pb-4 pt-0">
+        <div className="mt-1 flex items-center justify-between gap-2 rounded-lg border border-border bg-muted/30 px-3 py-2">
           <span className="min-w-0 truncate text-sm font-medium text-foreground">
             {card.pacienteLabel}
           </span>
@@ -415,8 +400,9 @@ function AccionesRapidasModal({
             </div>
           </div>
         ) : null}
-      </div>
-    </div>
+        </DialogBody>
+      </DialogContent>
+    </Dialog>
   );
 }
 
