@@ -25,11 +25,13 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { PageHeader } from "@/components/layout/PageHeader";
+import { formatUsd } from "@labo/lib/bs-format";
 
 interface Paquete {
   id: string;
   nombre: string;
   descripcion: string | null;
+  precio_base: number;
   examenes_count: number;
 }
 
@@ -200,6 +202,9 @@ export default function PaquetesPage() {
                   <TableHead className="h-9 w-24 py-1.5 text-right">
                     Exámenes
                   </TableHead>
+                  <TableHead className="h-9 w-28 py-1.5 text-right">
+                    Precio base
+                  </TableHead>
                   <TableHead className="h-9 w-24 py-1.5 text-right">
                     Acciones
                   </TableHead>
@@ -216,6 +221,9 @@ export default function PaquetesPage() {
                     </TableCell>
                     <TableCell className="py-1.5 text-right font-mono text-xs tabular-nums text-foreground">
                       {paquete.examenes_count}
+                    </TableCell>
+                    <TableCell className="py-1.5 text-right font-mono text-xs tabular-nums text-foreground">
+                      {formatUsd(Number(paquete.precio_base))}
                     </TableCell>
                     <TableCell className="py-1.5 text-right">
                       <Link href={`/paquetes/${paquete.id}`}>
