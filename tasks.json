@@ -2581,7 +2581,7 @@
       "description": "**Objetivo**\n\nAgregar los dos cargos por servicio que el laboratorio cobra aparte de los exámenes, como columnas planas del presupuesto para no tocar la FK de líneas ni la conversión a orden.\n\n**Alcance**\n\nSí hace:\n- Migración `0015_presupuestos_servicios.sql`: `toma_muestra_usd numeric(12,2) NOT NULL DEFAULT 0 CHECK (>= 0)` y `domicilio_usd` igual, en `presupuestos`.\n- `laboratorio_config`: `toma_muestra_default_usd numeric(12,2) DEFAULT 0`.\n- `presupuestoCreateSchema` y `presupuestoUpdateSchema`: ambos campos opcionales, no negativos.\n- `calcularTotales`: nuevo input `serviciosUsd` que se suma al total después de descuento y ganancia, en USD y Bs. Tests.\n- `repos/presupuestos.ts` create y update persisten y devuelven los campos. La conversión a orden no los copia.\n- Aplicar la migración en la instancia hosted por el endpoint de migraciones (ver `docs/deploy/insforge-vps.md`).\n\nNo hace:\n- UI ni PDF (F7.2.T3).\n\n**Criterios de aceptación**\n\n- [ ] Un presupuesto con subtotal 13, ganancia 0, toma 4 y domicilio 6 da total 23 USD y el Bs correspondiente.\n- [ ] Los tests de `calcular-totales` y `schemas/presupuesto` pasan.",
       "model": "opencode/deepseek-v4-pro",
       "reason": "Cambios de formulario, endpoints y migraciones con lógica de negocio.",
-      "status": "todo",
+      "status": "done",
       "dependencies": [],
       "estimateHours": 3,
       "files": [
@@ -2592,7 +2592,15 @@
         "packages/db/repos/presupuestos.ts"
       ],
       "specRef": "F7/sprint-feedback-cliente.md#F7.2.T2",
-      "comments": []
+      "comments": [
+        {
+          "date": "2026-09-07",
+          "author": "planner",
+          "session": "opus",
+          "commit": "2f25ad7",
+          "text": "Migración 0015 (toma_muestra_usd, domicilio_usd en presupuestos; toma_muestra_default_usd en laboratorio_config), probada en Postgres local e idempotente. calcularTotales suma serviciosUsd después de descuento y ganancia; schemas y repo persisten los campos. NO aplicada en hosted: debe aplicarse ANTES del deploy porque PRESUPUESTO_COLS ya pide las columnas. Tests de lib 313/313."
+        }
+      ]
     },
     {
       "id": "F7.2.T3",

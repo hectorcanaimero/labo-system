@@ -576,8 +576,8 @@ Rama del sprint: `sprint/f7-1`, base `staged`. Cada tarea es un commit; al cerra
 | F7.3.T1b | sonnet | hecha | `97b3e10` | GET /api/r/[slug]/pdf sin sesión, 404 si el slug no existe, venció o la orden está anulada. El render se extrajo de la ruta de staff y se comparte. Botón de descarga en la página pública. Build de web pasa; descarga real sin probar en navegador. |
 | F7.2.T4 | sonnet | hecha | `dce358f` | Ganancia global, columna por línea y fila del resumen detrás de un toggle Ajustes avanzados plegado. Paquete cerrado: líneas con ganancia 0 explícita, test nuevo (15 repartido en 9+6 con ganancia global 10 da 15). Seguimiento anotado: al editar un presupuesto guardado, las líneas de paquete cerrado se reconstruyen como desglosadas; limitación previa. |
 | F7.1.T3 | opus | hecha | `494930d` | Botón Agregar en el catálogo, sensores y SortableContext real para el reorden, PUT único /api/paquetes/[id] con setContenido. Sin transacciones en PostgREST: el rollback es por compensación; atomicidad real requeriría una RPC en Postgres. packages/ui suma dnd-kit. Las rutas viejas /examenes y /titulos siguen. Sin prueba en navegador ni test de setContenido. |
-| F7.2.T2 | opus | en curso | — | — |
-| F7.2.T3 | opus | asignada | — | — |
+| F7.2.T2 | opus | hecha | `2f25ad7` | Migración 0015 (toma_muestra_usd, domicilio_usd en presupuestos; toma_muestra_default_usd en laboratorio_config), probada en Postgres local e idempotente. calcularTotales suma serviciosUsd después de descuento y ganancia; schemas y repo persisten los campos. NO aplicada en hosted: debe aplicarse ANTES del deploy porque PRESUPUESTO_COLS ya pide las columnas. Tests de lib 313/313. |
+| F7.2.T3 | opus | en curso | — | — |
 
 ## F7.3.T1b — PDF público por slug para el enlace del paciente (seguimiento de F7.3.T1)
 

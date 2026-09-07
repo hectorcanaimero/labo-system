@@ -177,8 +177,8 @@ ul{margin:.2rem 0 0;padding-left:1.1rem}li{margin:.2rem 0}
 <tr data-task="F7.1.T3"><td class="id">F7.1.T3</td><td>opus</td><td>hecha</td><td class="id">494930d</td><td>Botón Agregar en el catálogo, sensores y SortableContext real para el reorden, PUT único /api/paquetes/[id] con setContenido. Sin transacciones en PostgREST: el rollback es por compensación; atomicidad real requeriría una RPC en Postgres. packages/ui suma dnd-kit. Las rutas viejas /examenes y /titulos siguen. Sin prueba en navegador ni test de setContenido.</td></tr>
 <tr data-task="F7.2.T1"><td class="id">F7.2.T1</td><td>sonnet</td><td>hecha</td><td class="id">f275872</td><td>Botón siempre habilitado; al guardar con faltantes los lista junto al botón y hace scroll a la sección. Bloque de paciente en rojo tras el intento. Nota operativa: tras rebasear sobre commits que agregan dependencias, correr pnpm install de nuevo o el typecheck falla por caché.</td></tr>
 <tr data-task="F7.2.T4"><td class="id">F7.2.T4</td><td>sonnet</td><td>hecha</td><td class="id">dce358f</td><td>Ganancia global, columna por línea y fila del resumen detrás de un toggle Ajustes avanzados plegado. Paquete cerrado: líneas con ganancia 0 explícita, test nuevo (15 repartido en 9+6 con ganancia global 10 da 15). Seguimiento anotado: al editar un presupuesto guardado, las líneas de paquete cerrado se reconstruyen como desglosadas; limitación previa.</td></tr>
-<tr data-task="F7.2.T2"><td class="id">F7.2.T2</td><td>opus</td><td>en curso</td><td class="id">—</td><td>La migración 0015 no se aplica en la instancia hosted sin decisión del usuario.</td></tr>
-<tr data-task="F7.2.T3"><td class="id">F7.2.T3</td><td>opus</td><td>pendiente</td><td class="id">—</td><td>Última de opus: rebase sobre los cambios de sonnet en PresupuestoForm.</td></tr>
+<tr data-task="F7.2.T2"><td class="id">F7.2.T2</td><td>opus</td><td>hecha</td><td class="id">2f25ad7</td><td>Migración 0015 (toma_muestra_usd, domicilio_usd en presupuestos; toma_muestra_default_usd en laboratorio_config), probada en Postgres local e idempotente. calcularTotales suma serviciosUsd después de descuento y ganancia; schemas y repo persisten los campos. NO aplicada en hosted: debe aplicarse ANTES del deploy porque PRESUPUESTO_COLS ya pide las columnas. Tests de lib 313/313.</td></tr>
+<tr data-task="F7.2.T3"><td class="id">F7.2.T3</td><td>opus</td><td>en curso</td><td class="id">—</td><td>Última de opus: rebase sobre los cambios de sonnet en PresupuestoForm.</td></tr>
 </tbody></table></div>
 <div class="two">
 <div><span class="eyebrow">Hallazgos fuera del sprint</span><ul>
@@ -187,7 +187,7 @@ ul{margin:.2rem 0 0;padding-left:1.1rem}li{margin:.2rem 0}
 <li><b>Verificación de raíz rota.</b> <code>pnpm test</code> falla porque el build de <code>@labo/lib</code> con tsup no encuentra inputs; <code>pnpm typecheck</code> falla por dos tests de integración de <code>@labo/db</code>; <code>apps/web</code> no tiene vitest. Todo previo al sprint. Las tareas se verifican por paquete.</li></ul></div>
 <div><span class="eyebrow">Pendientes del usuario</span><ul>
 <li>Log de Coolify del POST a <code>/api/examenes</code> del 6 de septiembre, 02:35 a 02:45 UTC, para cerrar la causa del 500.</li>
-<li>Autorizar la migración 0015 en la instancia hosted cuando opus la entregue.</li>
+<li><b>Aplicar la migración 0015 en hosted ANTES de desplegar el PR.</b> Tres columnas numeric(12,2) NOT NULL DEFAULT 0 con CHECK; no toca datos. Sin ella, el código nuevo rompe al leer presupuestos.</li>
 <li>Confirmar con el cliente si la ganancia se oculta o se elimina.</li></ul></div>
 </div></section>
 </main>
