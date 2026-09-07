@@ -3,11 +3,11 @@
   "version": "0.0.0",
   "private": true,
   "scripts": {
-    "build": "convex build",
+    "build": "echo 'paquete legacy post-pivot a InsForge (ADR-11), no se despliega, no-op' && exit 0",
     "dev": "convex dev",
     "lint": "eslint . --ext .ts,.tsx --no-error-on-unmatched-pattern",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run"
+    "test": "echo 'paquete legacy post-pivot a InsForge (ADR-11), sin vitest instalado, no-op' && exit 0"
   },
   "dependencies": {
     "@convex-dev/auth": "^0.0.95",
