@@ -2805,6 +2805,35 @@
           "text": "GET /api/r/[slug]/pdf sin sesión, 404 si el slug no existe, venció o la orden está anulada. El render se extrajo de la ruta de staff y se comparte. Botón de descarga en la página pública. Build de web pasa; descarga real sin probar en navegador."
         }
       ]
+    },
+    {
+      "id": "F7.1.T4",
+      "phase": 7,
+      "title": "Correcciones de la revisión cruzada sobre modales y paquetes",
+      "description": "Cerrar los tres hallazgos de la revisión de sonnet sobre 78441b1 y 494930d: insert antes de delete en setExamenes/setTitulos, guard del diálogo de paquetes en ResultadoForm, refresh tras guardado fallido en PaqueteBuilder.",
+      "model": "opencode-go/kimi-k2.6",
+      "reason": "Correcciones acotadas con diagnóstico ya hecho.",
+      "status": "in_progress",
+      "dependencies": [
+        "F7.1.T1",
+        "F7.1.T3"
+      ],
+      "estimateHours": 2,
+      "files": [
+        "packages/db/repos/paquetes.ts",
+        "apps/web/app/(app)/resultados/nuevo/ResultadoForm.tsx",
+        "apps/web/app/(app)/paquetes/PaqueteBuilder.tsx"
+      ],
+      "specRef": "F7/sprint-feedback-cliente.md#F7.1.T4",
+      "comments": [
+        {
+          "date": "2026-09-07",
+          "author": "planner",
+          "session": "sonnet",
+          "commit": "",
+          "text": "Revisión cruzada de sonnet: 1) setContenido no cubre el fallo del INSERT de su propio paso (DELETE-luego-INSERT); 2) diálogo de paquetes en ResultadoForm sin guard durante el fetch; 3) PresupuestosList sin guard de pending, no alcanzable hoy; 4) PaqueteBuilder no recarga tras guardado fallido."
+        }
+      ]
     }
   ],
   "phases": []
