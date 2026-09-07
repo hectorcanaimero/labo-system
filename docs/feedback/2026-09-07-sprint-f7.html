@@ -192,9 +192,9 @@ ul{margin:.2rem 0 0;padding-left:1.1rem}li{margin:.2rem 0}
 <li><b>Verificación de raíz rota.</b> <code>pnpm test</code> falla porque el build de <code>@labo/lib</code> con tsup no encuentra inputs; <code>pnpm typecheck</code> falla por dos tests de integración de <code>@labo/db</code>; <code>apps/web</code> no tiene vitest. Todo previo al sprint. Las tareas se verifican por paquete.</li></ul></div>
 <div><span class="eyebrow">Pendientes del usuario</span><ul>
 <li>Log de Coolify del POST a <code>/api/examenes</code> del 6 de septiembre, 02:35 a 02:45 UTC, para cerrar la causa del 500.</li>
-<li><b>Aplicar la migración 0015 en hosted ANTES de desplegar el PR.</b> Tres columnas numeric(12,2) NOT NULL DEFAULT 0 con CHECK; no toca datos. Sin ella, el código nuevo rompe al leer presupuestos.</li>
+<li><b>Migración 0015 aplicada en hosted</b> el 7 de septiembre 01:45 UTC por el endpoint de InsForge, justo después del merge del PR #9.</li>
 <li>Confirmar con el cliente si la ganancia se oculta o se elimina.</li>
 <li>Decidir si la página pública del resultado debe seguir mostrando observaciones clínicas y médico solicitante. Hoy los muestra.</li>
-<li>El push de <code>sprint/f7-1</code> y el PR requieren tu permiso.</li></ul></div>
+<li>PR #9 mergeado a <code>staged</code>. F7.2.T5 va en un PR aparte y es urgente: el PDF público está roto en producción hasta que entre.</li></ul></div>
 </div></section>
 </main>

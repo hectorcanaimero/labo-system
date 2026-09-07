@@ -565,7 +565,7 @@ No hace:
 
 # Registro del Sprint 1 (semana 1)
 
-Rama del sprint: `sprint/f7-1`, base `staged`. Cada tarea es un commit; al cerrar la semana se abre el PR `sprint/f7-1 → staged`.
+Rama del sprint: `sprint/f7-1`, base `staged`. Cada tarea es un commit. PR #9 `sprint/f7-1 → staged` mergeado por squash el 2026-09-07 01:44 UTC (b9f5bed). Migración 0015 aplicada en hosted a las 01:45 UTC por el endpoint de InsForge. F7.2.T5 quedó fuera del merge y va en PR aparte sobre `staged`.
 
 | Tarea | Sesión | Estado | Commit | Comentario |
 |---|---|---|---|---|
