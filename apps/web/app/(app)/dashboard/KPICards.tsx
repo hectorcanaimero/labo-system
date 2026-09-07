@@ -47,8 +47,9 @@ function formatCurrency(value: number): string {
   })}`;
 }
 
-export function KPICards({ initialKPIs, tasa }: KPICardsProps) {
+export function KPICards({ initialKPIs, tasa: initialTasa }: KPICardsProps) {
   const [kpis, setKPIs] = useState(initialKPIs);
+  const [tasa, setTasa] = useState<DashboardTasa | null>(initialTasa ?? null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -70,8 +71,24 @@ export function KPICards({ initialKPIs, tasa }: KPICardsProps) {
       }
     }
 
+    // La tasa la actualiza Config o el cron sin pasar por esta página, y el
+    // router de Next reutiliza el render anterior al volver al dashboard:
+    // se consulta al montar y en cada intervalo, no sólo en el render inicial.
+    async function pollTasa(): Promise<void> {
+      try {
+        const res = await apiFetch("/api/tasa/latest", { headers: { accept: "application/json" } });
+        if (!res.ok) return;
+        const json = (await res.json()) as DashboardTasa | null;
+        if (!cancelled) setTasa(json);
+      } catch {
+        // silencioso: la tarjeta conserva el último valor conocido
+      }
+    }
+
+    void pollTasa();
     const timer = setInterval(() => {
       void poll();
+      void pollTasa();
     }, POLL_INTERVAL_MS);
     return () => {
       cancelled = true;
