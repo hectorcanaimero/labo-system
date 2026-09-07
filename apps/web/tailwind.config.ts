@@ -21,6 +21,7 @@ const config: Config = {
     "../../packages/ui/pipeline/**/*.{ts,tsx}",
     "../../packages/ui/presupuestos/**/*.{ts,tsx}",
     "../../packages/ui/ordenes/**/*.{ts,tsx}",
+    "../../packages/ui/envio/**/*.{ts,tsx}",
   ],
   theme: {
     container: {

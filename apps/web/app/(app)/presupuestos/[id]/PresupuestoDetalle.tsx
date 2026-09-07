@@ -54,6 +54,7 @@ import type { EstadoPresupuesto } from "@labo/lib/schemas/presupuesto";
 const PACIENTE_LIBRE_REQUIERE_FICHA = "PACIENTE_LIBRE_REQUIERE_FICHA";
 
 import { PresupuestoForm } from "../nuevo/PresupuestoForm";
+import { EnviarPresupuestoButtons } from "./EnviarPresupuestoButtons";
 import { PageHeader } from "@/components/layout/PageHeader";
 
 interface PresupuestoDetalleProps {
@@ -62,6 +63,9 @@ interface PresupuestoDetalleProps {
   vigenteTasa: { tasa: number; fuente: string; scraped_at: string } | null;
   /** F7.2.T6 — con qué arranca una línea abierta nueva que se agregue al editar. */
   gananciaDefault: number;
+  /** F7.2.T7 — para habilitar/deshabilitar los botones de envío. null en "nombre libre" (sin ficha). */
+  pacienteTelefono: string | null;
+  pacienteEmail: string | null;
   initialData: {
     id: string;
     numero_correlativo: number;
@@ -131,6 +135,8 @@ export function PresupuestoDetalle({
   initialData,
   vigenteTasa,
   gananciaDefault,
+  pacienteTelefono,
+  pacienteEmail,
 }: PresupuestoDetalleProps) {
   const router = useRouter();
   const [isEditing, setIsEditing] = useState(false);
@@ -140,6 +146,7 @@ export function PresupuestoDetalle({
   const [confirmOpen, setConfirmOpen] = useState(false);
 
   const isBorrador = initialData.estado === "Borrador";
+  const isEnviado = initialData.estado === "Enviado";
   const isAprobado = initialData.estado === "Aprobado";
   const esNombreLibre = !initialData.paciente_id;
   const [pacienteAsignado, setPacienteAsignado] = useState<PacienteAutocompleteItem | null>(null);
@@ -305,6 +312,14 @@ export function PresupuestoDetalle({
                 <Send className="h-3.5 w-3.5" />
                 Convertir en orden
               </Button>
+            ) : null}
+
+            {isBorrador || isEnviado ? (
+              <EnviarPresupuestoButtons
+                presupuestoId={initialData.id}
+                telefono={pacienteTelefono}
+                email={pacienteEmail}
+              />
             ) : null}
 
             <Button
