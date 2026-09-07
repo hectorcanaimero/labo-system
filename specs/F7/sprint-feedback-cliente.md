@@ -827,7 +827,7 @@ No hace:
 
 # Sprint 3 (correcciones y pedidos del usuario)
 
-Rama `sprint/f7-3`, base `staged` post PR #13.
+Rama `sprint/f7-3`, base `staged` post PR #13. PR #14 abierto. Revisión de sonnet sobre 459f844: nada roto; un plausible de UX menor: con la tabla de tipos vacía, un operador no puede crear exámenes hasta que un admin cargue un tipo. Sin revisión cruzada sobre los commits de sonnet porque la sesión de opus cerró.
 
 | Tarea | Sesión | Estado | Commit | Comentario |
 |---|---|---|---|---|
