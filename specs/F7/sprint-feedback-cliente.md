@@ -735,7 +735,7 @@ No hace:
 
 # Registro del Sprint 2 (semana 2)
 
-Rama del sprint: `sprint/f7-2`, base `staged` (post PR #11). Cada tarea es un commit; al cerrar se abre el PR `sprint/f7-2 → staged`. Migraciones 0016, 0017 y 0018 se escriben y prueban en local; se aplican en hosted por el endpoint de InsForge antes del deploy, con decisión del usuario.
+Rama del sprint: `sprint/f7-2`, base `staged` (post PR #11). Cada tarea es un commit. Siete commits funcionales, revisión cruzada en las dos direcciones y dos tareas de corrección. PR `sprint/f7-2 → staged` abierto al cierre. Migraciones 0016, 0017 y 0018 se escriben y prueban en local; se aplican en hosted por el endpoint de InsForge antes del deploy, con decisión del usuario.
 
 | Tarea | Sesión | Estado | Commit | Comentario |
 |---|---|---|---|---|
@@ -745,7 +745,7 @@ Rama del sprint: `sprint/f7-2`, base `staged` (post PR #11). Cada tarea es un co
 | F7.3.T2 | opus | hecha | `e333136` | Tabla enlaces_verificacion (0016) con slug sin vencimiento; se crea al entregar y también al emitir el PDF, best-effort: sin la migración el PDF sale sin QR y nada rompe. QR como SVG en ResultadoPDF junto a la firma. Ruta pública /v/[slug] con laboratorio, fecha y hora, cédula enmascarada y botón de WhatsApp. Migración probada en Postgres local, no aplicada en hosted. Sin escaneo real del QR ni apertura del PDF. |
 | F7.4.T1 | opus | hecha | `517397a` | Tabla metodos_analisis (0017) sembrada con los métodos existentes, repo y endpoints con patrón de títulos, select en el examen con alta inline para admin y panel de métodos en Config fuera del form. Un método desactivado se conserva en los exámenes como (fuera de la lista). Renombrar no reescribe examenes.metodo ni metodo_snap, a propósito. Sin la 0017 el selector muestra un mensaje y nada rompe. Probada en Postgres local, no aplicada en hosted. Sin prueba en navegador. |
 | F7.3.T4 | opus | hecha | `1b2d5cb` | update de órdenes solo auto-entrega cuando el body trae fecha_resultado; el detalle manda estado explícito y no ofrece Editar en anuladas. Tasa manual con force y motivo obligatorio auditado, ofrecido en Config solo tras un 409 con el mismo valor; rechazos por outlier auditados. 14 tests nuevos en db (18 a 32), los de regresión fallan sin el fix. Sin prueba en navegador. |
-| F7.3.T5 | sonnet | en curso | — | Revisión cruzada de sonnet: la creación best-effort del enlace de verificación tragaba cualquier error, no solo tabla faltante; /v/[slug] mostraba Estado fuera de lo acordado; el QR se generaba para órdenes sin entregar. Carrera sin UNIQUE en orden_id queda anotada. |
+| F7.3.T5 | sonnet | hecha | `7e00aff` | La creación del enlace de verificación solo tolera tabla faltante; cualquier otro error queda en audit_log sin tumbar la entrega ni el PDF, con test. /v/[slug] sin Estado. QR y enlace solo cuando la orden está Entregada. Carrera sin UNIQUE en orden_id anotada. |
 
 ## F7.3.T4 — Correcciones de la revisión cruzada sobre observaciones y tasa
 

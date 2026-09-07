@@ -2999,7 +2999,7 @@
       "description": "Tragar solo VERIFICACION_TABLA_FALTANTE; quitar Estado de /v/[slug]; QR y enlace de verificación solo para órdenes Entregadas.",
       "model": "opencode-go/kimi-k2.6",
       "reason": "Correcciones acotadas con diagnóstico hecho.",
-      "status": "in_progress",
+      "status": "done",
       "dependencies": [
         "F7.3.T2"
       ],
@@ -3017,6 +3017,13 @@
           "session": "sonnet",
           "commit": "",
           "text": "Revisión de sonnet: catch indiscriminado en crearVerificacionBestEffort y resolverVerificacionUrl; /v/[slug] muestra Estado; QR para órdenes en cualquier estado; carrera sin UNIQUE en orden_id converge al enlace más viejo."
+        },
+        {
+          "date": "2026-09-07",
+          "author": "planner",
+          "session": "sonnet",
+          "commit": "7e00aff",
+          "text": "La creación del enlace de verificación solo tolera tabla faltante; cualquier otro error queda en audit_log sin tumbar la entrega ni el PDF, con test. /v/[slug] sin Estado. QR y enlace solo cuando la orden está Entregada. Carrera sin UNIQUE en orden_id anotada."
         }
       ]
     }
