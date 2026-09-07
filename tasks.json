@@ -3119,7 +3119,7 @@
       "description": "Ganancia global aplica al paquete cerrado y se ve en resumen; en modo abierto la ganancia va por línea con default de Config y el campo global desaparece; mixto: global solo al paquete; tasa visible no editable; sin toggle Ajustes avanzados. Migración 0020 ganancia_default_pct.",
       "model": "opencode/deepseek-v4-pro",
       "reason": "Reglas de negocio con tests en tres modos.",
-      "status": "in_progress",
+      "status": "done",
       "dependencies": [
         "F7.2.T5"
       ],
@@ -3132,7 +3132,15 @@
         "packages/lib/calcular-totales.ts"
       ],
       "specRef": "F7/sprint-feedback-cliente.md#F7.2.T6",
-      "comments": []
+      "comments": [
+        {
+          "date": "2026-09-07",
+          "author": "planner",
+          "session": "sonnet",
+          "commit": "04ef7a5",
+          "text": "PR #22. Migración 0020 aplicada en hosted."
+        }
+      ]
     },
     {
       "id": "F7.7.T1",
