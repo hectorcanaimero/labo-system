@@ -6,6 +6,7 @@ import { get as getConfig } from "@labo/db/repos/config";
 import { getBySlug } from "@labo/db/repos/enlaces";
 import { getById as getPacienteById } from "@labo/db/repos/pacientes";
 import { getById as getOrden } from "@labo/db/repos/ordenes";
+import { enmascararCedula } from "@labo/lib/cedula";
 import { SLUG_PATTERN } from "@labo/lib/enlace-resultado";
 import { Button } from "@/components/ui/button";
 import { getAdminDb } from "@/lib/db-server";
@@ -33,38 +34,6 @@ function formatDate(value: string | Date | null): string {
   return new Intl.DateTimeFormat("es-VE", { dateStyle: "long", timeZone: "UTC" }).format(
     new Date(value),
   );
-}
-
-/**
- * Enmascara la cédula dejando visibles solo los últimos dos dígitos, con los
- * mismos grupos de miles que se usarían al mostrarla completa (ej.
- * `V-12345678` → `V-***.***.*78`).
- */
-function maskCedula(cedula: string): string {
-  const match = /^([VEJGP])-(\d+)$/.exec(cedula);
-  if (!match) return cedula;
-  const [, prefix, digits] = match;
-
-  const groupLengths: number[] = [];
-  let remaining = digits.length;
-  while (remaining > 3) {
-    groupLengths.unshift(3);
-    remaining -= 3;
-  }
-  groupLengths.unshift(remaining);
-
-  const visibleCount = Math.min(2, digits.length);
-  const masked =
-    "*".repeat(digits.length - visibleCount) + digits.slice(digits.length - visibleCount);
-
-  const groups: string[] = [];
-  let cursor = 0;
-  for (const length of groupLengths) {
-    groups.push(masked.slice(cursor, cursor + length));
-    cursor += length;
-  }
-
-  return `${prefix}-${groups.join(".")}`;
 }
 
 export default async function ResultadoPublicoPage({
@@ -112,7 +81,7 @@ export default async function ResultadoPublicoPage({
         <dl className="mt-4 grid gap-3 sm:grid-cols-2">
           <div>
             <dt className="text-xs uppercase tracking-wide text-muted-foreground">Cédula</dt>
-            <dd className="text-sm font-medium">{maskCedula(paciente.cedula)}</dd>
+            <dd className="text-sm font-medium">{enmascararCedula(paciente.cedula)}</dd>
           </div>
           <div>
             <dt className="text-xs uppercase tracking-wide text-muted-foreground">Estado</dt>

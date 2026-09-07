@@ -2857,7 +2857,7 @@
       "description": "Middleware deja pasar /api/r/*; page.tsx pasa paquete_id, precio_base_snap y ganancia_pct; PresupuestoForm deriva cerrado; maskCedula falla cerrado.",
       "model": "opencode/deepseek-v4-pro",
       "reason": "Correcciones ubicadas por la revisión; tocan middleware y reconstrucción de estado.",
-      "status": "in_progress",
+      "status": "done",
       "dependencies": [
         "F7.3.T1b",
         "F7.2.T4"
@@ -2877,6 +2877,13 @@
           "session": "opus",
           "commit": "",
           "text": "Revisión de opus: middleware redirige /api/r/[slug]/pdf con 307 (verificado con next start); editar presupuesto fija cerrado=false y page.tsx no pasa paquete_id/precio_base_snap/ganancia_pct, total 15 pasa a 16,50 y se pierde el reparto y la ganancia por línea. Plausibles: maskCedula falla abierto; página pública muestra observaciones y médico; ruta pública sin log de duración."
+        },
+        {
+          "date": "2026-09-07",
+          "author": "planner",
+          "session": "opus",
+          "commit": "02dd0b8",
+          "text": "Middleware excluye api/r/ con barra final (sin la barra abría /api/resultados). page.tsx pasa paquete_id, precio_base_snap y ganancia_pct, ahora requeridos en el tipo. cerrado se deriva con esPaqueteCerrado (paquete_id y ganancia 0; ambigüedad documentada si la ganancia global es 0). El submit manda ganancia por línea aunque el toggle esté plegado. enmascararCedula en packages/lib falla cerrado. 22 tests nuevos, lib 335/335. Verificado con next start: el PDF público llega al handler y las rutas protegidas siguen en 307."
         }
       ]
     }
