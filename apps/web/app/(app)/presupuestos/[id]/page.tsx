@@ -2,6 +2,7 @@ import { notFound, redirect } from "next/navigation";
 
 import { getById } from "@labo/db/repos/presupuestos";
 import { get as getConfig } from "@labo/db/repos/config";
+import { getById as getPacienteById } from "@labo/db/repos/pacientes";
 import { getLatest } from "@labo/db/repos/tasa";
 import { AuthError, getCurrentUser } from "@/lib/server/auth";
 import { getAdminDb } from "@/lib/db-server";
@@ -33,10 +34,19 @@ export default async function PresupuestoDetallePage({ params }: { params: { id:
   ]);
   if (!presupuesto) notFound();
 
+  // F7.2.T7 — teléfono/email para habilitar (o no) los botones de envío. Un
+  // presupuesto de "nombre libre" no tiene ficha, así que no hay de dónde
+  // sacarlos: quedan null y los dos botones salen deshabilitados.
+  const paciente = presupuesto.paciente_id
+    ? await getPacienteById(db, presupuesto.paciente_id)
+    : null;
+
   return (
     <div className="mx-auto flex max-w-6xl flex-col gap-6">
       <PresupuestoDetalle
         role={role}
+        pacienteTelefono={paciente?.telefono ?? null}
+        pacienteEmail={paciente?.email ?? null}
         vigenteTasa={
           latest
             ? { tasa: latest.tasa, fuente: latest.fuente, scraped_at: latest.scraped_at }
