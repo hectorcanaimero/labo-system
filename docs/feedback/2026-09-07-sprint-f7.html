@@ -34,9 +34,10 @@ ul{margin:.2rem 0 0;padding-left:1.1rem}li{margin:.2rem 0}
 <span class="eyebrow">RV Laboratorio · F7</span>
 <h1>Sprint de feedback del cliente</h1>
 <p class="lede">Dos semanas para cerrar lo que reportó Miguel Franchi y lo que se acordó en la reunión del 6 de septiembre. Sale del análisis técnico; cada tarea tiene alcance, criterios de aceptación y archivos.</p>
-<div class="meta"><span>Del <b>8 al 19 sep 2026</b></span><span>Tareas <b>16</b></span><span>Estimado <b>42h</b></span><span>Spec <b>specs/F7/sprint-feedback-cliente.md</b></span><span>Backlog <b>tasks.json</b></span></div>
+<div class="meta"><span>Del <b>8 al 19 sep 2026</b></span><span>Tareas <b>17</b></span><span>Estimado <b>45h</b></span><span>Spec <b>specs/F7/sprint-feedback-cliente.md</b></span><span>Backlog <b>tasks.json</b></span></div>
 </header>
 <div class="wrap"><table><thead><tr><th>Cuándo</th><th>ID</th><th>Tarea</th><th>Depende de</th><th>Horas</th></tr></thead><tbody>
+<tr><td><span class="wk s1">S1 · d5</span></td><td class="id">F7.0.T1</td><td>Dejar verde el CI de la raíz (bloquea staged → main)</td><td>—</td><td class="h">3</td></tr>
 <tr><td><span class="wk s1">S1 · d1-2</span></td><td class="id">F7.1.T1</td><td>Migrar los siete modales a mano al Dialog de shadcn</td><td>—</td><td class="h">4</td></tr>
 <tr><td><span class="wk s1">S1 · d1-2</span></td><td class="id">F7.1.T2</td><td>Mensajes de error faltantes y registro del 500 en exámenes</td><td>—</td><td class="h">1</td></tr>
 <tr><td><span class="wk s1">S1 · d1-2</span></td><td class="id">F7.2.T1</td><td>Decir qué falta para guardar el presupuesto</td><td>—</td><td class="h">2</td></tr>
@@ -172,6 +173,7 @@ ul{margin:.2rem 0 0;padding-left:1.1rem}li{margin:.2rem 0}
 <section id="registro"><h2>Registro del Sprint 1</h2>
 <p style="margin-bottom:1rem;color:var(--ink-2)">Sprint 1 es la semana 1. Rama <code>sprint/f7-1</code> con base <code>staged</code>; un commit por tarea, PR al cierre. Sesiones opus y sonnet en worktrees propios, integración solo por fast-forward.</p>
 <div class="wrap" style="margin-top:0"><table><thead><tr><th>Tarea</th><th>Sesión</th><th>Estado</th><th>Commit</th><th>Comentario</th></tr></thead><tbody id="registro-body">
+<tr data-task="F7.0.T1"><td class="id">F7.0.T1</td><td>sonnet</td><td>en curso</td><td class="id">—</td><td>CI de raíz en rojo por causas previas al sprint: tsup sin inputs en lib, tipos de tests de integración en db, vitest ausente en web. main exige CI verde, así que bloquea la promoción a producción.</td></tr>
 <tr data-task="F7.1.T2"><td class="id">F7.1.T2</td><td>sonnet</td><td>hecha</td><td class="id">9094277</td><td>Cinco códigos traducidos y console.error del 500 en exámenes y presupuestos. Pendiente: log de Coolify del POST a /api/examenes del 2026-09-06 02:35-02:45 UTC.</td></tr>
 <tr data-task="F7.1.T1"><td class="id">F7.1.T1</td><td>opus</td><td>hecha</td><td class="id">78441b1</td><td>Siete modales sobre el Dialog de shadcn con cuerpo desplazable y pie fijo. packages/ui suma @radix-ui/react-dialog y un Dialog propio. Sin prueba visual: ninguna sesión tiene navegador.</td></tr>
 <tr data-task="F7.3.T1"><td class="id">F7.3.T1</td><td>sonnet</td><td>hecha, con seguimiento</td><td class="id">1085ba2</td><td>Cédula enmascarada y valores fuera del HTML. Dejó al paciente sin forma de bajar el PDF; se abrió F7.3.T1b.</td></tr>
@@ -195,6 +197,8 @@ ul{margin:.2rem 0 0;padding-left:1.1rem}li{margin:.2rem 0}
 <li><b>Migración 0015 aplicada en hosted</b> el 7 de septiembre 01:45 UTC por el endpoint de InsForge, justo después del merge del PR #9.</li>
 <li>Confirmar con el cliente si la ganancia se oculta o se elimina.</li>
 <li>Decidir si la página pública del resultado debe seguir mostrando observaciones clínicas y médico solicitante. Hoy los muestra.</li>
-<li>PR #9 mergeado a <code>staged</code>. F7.2.T5 va en un PR aparte y es urgente: el PDF público está roto en producción hasta que entre.</li></ul></div>
+<li>PR #9 y PR #10 mergeados a <code>staged</code>. Producción despliega desde <code>main</code> y no tiene nada del sprint todavía.</li>
+<li><b>El deploy de staging nunca corrió:</b> el workflow falla desde el 5 de septiembre porque faltan los secrets <code>COOLIFY_WEBHOOK_URL</code> y <code>COOLIFY_TOKEN</code> en GitHub. Configurarlos en Settings → Secrets → Actions.</li>
+<li>La promoción <code>staged → main</code> está bloqueada hasta que el CI de raíz esté verde (F7.0.T1).</li></ul></div>
 </div></section>
 </main>

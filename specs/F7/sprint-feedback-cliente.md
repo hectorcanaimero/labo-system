@@ -580,6 +580,7 @@ Rama del sprint: `sprint/f7-1`, base `staged`. Cada tarea es un commit. PR #9 `s
 | F7.2.T2 | opus | hecha | `2f25ad7` + `bdf8cef` | Migración 0015 (toma_muestra_usd, domicilio_usd en presupuestos; toma_muestra_default_usd en laboratorio_config), probada en Postgres local e idempotente. calcularTotales suma serviciosUsd después de descuento y ganancia; schemas y repo persisten los campos. NO aplicada en hosted: debe aplicarse ANTES del deploy porque PRESUPUESTO_COLS ya pide las columnas. Tests de lib 313/313.  Corrección: sin BEGIN/COMMIT, porque el endpoint de migraciones de InsForge envuelve el SQL en su propia transacción; aplicar por el endpoint, no por psql. |
 | F7.2.T3 | opus | hecha | `b173abe` | Bloque Servicios en el formulario con toma de muestra precargada desde Config y check de domicilio; detalle y PDF muestran ambos; hora de emisión en zona Caracas con test (antes la fecha del PDF salía al día siguiente pasadas las 20:00 por formatear en UTC). Config con valor por defecto de toma de muestra. Sin prueba visual del PDF ni del navegador. Hallazgo: los tests de packages/pdf no se typechequean (tsconfig con files: []). |
 | F7.2.T5 | opus | hecha | `02dd0b8` | Middleware excluye api/r/ con barra final (sin la barra abría /api/resultados). page.tsx pasa paquete_id, precio_base_snap y ganancia_pct, ahora requeridos en el tipo. cerrado se deriva con esPaqueteCerrado (paquete_id y ganancia 0; ambigüedad documentada si la ganancia global es 0). El submit manda ganancia por línea aunque el toggle esté plegado. enmascararCedula en packages/lib falla cerrado. 22 tests nuevos, lib 335/335. Verificado con next start: el PDF público llega al handler y las rutas protegidas siguen en 307. |
+| F7.0.T1 | sonnet | en curso | — | CI de raíz en rojo por causas previas: tsup sin inputs en lib, tipos de tests de integración en db, vitest ausente en web. Bloquea el PR staged → main. |
 
 ## F7.3.T1b — PDF público por slug para el enlace del paciente (seguimiento de F7.3.T1)
 
@@ -696,3 +697,38 @@ No hace:
 ### Estimación
 
 2h
+
+## F7.0.T1 — Dejar verde el CI de la raíz
+
+### Objetivo
+
+`main` exige lint, typecheck, test y build en verde y hoy fallan los tres últimos por causas previas al sprint. Sin esto no se puede promover `staged` a producción.
+
+### Alcance
+
+Sí hace:
+- `@labo/lib`: build con tsup sin inputs; corregir entry o config.
+- `@labo/db`: 11 errores de tipos en `dashboard.integration.test.ts` y `presupuestos.integration.test.ts`; alinear a las firmas actuales o skip con motivo.
+- `apps/web`: script `test` llama a vitest sin tenerlo; instalar con config mínima o no-op explícito.
+- `@labo/db test`: 3 rojos preexistentes; saltear los de integración cuando no hay `INSFORGE_URL`.
+
+No hace:
+- Tocar lógica de negocio.
+
+### Criterios de aceptación
+
+- [ ] `pnpm turbo run lint typecheck test build` en verde desde la raíz.
+
+### Archivos afectados
+
+- `packages/lib/package.json`, `packages/lib/tsup.config.ts`
+- `packages/db/repos/*.integration.test.ts`
+- `apps/web/package.json`
+
+### Dependencias
+
+- Ninguna
+
+### Estimación
+
+3h
