@@ -2557,14 +2557,22 @@
       "description": "**Objetivo**\n\nEl botón “Guardar presupuesto” se deshabilita por seis condiciones sin decir cuál falla. El cliente vio un botón gris y no supo que faltaba el paciente. Mostrar la lista de faltantes y llevar al campo.\n\n**Alcance**\n\nSí hace:\n- Derivar `faltantes: string[]` de las mismas condiciones de `canSubmit`.\n- Botón siempre habilitado; al hacer clic con faltantes, mostrarlos junto al botón y hacer scroll al primero.\n- Marcar en rojo el bloque de paciente cuando está vacío.\n\nNo hace:\n- Cambiar las reglas de validación.\n\n**Criterios de aceptación**\n\n- [ ] Con dos exámenes y sin paciente, clic en guardar muestra “Falta elegir paciente” y lleva al campo.\n- [ ] Con todo cargado, guarda como hasta ahora.",
       "model": "opencode-go/kimi-k2.6",
       "reason": "Cambios acotados de UI, mensajes y documentación.",
-      "status": "todo",
+      "status": "done",
       "dependencies": [],
       "estimateHours": 2,
       "files": [
         "apps/web/app/(app)/presupuestos/nuevo/PresupuestoForm.tsx"
       ],
       "specRef": "F7/sprint-feedback-cliente.md#F7.2.T1",
-      "comments": []
+      "comments": [
+        {
+          "date": "2026-09-07",
+          "author": "planner",
+          "session": "sonnet",
+          "commit": "f275872",
+          "text": "Botón siempre habilitado; al guardar con faltantes los lista junto al botón y hace scroll a la sección. Bloque de paciente en rojo tras el intento. Nota operativa: tras rebasear sobre commits que agregan dependencias, correr pnpm install de nuevo o el typecheck falla por caché."
+        }
+      ]
     },
     {
       "id": "F7.2.T2",

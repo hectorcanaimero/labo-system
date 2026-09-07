@@ -571,10 +571,10 @@ Rama del sprint: `sprint/f7-1`, base `staged`. Cada tarea es un commit; al cerra
 |---|---|---|---|---|
 | F7.1.T1 | opus | hecha | `78441b1` | Siete modales migrados al Dialog de shadcn con DialogBody desplazable y pie fijo. packages/ui suma @radix-ui/react-dialog y un overlay/Dialog.tsx propio para CargarPaqueteButton. Escape y click fuera no cancelan un guardado en curso. Falta verificar a ojo en 1366x768 y tablet. |
 | F7.1.T2 | sonnet | hecha | `9094277` | Cinco códigos traducidos y console.error del 500 en exámenes y presupuestos. Pendiente: buscar en los logs de Coolify el POST a /api/examenes del 2026-09-06 02:35-02:45 UTC; la sesión no tiene acceso. Hallazgo: pnpm test y pnpm typecheck fallan en la raíz por errores preexistentes (tsup de @labo/lib sin inputs, tests de integración de @labo/db); por paquete, lib y web pasan. |
-| F7.2.T1 | sonnet | en curso | — | — |
+| F7.2.T1 | sonnet | hecha | `f275872` | Botón siempre habilitado; al guardar con faltantes los lista junto al botón y hace scroll a la sección. Bloque de paciente en rojo tras el intento. Nota operativa: tras rebasear sobre commits que agregan dependencias, correr pnpm install de nuevo o el typecheck falla por caché. |
 | F7.3.T1 | sonnet | hecha, con seguimiento | `1085ba2` | Cédula enmascarada y tabla de valores quitada de /r/[slug]. Seguimiento: la página quedó sin forma de bajar el PDF porque api/pdf/resultado exige sesión de staff; el paciente no ve su resultado. Se agrega F7.3.T1b: endpoint público de PDF autorizado por slug y botón de descarga. |
 | F7.3.T1b | sonnet | hecha | `97b3e10` | GET /api/r/[slug]/pdf sin sesión, 404 si el slug no existe, venció o la orden está anulada. El render se extrajo de la ruta de staff y se comparte. Botón de descarga en la página pública. Build de web pasa; descarga real sin probar en navegador. |
-| F7.2.T4 | sonnet | asignada | — | — |
+| F7.2.T4 | sonnet | en curso | — | — |
 | F7.1.T3 | opus | hecha | `494930d` | Botón Agregar en el catálogo, sensores y SortableContext real para el reorden, PUT único /api/paquetes/[id] con setContenido. Sin transacciones en PostgREST: el rollback es por compensación; atomicidad real requeriría una RPC en Postgres. packages/ui suma dnd-kit. Las rutas viejas /examenes y /titulos siguen. Sin prueba en navegador ni test de setContenido. |
 | F7.2.T2 | opus | en curso | — | — |
 | F7.2.T3 | opus | asignada | — | — |
