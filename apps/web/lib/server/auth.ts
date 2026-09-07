@@ -73,6 +73,70 @@ function readAccessTokenFromCookies(): string | null {
   return token && token.length > 0 ? token : null;
 }
 
+function readRefreshTokenFromCookies(): string | null {
+  const jar = cookies();
+  const token = jar.get(AUTH_COOKIE_NAMES.refresh)?.value;
+  return token && token.length > 0 ? token : null;
+}
+
+export interface SesionRenovada {
+  accessToken: string;
+  refreshToken?: string;
+}
+
+/**
+ * Renueva el access token con el refresh token (F7.8.T1).
+ *
+ * InsForge expone `POST /api/auth/refresh`; con `client_type=mobile` acepta
+ * el refresh token en el body y devuelve los tokens en el JSON (es lo que
+ * hace el SDK cuando guarda el refresh token en memoria, que es nuestro caso:
+ * las cookies son nuestras, no del backend). Devuelve `null` si InsForge lo
+ * rechaza: el refresh venció o fue revocado.
+ */
+export async function refreshSession(refreshToken: string): Promise<SesionRenovada | null> {
+  const baseUrl = readInsforgeBaseUrl();
+  const res = await fetch(`${baseUrl}/api/auth/refresh?client_type=mobile`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json', Accept: 'application/json' },
+    body: JSON.stringify({ refreshToken }),
+    cache: 'no-store',
+  });
+  if (!res.ok) return null;
+  const payload = (await res.json().catch(() => ({}))) as {
+    accessToken?: string;
+    refreshToken?: string;
+    session?: { access_token?: string; refresh_token?: string };
+  };
+  const accessToken = payload.accessToken ?? payload.session?.access_token;
+  if (!accessToken) return null;
+  return { accessToken, refreshToken: payload.refreshToken ?? payload.session?.refresh_token };
+}
+
+/** 8 horas, igual que el login (`api/me`). */
+export const SESSION_COOKIE_MAX_AGE_S = 8 * 60 * 60;
+
+/**
+ * Reescribe las cookies de sesión. En Server Components `cookies().set` no
+ * está permitido y lanza: ahí se ignora, y el middleware, que corre antes en
+ * cada navegación, es quien persiste la renovación.
+ */
+function tryPersistSession(sesion: SesionRenovada): void {
+  try {
+    const jar = cookies();
+    const common = {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax' as const,
+      path: '/',
+      maxAge: SESSION_COOKIE_MAX_AGE_S,
+    };
+    jar.set(AUTH_COOKIE_NAMES.access, sesion.accessToken, common);
+    if (sesion.refreshToken) jar.set(AUTH_COOKIE_NAMES.refresh, sesion.refreshToken, common);
+  } catch {
+    /* Server Component: sin permiso para escribir cookies; el middleware lo hace. */
+  }
+}
+
 /**
  * Verifica el access token contra InsForge y devuelve la fila `auth.users`
  * asociada, o `null` si el token es inválido/expirado.
@@ -117,7 +181,17 @@ export async function getCurrentUser(): Promise<CurrentUser> {
   const token = readAccessTokenFromCookies();
   if (!token) throw new AuthError('UNAUTHENTICATED');
 
-  const authUser = await fetchInsforgeUser(token);
+  let authUser = await fetchInsforgeUser(token);
+  if (!authUser?.id) {
+    // Access token vencido: una única renovación con el refresh token antes
+    // de dar la sesión por perdida (F7.8.T1).
+    const refreshToken = readRefreshTokenFromCookies();
+    const renovada = refreshToken ? await refreshSession(refreshToken).catch(() => null) : null;
+    if (renovada) {
+      tryPersistSession(renovada);
+      authUser = await fetchInsforgeUser(renovada.accessToken);
+    }
+  }
   if (!authUser?.id || !authUser.email) throw new AuthError('UNAUTHENTICATED');
 
   const db = getAdminDb();

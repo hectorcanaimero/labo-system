@@ -33,6 +33,7 @@ export interface ConfigPreloaded {
   mpps: string | null;
   pdf_pie_pagina: string | null;
   toma_muestra_default_usd: number;
+  ganancia_default_pct: number;
 }
 
 export interface TasaPreloaded {
@@ -52,12 +53,25 @@ interface ConfigFormProps {
 // Pestañas (F7.6.T1)
 // ────────────────────────────────────────────────────────────────────────────
 
-const TAB_IDS = ["laboratorio", "presupuestos", "imagen", "tasa", "catalogo"] as const;
+const TAB_IDS = ["laboratorio", "presupuestos", "imagen", "tasa", "tipos", "metodos"] as const;
 type TabId = (typeof TAB_IDS)[number];
 const DEFAULT_TAB: TabId = "laboratorio";
 
+/**
+ * F7.4.T4 — "Tipos y métodos" era una sola pestaña ("catalogo") con los dos
+ * catálogos apilados; pasa a ser dos pestañas separadas ("tipos"/"metodos").
+ * `?tab=catalogo` sigue resolviendo (a "tipos") para no romper el link del
+ * sidebar viejo ni cualquier bookmark que ya ande circulando.
+ */
+const TAB_ALIASES: Record<string, TabId> = { catalogo: "tipos" };
+
 function isTabId(value: string | null): value is TabId {
   return !!value && (TAB_IDS as readonly string[]).includes(value);
+}
+
+function normalizeTab(value: string | null): TabId | null {
+  if (isTabId(value)) return value;
+  return value ? (TAB_ALIASES[value] ?? null) : null;
 }
 
 /**
@@ -89,8 +103,7 @@ export function ConfigForm({ preloadedConfig, preloadedTasa }: ConfigFormProps) 
   const searchParams = useSearchParams();
 
   const [activeTab, setActiveTab] = useState<TabId>(() => {
-    const fromUrl = searchParams.get("tab");
-    return isTabId(fromUrl) ? fromUrl : DEFAULT_TAB;
+    return normalizeTab(searchParams.get("tab")) ?? DEFAULT_TAB;
   });
 
   // Cambiar de pestaña actualiza la URL a mano con la History API en vez de
@@ -103,8 +116,8 @@ export function ConfigForm({ preloadedConfig, preloadedTasa }: ConfigFormProps) 
   // sin pasar por el router de Next ni recargar datos del server.
   useEffect(() => {
     function onPopState() {
-      const fromUrl = new URLSearchParams(window.location.search).get("tab");
-      if (isTabId(fromUrl)) setActiveTab(fromUrl);
+      const fromUrl = normalizeTab(new URLSearchParams(window.location.search).get("tab"));
+      if (fromUrl) setActiveTab(fromUrl);
     }
     window.addEventListener("popstate", onPopState);
     return () => window.removeEventListener("popstate", onPopState);
@@ -152,6 +165,7 @@ export function ConfigForm({ preloadedConfig, preloadedTasa }: ConfigFormProps) 
       mpps: config?.mpps || "",
       pdf_pie_pagina: config?.pdf_pie_pagina || "",
       toma_muestra_default_usd: config?.toma_muestra_default_usd ?? 0,
+      ganancia_default_pct: config?.ganancia_default_pct ?? 0,
     },
   });
 
@@ -167,6 +181,7 @@ export function ConfigForm({ preloadedConfig, preloadedTasa }: ConfigFormProps) 
         mpps: config.mpps || "",
         pdf_pie_pagina: config.pdf_pie_pagina || "",
         toma_muestra_default_usd: config.toma_muestra_default_usd,
+        ganancia_default_pct: config.ganancia_default_pct,
       });
     }
   }, [config, reset]);
@@ -348,7 +363,8 @@ export function ConfigForm({ preloadedConfig, preloadedTasa }: ConfigFormProps) 
         </TabsTrigger>
         <TabsTrigger value="imagen">Imagen</TabsTrigger>
         <TabsTrigger value="tasa">Tasa de cambio</TabsTrigger>
-        <TabsTrigger value="catalogo">Tipos y métodos</TabsTrigger>
+        <TabsTrigger value="tipos">Tipos de análisis</TabsTrigger>
+        <TabsTrigger value="metodos">Métodos</TabsTrigger>
       </TabsList>
 
       {/*
@@ -472,11 +488,10 @@ export function ConfigForm({ preloadedConfig, preloadedTasa }: ConfigFormProps) 
             <CardHeader className="border-b border-border py-3">
               <CardTitle className="text-sm font-semibold">Presupuestos</CardTitle>
               <CardDescription className="text-xs">
-                Valor con el que se precarga la toma de muestra en un presupuesto nuevo. Se
-                puede cambiar en cada presupuesto.
+                Valores con los que arranca un presupuesto nuevo. Se pueden cambiar en cada uno.
               </CardDescription>
             </CardHeader>
-            <CardContent className="p-4">
+            <CardContent className="grid grid-cols-1 gap-3 p-4 sm:grid-cols-2">
               <FieldText
                 id="toma_muestra_default_usd"
                 label="Toma de muestra por defecto (USD)"
@@ -493,6 +508,23 @@ export function ConfigForm({ preloadedConfig, preloadedTasa }: ConfigFormProps) 
                 })}
                 disabled={savingConfig}
                 error={errors.toma_muestra_default_usd?.message}
+              />
+              <FieldText
+                id="ganancia_default_pct"
+                label="Ganancia por defecto (%)"
+                type="number"
+                placeholder="0"
+                register={register("ganancia_default_pct", {
+                  // F7.2.T6 — con qué arranca cada línea nueva en modo
+                  // abierto (sueltos o paquete desglosado); en paquete
+                  // cerrado no aplica, ahí manda el % global del presupuesto.
+                  setValueAs: (value) =>
+                    value === "" || value === null || value === undefined
+                      ? undefined
+                      : Number(value),
+                })}
+                disabled={savingConfig}
+                error={errors.ganancia_default_pct?.message}
               />
             </CardContent>
           </Card>
@@ -696,7 +728,7 @@ export function ConfigForm({ preloadedConfig, preloadedTasa }: ConfigFormProps) 
         </Card>
       </TabsContent>
 
-      <TabsContent value="catalogo" className="flex flex-col gap-4">
+      <TabsContent value="tipos" className="flex flex-col gap-4">
         <CatalogoPanel
           titulo="Tipos de análisis"
           descripcion="Clasificación del examen. Es obligatoria al crearlo y agrupa los resultados en el PDF."
@@ -704,6 +736,9 @@ export function ConfigForm({ preloadedConfig, preloadedTasa }: ConfigFormProps) 
           singular="tipo"
           placeholderNuevo="Ej. Análisis Citogenético"
         />
+      </TabsContent>
+
+      <TabsContent value="metodos" className="flex flex-col gap-4">
         <CatalogoPanel
           titulo="Métodos"
           descripcion="Técnica con la que se procesa el examen. Es opcional."

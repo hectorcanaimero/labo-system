@@ -54,10 +54,19 @@ import type { EstadoPresupuesto } from "@labo/lib/schemas/presupuesto";
 const PACIENTE_LIBRE_REQUIERE_FICHA = "PACIENTE_LIBRE_REQUIERE_FICHA";
 
 import { PresupuestoForm } from "../nuevo/PresupuestoForm";
+import { EnviarPresupuestoButtons } from "./EnviarPresupuestoButtons";
 import { PageHeader } from "@/components/layout/PageHeader";
 
+import { notifyError, notifySuccess } from "@labo/ui/feedback/toast";
 interface PresupuestoDetalleProps {
   role: string;
+  /** F7.2.T6 — tasa vigente (no la guardada) para avisar si difieren al editar. */
+  vigenteTasa: { tasa: number; fuente: string; scraped_at: string } | null;
+  /** F7.2.T6 — con qué arranca una línea abierta nueva que se agregue al editar. */
+  gananciaDefault: number;
+  /** F7.2.T7 — para habilitar/deshabilitar los botones de envío. null en "nombre libre" (sin ficha). */
+  pacienteTelefono: string | null;
+  pacienteEmail: string | null;
   initialData: {
     id: string;
     numero_correlativo: number;
@@ -87,6 +96,7 @@ interface PresupuestoDetalleProps {
       paquete_id: string | null;
       precio_base_snap: number;
       ganancia_pct: number;
+      cerrado: boolean;
       precio_final_snap?: number;
     }>;
   };
@@ -122,7 +132,13 @@ async function requestJson<T>(url: string, init?: RequestInit): Promise<T> {
   return response.json() as Promise<T>;
 }
 
-export function PresupuestoDetalle({ initialData }: PresupuestoDetalleProps) {
+export function PresupuestoDetalle({
+  initialData,
+  vigenteTasa,
+  gananciaDefault,
+  pacienteTelefono,
+  pacienteEmail,
+}: PresupuestoDetalleProps) {
   const router = useRouter();
   const [isEditing, setIsEditing] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -131,6 +147,7 @@ export function PresupuestoDetalle({ initialData }: PresupuestoDetalleProps) {
   const [confirmOpen, setConfirmOpen] = useState(false);
 
   const isBorrador = initialData.estado === "Borrador";
+  const isEnviado = initialData.estado === "Enviado";
   const isAprobado = initialData.estado === "Aprobado";
   const esNombreLibre = !initialData.paciente_id;
   const [pacienteAsignado, setPacienteAsignado] = useState<PacienteAutocompleteItem | null>(null);
@@ -147,9 +164,11 @@ export function PresupuestoDetalle({ initialData }: PresupuestoDetalleProps) {
         method: "PATCH",
         body: JSON.stringify({ estado: "Aprobado" }),
       });
+      notifySuccess("Presupuesto aprobado.");
       router.refresh();
     } catch (reason) {
       setError(toHumanError(reason));
+      notifyError(reason);
     } finally {
       setApproving(false);
     }
@@ -168,6 +187,7 @@ export function PresupuestoDetalle({ initialData }: PresupuestoDetalleProps) {
       );
       setConfirmOpen(false);
       setPacienteAsignado(null);
+      notifySuccess("Orden de laboratorio creada.");
       router.push(`/resultados/${result.orden_id}`);
       router.refresh();
     } catch (reason) {
@@ -182,6 +202,7 @@ export function PresupuestoDetalle({ initialData }: PresupuestoDetalleProps) {
         return;
       }
       setError(toHumanError(reason));
+      notifyError(reason);
       setConverting(false);
     }
   }
@@ -215,6 +236,8 @@ export function PresupuestoDetalle({ initialData }: PresupuestoDetalleProps) {
             estado: initialData.estado,
             lineas: initialData.lineas,
           }}
+          vigenteTasa={vigenteTasa}
+          gananciaDefault={gananciaDefault}
           onCancelEdit={() => setIsEditing(false)}
           onSaved={() => {
             setIsEditing(false);
@@ -294,6 +317,14 @@ export function PresupuestoDetalle({ initialData }: PresupuestoDetalleProps) {
                 <Send className="h-3.5 w-3.5" />
                 Convertir en orden
               </Button>
+            ) : null}
+
+            {isBorrador || isEnviado ? (
+              <EnviarPresupuestoButtons
+                presupuestoId={initialData.id}
+                telefono={pacienteTelefono}
+                email={pacienteEmail}
+              />
             ) : null}
 
             <Button

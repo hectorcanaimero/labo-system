@@ -3,7 +3,6 @@ import { Document, Page, StyleSheet, Text, View } from "@react-pdf/renderer";
 import { formatBs, formatUsd } from "@labo/lib/bs-format";
 import { formatNumeroPresupuesto } from "@labo/lib/numero-presupuesto";
 
-import { PDFFirma } from "./components/PDFFirma";
 import { PDFFooter } from "./components/PDFFooter";
 import { PDFHeader } from "./components/PDFHeader";
 import {
@@ -59,6 +58,19 @@ export const AVISO_PRESUPUESTO =
   "Este documento no constituye factura.";
 
 const styles = StyleSheet.create({
+  watermark: {
+    position: "absolute",
+    top: "42%",
+    left: 0,
+    right: 0,
+    textAlign: "center",
+    fontFamily: PDF_FONT.bold,
+    fontSize: 96,
+    letterSpacing: 10,
+    color: PDF_COLORS.border,
+    opacity: 0.35,
+    transform: "rotate(-30deg)",
+  },
   page: {
     color: PDF_COLORS.text,
     fontFamily: PDF_FONT.regular,
@@ -201,7 +213,8 @@ function patientDisplay(data: PresupuestoPDFData): { name: string; meta: string 
 
 /**
  * Presupuesto. Cabecera con logo y número, ficha del solicitante, detalle de
- * exámenes en USD y Bs, totales y cierre con firma y sello de la configuración.
+ * exámenes en USD y Bs y totales. Sin firma ni sello: es un presupuesto, no un
+ * informe; lleva una marca de agua "PRESUPUESTO" para que no se confunda con uno.
  */
 export function PresupuestoPDF({ data }: PresupuestoPDFProps) {
   const config = data.config;
@@ -222,6 +235,9 @@ export function PresupuestoPDF({ data }: PresupuestoPDFProps) {
       title={`Presupuesto ${numero} - ${patient.name}`}
     >
       <Page size="A4" style={styles.page}>
+        <Text style={styles.watermark} fixed>
+          PRESUPUESTO
+        </Text>
         <PDFHeader
           direccion={config?.direccion ?? ""}
           logo={config?.logo_url ?? null}
@@ -316,14 +332,6 @@ export function PresupuestoPDF({ data }: PresupuestoPDFProps) {
         </View>
 
         <Text style={styles.validity}>{VALIDEZ_PRESUPUESTO}</Text>
-
-        <PDFFirma
-          firma={config?.firma_url ?? null}
-          sello={config?.sello_url ?? null}
-          nombre={laboratoryName}
-          colegioBioanalistas={config?.colegio_bioanalistas ?? null}
-          mpps={config?.mpps ?? null}
-        />
 
         <PDFFooter
           aviso={AVISO_PRESUPUESTO}

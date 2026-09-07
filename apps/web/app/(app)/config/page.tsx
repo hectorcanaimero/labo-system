@@ -38,6 +38,7 @@ export default async function ConfigPage() {
         mpps: config.mpps,
         pdf_pie_pagina: config.pdf_pie_pagina,
         toma_muestra_default_usd: config.toma_muestra_default_usd,
+        ganancia_default_pct: config.ganancia_default_pct,
       }
     : null;
 

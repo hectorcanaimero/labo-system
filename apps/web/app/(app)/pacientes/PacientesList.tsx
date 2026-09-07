@@ -41,6 +41,7 @@ import {
 } from "./PacienteFormDialog";
 
 import { apiFetch } from "@/lib/api-client";
+import { notifyError, notifySuccess } from "@labo/ui/feedback/toast";
 export interface PaginatedPacientesResponse {
   items: PacienteSerializable[];
   page: number;
@@ -261,9 +262,11 @@ export function PacientesList({ initialData, pageSize }: PacientesListProps) {
       }
 
       const nextPage = data.items.length === 1 && page > 1 ? page - 1 : page;
+      notifySuccess("Paciente desactivado.");
       await refreshCurrentPage(nextPage);
     } catch (error) {
       setErrorMessage(toHumanError(error));
+      notifyError(error);
     }
   }
 

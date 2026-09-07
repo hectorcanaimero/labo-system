@@ -17,6 +17,7 @@ import { toHumanError } from '@labo/lib/error-messages';
 import { CatalogoSelect } from './CatalogoSelect';
 
 import { apiFetch } from "@/lib/api-client";
+import { notifyError, notifySuccess } from '@labo/ui/feedback/toast';
 interface ExamenDraft {
   id: string;
   titulo_id: string;
@@ -183,10 +184,12 @@ export function ExamenFormDialog({
       }
 
       const savedExamen = (await response.json()) as ExamenDraft;
+      notifySuccess(isEdit ? 'Examen actualizado.' : 'Examen creado.');
       onSaved(savedExamen);
       onOpenChange(false);
     } catch (error) {
       setErrorMessage(toHumanError(error));
+      notifyError(error);
     } finally {
       setSubmitting(false);
     }

@@ -23,23 +23,32 @@ const styles = StyleSheet.create({
     marginTop: 22,
     paddingTop: 4,
   },
+  // Las imágenes se dibujan completas dentro de una caja fija: `contain`
+  // respeta la proporción de cualquier archivo (apaisado, cuadrado o alto)
+  // y `objectPosition` las apoya abajo y al centro, sobre la línea. Nada de
+  // márgenes negativos: superponer o "pisar" la línea recortaba la imagen
+  // cuando la firma cargada no era apaisada.
   sello: {
-    width: 92,
-    height: 92,
+    width: 96,
+    height: 96,
     objectFit: "contain",
-    marginRight: -18, // se solapa un poco con la firma, como en papel
-    marginBottom: 18,
+    objectPositionX: "center",
+    objectPositionY: "bottom",
+    marginRight: 10,
+    marginBottom: 26,
     opacity: 0.92,
   },
   block: {
-    width: 200,
+    width: 210,
     alignItems: "center",
   },
   firma: {
-    width: 150,
-    height: 58,
+    width: 180,
+    height: 84,
     objectFit: "contain",
-    marginBottom: -6, // la firma "pisa" la línea
+    objectPositionX: "center",
+    objectPositionY: "bottom",
+    marginBottom: 2,
   },
   firmaVacia: {
     height: 40,

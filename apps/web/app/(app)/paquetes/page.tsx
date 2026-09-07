@@ -25,11 +25,14 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { PageHeader } from "@/components/layout/PageHeader";
+import { formatUsd } from "@labo/lib/bs-format";
 
+import { notifyError, notifySuccess } from "@labo/ui/feedback/toast";
 interface Paquete {
   id: string;
   nombre: string;
   descripcion: string | null;
+  precio_base: number;
   examenes_count: number;
 }
 
@@ -98,6 +101,7 @@ export default function PaquetesPage() {
         body: JSON.stringify({ nombre, descripcion, precio_base }),
       });
       setPaquetes((current) => [...current, created]);
+      notifySuccess("Paquete creado.");
       setOpen(false);
       setNombre("");
       setDescripcion("");
@@ -106,6 +110,7 @@ export default function PaquetesPage() {
       setError(
         reason instanceof Error ? reason.message : "No se pudo crear el paquete.",
       );
+      notifyError(reason);
     } finally {
       setSaving(false);
     }
@@ -200,6 +205,9 @@ export default function PaquetesPage() {
                   <TableHead className="h-9 w-24 py-1.5 text-right">
                     Exámenes
                   </TableHead>
+                  <TableHead className="h-9 w-28 py-1.5 text-right">
+                    Precio base
+                  </TableHead>
                   <TableHead className="h-9 w-24 py-1.5 text-right">
                     Acciones
                   </TableHead>
@@ -216,6 +224,9 @@ export default function PaquetesPage() {
                     </TableCell>
                     <TableCell className="py-1.5 text-right font-mono text-xs tabular-nums text-foreground">
                       {paquete.examenes_count}
+                    </TableCell>
+                    <TableCell className="py-1.5 text-right font-mono text-xs tabular-nums text-foreground">
+                      {formatUsd(Number(paquete.precio_base))}
                     </TableCell>
                     <TableCell className="py-1.5 text-right">
                       <Link href={`/paquetes/${paquete.id}`}>

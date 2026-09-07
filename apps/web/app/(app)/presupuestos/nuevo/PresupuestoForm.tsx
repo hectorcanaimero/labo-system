@@ -4,9 +4,9 @@ import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
+  AlertTriangle,
   ArrowLeft,
   BadgePercent,
-  ChevronDown,
   Loader2,
   PackageOpen,
   Save,
@@ -16,9 +16,12 @@ import {
 
 import { Button } from "@/components/ui/button";
 import { toHumanError } from "@labo/lib/error-messages";
-import { formatBs, formatUsd } from "@labo/lib/bs-format";
+import { formatBs, formatUsd, roundHalfUp } from "@labo/lib/bs-format";
 import { calcularTotales } from "@labo/lib/calcular-totales";
-import { reconstruirLineaGuardada } from "@labo/lib/presupuesto-lineas";
+import {
+  gananciaGlobalGuardada,
+  reconstruirLineaGuardada,
+} from "@labo/lib/presupuesto-lineas";
 import type { EstadoPresupuesto } from "@labo/lib/schemas/presupuesto";
 import { ExamenAutocomplete } from "@labo/ui/examenes/ExamenAutocomplete";
 import {
@@ -30,6 +33,7 @@ import { StaleTasaBadge } from "@labo/ui/tasa/StaleTasaBadge";
 import { apiFetch } from "@/lib/api-client";
 import { aItemAutocomplete, valoresInicialesDesdeBusqueda } from "@/lib/paciente-quick-create";
 import { PacienteFormDialog, type PacienteFormValues } from "@/app/(app)/pacientes/PacienteFormDialog";
+import { notifyError, notifySuccess } from "@labo/ui/feedback/toast";
 type PresupuestoMode = "create" | "edit";
 type ModoCargaPaquete = "cerrado" | "desglosado";
 
@@ -84,15 +88,27 @@ interface PresupuestoFormInitialData {
     paquete_id?: string | null;
     precio_base_snap?: number;
     ganancia_pct?: number;
+    cerrado?: boolean;
   }>;
 }
 
 interface PresupuestoFormProps {
   mode: PresupuestoMode;
   initialData?: PresupuestoFormInitialData;
-  initialTasa?: { tasa: number; stale: boolean } | null;
+  initialTasa?: { tasa: number; fuente: string; scraped_at: string; stale: boolean } | null;
+  /**
+   * F7.2.T6 — tasa vigente al editar, para avisar si difiere de la guardada
+   * (`initialData.tasa_bs`, la que de verdad se usa). No aplica al crear:
+   * ahí no hay "guardada" todavía, `initialTasa` YA es la vigente.
+   */
+  vigenteTasa?: { tasa: number; fuente: string; scraped_at: string } | null;
   /** Valor por defecto de "Toma de muestra" (Config). Sólo aplica al crear. */
   tomaMuestraDefault?: number;
+  /**
+   * F7.2.T6 — ganancia con la que arranca cada línea abierta nueva (Config).
+   * Aplica siempre que se agrega una línea, tanto al crear como al editar.
+   */
+  gananciaDefault?: number;
   onSaved?: (presupuestoId: string) => void;
   onCancelEdit?: () => void;
 }
@@ -150,7 +166,9 @@ export function PresupuestoForm({
   mode,
   initialData,
   initialTasa,
+  vigenteTasa,
   tomaMuestraDefault = 0,
+  gananciaDefault = 0,
   onSaved,
   onCancelEdit,
 }: PresupuestoFormProps) {
@@ -187,16 +205,26 @@ export function PresupuestoForm({
       precio_snap: item.precio_snap,
       // `cerrado`, el reparto y la ganancia por línea se derivan de lo
       // guardado: fijarlos a mano perdía el precio pactado del paquete.
-      ...reconstruirLineaGuardada(item, initialData.ganancia_pct),
+      ...reconstruirLineaGuardada(item),
     })) ?? [],
   );
   const [descuentoPct, setDescuentoPct] = useState(
     initialData ? String(initialData.descuento_pct) : "",
   );
+  // F7.2.T6 — ganancia GLOBAL, sólo relevante (y sólo se muestra) si hay un
+  // paquete cerrado. Al editar, se prioriza la que de verdad gobierna las
+  // líneas cerradas guardadas sobre el header (deberían coincidir siempre,
+  // pero las líneas son la fuente de la verdad de lo que se cobró).
   const [gananciaPct, setGananciaPct] = useState(
-    initialData ? String(initialData.ganancia_pct) : "",
+    initialData
+      ? String(gananciaGlobalGuardada(initialData.lineas) ?? initialData.ganancia_pct)
+      : "",
   );
-  const [tasaBs, setTasaBs] = useState(initialTasa ? String(initialTasa.tasa) : initialData ? String(initialData.tasa_bs) : "");
+  // F7.2.T6 — la tasa deja de ser editable: "guardada" (edit) sale de
+  // initialData.tasa_bs y nunca cambia por acción del usuario en este form;
+  // "vigente" (create, o informativa al editar) sale de la última
+  // registrada. tasaNum más abajo es el valor que de verdad se usa.
+  const tasaGuardada = initialData?.tasa_bs ?? null;
 
   // Servicios: la toma de muestra siempre se cobra y arranca con el valor de
   // Config; el domicilio es opcional y su monto sólo se pide si está marcado.
@@ -220,7 +248,6 @@ export function PresupuestoForm({
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [intentoGuardar, setIntentoGuardar] = useState(false);
-  const [ajustesAvanzadosOpen, setAjustesAvanzadosOpen] = useState(false);
 
   const pacienteSectionRef = useRef<HTMLElement>(null);
   const examenesSectionRef = useRef<HTMLElement>(null);
@@ -233,15 +260,28 @@ export function PresupuestoForm({
     [lineas],
   );
 
+  // F7.2.T6 — el modo se DERIVA de las líneas, no de un toggle: hay cerrado
+  // si alguna línea es de un paquete cargado en modo cerrado; hay abierta si
+  // alguna no lo es (suelta o paquete desglosado). El campo global y la
+  // columna por línea se muestran según esto, no según lo que el usuario
+  // haya tocado.
+  const hayLineaCerrada = lineas.some((linea) => linea.cerrado);
+  const hayLineaAbierta = lineas.some((linea) => !linea.cerrado);
+  const mostrarGananciaGlobal = hayLineaCerrada;
+  const mostrarColumnaGanancia = hayLineaAbierta;
+
   const descuentoNum = toNumber(descuentoPct);
   const gananciaNum = toNumber(gananciaPct);
-  const tasaNum = toNumber(tasaBs);
-  const tasaValida = hasValue(tasaBs) && tasaNum > 0;
+  // F7.2.T6 — tasa de solo lectura: "guardada" al editar (nunca cambia acá),
+  // la vigente al crear (no hay guardada todavía).
+  const tasaNum = mode === "edit" ? (tasaGuardada ?? 0) : (initialTasa?.tasa ?? 0);
+  const tasaValida = tasaNum > 0;
   const descuentoValido =
     !hasValue(descuentoPct) || (descuentoNum >= 0 && descuentoNum <= 100);
-  const gananciaValida = !hasValue(gananciaPct) || gananciaNum >= 0;
+  const gananciaValida = !mostrarGananciaGlobal || !hasValue(gananciaPct) || gananciaNum >= 0;
   const gananciaPorLineaValida = lineas.every(
-    (linea) => !hasValue(linea.gananciaPctInput) || toNumber(linea.gananciaPctInput) >= 0,
+    (linea) =>
+      linea.cerrado || !hasValue(linea.gananciaPctInput) || toNumber(linea.gananciaPctInput) >= 0,
   );
 
   const tomaMuestraNum = toNumber(tomaMuestraUsd);
@@ -259,12 +299,45 @@ export function PresupuestoForm({
       serviciosUsd,
       lineas: lineas.map((linea) => ({
         precioBase: linea.precio_base_snap,
-        ...(hasValue(linea.gananciaPctInput)
-          ? { gananciaPct: toNumber(linea.gananciaPctInput) }
-          : {}),
+        // Cerrada: no manda ganancia propia, cae a la global (gananciaPct de
+        // arriba). Abierta: SIEMPRE manda la suya, nunca hereda la global —
+        // aunque esté vacía (0), porque el campo global puede ni mostrarse.
+        ...(linea.cerrado ? {} : { gananciaPct: toNumber(linea.gananciaPctInput) }),
       })),
     });
   }, [lineas, descuentoNum, gananciaNum, tasaNum, tasaValida, serviciosUsd]);
+
+  // Fila "Ganancia" del resumen, ANTES del descuento (que se muestra aparte):
+  // paquete cerrado → precio base repartido × % global; líneas abiertas → cada
+  // una con su %. Se muestra siempre, así Subtotal + Ganancia + servicios
+  // cierra con el total y el operador ve de dónde sale cada centavo.
+  const gananciaMontoPaquete = useMemo(() => {
+    const baseCerrado = lineas
+      .filter((linea) => linea.cerrado)
+      .reduce((sum, linea) => sum + linea.precio_base_snap, 0);
+    return roundHalfUp((baseCerrado * gananciaNum) / 100, 2);
+  }, [lineas, gananciaNum]);
+  const gananciaMontoLineas = useMemo(
+    () =>
+      roundHalfUp(
+        lineas
+          .filter((linea) => !linea.cerrado)
+          .reduce(
+            (sum, linea) =>
+              sum + (linea.precio_base_snap * toNumber(linea.gananciaPctInput)) / 100,
+            0,
+          ),
+        2,
+      ),
+    [lineas],
+  );
+  const gananciaMontoTotal = roundHalfUp(gananciaMontoPaquete + gananciaMontoLineas, 2);
+  const gananciaEtiqueta =
+    hayLineaCerrada && hayLineaAbierta
+      ? `Ganancia (${hasValue(gananciaPct) ? gananciaNum : 0}% del paquete + por línea)`
+      : hayLineaCerrada
+        ? `Ganancia (${hasValue(gananciaPct) ? gananciaNum : 0}% del paquete)`
+        : "Ganancia (por línea)";
 
   const pacienteOk =
     (modoPaciente === "registrado" && Boolean(selectedPaciente?.id)) ||
@@ -288,7 +361,7 @@ export function PresupuestoForm({
     if (!gananciaPorLineaValida) items.push("La ganancia por línea no puede ser negativa");
     if (!tomaMuestraValida) items.push("La toma de muestra no puede ser negativa");
     if (!domicilioValido) items.push("El servicio a domicilio no puede ser negativo");
-    if (!tasaValida) items.push("Ingresá una tasa mayor a 0");
+    if (!tasaValida) items.push("No hay tasa registrada — cargala en Configuración");
     return items;
   }, [
     pacienteOk,
@@ -340,7 +413,9 @@ export function PresupuestoForm({
           precio_snap: examen.precio_usd,
           paquete_id: null,
           precio_base_snap: examen.precio_usd,
-          gananciaPctInput: "",
+          // F7.2.T6 — modo abierto: arranca con el default de Config,
+          // editable por línea de acá en adelante.
+          gananciaPctInput: String(gananciaDefault),
           cerrado: false,
         },
       ];
@@ -408,10 +483,10 @@ export function PresupuestoForm({
           precio_snap: precios[index],
           paquete_id: paquete.id,
           precio_base_snap: bases[index],
-          // Paquete cerrado: ganancia 0 explícita para que el total sea el
-          // precio base fijado por el admin, no ese precio + la ganancia
-          // global aplicada de nuevo sobre el reparto (bug reportado).
-          gananciaPctInput: modo === "cerrado" ? "0" : "",
+          // F7.2.T6 — cerrado: sin input propio, lo gobierna el % global de
+          // arriba. Desglosado: modo abierto, arranca con el default de
+          // Config como cualquier línea suelta.
+          gananciaPctInput: modo === "cerrado" ? "" : String(gananciaDefault),
           cerrado: modo === "cerrado",
         })),
       );
@@ -472,18 +547,13 @@ export function PresupuestoForm({
           examen_id: linea.examen_id,
           ...(linea.paquete_id ? { paquete_id: linea.paquete_id } : {}),
           precio_base_snap: linea.precio_base_snap,
-          // Paquete cerrado: ganancia 0 siempre, aunque Ajustes avanzados
-          // esté cerrado — es lo que mantiene el precio pactado del paquete.
-          // El toggle de Ajustes avanzados decide qué se MUESTRA, no qué se
-          // guarda: `gananciaPctInput` sólo tiene valor si el usuario lo
-          // escribió o si venía del presupuesto guardado, y en los dos casos
-          // hay que persistirlo. Condicionarlo al toggle borraba la ganancia
-          // por línea al reeditar, porque arranca plegado.
-          ...(linea.cerrado
-            ? { ganancia_pct: 0 }
-            : hasValue(linea.gananciaPctInput)
-              ? { ganancia_pct: toNumber(linea.gananciaPctInput) }
-              : {}),
+          // F7.2.T6 — `cerrado` es lo que el backend usa para decidir de
+          // dónde sale la ganancia: si es true, ignora lo que venga en
+          // `ganancia_pct` para esa línea y usa SIEMPRE la global del
+          // payload (`ganancia_pct` de arriba). Una línea abierta manda
+          // siempre la suya, explícita.
+          cerrado: linea.cerrado,
+          ...(linea.cerrado ? {} : { ganancia_pct: toNumber(linea.gananciaPctInput) }),
         })),
       };
 
@@ -495,6 +565,7 @@ export function PresupuestoForm({
         },
       );
 
+      notifySuccess(mode === "create" ? "Presupuesto guardado." : "Presupuesto actualizado.");
       if (onSaved) {
         onSaved(response.id);
         return;
@@ -504,6 +575,7 @@ export function PresupuestoForm({
       router.refresh();
     } catch (error) {
       setMessage(toHumanError(error));
+      notifyError(error);
     } finally {
       setSaving(false);
     }
@@ -762,7 +834,7 @@ export function PresupuestoForm({
                 <th className="px-4 py-3 font-medium">Examen</th>
                 <th className="px-4 py-3 font-medium">Origen</th>
                 <th className="px-4 py-3 font-medium">Precio base USD</th>
-                {ajustesAvanzadosOpen ? (
+                {mostrarColumnaGanancia ? (
                   <th className="px-4 py-3 font-medium">Ganancia %</th>
                 ) : null}
                 <th className="px-4 py-3 text-right font-medium">Precio final USD</th>
@@ -773,7 +845,7 @@ export function PresupuestoForm({
               {lineas.length === 0 ? (
                 <tr>
                   <td
-                    colSpan={ajustesAvanzadosOpen ? 6 : 5}
+                    colSpan={mostrarColumnaGanancia ? 6 : 5}
                     className="px-4 py-8 text-center text-sm text-muted-foreground"
                   >
                     Todavía no agregaste exámenes. Usá el buscador o cargá un paquete.
@@ -803,10 +875,10 @@ export function PresupuestoForm({
                       <td className="px-4 py-3 font-mono text-muted-foreground">
                         {formatUsd(linea.precio_base_snap)}
                       </td>
-                      {ajustesAvanzadosOpen ? (
+                      {mostrarColumnaGanancia ? (
                         <td className="px-4 py-3">
                           {linea.cerrado ? (
-                            <span className="text-xs text-muted-foreground">0 (cerrado)</span>
+                            <span className="text-xs text-muted-foreground">— (global)</span>
                           ) : (
                             <input
                               type="number"
@@ -814,7 +886,7 @@ export function PresupuestoForm({
                               step="0.01"
                               value={linea.gananciaPctInput}
                               onChange={(event) => updateGananciaLinea(index, event.target.value)}
-                              placeholder="Global"
+                              placeholder="0"
                               aria-label={`Ganancia % de ${linea.nombre_snap}`}
                               className={`h-9 w-24 rounded-md border bg-background px-2 text-sm ${
                                 gananciaInvalida
@@ -951,62 +1023,77 @@ export function PresupuestoForm({
                 ) : null}
               </label>
 
-              <label className="space-y-2 text-sm font-medium">
+              <div className="space-y-2 text-sm font-medium">
                 <span className="inline-flex items-center gap-1.5">
                   Tasa Bs
                   <StaleTasaBadge />
                 </span>
+                {/* F7.2.T6 — de sólo lectura: se cambia desde Configuración,
+                    no acá. "Guardada" es la que de verdad se usa al editar;
+                    si la vigente difiere, se avisa sin tocar la guardada. */}
+                {tasaValida ? (
+                  <div className="flex h-11 w-full items-center justify-between rounded-md border border-input bg-muted/30 px-3 text-sm">
+                    <span className="font-mono tabular-nums text-foreground">
+                      {tasaNum.toFixed(2)} Bs/USD
+                    </span>
+                    {mode === "create" && initialTasa ? (
+                      <span className="text-xs capitalize text-muted-foreground">
+                        {initialTasa.fuente}
+                      </span>
+                    ) : mode === "edit" ? (
+                      <span className="text-xs text-muted-foreground">guardada</span>
+                    ) : null}
+                  </div>
+                ) : (
+                  <div className="flex h-11 w-full items-center gap-2 rounded-md border border-destructive/40 bg-destructive/5 px-3 text-xs text-destructive">
+                    <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
+                    <span>
+                      No hay tasa registrada.{" "}
+                      <Link href="/config?tab=tasa" className="font-medium underline">
+                        Cargala en Configuración
+                      </Link>
+                      .
+                    </span>
+                  </div>
+                )}
+                {mode === "edit" && vigenteTasa && vigenteTasa.tasa !== tasaNum ? (
+                  <p className="flex items-start gap-1.5 text-xs text-amber-700">
+                    <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                    <span>
+                      La tasa vigente es {vigenteTasa.tasa.toFixed(2)} Bs/USD ({vigenteTasa.fuente}
+                      ). Este presupuesto mantiene la que tenía guardada.
+                    </span>
+                  </p>
+                ) : null}
+              </div>
+            </div>
+
+            {mostrarGananciaGlobal ? (
+              <label className="block max-w-xs space-y-2 text-sm font-medium">
+                <span className="inline-flex items-center gap-1.5">
+                  <BadgePercent className="h-4 w-4 text-muted-foreground" />
+                  Ganancia % (paquete cerrado)
+                </span>
                 <input
                   type="number"
                   min={0}
-                  step="0.0001"
-                  value={tasaBs}
-                  onChange={(event) => setTasaBs(event.target.value)}
-                  placeholder="0.00"
+                  step="0.01"
+                  value={gananciaPct}
+                  onChange={(event) => setGananciaPct(event.target.value)}
+                  placeholder="0"
+                  aria-label="Ganancia % del paquete cerrado"
                   className="h-11 w-full rounded-md border border-input bg-background px-3 text-sm"
                 />
-                {!tasaValida ? (
-                  <span className="text-xs text-destructive">Ingresá una tasa mayor a 0.</span>
-                ) : null}
-              </label>
-            </div>
-
-            <div>
-              <button
-                type="button"
-                onClick={() => setAjustesAvanzadosOpen((open) => !open)}
-                className="inline-flex items-center gap-1.5 text-sm font-medium text-muted-foreground hover:text-foreground"
-                aria-expanded={ajustesAvanzadosOpen}
-              >
-                <ChevronDown
-                  className={`h-4 w-4 transition-transform ${
-                    ajustesAvanzadosOpen ? "rotate-180" : ""
-                  }`}
-                />
-                Ajustes avanzados
-              </button>
-
-              {ajustesAvanzadosOpen ? (
-                <label className="mt-3 block max-w-xs space-y-2 text-sm font-medium">
-                  <span className="inline-flex items-center gap-1.5">
-                    <BadgePercent className="h-4 w-4 text-muted-foreground" />
-                    Ganancia %
+                {!gananciaValida ? (
+                  <span className="text-xs text-destructive">No puede ser negativa.</span>
+                ) : (
+                  <span className="block text-xs text-muted-foreground">
+                    Se aplica sobre el precio base del paquete cerrado. Los exámenes sueltos usan
+                    su propia columna.
                   </span>
-                  <input
-                    type="number"
-                    min={0}
-                    step="0.01"
-                    value={gananciaPct}
-                    onChange={(event) => setGananciaPct(event.target.value)}
-                    placeholder="0"
-                    className="h-11 w-full rounded-md border border-input bg-background px-3 text-sm"
-                  />
-                  {!gananciaValida ? (
-                    <span className="text-xs text-destructive">No puede ser negativa.</span>
-                  ) : null}
-                </label>
-              ) : null}
-            </div>
+                )}
+              </label>
+            ) : null}
           </div>
 
           <div className="flex flex-col justify-between rounded-xl border border-border bg-background/60 p-5">
@@ -1026,14 +1113,12 @@ export function PresupuestoForm({
                   {hasValue(descuentoPct) ? `${descuentoNum}%` : "—"}
                 </span>
               </div>
-              {ajustesAvanzadosOpen ? (
-                <div className="flex items-center justify-between">
-                  <span className="text-muted-foreground">Ganancia</span>
-                  <span className="font-mono text-foreground">
-                    {hasValue(gananciaPct) ? `${gananciaNum}%` : "—"}
-                  </span>
-                </div>
-              ) : null}
+              <div className="flex items-center justify-between">
+                <span className="text-muted-foreground">{gananciaEtiqueta}</span>
+                <span className="font-mono text-foreground">
+                  {lineas.length === 0 ? "—" : formatUsd(gananciaMontoTotal)}
+                </span>
+              </div>
               <div className="flex items-center justify-between">
                 <span className="text-muted-foreground">Toma de muestra</span>
                 <span className="font-mono text-foreground">{formatUsd(tomaMuestraNum)}</span>

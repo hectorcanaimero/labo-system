@@ -31,7 +31,7 @@ async function renderBytes(element: React.ReactElement): Promise<number> {
 }
 
 describe("PDF templates render", () => {
-  it("embebe logo, firma y sello de la configuración en ambos documentos", async () => {
+  it("embebe los assets de la configuración: los tres en el resultado, sólo el logo en el presupuesto", async () => {
     const config = {
       nombre: "Licda. Yuna Ramírez",
       direccion: "El Caimito, Puerto Ordaz",
@@ -89,6 +89,7 @@ describe("PDF templates render", () => {
       renderBytes(<PresupuestoPDF data={{ ...presupuesto, config: sinAssets }} />),
     ]);
     expect(conR).toBeGreaterThan(sinR);
+    // El presupuesto no lleva firma ni sello, pero sí el logo del encabezado.
     expect(conP).toBeGreaterThan(sinP);
   });
 

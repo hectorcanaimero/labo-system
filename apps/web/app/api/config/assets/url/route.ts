@@ -1,3 +1,7 @@
+import { existsSync } from "node:fs";
+import path from "node:path";
+
+import { resolveObjectPath } from "@labo/lib/storage-local";
 import { NextResponse, type NextRequest } from "next/server";
 
 import { getCurrentUser, AuthError } from "@/lib/server/auth";
@@ -29,6 +33,16 @@ export async function GET(request: NextRequest): Promise<Response> {
 
     const objectKey = config[`${type}_object_key` as const];
     if (!objectKey) return NextResponse.json({ url: null });
+
+    // El storage es local a cada servidor y la config es compartida: si el
+    // archivo no está acá, se muestra la copia versionada en public/assets.
+    if (!existsSync(resolveObjectPath("assets", objectKey))) {
+      // Sólo hay copia versionada del logo; firma y sello son de la
+      // bioanalista y no se reemplazan por una imagen ajena.
+      const publico = path.join(process.cwd(), "public", "assets", `${type}.png`);
+      if (!existsSync(publico)) return NextResponse.json({ url: null, fallback: true });
+      return NextResponse.json({ url: `/assets/${type}.png`, fallback: true });
+    }
 
     const signedUrl = signDownloadUrl({
       bucket: "assets",

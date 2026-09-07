@@ -84,8 +84,7 @@ export async function syncFromAuth(
       .from("usuarios")
       .update(patch)
       .eq("id", existing.id)
-      .select(USUARIO_COLS)
-      .limit(1);
+      .select(USUARIO_COLS);
     if (error) throw new Error(`usuarios.syncFromAuth (update): ${error.message}`);
     const row = data?.[0] as Usuario | undefined;
     return row ?? existing;
@@ -275,8 +274,7 @@ export async function updateRole(
     .from("usuarios")
     .update({ role })
     .eq("id", id)
-    .select(USUARIO_COLS)
-    .limit(1);
+    .select(USUARIO_COLS);
   if (error) throw new Error(`usuarios.updateRole: ${error.message}`);
   const row = data?.[0] as Usuario | undefined;
   if (!row) throw new Error("usuarios.updateRole: sin fila retornada");
@@ -292,8 +290,7 @@ export async function setActivo(
     .from("usuarios")
     .update({ activo })
     .eq("id", id)
-    .select(USUARIO_COLS)
-    .limit(1);
+    .select(USUARIO_COLS);
   if (error) throw new Error(`usuarios.setActivo: ${error.message}`);
   const row = data?.[0] as Usuario | undefined;
   if (!row) throw new Error("usuarios.setActivo: sin fila retornada");

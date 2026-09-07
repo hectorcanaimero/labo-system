@@ -98,6 +98,43 @@ function toErrorResponse(error: unknown): Response {
   return bad(500, "ERROR_GENERICO");
 }
 
+/**
+ * Renderiza el PDF de un presupuesto. Compartido entre esta ruta (staff, con
+ * sesión) y `api/p/[slug]/pdf` (público, autorizado por slug vigente) — mismo
+ * patrón que `renderResultadoPdf` en `pdf/resultado/[id]/route.ts`.
+ */
+export async function renderPresupuestoPdf(
+  presupuestoId: string,
+): Promise<{ body: ReadableStream<Uint8Array>; filename: string }> {
+  const data = await getForPDF(getAdminDb(), presupuestoId);
+  if (!data) {
+    throw new Error(PRESUPUESTO_NO_ENCONTRADO);
+  }
+
+  const config = await resolvePdfConfig();
+  assertPdfConfig(config?.nombre);
+
+  const stream = await renderToStream(
+    createElement(PresupuestoPDF, {
+      data: { ...data, config },
+    }) as ReactElement<DocumentProps>,
+  );
+  const body = Readable.toWeb(stream as unknown as Readable) as ReadableStream<Uint8Array>;
+
+  return { body, filename: `presupuesto-${presupuestoId}.pdf` };
+}
+
+export function pdfResponse(body: ReadableStream<Uint8Array>, filename: string): Response {
+  return new Response(body, {
+    status: 200,
+    headers: {
+      "Content-Type": "application/pdf",
+      "Content-Disposition": `inline; filename="${filename}"`,
+      "Cache-Control": "private, no-store, max-age=0",
+    },
+  });
+}
+
 export async function GET(_request: NextRequest, { params }: RouteParams): Promise<Response> {
   const startedAt = performance.now();
 
@@ -109,33 +146,8 @@ export async function GET(_request: NextRequest, { params }: RouteParams): Promi
       return bad(400, "VALIDACION_FALLIDA");
     }
 
-    const data = await getForPDF(getAdminDb(), params.id);
-    if (!data) {
-      return bad(404, PRESUPUESTO_NO_ENCONTRADO);
-    }
-
-    const config = await resolvePdfConfig();
-    assertPdfConfig(config?.nombre);
-
-    const stream = await renderToStream(
-      createElement(PresupuestoPDF, {
-        data: {
-          ...data,
-          config,
-        },
-      }) as ReactElement<DocumentProps>
-    );
-    const body = Readable.toWeb(stream as unknown as Readable) as ReadableStream<Uint8Array>;
-    const filename = `presupuesto-${params.id}.pdf`;
-
-    return new Response(body, {
-      status: 200,
-      headers: {
-        "Content-Type": "application/pdf",
-        "Content-Disposition": `inline; filename="${filename}"`,
-        "Cache-Control": "private, no-store, max-age=0",
-      },
-    });
+    const { body, filename } = await renderPresupuestoPdf(params.id);
+    return pdfResponse(body, filename);
   } catch (error) {
     return toErrorResponse(error);
   } finally {

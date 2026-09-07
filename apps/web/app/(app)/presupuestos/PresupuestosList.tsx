@@ -16,11 +16,9 @@ import {
 } from "@dnd-kit/core";
 import type { DragEndEvent, DragStartEvent } from "@dnd-kit/core";
 import {
-  ArrowRight,
   FileText,
   LayoutGrid,
   List,
-  MoreVertical,
   Plus,
   Search,
 } from "lucide-react";
@@ -43,6 +41,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { ESTADO_PRESUPUESTO, type EstadoPresupuesto } from "@labo/lib/schemas/presupuesto";
+import { formatBs, formatUsd } from "@labo/lib/bs-format";
 import { toHumanError } from "@labo/lib/error-messages";
 import { formatNumeroPresupuesto } from "@labo/lib/numero-presupuesto";
 import { EmptyState, SkeletonTable } from "@labo/ui/feedback";
@@ -91,8 +90,13 @@ interface PresupuestosListProps {
 
 type VistaPipeline = "tabla" | "kanban";
 
+/**
+ * F7.7.T1 — el diálogo dejó de ser el menú de acciones: mover de estado se
+ * hace arrastrando o desde "Mover a…" en la tarjeta. Sólo quedan los dos
+ * destinos que necesitan algo más que un clic: Rechazado pide motivo y
+ * Cerrado confirma la conversión, que no se puede deshacer.
+ */
 type AccionesModalState =
-  | { mode: "acciones"; card: PipelinePresupuestoCard }
   | { mode: "motivo"; card: PipelinePresupuestoCard }
   | { mode: "convertir"; card: PipelinePresupuestoCard };
 
@@ -152,6 +156,25 @@ async function requestJson<T>(url: string, init?: RequestInit): Promise<T> {
   return response.json() as Promise<T>;
 }
 
+/** Esqueleto del tablero: columnas, no filas de tabla. */
+function SkeletonColumnas() {
+  return (
+    <div className="flex gap-2 overflow-hidden" aria-hidden>
+      {Array.from({ length: 4 }).map((_, i) => (
+        <div
+          key={i}
+          className="flex h-64 w-[85vw] shrink-0 flex-col gap-2 rounded-lg border border-border bg-muted/20 p-2 sm:w-[280px]"
+        >
+          <div className="h-4 w-2/3 animate-pulse rounded bg-muted" />
+          {Array.from({ length: 3 }).map((__, j) => (
+            <div key={j} className="h-12 animate-pulse rounded-md bg-muted" />
+          ))}
+        </div>
+      ))}
+    </div>
+  );
+}
+
 interface KanbanDropZoneProps {
   estado: EstadoPresupuesto;
   habilitado: boolean;
@@ -181,10 +204,10 @@ function KanbanDropZone({ estado, habilitado, atenuada, children }: KanbanDropZo
 interface KanbanDraggableCardProps {
   card: PipelinePresupuestoCard;
   disabled: boolean;
-  onAbrirAcciones: (card: PipelinePresupuestoCard) => void;
+  onAbrirDetalle: (card: PipelinePresupuestoCard) => void;
 }
 
-function KanbanDraggableCard({ card, disabled, onAbrirAcciones }: KanbanDraggableCardProps) {
+function KanbanDraggableCard({ card, disabled, onAbrirDetalle }: KanbanDraggableCardProps) {
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
     id: card.id,
     disabled,
@@ -195,30 +218,22 @@ function KanbanDraggableCard({ card, disabled, onAbrirAcciones }: KanbanDraggabl
       ref={setNodeRef}
       {...listeners}
       {...attributes}
-      onClick={() => onAbrirAcciones(card)}
+      onClick={() => onAbrirDetalle(card)}
+      onKeyDown={(event) => {
+        if (event.key === "Enter") {
+          event.preventDefault();
+          onAbrirDetalle(card);
+        }
+      }}
       role="button"
+      tabIndex={0}
       aria-roledescription="Tarjeta arrastrable"
-      aria-label={`Presupuesto de ${card.pacienteLabel}. Abrí las acciones para cambiar su estado.`}
-      className={`relative cursor-grab touch-none select-none rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ${
+      aria-label={`Presupuesto de ${card.pacienteLabel}. Enter abre el detalle; usá "Mover a…" para cambiar su estado.`}
+      className={`relative cursor-grab touch-none select-none rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ${
         isDragging ? "opacity-40" : ""
       }`}
     >
-      <PresupuestoKanbanCard
-        card={card}
-        actionsSlot={
-          <button
-            type="button"
-            aria-label={`Acciones rápidas para ${card.pacienteLabel}`}
-            onClick={(event) => {
-              event.stopPropagation();
-              onAbrirAcciones(card);
-            }}
-            className="rounded p-1 text-muted-foreground hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-          >
-            <MoreVertical className="h-3.5 w-3.5" />
-          </button>
-        }
-      />
+      <PresupuestoKanbanCard card={card} />
     </div>
   );
 }
@@ -244,12 +259,11 @@ function AccionesRapidasModal({
 }: AccionesRapidasModalProps) {
   const titleId = useId();
   const motivoId = `${titleId}-motivo`;
-  const [modo, setModo] = useState<"acciones" | "motivo" | "convertir">(state.mode);
   const [motivo, setMotivo] = useState("");
   const [motivoError, setMotivoError] = useState<string | null>(null);
 
   const { card } = state;
-  const destinos = TRANSICIONES_ESTADO_UI[card.estado];
+  const modo = state.mode;
 
   function confirmarRechazo(): void {
     const limpio = motivo.trim();
@@ -260,12 +274,7 @@ function AccionesRapidasModal({
     onConfirmarEstado(card, "Rechazado", limpio);
   }
 
-  const titulo =
-    modo === "motivo"
-      ? "Rechazar presupuesto"
-      : modo === "convertir"
-        ? "Convertir en resultado"
-        : "Acciones rápidas";
+  const titulo = modo === "motivo" ? "Rechazar presupuesto" : "Convertir en resultado";
 
   return (
     <Dialog
@@ -292,45 +301,6 @@ function AccionesRapidasModal({
           </span>
           <PresupuestoEstadoBadge estado={card.estado} />
         </div>
-
-        {modo === "acciones" ? (
-          <div className="mt-4 flex flex-col gap-2">
-            <p className="text-sm text-muted-foreground">Cambiar el estado a:</p>
-            {destinos.map((destino) => (
-              <Button
-                key={destino}
-                type="button"
-                variant="outline"
-                disabled={pending}
-                onClick={() => {
-                  if (destino === "Rechazado") {
-                    setModo("motivo");
-                    return;
-                  }
-                  if (destino === "Cerrado") {
-                    setModo("convertir");
-                    return;
-                  }
-                  onConfirmarEstado(card, destino, "");
-                }}
-              >
-                <span>{destino === "Cerrado" ? "Convertir en orden de laboratorio" : destino}</span>
-                <ArrowRight className="h-4 w-4" />
-              </Button>
-            ))}
-            {destinos.length === 0 ? (
-              <p className="text-sm text-muted-foreground">
-                Este presupuesto está en un estado final y no admite más cambios.
-              </p>
-            ) : null}
-            <Link
-              href={`/presupuestos/${card.id}`}
-              className="mt-2 text-sm text-primary underline-offset-4 hover:underline"
-            >
-              Ver detalle completo
-            </Link>
-          </div>
-        ) : null}
 
         {modo === "motivo" ? (
           <form
@@ -359,16 +329,8 @@ function AccionesRapidasModal({
             />
             {motivoError ? <p className="text-sm text-destructive">{motivoError}</p> : null}
             <div className="mt-1 flex justify-end gap-2">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => {
-                  setModo("acciones");
-                  setMotivo("");
-                  setMotivoError(null);
-                }}
-              >
-                Volver
+              <Button type="button" variant="outline" onClick={onClose}>
+                Cancelar
               </Button>
               <Button type="submit" variant="destructive" disabled={pending}>
                 Confirmar rechazo
@@ -385,14 +347,8 @@ function AccionesRapidasModal({
               presupuesto y no podrá revertirse desde acá.
             </p>
             <div className="flex justify-end gap-2">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => {
-                  setModo("acciones");
-                }}
-              >
-                Volver
+              <Button type="button" variant="outline" onClick={onClose}>
+                Cancelar
               </Button>
               <Button type="button" disabled={pending} onClick={() => onConfirmarConvertir(card)}>
                 Confirmar conversión
@@ -533,6 +489,19 @@ export function PresupuestosList({ initialData, pageSize }: PresupuestosListProp
     [visibleItems],
   );
 
+  const totalesPipeline = useMemo(
+    () =>
+      pipelineCards.reduce(
+        (acc, card) => ({
+          count: acc.count + 1,
+          totalUsd: acc.totalUsd + card.totalUsd,
+          totalBs: acc.totalBs + card.totalBs,
+        }),
+        { count: 0, totalUsd: 0, totalBs: 0 },
+      ),
+    [pipelineCards],
+  );
+
   const activeCard = useMemo(
     () => (activeId ? pipelineCards.find((card) => card.id === activeId) ?? null : null),
     [activeId, pipelineCards],
@@ -612,16 +581,13 @@ export function PresupuestosList({ initialData, pageSize }: PresupuestosListProp
     setActiveId(String(event.active.id));
   }
 
-  function handleDragEnd(event: DragEndEvent): void {
-    setActiveId(null);
-
-    const overId = event.over?.id != null ? String(event.over.id) : null;
-    if (!overId || !overId.startsWith(COLUMN_ID_PREFIX)) return;
-
-    const card = pipelineCards.find((item) => item.id === String(event.active.id));
-    if (!card) return;
-
-    const objetivo = overId.slice(COLUMN_ID_PREFIX.length) as EstadoPresupuesto;
+  /**
+   * Único camino de "mover a este estado": lo usan el arrastre y el menú
+   * "Mover a…" de la tarjeta. Dos destinos necesitan algo más que un clic —
+   * Rechazado pide motivo y Cerrado confirma una conversión irreversible—, y
+   * por eso siguen abriendo diálogo.
+   */
+  function moverA(card: PipelinePresupuestoCard, objetivo: EstadoPresupuesto): void {
     if (objetivo === card.estado) return;
 
     if (!esTransicionValida(card.estado, objetivo)) {
@@ -637,6 +603,18 @@ export function PresupuestosList({ initialData, pageSize }: PresupuestosListProp
       return;
     }
     void applyEstadoChange(card.id, objetivo);
+  }
+
+  function handleDragEnd(event: DragEndEvent): void {
+    setActiveId(null);
+
+    const overId = event.over?.id != null ? String(event.over.id) : null;
+    if (!overId || !overId.startsWith(COLUMN_ID_PREFIX)) return;
+
+    const card = pipelineCards.find((item) => item.id === String(event.active.id));
+    if (!card) return;
+
+    moverA(card, overId.slice(COLUMN_ID_PREFIX.length) as EstadoPresupuesto);
   }
 
   return (
@@ -738,7 +716,7 @@ export function PresupuestosList({ initialData, pageSize }: PresupuestosListProp
       <div className="overflow-hidden rounded-md border border-border">
         {loadingList ? (
           <div className="p-4">
-            <SkeletonTable rows={6} cols={6} />
+            {vista === "kanban" ? <SkeletonColumnas /> : <SkeletonTable rows={6} cols={6} />}
           </div>
         ) : showEmptyState ? (
           <div className="p-6">
@@ -759,7 +737,9 @@ export function PresupuestosList({ initialData, pageSize }: PresupuestosListProp
         ) : (
           <>
             {vista === "kanban" ? (
-              <div className="p-3">
+              // El tablero ocupa el alto disponible y hace scroll adentro: si
+              // creciera hacia abajo volveríamos a tener bloques apilados.
+              <div className="flex h-[calc(100vh-20rem)] min-h-[22rem] flex-col p-3">
                 <DndContext
                   sensors={sensors}
                   collisionDetection={closestCorners}
@@ -769,11 +749,25 @@ export function PresupuestosList({ initialData, pageSize }: PresupuestosListProp
                 >
                   <PresupuestoPipelineKanban
                     items={pipelineCards}
+                    pendingCardId={pendingId}
+                    toolbar={
+                      <p className="flex flex-wrap items-baseline gap-x-3 text-xs text-muted-foreground">
+                        <span className="font-medium text-foreground">
+                          {totalesPipeline.count} presupuestos
+                        </span>
+                        <span className="font-mono text-foreground">
+                          $ {formatUsd(totalesPipeline.totalUsd)}
+                        </span>
+                        <span className="font-mono">
+                          Bs {formatBs(totalesPipeline.totalBs)}
+                        </span>
+                      </p>
+                    }
                     renderCard={(card) => (
                       <KanbanDraggableCard
                         card={card}
                         disabled={pendingId === card.id}
-                        onAbrirAcciones={(target) => setAcciones({ mode: "acciones", card: target })}
+                        onAbrirDetalle={(target) => router.push(`/presupuestos/${target.id}`)}
                       />
                     )}
                     renderColumnBody={(columnaEstado, cardsNode) => (
@@ -785,10 +779,21 @@ export function PresupuestosList({ initialData, pageSize }: PresupuestosListProp
                         {cardsNode}
                       </KanbanDropZone>
                     )}
+                    onMove={moverA}
+                    getExtraActions={(card) =>
+                      card.estado === "Aprobado"
+                        ? [
+                            {
+                              label: "Convertir en orden de laboratorio",
+                              onSelect: () => setAcciones({ mode: "convertir", card }),
+                            },
+                          ]
+                        : []
+                    }
                   />
                   <DragOverlay>
                     {activeCard ? (
-                      <div className="w-56 rotate-2 opacity-90">
+                      <div className="w-64 rotate-1 opacity-95 shadow-lg">
                         <PresupuestoKanbanCard card={activeCard} />
                       </div>
                     ) : null}

@@ -53,12 +53,13 @@ const OPERACION: NavItem[] = [
  * Mantenimiento de tipos y métodos: va entre Exámenes y Paquetes, pero sólo
  * para admin — es quien puede escribir en esos catálogos.
  *
- * F7.6.T1 — vive en la pestaña "Tipos y métodos" de Configuración, no en su
- * propia página (/catalogo/tipos-y-metodos ahora sólo redirige acá).
+ * F7.6.T1 — vive en Configuración, no en su propia página
+ * (/catalogo/tipos-y-metodos ahora sólo redirige acá). F7.4.T4 — esa pestaña
+ * única se separó en dos ("tipos"/"metodos"); el link entra por la primera.
  */
 const CATALOGO_TIPOS_Y_METODOS: NavItem = {
   label: "Tipos y métodos",
-  href: "/config?tab=catalogo",
+  href: "/config?tab=tipos",
   icon: <ListChecks className="h-4 w-4" />,
 };
 
@@ -86,7 +87,7 @@ const ACTIONS: CommandAction[] = [
  * que hay que comparar contra `search` aparte para los items cuyo href
  * incluye uno. El item con el href más largo que matchea gana (mismo
  * criterio de siempre), así que "Tipos y métodos" le gana a "Configuración"
- * cuando el tab es exactamente "catalogo".
+ * cuando el tab es exactamente "tipos".
  */
 function hrefMatchesLocation(
   href: string,

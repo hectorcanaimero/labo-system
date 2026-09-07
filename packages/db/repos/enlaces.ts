@@ -124,6 +124,102 @@ export async function getBySlug(db: Db, slug: string): Promise<EnlaceResultado |
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Enlaces de presupuesto (migración 0021, F7.2.T7)
+//
+// Espejo de crearOReutilizar/getBySlug de arriba, contra `presupuestos` en
+// vez de `ordenes`. Vigencia 7 días por defecto: más larga que la de
+// resultados porque el link se puede releer una semana aunque la cotización
+// (24 h) ya haya vencido.
+// ─────────────────────────────────────────────────────────────────────────────
+
+export const ENLACES_PRESUPUESTO_TABLA_FALTANTE = "ENLACES_PRESUPUESTO_TABLA_FALTANTE";
+
+function fallarPresupuesto(scope: string, error: { code?: string; message?: string }): never {
+  if (esTablaFaltante(error, "enlaces_presupuesto")) {
+    throw new Error(ENLACES_PRESUPUESTO_TABLA_FALTANTE);
+  }
+  throw new Error(`${scope}: ${error.message ?? "error desconocido"}`);
+}
+
+const ENLACE_PRESUPUESTO_COLS = "id, slug, presupuesto_id, expira_en, created_at, created_by";
+
+/** Vigencia del enlace de presupuesto: 7 días (F7.2.T7). */
+export const DIAS_VIGENCIA_PRESUPUESTO_DEFAULT = 7;
+
+export interface EnlacePresupuesto {
+  id: string;
+  slug: string;
+  presupuesto_id: string;
+  expira_en: string;
+  created_at: string;
+  created_by: string;
+}
+
+/**
+ * Devuelve el enlace vigente del presupuesto o crea uno nuevo. Reutilizar
+ * evita que reenviar (o que el paciente pida el link de nuevo) invalide el
+ * anterior.
+ */
+export async function crearOReutilizarPresupuesto(
+  db: Db,
+  presupuestoId: string,
+  userId: string,
+  diasVigencia: number = DIAS_VIGENCIA_PRESUPUESTO_DEFAULT,
+): Promise<EnlacePresupuesto> {
+  const ahora = new Date();
+
+  const vigente = await db
+    .from("enlaces_presupuesto")
+    .select(ENLACE_PRESUPUESTO_COLS)
+    .eq("presupuesto_id", presupuestoId)
+    .gt("expira_en", ahora.toISOString())
+    .order("expira_en", { ascending: false })
+    .limit(1);
+  if (vigente.error) fallarPresupuesto("enlaces.crearOReutilizarPresupuesto", vigente.error);
+
+  const existente = (vigente.data?.[0] as EnlacePresupuesto | undefined) ?? null;
+  if (existente) return existente;
+
+  const expira = new Date(ahora.getTime() + diasVigencia * 24 * 60 * 60 * 1000);
+  const ins = await db
+    .from("enlaces_presupuesto")
+    .insert({
+      slug: generarSlug(),
+      presupuesto_id: presupuestoId,
+      expira_en: expira.toISOString(),
+      created_by: userId,
+    })
+    .select(ENLACE_PRESUPUESTO_COLS)
+    .limit(1);
+  if (ins.error) fallarPresupuesto("enlaces.crearOReutilizarPresupuesto insert", ins.error);
+
+  const creado = (ins.data?.[0] as EnlacePresupuesto | undefined) ?? null;
+  if (!creado) throw new Error("enlaces.crearOReutilizarPresupuesto: insert sin retorno");
+  return creado;
+}
+
+/**
+ * Resuelve un slug público de presupuesto. `null` si no existe o ya venció —
+ * la página pública trata ambos casos como 404.
+ */
+export async function getPresupuestoBySlug(
+  db: Db,
+  slug: string,
+): Promise<EnlacePresupuesto | null> {
+  const { data, error } = await db
+    .from("enlaces_presupuesto")
+    .select(ENLACE_PRESUPUESTO_COLS)
+    .eq("slug", slug)
+    .limit(1);
+  if (error) fallarPresupuesto("enlaces.getPresupuestoBySlug", error);
+
+  const row = (data?.[0] as EnlacePresupuesto | undefined) ?? null;
+  if (!row) return null;
+  if (new Date(row.expira_en).getTime() <= Date.now()) return null;
+  return row;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Enlaces de verificación (migración 0016)
 //
 // El QR del informe apunta acá. A diferencia del enlace del paciente, este NO

@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { LAB_TIMEZONE } from "@labo/lib/fecha";
 import { Loader2, Mail, Shield, UserPlus, Clock, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { notifyError, notifySuccess } from "@labo/ui/feedback/toast";
 import {
   Dialog,
   DialogBody,
@@ -94,15 +95,18 @@ export function InviteUserDialog({ onSuccess, onError }: InviteUserDialogProps) 
       const data = await res.json() as { error?: string };
       if (!res.ok) {
         onError(data.error ?? "Error al enviar la invitación.");
+        notifyError(new Error(data.error ?? "No se pudo enviar la invitación."));
         return;
       }
       onSuccess(`¡Invitación enviada a ${email} como ${role === "admin" ? "Administrador" : "Operador"}!`);
+      notifySuccess("Invitación enviada.");
       setEmail("");
       setRole("operador");
       setIsOpen(false);
       await fetchPending();
     } catch {
       onError("Error de red al enviar la invitación.");
+      notifyError(new Error("No se pudo enviar la invitación."));
     } finally {
       setSubmitting(false);
     }

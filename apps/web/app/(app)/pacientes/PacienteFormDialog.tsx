@@ -23,6 +23,7 @@ import {
 } from "@labo/lib/schemas/paciente";
 
 import { apiFetch } from "@/lib/api-client";
+import { notifyError, notifySuccess } from "@labo/ui/feedback/toast";
 /**
  * Máscara visual de cédula venezolana: `V-12.345.678`.
  * El valor enmascarado es aceptado por `normalizeCedula` (que tolera
@@ -278,10 +279,12 @@ export function PacienteFormDialog({
       }
 
       const savedPaciente = (await response.json()) as PacienteSerializable;
+      notifySuccess(paciente ? "Paciente actualizado." : "Paciente creado.");
       await onSaved(savedPaciente);
       onOpenChange(false);
     } catch (error) {
       setErrorMessage(toHumanError(error));
+      notifyError(error);
     } finally {
       setSubmitting(false);
     }
@@ -312,6 +315,7 @@ export function PacienteFormDialog({
       onOpenChange(false);
     } catch (error) {
       setErrorMessage(toHumanError(error));
+      notifyError(error);
     } finally {
       setDeleting(false);
     }

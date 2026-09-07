@@ -14,6 +14,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { toHumanError } from "@labo/lib/error-messages";
+import { notifyError, notifySuccess } from "@labo/ui/feedback/toast";
 
 import { apiFetch } from "@/lib/api-client";
 interface TituloDraft {
@@ -112,8 +113,10 @@ export function TituloFormDialog({
       const savedTitulo = (await response.json()) as TituloDraft;
       onSaved(savedTitulo);
       onOpenChange(false);
+      notifySuccess(isEdit ? "Grupo actualizado." : "Grupo creado.");
     } catch (error) {
       setErrorMessage(toHumanError(error));
+      notifyError(error);
     } finally {
       setSubmitting(false);
     }

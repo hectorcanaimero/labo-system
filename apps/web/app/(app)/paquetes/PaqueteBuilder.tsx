@@ -38,6 +38,7 @@ import { toHumanError } from "@labo/lib/error-messages";
 import { DraggableItem } from "@labo/ui/dnd/DraggableItem";
 import { SortableList } from "@labo/ui/dnd/SortableList";
 
+import { notifyError, notifySuccess } from "@labo/ui/feedback/toast";
 export interface PackageExam {
   id: string;
   titulo_id: string;
@@ -396,8 +397,10 @@ export function PaqueteBuilder({
         }),
       });
       setMessage("Paquete guardado.");
+      notifySuccess("Paquete guardado.");
     } catch (error) {
       setMessage(toHumanError(error));
+      notifyError(error);
       // El guardado pudo fallar a medio camino del lado del servidor (ver
       // setContenido). Recargamos el estado real antes de dejar reintentar,
       // para no reintentar sobre un borrador que ya no coincide con la base.

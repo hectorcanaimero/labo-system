@@ -13,6 +13,15 @@ const config: Config = {
     "../../packages/ui/overlay/**/*.{ts,tsx}",
     "../../packages/ui/paquetes/**/*.{ts,tsx}",
     "../../packages/ui/resultados/**/*.{ts,tsx}",
+    // F7.7.T1 — el tablero y los dos pipelines declaran acá sus clases de
+    // color por estado. Sin estos globs Tailwind las purga y las columnas
+    // quedan sin color. `presupuestos` y `ordenes` ya faltaban: el badge
+    // "Borrador" usaba `bg-amber-100`, que no aparece en ningún otro archivo
+    // del glob, así que se venía renderizando sin fondo.
+    "../../packages/ui/pipeline/**/*.{ts,tsx}",
+    "../../packages/ui/presupuestos/**/*.{ts,tsx}",
+    "../../packages/ui/ordenes/**/*.{ts,tsx}",
+    "../../packages/ui/envio/**/*.{ts,tsx}",
   ],
   theme: {
     container: {
