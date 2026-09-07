@@ -570,7 +570,7 @@ Rama del sprint: `sprint/f7-1`, base `staged`. Cada tarea es un commit; al cerra
 | Tarea | Sesión | Estado | Commit | Comentario |
 |---|---|---|---|---|
 | F7.1.T1 | opus | asignada | — | — |
-| F7.1.T2 | sonnet | asignada | — | — |
+| F7.1.T2 | sonnet | hecha | `9094277` | Cinco códigos traducidos y console.error del 500 en exámenes y presupuestos. Pendiente: buscar en los logs de Coolify el POST a /api/examenes del 2026-09-06 02:35-02:45 UTC; la sesión no tiene acceso. Hallazgo: pnpm test y pnpm typecheck fallan en la raíz por errores preexistentes (tsup de @labo/lib sin inputs, tests de integración de @labo/db); por paquete, lib y web pasan. |
 | F7.2.T1 | sonnet | asignada | — | — |
 | F7.3.T1 | sonnet | asignada | — | — |
 | F7.2.T4 | sonnet | asignada | — | — |
