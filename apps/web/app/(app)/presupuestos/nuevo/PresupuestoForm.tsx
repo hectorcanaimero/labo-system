@@ -306,16 +306,37 @@ export function PresupuestoForm({
     });
   }, [lineas, descuentoNum, gananciaNum, tasaNum, tasaValida, serviciosUsd]);
 
-  // F7.2.T6 — monto de la fila "Ganancia" del resumen: sólo la ganancia del
-  // paquete cerrado (precio base repartido × % global), ANTES del descuento
-  // (que se muestra aparte). Ej. base 15 + global 10% → 1,50.
+  // Fila "Ganancia" del resumen, ANTES del descuento (que se muestra aparte):
+  // paquete cerrado → precio base repartido × % global; líneas abiertas → cada
+  // una con su %. Se muestra siempre, así Subtotal + Ganancia + servicios
+  // cierra con el total y el operador ve de dónde sale cada centavo.
   const gananciaMontoPaquete = useMemo(() => {
-    if (!mostrarGananciaGlobal) return 0;
     const baseCerrado = lineas
       .filter((linea) => linea.cerrado)
       .reduce((sum, linea) => sum + linea.precio_base_snap, 0);
     return roundHalfUp((baseCerrado * gananciaNum) / 100, 2);
-  }, [lineas, mostrarGananciaGlobal, gananciaNum]);
+  }, [lineas, gananciaNum]);
+  const gananciaMontoLineas = useMemo(
+    () =>
+      roundHalfUp(
+        lineas
+          .filter((linea) => !linea.cerrado)
+          .reduce(
+            (sum, linea) =>
+              sum + (linea.precio_base_snap * toNumber(linea.gananciaPctInput)) / 100,
+            0,
+          ),
+        2,
+      ),
+    [lineas],
+  );
+  const gananciaMontoTotal = roundHalfUp(gananciaMontoPaquete + gananciaMontoLineas, 2);
+  const gananciaEtiqueta =
+    hayLineaCerrada && hayLineaAbierta
+      ? `Ganancia (${hasValue(gananciaPct) ? gananciaNum : 0}% del paquete + por línea)`
+      : hayLineaCerrada
+        ? `Ganancia (${hasValue(gananciaPct) ? gananciaNum : 0}% del paquete)`
+        : "Ganancia (por línea)";
 
   const pacienteOk =
     (modoPaciente === "registrado" && Boolean(selectedPaciente?.id)) ||
@@ -1089,16 +1110,12 @@ export function PresupuestoForm({
                   {hasValue(descuentoPct) ? `${descuentoNum}%` : "—"}
                 </span>
               </div>
-              {mostrarGananciaGlobal ? (
-                <div className="flex items-center justify-between">
-                  <span className="text-muted-foreground">
-                    Ganancia ({hasValue(gananciaPct) ? gananciaNum : 0}% del paquete)
-                  </span>
-                  <span className="font-mono text-foreground">
-                    {formatUsd(gananciaMontoPaquete)}
-                  </span>
-                </div>
-              ) : null}
+              <div className="flex items-center justify-between">
+                <span className="text-muted-foreground">{gananciaEtiqueta}</span>
+                <span className="font-mono text-foreground">
+                  {lineas.length === 0 ? "—" : formatUsd(gananciaMontoTotal)}
+                </span>
+              </div>
               <div className="flex items-center justify-between">
                 <span className="text-muted-foreground">Toma de muestra</span>
                 <span className="font-mono text-foreground">{formatUsd(tomaMuestraNum)}</span>
