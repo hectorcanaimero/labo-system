@@ -20,6 +20,7 @@ import { Separator } from "@/components/ui/separator";
 import { EmptyState } from "@labo/ui/feedback";
 import { notifyError, notifySuccess } from "@labo/ui/feedback/toast";
 import { AssetUploader } from "./AssetUploader";
+import { MetodosPanel } from "./MetodosPanel";
 
 export interface ConfigPreloaded {
   nombre: string;
@@ -523,6 +524,10 @@ export function ConfigForm({ preloadedConfig, preloadedTasa }: ConfigFormProps) 
           </CardContent>
         </Card>
       </aside>
+
+      {/* Métodos de análisis: ancho completo y FUERA del <form> de la config,
+          porque tiene sus propios inputs y no debe disparar ese submit. */}
+      <MetodosPanel />
     </div>
   );
 }
