@@ -2961,7 +2961,7 @@
       "description": "update de órdenes no auto-entrega al heredar fecha_resultado; detalle manda estado explícito y oculta Editar en anuladas; force con motivo auditado en tasa manual; auditar rechazos por outlier.",
       "model": "opencode/deepseek-v4-pro",
       "reason": "Corrección de regla de estado con test, más ajuste operativo de tasa.",
-      "status": "in_progress",
+      "status": "done",
       "dependencies": [
         "F7.3.T3",
         "F7.5.T1"
@@ -2982,6 +2982,13 @@
           "session": "opus",
           "commit": "",
           "text": "Revisión de opus: confirmado que PATCH solo con observaciones desde el detalle hereda fecha_resultado y update pasa la orden a Entregada, incluso desde Anulada, esquivando la matriz de transiciones. Plausibles: tasa manual sin forma de forzar tras un 409; rechazos por outlier no auditados; pacientes viejos sin dirección bloqueados al editar."
+        },
+        {
+          "date": "2026-09-07",
+          "author": "planner",
+          "session": "opus",
+          "commit": "1b2d5cb",
+          "text": "update de órdenes solo auto-entrega cuando el body trae fecha_resultado; el detalle manda estado explícito y no ofrece Editar en anuladas. Tasa manual con force y motivo obligatorio auditado, ofrecido en Config solo tras un 409 con el mismo valor; rechazos por outlier auditados. 14 tests nuevos en db (18 a 32), los de regresión fallan sin el fix. Sin prueba en navegador."
         }
       ]
     },
