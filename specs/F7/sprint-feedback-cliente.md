@@ -732,3 +732,15 @@ No hace:
 ### Estimación
 
 3h
+
+# Registro del Sprint 2 (semana 2)
+
+Rama del sprint: `sprint/f7-2`, base `staged` (post PR #11). Cada tarea es un commit; al cerrar se abre el PR `sprint/f7-2 → staged`. Migraciones 0016, 0017 y 0018 se escriben y prueban en local; se aplican en hosted por el endpoint de InsForge antes del deploy, con decisión del usuario.
+
+| Tarea | Sesión | Estado | Commit | Comentario |
+|---|---|---|---|---|
+| F7.5.T1 | sonnet | en curso | — | Primera de sonnet: toca ConfigForm antes que F7.4.T1. |
+| F7.4.T2 | sonnet | asignada | — | — |
+| F7.3.T3 | sonnet | asignada | — | — |
+| F7.3.T2 | opus | en curso | — | Migración 0016 sin aplicar en hosted hasta decisión del usuario. |
+| F7.4.T1 | opus | asignada | — | Última de opus: rebase sobre F7.5.T1 por ConfigForm. |
