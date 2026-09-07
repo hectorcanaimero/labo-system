@@ -27,6 +27,7 @@ import {
 import { PageHeader } from "@/components/layout/PageHeader";
 import { formatUsd } from "@labo/lib/bs-format";
 
+import { notifyError, notifySuccess } from "@labo/ui/feedback/toast";
 interface Paquete {
   id: string;
   nombre: string;
@@ -100,6 +101,7 @@ export default function PaquetesPage() {
         body: JSON.stringify({ nombre, descripcion, precio_base }),
       });
       setPaquetes((current) => [...current, created]);
+      notifySuccess("Paquete creado.");
       setOpen(false);
       setNombre("");
       setDescripcion("");
@@ -108,6 +110,7 @@ export default function PaquetesPage() {
       setError(
         reason instanceof Error ? reason.message : "No se pudo crear el paquete.",
       );
+      notifyError(reason);
     } finally {
       setSaving(false);
     }

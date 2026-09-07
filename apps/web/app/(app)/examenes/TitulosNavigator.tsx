@@ -40,6 +40,7 @@ import {
 } from '@/components/ui/tooltip';
 import { toHumanError } from '@labo/lib/error-messages';
 import { EmptyState, SkeletonText } from '@labo/ui/feedback';
+import { notifyError, notifySuccess } from '@labo/ui/feedback/toast';
 import { HighlightedText } from '@labo/ui/text/HighlightedText';
 
 import { ExamenFormDialog } from './ExamenFormDialog';
@@ -344,8 +345,10 @@ export function TitulosNavigator({ initialTitulos }: TitulosNavigatorProps) {
         return next;
       });
       await refreshTitulos();
+      notifySuccess('Grupo eliminado.');
     } catch (error) {
       setPageError(toHumanError(error));
+      notifyError(error);
     } finally {
       setBusyTitleId(null);
     }
@@ -386,8 +389,10 @@ export function TitulosNavigator({ initialTitulos }: TitulosNavigatorProps) {
         );
         setSearchState({ status: 'success', items, errorMessage: null });
       }
+      notifySuccess('Examen desactivado.');
     } catch (error) {
       setPageError(toHumanError(error));
+      notifyError(error);
     } finally {
       setBusyExamenId(null);
     }

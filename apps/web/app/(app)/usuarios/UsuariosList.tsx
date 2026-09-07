@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/table";
 import { InviteUserDialog } from "./InviteUserDialog";
 
+import { notifyError, notifySuccess } from "@labo/ui/feedback/toast";
 export interface UsuarioItem {
   id: string;
   email: string;
@@ -73,8 +74,10 @@ export function UsuariosList({ currentUserId, initialUsuarios }: UsuariosListPro
       await patchUsuario(usuario.id, { role });
       await refresh();
       setNotice(`${usuario.nombre} ahora es ${role === "admin" ? "Administrador" : "Operador"}.`);
+      notifySuccess("Rol actualizado.");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Error al actualizar el rol.");
+      notifyError(err);
     } finally {
       setBusyId(null);
     }
@@ -88,8 +91,10 @@ export function UsuariosList({ currentUserId, initialUsuarios }: UsuariosListPro
       await patchUsuario(usuario.id, { activo: !usuario.activo });
       await refresh();
       setNotice(`${usuario.nombre} fue ${usuario.activo ? "desactivado" : "reactivado"}.`);
+      notifySuccess(usuario.activo ? "Usuario desactivado." : "Usuario reactivado.");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Error al actualizar el estado.");
+      notifyError(err);
     } finally {
       setBusyId(null);
     }
