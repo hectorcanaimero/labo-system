@@ -2953,6 +2953,37 @@
           "text": "lib, ui y pdf sin build de tsup (exportan fuentes, web los transpila). Tests de integración de db alineados a la firma con Db inyectado; dashboard corre solo con credenciales de InsForge, dos tests de presupuestos en skip con motivo. web y convex con test no-op explícito; convex es código muerto post-InsForge. turbo lint typecheck test build 20/20 en verde."
         }
       ]
+    },
+    {
+      "id": "F7.3.T4",
+      "phase": 7,
+      "title": "Correcciones de la revisión cruzada sobre observaciones y tasa",
+      "description": "update de órdenes no auto-entrega al heredar fecha_resultado; detalle manda estado explícito y oculta Editar en anuladas; force con motivo auditado en tasa manual; auditar rechazos por outlier.",
+      "model": "opencode/deepseek-v4-pro",
+      "reason": "Corrección de regla de estado con test, más ajuste operativo de tasa.",
+      "status": "in_progress",
+      "dependencies": [
+        "F7.3.T3",
+        "F7.5.T1"
+      ],
+      "estimateHours": 3,
+      "files": [
+        "packages/db/repos/ordenes.ts",
+        "apps/web/app/(app)/resultados/[id]/ResultadoDetalle.tsx",
+        "packages/db/repos/tasa.ts",
+        "apps/web/app/api/tasa/manual/route.ts",
+        "apps/web/app/(app)/config/ConfigForm.tsx"
+      ],
+      "specRef": "F7/sprint-feedback-cliente.md#F7.3.T4",
+      "comments": [
+        {
+          "date": "2026-09-07",
+          "author": "planner",
+          "session": "opus",
+          "commit": "",
+          "text": "Revisión de opus: confirmado que PATCH solo con observaciones desde el detalle hereda fecha_resultado y update pasa la orden a Entregada, incluso desde Anulada, esquivando la matriz de transiciones. Plausibles: tasa manual sin forma de forzar tras un 409; rechazos por outlier no auditados; pacientes viejos sin dirección bloqueados al editar."
+        }
+      ]
     }
   ],
   "phases": []

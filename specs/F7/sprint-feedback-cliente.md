@@ -744,3 +744,46 @@ Rama del sprint: `sprint/f7-2`, base `staged` (post PR #11). Cada tarea es un co
 | F7.3.T3 | sonnet | hecha | `e5341de` | Botón Sugerir redacción extraído a packages/ui/resultados y usado en el formulario de orden y en el detalle, donde las observaciones ahora se editan in-place y se guardan por PATCH con solo ese campo. packages/ui/resultados agregado a los globs de Tailwind. Pendiente del usuario: confirmar GEMINI_API_KEY en Coolify. Sin prueba en navegador. |
 | F7.3.T2 | opus | hecha | `e333136` | Tabla enlaces_verificacion (0016) con slug sin vencimiento; se crea al entregar y también al emitir el PDF, best-effort: sin la migración el PDF sale sin QR y nada rompe. QR como SVG en ResultadoPDF junto a la firma. Ruta pública /v/[slug] con laboratorio, fecha y hora, cédula enmascarada y botón de WhatsApp. Migración probada en Postgres local, no aplicada en hosted. Sin escaneo real del QR ni apertura del PDF. |
 | F7.4.T1 | opus | hecha | `517397a` | Tabla metodos_analisis (0017) sembrada con los métodos existentes, repo y endpoints con patrón de títulos, select en el examen con alta inline para admin y panel de métodos en Config fuera del form. Un método desactivado se conserva en los exámenes como (fuera de la lista). Renombrar no reescribe examenes.metodo ni metodo_snap, a propósito. Sin la 0017 el selector muestra un mensaje y nada rompe. Probada en Postgres local, no aplicada en hosted. Sin prueba en navegador. |
+| F7.3.T4 | opus | en curso | — | Revisión cruzada de opus: editar observaciones desde el detalle podía pasar la orden a Entregada, incluso una anulada, por el auto-cálculo de estado en update (regla previa, primer llamador nuevo). Se corrige más force con motivo para la tasa manual y auditoría de rechazos. Pendiente del cliente: pacientes viejos sin dirección quedan bloqueados al editar. |
+
+## F7.3.T4 — Correcciones de la revisión cruzada sobre observaciones y tasa
+
+### Objetivo
+
+Cerrar el hallazgo confirmado de la revisión de opus sobre los commits de sonnet en el Sprint 2, más dos plausibles operativos de la tasa.
+
+### Alcance
+
+Sí hace:
+- `packages/db/repos/ordenes.ts`: el auto-cálculo de estado a `Entregada` en `update` aplica solo cuando el body trae `fecha_resultado`, no cuando se hereda del registro actual. Editar solo `observaciones` no cambia el estado.
+- `apps/web/app/(app)/resultados/[id]/ResultadoDetalle.tsx`: el PATCH de observaciones manda `estado` explícito igual al actual, y el botón Editar no se muestra en órdenes anuladas.
+- Test unitario en `packages/lib` o `packages/db` que cubra: orden anulada con `fecha_resultado`, PATCH solo con observaciones, el estado sigue anulado.
+- `packages/db/repos/tasa.ts` y `apps/web/app/api/tasa/manual/route.ts`: `force: true` con `motivo` obligatorio para saltar la guarda anti-outlier en la carga manual, auditado en `audit_log` con tasa anterior, nueva y motivo. Config ofrece el forzado solo después de un rechazo, con campo de motivo.
+- Auditar los rechazos por outlier, manual y scraper, en `audit_log`.
+
+No hace:
+- Aflojar `direccion` al editar pacientes viejos: decisión del cliente.
+
+### Criterios de aceptación
+
+- [ ] Una orden anulada con fecha de resultado sigue anulada tras guardar una observación desde el detalle.
+- [ ] Una orden en proceso con fecha de resultado sigue en proceso tras guardar una observación.
+- [ ] Tras un 409 por outlier, Config permite reintentar con motivo y la tasa queda guardada y auditada.
+- [ ] Un rechazo por outlier deja una fila en `audit_log`.
+
+### Archivos afectados
+
+- `packages/db/repos/ordenes.ts`
+- `apps/web/app/(app)/resultados/[id]/ResultadoDetalle.tsx`
+- `packages/db/repos/tasa.ts`
+- `apps/web/app/api/tasa/manual/route.ts`
+- `apps/web/app/(app)/config/ConfigForm.tsx`
+
+### Dependencias
+
+- F7.3.T3
+- F7.5.T1
+
+### Estimación
+
+3h
