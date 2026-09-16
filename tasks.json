@@ -1,12 +1,13 @@
 {
   "meta": {
-    "project": "labo-system",
-    "generatedAt": "2026-08-23",
-    "note": "Skeleton created by `orch init`. Add tasks by editing this file directly OR by writing specs under specs/ and running `orch atomize --file specs/YOUR-SPEC.md --apply`.",
+    "default_cheap_model": "opencode-go/kimi-k2.6",
     "default_premium_model": "opencode/gemini-3.1-pro",
     "default_standard_model": "opencode/deepseek-v4-pro",
-    "default_cheap_model": "opencode-go/kimi-k2.6"
+    "project": "labo-system",
+    "generatedAt": "2026-08-23",
+    "note": "Skeleton created by `orch init`. Add tasks by editing this file directly OR by writing specs under specs/ and running `orch atomize --file specs/YOUR-SPEC.md --apply`."
   },
+  "phases": [],
   "tasks": [
     {
       "id": "F0.9.T1",
@@ -17,7 +18,7 @@
       "reason": "Spike de investigación — Sonnet para análisis técnico.",
       "status": "done",
       "dependencies": [],
-      "estimateHours": 16,
+      "estimateHours": 16.0,
       "files": [],
       "specRef": "f0-spikes.md#F0.9.T1",
       "comments": []
@@ -31,7 +32,7 @@
       "reason": "Spike de investigación — Sonnet para análisis técnico.",
       "status": "done",
       "dependencies": [],
-      "estimateHours": 24,
+      "estimateHours": 24.0,
       "files": [],
       "specRef": "f0-spikes.md#F0.9.T2",
       "comments": []
@@ -45,7 +46,7 @@
       "reason": "Spike de investigación — Sonnet para análisis técnico.",
       "status": "done",
       "dependencies": [],
-      "estimateHours": 16,
+      "estimateHours": 16.0,
       "files": [
         "apps/web/package.json",
         "pnpm-lock.yaml",
@@ -66,7 +67,7 @@
       "reason": "Spike de investigación — Sonnet para análisis técnico.",
       "status": "done",
       "dependencies": [],
-      "estimateHours": 8,
+      "estimateHours": 8.0,
       "files": [],
       "specRef": "f0-spikes.md#F0.9.T4",
       "comments": []
@@ -80,7 +81,7 @@
       "reason": "Spike de investigación — Sonnet para análisis técnico.",
       "status": "done",
       "dependencies": [],
-      "estimateHours": 16,
+      "estimateHours": 16.0,
       "files": [],
       "specRef": "f0-spikes.md#F0.9.T5",
       "comments": []
@@ -94,7 +95,7 @@
       "reason": "Spike de investigación — Sonnet para análisis técnico.",
       "status": "done",
       "dependencies": [],
-      "estimateHours": 8,
+      "estimateHours": 8.0,
       "files": [],
       "specRef": "f0-spikes.md#F0.9.T6",
       "comments": []
@@ -108,7 +109,7 @@
       "reason": "Spike de investigación — Sonnet para análisis técnico.",
       "status": "done",
       "dependencies": [],
-      "estimateHours": 8,
+      "estimateHours": 8.0,
       "files": [],
       "specRef": "f0-spikes.md#F0.9.T7",
       "comments": []
@@ -122,7 +123,7 @@
       "reason": "Spike de investigación — Sonnet para análisis técnico.",
       "status": "done",
       "dependencies": [],
-      "estimateHours": 8,
+      "estimateHours": 8.0,
       "files": [],
       "specRef": "f0-spikes.md#F0.9.T8",
       "comments": []
@@ -136,7 +137,7 @@
       "reason": "Task pequeña / config — Haiku es suficiente.",
       "status": "done",
       "dependencies": [],
-      "estimateHours": 2,
+      "estimateHours": 2.0,
       "files": [
         "pnpm-workspace.yaml",
         "turbo.json",
@@ -163,7 +164,7 @@
       "dependencies": [
         "F0.1.T1"
       ],
-      "estimateHours": 4,
+      "estimateHours": 4.0,
       "files": [
         "apps/web/next.config.mjs",
         "apps/web/tailwind.config.ts",
@@ -182,14 +183,14 @@
       "id": "F0.1.T3",
       "phase": 0,
       "title": "Inicializar Convex + schema completo",
-      "description": "> **[OBSOLETO por ADR-11]** Task ejecutado sobre Convex; queda como\n> historial. El equivalente InsForge es **F0.1.T8** (packages/db + DDL\n> PostgreSQL).",
+      "description": "\u003e **[OBSOLETO por ADR-11]** Task ejecutado sobre Convex; queda como\n\u003e historial. El equivalente InsForge es **F0.1.T8** (packages/db + DDL\n\u003e PostgreSQL).",
       "model": "opencode/deepseek-v4-pro",
       "reason": "Task de implementación estándar — Sonnet balancea costo/calidad.",
       "status": "done",
       "dependencies": [
         "F0.1.T1"
       ],
-      "estimateHours": 6,
+      "estimateHours": 6.0,
       "files": [
         "packages/convex/convex.json",
         "packages/convex/schema.ts",
@@ -213,7 +214,7 @@
         "F0.1.T2",
         "F0.1.T3"
       ],
-      "estimateHours": 3,
+      "estimateHours": 3.0,
       "files": [
         ".eslintrc.cjs",
         ".eslintignore",
@@ -228,7 +229,7 @@
       "id": "F0.1.T5",
       "phase": 0,
       "title": "CI GitHub Actions (lint + typecheck + test)",
-      "description": "**Objetivo**\n\nPipeline de CI mínimo que corre en cada PR: install → lint → typecheck → test.\n\n**Contexto**\n\nPRD §8 exige entregable estable Sem 1-3; CI previene regresiones desde el día 1.\n\n**Alcance**\n\nSí hace:\n- `.github/workflows/ci.yml` con jobs: `lint`, `typecheck`, `test`, `build` (matrix Node 20).\n- Cache de `pnpm store` para acelerar.\n- `pnpm turbo run <cmd>` como comando de cada job.\n- Badge de CI en README.\n\nNo hace:\n- Deploy a Vercel (Vercel se conecta directo al repo).\n- Deploy a Convex prod (manual desde CLI).\n- E2E Playwright (fase posterior).\n\n**Criterios de aceptación**\n\n- [ ] PR de prueba dispara CI y todos los jobs pasan.\n- [ ] Cache pnpm reduce install a < 30s en runs consecutivos.\n- [ ] Badge visible en README.\n\n**Notas técnicas**\n\nTurbo remote cache (Vercel) es opcional en v1 — dejar TODO comentado.",
+      "description": "**Objetivo**\n\nPipeline de CI mínimo que corre en cada PR: install → lint → typecheck → test.\n\n**Contexto**\n\nPRD §8 exige entregable estable Sem 1-3; CI previene regresiones desde el día 1.\n\n**Alcance**\n\nSí hace:\n- `.github/workflows/ci.yml` con jobs: `lint`, `typecheck`, `test`, `build` (matrix Node 20).\n- Cache de `pnpm store` para acelerar.\n- `pnpm turbo run \u003ccmd\u003e` como comando de cada job.\n- Badge de CI en README.\n\nNo hace:\n- Deploy a Vercel (Vercel se conecta directo al repo).\n- Deploy a Convex prod (manual desde CLI).\n- E2E Playwright (fase posterior).\n\n**Criterios de aceptación**\n\n- [ ] PR de prueba dispara CI y todos los jobs pasan.\n- [ ] Cache pnpm reduce install a \u003c 30s en runs consecutivos.\n- [ ] Badge visible en README.\n\n**Notas técnicas**\n\nTurbo remote cache (Vercel) es opcional en v1 — dejar TODO comentado.",
       "model": "opencode-go/claude-haiku-4-5",
       "reason": "Task pequeña / config — Haiku es suficiente.",
       "status": "done",
@@ -236,7 +237,7 @@
         "F0.1.T1",
         "F0.1.T4"
       ],
-      "estimateHours": 2,
+      "estimateHours": 2.0,
       "files": [
         ".github/workflows/ci.yml",
         "README.md"
@@ -248,7 +249,7 @@
       "id": "F0.1.T6",
       "phase": 0,
       "title": "Layout base apps/web (nav, theme, providers)",
-      "description": "**Objetivo**\n\nLayout compartido `apps/web/app/(app)/layout.tsx` con navegación lateral, header con user, tema, y ConvexProvider wrapper.\n\n**Contexto**\n\nARCH §3: rutas bajo `(app)` (protegidas) usan un layout con nav. `(auth)` no.\n\n**Alcance**\n\nSí hace:\n- `apps/web/app/(app)/layout.tsx` con sidebar + header.\n- Sidebar con links a los 8 módulos (Dashboard, Pacientes, Exámenes, Paquetes, Resultados, Presupuestos, Config, Usuarios).\n- Header con usuario logueado (placeholder — real en F0.auth.T*).\n- `ConvexProvider` de `convex/react` envolviendo la app.\n- Componentes `<Sidebar>`, `<Header>` en `packages/ui/nav/` reutilizables.\n- Tema light (sin dark mode en v1, aunque shadcn lo soporta).\n- Layout responsive hasta tablet 768px (PRD §4 NFR usabilidad).\n\nNo hace:\n- Auth guard real (F0.auth.T*).\n- Role guard (F0.auth.T*).\n- Rutas de negocio (fases posteriores).\n\n**Criterios de aceptación**\n\n- [ ] `/dashboard` muestra sidebar con 8 items + header.\n- [ ] Sidebar colapsable a hamburguesa en < 768px.\n- [ ] `ConvexProvider` envuelve toda la app; error clara si falta env var.\n- [ ] Placeholder user en header (nombre + botón logout stub).\n\n**Notas técnicas**\n\nUsar shadcn `Sidebar` (block) como base. `ConvexProvider` desde `convex/react`.",
+      "description": "**Objetivo**\n\nLayout compartido `apps/web/app/(app)/layout.tsx` con navegación lateral, header con user, tema, y ConvexProvider wrapper.\n\n**Contexto**\n\nARCH §3: rutas bajo `(app)` (protegidas) usan un layout con nav. `(auth)` no.\n\n**Alcance**\n\nSí hace:\n- `apps/web/app/(app)/layout.tsx` con sidebar + header.\n- Sidebar con links a los 8 módulos (Dashboard, Pacientes, Exámenes, Paquetes, Resultados, Presupuestos, Config, Usuarios).\n- Header con usuario logueado (placeholder — real en F0.auth.T*).\n- `ConvexProvider` de `convex/react` envolviendo la app.\n- Componentes `\u003cSidebar\u003e`, `\u003cHeader\u003e` en `packages/ui/nav/` reutilizables.\n- Tema light (sin dark mode en v1, aunque shadcn lo soporta).\n- Layout responsive hasta tablet 768px (PRD §4 NFR usabilidad).\n\nNo hace:\n- Auth guard real (F0.auth.T*).\n- Role guard (F0.auth.T*).\n- Rutas de negocio (fases posteriores).\n\n**Criterios de aceptación**\n\n- [ ] `/dashboard` muestra sidebar con 8 items + header.\n- [ ] Sidebar colapsable a hamburguesa en \u003c 768px.\n- [ ] `ConvexProvider` envuelve toda la app; error clara si falta env var.\n- [ ] Placeholder user en header (nombre + botón logout stub).\n\n**Notas técnicas**\n\nUsar shadcn `Sidebar` (block) como base. `ConvexProvider` desde `convex/react`.",
       "model": "opencode/claude-sonnet-4-6",
       "reason": "Task de implementación estándar — Sonnet balancea costo/calidad.",
       "status": "done",
@@ -256,7 +257,7 @@
         "F0.1.T2",
         "F0.1.T3"
       ],
-      "estimateHours": 6,
+      "estimateHours": 6.0,
       "files": [
         "apps/web/app/(app)/layout.tsx",
         "apps/web/components/providers.tsx",
@@ -278,7 +279,7 @@
       "dependencies": [
         "F0.1.T1"
       ],
-      "estimateHours": 2,
+      "estimateHours": 2.0,
       "files": [
         "dashboard.yaml",
         "docs/index.html",
@@ -298,7 +299,7 @@
       "dependencies": [
         "F0.1.T3"
       ],
-      "estimateHours": 4,
+      "estimateHours": 4.0,
       "files": [
         "packages/convex/auth.ts",
         "packages/convex/auth.config.ts",
@@ -320,7 +321,7 @@
       "dependencies": [
         "F0.2.T1"
       ],
-      "estimateHours": 3,
+      "estimateHours": 3.0,
       "files": [
         "apps/web/app/(auth)/login/page.tsx",
         "apps/web/app/(auth)/login/LoginForm.tsx",
@@ -341,7 +342,7 @@
         "F0.2.T1",
         "F0.2.T4"
       ],
-      "estimateHours": 3,
+      "estimateHours": 3.0,
       "files": [
         "apps/web/middleware.ts"
       ],
@@ -359,7 +360,7 @@
       "dependencies": [
         "F0.2.T1"
       ],
-      "estimateHours": 4,
+      "estimateHours": 4.0,
       "files": [
         "packages/convex/usuarios.ts",
         "packages/convex/helpers/auth.ts",
@@ -372,7 +373,7 @@
       "id": "F0.2.T5",
       "phase": 0,
       "title": "Audit log de auth (login, logout, fail)",
-      "description": "**Objetivo**\n\nRegistrar eventos de auth en la tabla `audit_log` (ARCH §6, §7.3).\n\n**Contexto**\n\nPRD §4 NFR seguridad; ARCH observabilidad.\n\n**Alcance**\n\nSí hace:\n- Hook post-signin exitoso → insert `audit_log` con `accion: \"auth.login\"`, `usuario_id`, `metadata: { ip?, user_agent? }`.\n- Hook post-signout → `auth.logout`.\n- Registro de fallos de login → `auth.login_failed` con `metadata: { email_intent }`.\n- Rate limit lógico: si un email tiene > 5 `login_failed` en 15min, bloquear con error genérico (\"credenciales inválidas\").\n\nNo hace:\n- Dashboard de audit log (fase posterior).\n- Alertas por email en abusos.\n\n**Criterios de aceptación**\n\n- [ ] Login exitoso genera fila `audit_log`.\n- [ ] Login fallido genera fila `audit_log`.\n- [ ] 6to intento fallido en 15min es bloqueado.\n- [ ] Bloqueo se resetea después de 15min.\n\n**Notas técnicas**\n\nRate limit se puede implementar con la tabla `authRateLimits` de Convex Auth (built-in) o con `login_attempts` custom. Preferir built-in si está disponible.",
+      "description": "**Objetivo**\n\nRegistrar eventos de auth en la tabla `audit_log` (ARCH §6, §7.3).\n\n**Contexto**\n\nPRD §4 NFR seguridad; ARCH observabilidad.\n\n**Alcance**\n\nSí hace:\n- Hook post-signin exitoso → insert `audit_log` con `accion: \"auth.login\"`, `usuario_id`, `metadata: { ip?, user_agent? }`.\n- Hook post-signout → `auth.logout`.\n- Registro de fallos de login → `auth.login_failed` con `metadata: { email_intent }`.\n- Rate limit lógico: si un email tiene \u003e 5 `login_failed` en 15min, bloquear con error genérico (\"credenciales inválidas\").\n\nNo hace:\n- Dashboard de audit log (fase posterior).\n- Alertas por email en abusos.\n\n**Criterios de aceptación**\n\n- [ ] Login exitoso genera fila `audit_log`.\n- [ ] Login fallido genera fila `audit_log`.\n- [ ] 6to intento fallido en 15min es bloqueado.\n- [ ] Bloqueo se resetea después de 15min.\n\n**Notas técnicas**\n\nRate limit se puede implementar con la tabla `authRateLimits` de Convex Auth (built-in) o con `login_attempts` custom. Preferir built-in si está disponible.",
       "model": "opencode/claude-sonnet-4-6",
       "reason": "Task de implementación estándar — Sonnet balancea costo/calidad.",
       "status": "done",
@@ -380,7 +381,7 @@
         "F0.2.T1",
         "F0.2.T4"
       ],
-      "estimateHours": 3,
+      "estimateHours": 3.0,
       "files": [
         "packages/convex/auth.ts",
         "packages/convex/audit.ts"
@@ -400,7 +401,7 @@
         "F0.1.T3",
         "F0.2.T4"
       ],
-      "estimateHours": 3,
+      "estimateHours": 3.0,
       "files": [
         "packages/convex/config.ts",
         "packages/lib/schemas/config.ts",
@@ -413,7 +414,7 @@
       "id": "F1.1.T4",
       "phase": 1,
       "title": "UI `/config` (form Admin)",
-      "description": "**Objetivo**\n\nPágina `/config` con form completo: nombre, dirección, contacto, RIF, upload de assets con preview, tasa BCV manual override, mensaje pie PDF.\n\n**Contexto**\n\nPRD §4 F2; ARCH §3 componente F2.\n\n**Alcance**\n\nSí hace:\n- `apps/web/app/(app)/config/page.tsx` (Server component con preload).\n- `apps/web/app/(app)/config/ConfigForm.tsx` (Client component con `useMutation`).\n- Secciones: Identidad, Contacto, Assets (logo/firma/sello con preview), Tasa BCV manual, PDF pie de página.\n- Validaciones cliente (RHF + zodResolver reusando `packages/lib/schemas/config.ts`).\n- Loading + success/error toasts.\n- Preview de assets tras upload.\n- Panel \"Invitar usuario\" si F0.auth.T07 está implementado.\n\nNo hace:\n- Multi-tenant (S8).\n- Edición de tabla `usuarios` completa (fuera de scope v1).\n\n**Criterios de aceptación**\n\n- [ ] Admin puede editar todos los campos y guardar.\n- [ ] Operador que llega vía URL directa es redirigido (middleware F0.auth.T03).\n- [ ] Upload de logo muestra preview inmediato.\n- [ ] Nombre vacío bloquea guardar con error visible.\n- [ ] Tasa manual actualiza la última tasa (verificado en presupuestos post-implementación).\n- [ ] Mensaje toast en éxito/error.\n\n**Notas técnicas**\n\nUsar `react-hook-form` + `@hookform/resolvers/zod`. Preview de imágenes con `<img src={url}>` de la URL firmada.",
+      "description": "**Objetivo**\n\nPágina `/config` con form completo: nombre, dirección, contacto, RIF, upload de assets con preview, tasa BCV manual override, mensaje pie PDF.\n\n**Contexto**\n\nPRD §4 F2; ARCH §3 componente F2.\n\n**Alcance**\n\nSí hace:\n- `apps/web/app/(app)/config/page.tsx` (Server component con preload).\n- `apps/web/app/(app)/config/ConfigForm.tsx` (Client component con `useMutation`).\n- Secciones: Identidad, Contacto, Assets (logo/firma/sello con preview), Tasa BCV manual, PDF pie de página.\n- Validaciones cliente (RHF + zodResolver reusando `packages/lib/schemas/config.ts`).\n- Loading + success/error toasts.\n- Preview de assets tras upload.\n- Panel \"Invitar usuario\" si F0.auth.T07 está implementado.\n\nNo hace:\n- Multi-tenant (S8).\n- Edición de tabla `usuarios` completa (fuera de scope v1).\n\n**Criterios de aceptación**\n\n- [ ] Admin puede editar todos los campos y guardar.\n- [ ] Operador que llega vía URL directa es redirigido (middleware F0.auth.T03).\n- [ ] Upload de logo muestra preview inmediato.\n- [ ] Nombre vacío bloquea guardar con error visible.\n- [ ] Tasa manual actualiza la última tasa (verificado en presupuestos post-implementación).\n- [ ] Mensaje toast en éxito/error.\n\n**Notas técnicas**\n\nUsar `react-hook-form` + `@hookform/resolvers/zod`. Preview de imágenes con `\u003cimg src={url}\u003e` de la URL firmada.",
       "model": "opencode/claude-sonnet-4-6",
       "reason": "Task de implementación estándar — Sonnet balancea costo/calidad.",
       "status": "done",
@@ -424,7 +425,7 @@
         "F1.1.T2",
         "F1.1.T3"
       ],
-      "estimateHours": 8,
+      "estimateHours": 8.0,
       "files": [
         "apps/web/app/(app)/config/page.tsx",
         "apps/web/app/(app)/config/ConfigForm.tsx",
@@ -438,14 +439,14 @@
       "id": "F1.2.T3",
       "phase": 1,
       "title": "Búsqueda con highlight en UI (utility)",
-      "description": "**Objetivo**\n\nUtilidad de highlight de término en resultado de búsqueda (usada en catálogo, y reusable en pacientes/resultados/presupuestos).\n\n**Contexto**\n\nPRD §4 F4 pide highlight del término. Es utility, no vive en Convex.\n\n**Alcance**\n\nSí hace:\n- `packages/lib/highlight.ts` con `highlight(text: string, term: string): { parts: Array<{ text, match: boolean }> }`.\n- Componente `packages/ui/text/HighlightedText.tsx` que renderiza con `<mark>`.\n- Tests unitarios (case-insensitive, múltiples matches, término vacío).\n\nNo hace:\n- Fuzzy search (v1 es prefix match del backend + highlight cliente sobre el resultado).\n\n**Criterios de aceptación**\n\n- [ ] `highlight(\"Hemograma\", \"hemo\")` retorna partes correctas.\n- [ ] Highlight case-insensitive.\n- [ ] Term vacío retorna texto sin cambios.\n- [ ] Múltiples ocurrencias resaltan todas.\n\n**Notas técnicas**\n\nSanitizar el término para evitar regex injection (`escapeRegex`).",
+      "description": "**Objetivo**\n\nUtilidad de highlight de término en resultado de búsqueda (usada en catálogo, y reusable en pacientes/resultados/presupuestos).\n\n**Contexto**\n\nPRD §4 F4 pide highlight del término. Es utility, no vive en Convex.\n\n**Alcance**\n\nSí hace:\n- `packages/lib/highlight.ts` con `highlight(text: string, term: string): { parts: Array\u003c{ text, match: boolean }\u003e }`.\n- Componente `packages/ui/text/HighlightedText.tsx` que renderiza con `\u003cmark\u003e`.\n- Tests unitarios (case-insensitive, múltiples matches, término vacío).\n\nNo hace:\n- Fuzzy search (v1 es prefix match del backend + highlight cliente sobre el resultado).\n\n**Criterios de aceptación**\n\n- [ ] `highlight(\"Hemograma\", \"hemo\")` retorna partes correctas.\n- [ ] Highlight case-insensitive.\n- [ ] Term vacío retorna texto sin cambios.\n- [ ] Múltiples ocurrencias resaltan todas.\n\n**Notas técnicas**\n\nSanitizar el término para evitar regex injection (`escapeRegex`).",
       "model": "opencode-go/claude-haiku-4-5",
       "reason": "Task pequeña / config — Haiku es suficiente.",
       "status": "done",
       "dependencies": [
         "F0.1.T1"
       ],
-      "estimateHours": 2,
+      "estimateHours": 2.0,
       "files": [
         "packages/lib/highlight.ts",
         "packages/ui/text/HighlightedText.tsx",
@@ -469,7 +470,7 @@
         "F1.2.T2",
         "F1.2.T3"
       ],
-      "estimateHours": 8,
+      "estimateHours": 8.0,
       "files": [
         "apps/web/app/(app)/examenes/page.tsx",
         "apps/web/app/(app)/examenes/TitulosNavigator.tsx",
@@ -483,14 +484,14 @@
       "id": "F1.3.T1",
       "phase": 1,
       "title": "Setup script `scripts/migrate-wp/`",
-      "description": "**Objetivo**\n\nEstructura base del script Node standalone: package.json, tsconfig, entry point, config (env vars), logger, CLI args.\n\n**Contexto**\n\nARCH ADR-10. Script fuera del monorepo build de turbo (o package aislado). Corre con `pnpm --filter migrate-wp run migrate -- --dry-run`.\n\n**Alcance**\n\nSí hace:\n- `scripts/migrate-wp/package.json` con deps `mysql2`, `convex/browser` (o `ConvexHttpClient`), `zod`, `pino`, `commander`.\n- `tsconfig.json` propio.\n- Entry `index.ts` con CLI (`--dry-run`, `--only <entity>`, `--limit <n>`, `--verbose`).\n- Config via env: `WP_MYSQL_URL`, `CONVEX_URL`, `CONVEX_DEPLOY_KEY_MIGRATION`.\n- Logger estructurado (pino).\n- README del script con instrucciones de ejecución.\n\nNo hace:\n- Ningún mapper aún (T02+).\n\n**Criterios de aceptación**\n\n- [ ] `pnpm --filter migrate-wp run migrate -- --help` muestra CLI.\n- [ ] Sin env vars: falla con error claro.\n- [ ] Logger imprime JSON estructurado o pretty en dev.\n\n**Notas técnicas**\n\n`ConvexHttpClient` de `convex/browser` con `setAuth(deployKey)`. No usar el cliente React.",
+      "description": "**Objetivo**\n\nEstructura base del script Node standalone: package.json, tsconfig, entry point, config (env vars), logger, CLI args.\n\n**Contexto**\n\nARCH ADR-10. Script fuera del monorepo build de turbo (o package aislado). Corre con `pnpm --filter migrate-wp run migrate -- --dry-run`.\n\n**Alcance**\n\nSí hace:\n- `scripts/migrate-wp/package.json` con deps `mysql2`, `convex/browser` (o `ConvexHttpClient`), `zod`, `pino`, `commander`.\n- `tsconfig.json` propio.\n- Entry `index.ts` con CLI (`--dry-run`, `--only \u003centity\u003e`, `--limit \u003cn\u003e`, `--verbose`).\n- Config via env: `WP_MYSQL_URL`, `CONVEX_URL`, `CONVEX_DEPLOY_KEY_MIGRATION`.\n- Logger estructurado (pino).\n- README del script con instrucciones de ejecución.\n\nNo hace:\n- Ningún mapper aún (T02+).\n\n**Criterios de aceptación**\n\n- [ ] `pnpm --filter migrate-wp run migrate -- --help` muestra CLI.\n- [ ] Sin env vars: falla con error claro.\n- [ ] Logger imprime JSON estructurado o pretty en dev.\n\n**Notas técnicas**\n\n`ConvexHttpClient` de `convex/browser` con `setAuth(deployKey)`. No usar el cliente React.",
       "model": "opencode/claude-sonnet-4-6",
       "reason": "Task de implementación estándar — Sonnet balancea costo/calidad.",
       "status": "done",
       "dependencies": [
         "F0.1.T1"
       ],
-      "estimateHours": 3,
+      "estimateHours": 3.0,
       "files": [
         "scripts/migrate-wp/package.json",
         "scripts/migrate-wp/tsconfig.json",
@@ -513,7 +514,7 @@
       "dependencies": [
         "F1.3.T1"
       ],
-      "estimateHours": 4,
+      "estimateHours": 4.0,
       "files": [
         "packages/lib/cedula.ts",
         "packages/lib/cedula.test.ts",
@@ -534,7 +535,7 @@
         "F0.1.T1",
         "F1.3.T2"
       ],
-      "estimateHours": 3,
+      "estimateHours": 3.0,
       "files": [
         "packages/lib/schemas/paciente.ts",
         "packages/lib/schemas/paciente.test.ts"
@@ -557,7 +558,7 @@
         "F2.1.T3",
         "F2.1.T4"
       ],
-      "estimateHours": 10,
+      "estimateHours": 10.0,
       "files": [
         "apps/web/app/(app)/pacientes/page.tsx",
         "apps/web/app/(app)/pacientes/PacientesList.tsx",
@@ -583,7 +584,7 @@
         "F1.2.T3",
         "F2.2.T1"
       ],
-      "estimateHours": 12,
+      "estimateHours": 12.0,
       "files": [
         "apps/web/app/(app)/paquetes/page.tsx",
         "apps/web/app/(app)/paquetes/[id]/page.tsx",
@@ -598,14 +599,14 @@
       "id": "F2.2.T3",
       "phase": 2,
       "title": "Selector \"Cargar Paquete\" reusable",
-      "description": "**Objetivo**\n\nComponente `<CargarPaqueteButton onLoad={(examenes) => ...}>` que abre un modal con lista de paquetes y al seleccionar retorna los exámenes.\n\n**Contexto**\n\nReusable en F2.resultados y F2.presupuestos (PRD \"cargar paquete con un clic\").\n\n**Alcance**\n\nSí hace:\n- Componente en `packages/ui/paquetes/CargarPaqueteButton.tsx`.\n- Modal con `useQuery(paquetes.list)`.\n- Click en paquete → `useQuery(paquetes.getExamenes)` → llama `onLoad`.\n- Loading state, empty state.\n\n**Criterios de aceptación**\n\n- [ ] Modal muestra paquetes con nombre y count.\n- [ ] Click en paquete emite los exámenes.\n- [ ] Empty state si no hay paquetes.\n- [ ] Cierra modal post-selección.",
+      "description": "**Objetivo**\n\nComponente `\u003cCargarPaqueteButton onLoad={(examenes) =\u003e ...}\u003e` que abre un modal con lista de paquetes y al seleccionar retorna los exámenes.\n\n**Contexto**\n\nReusable en F2.resultados y F2.presupuestos (PRD \"cargar paquete con un clic\").\n\n**Alcance**\n\nSí hace:\n- Componente en `packages/ui/paquetes/CargarPaqueteButton.tsx`.\n- Modal con `useQuery(paquetes.list)`.\n- Click en paquete → `useQuery(paquetes.getExamenes)` → llama `onLoad`.\n- Loading state, empty state.\n\n**Criterios de aceptación**\n\n- [ ] Modal muestra paquetes con nombre y count.\n- [ ] Click en paquete emite los exámenes.\n- [ ] Empty state si no hay paquetes.\n- [ ] Cierra modal post-selección.",
       "model": "opencode/claude-sonnet-4-6",
       "reason": "Task de implementación estándar — Sonnet balancea costo/calidad.",
       "status": "done",
       "dependencies": [
         "F2.2.T1"
       ],
-      "estimateHours": 3,
+      "estimateHours": 3.0,
       "files": [
         "packages/ui/paquetes/CargarPaqueteButton.tsx"
       ],
@@ -623,7 +624,7 @@
       "dependencies": [
         "F0.1.T1"
       ],
-      "estimateHours": 2,
+      "estimateHours": 2.0,
       "files": [
         "packages/lib/schemas/resultado.ts",
         "packages/lib/schemas/resultado.test.ts"
@@ -634,15 +635,15 @@
     {
       "id": "F2.3.T4",
       "phase": 2,
-      "title": "Template PDF `<ResultadoPDF />`",
-      "description": "**Objetivo**\n\nComponente React del PDF de resultado con `@react-pdf/renderer`: encabezado con logo/nombre, datos paciente, tabla exámenes, firma + sello, pie de página.\n\n**Contexto**\n\nARCH §3 (`packages/pdf/ResultadoPDF.tsx`, `packages/pdf/components/*`), S3 confirmado runtime.\n\n**Alcance**\n\nSí hace:\n- `packages/pdf/ResultadoPDF.tsx` — layout completo.\n- Componentes reutilizables en `packages/pdf/components/`:\n  - `<PDFHeader logo={...} nombre={...} rif={...} direccion={...} />`\n  - `<PacienteInfo paciente={...} edad={...} fecha={...} />`\n  - `<ExamenesTable rows={...} />`\n  - `<PDFFooter firma={...} sello={...} pieDePagina={...} />`\n- Estilos con `StyleSheet.create`.\n- Fuentes default (custom sólo si S3 lo requiere).\n- Manejo de assets con URL firmada (viene de `getForPDF`).\n\nNo hace:\n- Route handler (T05).\n- Streaming (T05).\n\n**Criterios de aceptación**\n\n- [ ] Renderiza en `renderToStream` sin errores.\n- [ ] Layout coincide con mockup (o brief del cliente).\n- [ ] Logo/firma/sello se cargan y renderizan.\n- [ ] Tabla exámenes escala con muchas filas (page break OK).\n- [ ] Nombre del laboratorio siempre visible.",
+      "title": "Template PDF `\u003cResultadoPDF /\u003e`",
+      "description": "**Objetivo**\n\nComponente React del PDF de resultado con `@react-pdf/renderer`: encabezado con logo/nombre, datos paciente, tabla exámenes, firma + sello, pie de página.\n\n**Contexto**\n\nARCH §3 (`packages/pdf/ResultadoPDF.tsx`, `packages/pdf/components/*`), S3 confirmado runtime.\n\n**Alcance**\n\nSí hace:\n- `packages/pdf/ResultadoPDF.tsx` — layout completo.\n- Componentes reutilizables en `packages/pdf/components/`:\n  - `\u003cPDFHeader logo={...} nombre={...} rif={...} direccion={...} /\u003e`\n  - `\u003cPacienteInfo paciente={...} edad={...} fecha={...} /\u003e`\n  - `\u003cExamenesTable rows={...} /\u003e`\n  - `\u003cPDFFooter firma={...} sello={...} pieDePagina={...} /\u003e`\n- Estilos con `StyleSheet.create`.\n- Fuentes default (custom sólo si S3 lo requiere).\n- Manejo de assets con URL firmada (viene de `getForPDF`).\n\nNo hace:\n- Route handler (T05).\n- Streaming (T05).\n\n**Criterios de aceptación**\n\n- [ ] Renderiza en `renderToStream` sin errores.\n- [ ] Layout coincide con mockup (o brief del cliente).\n- [ ] Logo/firma/sello se cargan y renderizan.\n- [ ] Tabla exámenes escala con muchas filas (page break OK).\n- [ ] Nombre del laboratorio siempre visible.",
       "model": "opencode/claude-sonnet-4-6",
       "reason": "Task de implementación estándar — Sonnet balancea costo/calidad.",
       "status": "done",
       "dependencies": [
         "F2.3.T2"
       ],
-      "estimateHours": 10,
+      "estimateHours": 10.0,
       "files": [
         "packages/pdf/ResultadoPDF.tsx",
         "packages/pdf/components/PDFHeader.tsx",
@@ -657,7 +658,7 @@
       "id": "F2.3.T6",
       "phase": 2,
       "title": "UI `/resultados` (list + create + edit + fichas)",
-      "description": "**Objetivo**\n\nPágina `/resultados` con lista + búsqueda + filtros; `/resultados/nuevo` con form; `/resultados/[id]` con detalle + botón \"Descargar PDF\".\n\n**Contexto**\n\nPRD §4 F5; ARCH §3 F5, §4.1 (sequence).\n\n**Alcance**\n\nSí hace:\n- `apps/web/app/(app)/resultados/page.tsx` — lista con filtros (paciente, fecha, estado).\n- `apps/web/app/(app)/resultados/nuevo/page.tsx` — form completo con:\n  - Autocomplete paciente (reuse F2.pacientes.T03 `<PacienteAutocomplete>`).\n  - Botón \"Cargar Paquete\" (reuse F2.paquetes.T03).\n  - Botón \"Agregar Examen\" (autocomplete de catálogo).\n  - Tabla de líneas editable (examen, valor, observación).\n  - Fechas muestra/resultado, médico, observaciones generales.\n  - Botón guardar (Pendiente si falta fecha resultado; Completado si tiene).\n- `apps/web/app/(app)/resultados/[id]/page.tsx` — detalle read-only + botón \"Editar\" + \"Descargar PDF\" (`window.open('/api/pdf/resultado/[id]')`).\n- Modo edición.\n- Empty/error states.\n\n**Criterios de aceptación**\n\n- [ ] Crear resultado con paciente + 3 exámenes OK; navega a detalle.\n- [ ] \"Cargar Paquete\" agrega todos los exámenes del paquete.\n- [ ] Botón PDF abre PDF en nueva pestaña.\n- [ ] Búsqueda funciona en < 300ms.\n- [ ] Filtros por fecha/estado funcionan.\n- [ ] Delete Admin only visible/oculto según role.",
+      "description": "**Objetivo**\n\nPágina `/resultados` con lista + búsqueda + filtros; `/resultados/nuevo` con form; `/resultados/[id]` con detalle + botón \"Descargar PDF\".\n\n**Contexto**\n\nPRD §4 F5; ARCH §3 F5, §4.1 (sequence).\n\n**Alcance**\n\nSí hace:\n- `apps/web/app/(app)/resultados/page.tsx` — lista con filtros (paciente, fecha, estado).\n- `apps/web/app/(app)/resultados/nuevo/page.tsx` — form completo con:\n  - Autocomplete paciente (reuse F2.pacientes.T03 `\u003cPacienteAutocomplete\u003e`).\n  - Botón \"Cargar Paquete\" (reuse F2.paquetes.T03).\n  - Botón \"Agregar Examen\" (autocomplete de catálogo).\n  - Tabla de líneas editable (examen, valor, observación).\n  - Fechas muestra/resultado, médico, observaciones generales.\n  - Botón guardar (Pendiente si falta fecha resultado; Completado si tiene).\n- `apps/web/app/(app)/resultados/[id]/page.tsx` — detalle read-only + botón \"Editar\" + \"Descargar PDF\" (`window.open('/api/pdf/resultado/[id]')`).\n- Modo edición.\n- Empty/error states.\n\n**Criterios de aceptación**\n\n- [ ] Crear resultado con paciente + 3 exámenes OK; navega a detalle.\n- [ ] \"Cargar Paquete\" agrega todos los exámenes del paquete.\n- [ ] Botón PDF abre PDF en nueva pestaña.\n- [ ] Búsqueda funciona en \u003c 300ms.\n- [ ] Filtros por fecha/estado funcionan.\n- [ ] Delete Admin only visible/oculto según role.",
       "model": "opencode/claude-sonnet-4-6",
       "reason": "Task de implementación estándar — Sonnet balancea costo/calidad.",
       "status": "done",
@@ -669,7 +670,7 @@
         "F2.3.T2",
         "F2.3.T5"
       ],
-      "estimateHours": 12,
+      "estimateHours": 12.0,
       "files": [
         "apps/web/app/(app)/resultados/page.tsx",
         "apps/web/app/(app)/resultados/ResultadosList.tsx",
@@ -692,7 +693,7 @@
       "dependencies": [
         "F0.1.T1"
       ],
-      "estimateHours": 5,
+      "estimateHours": 5.0,
       "files": [
         "packages/lib/bs-format.ts",
         "packages/lib/bs-format.test.ts",
@@ -705,7 +706,7 @@
     {
       "id": "F2.4.T4",
       "phase": 2,
-      "title": "Template PDF `<PresupuestoPDF />`",
+      "title": "Template PDF `\u003cPresupuestoPDF /\u003e`",
       "description": "**Objetivo**\n\nComponente PDF con doble moneda (USD + Bs), sin mostrar ganancia interna.\n\n**Contexto**\n\nARCH §3, PRD §4 F6 (bullet \"PDF con doble moneda sin ganancia\").\n\n**Alcance**\n\nSí hace:\n- `packages/pdf/PresupuestoPDF.tsx`:\n  - Header reusable (F2.resultados.T04).\n  - Datos paciente (real o nombre libre).\n  - Tabla exámenes con precio USD y precio Bs (según tasa del presupuesto).\n  - Subtotal, descuento, Total USD, Total Bs.\n  - **NO muestra ganancia %**.\n  - Footer con firma + sello + pie.\n- Formato con `formatBs`/`formatUsd`.\n\n**Criterios de aceptación**\n\n- [ ] Renderiza sin errores.\n- [ ] Ganancia % NO visible en PDF (test explícito).\n- [ ] Formato Bs sigue reglas S7.\n- [ ] Paciente libre vs paciente real ambos renderizan.",
       "model": "opencode/claude-sonnet-4-6",
       "reason": "Task de implementación estándar — Sonnet balancea costo/calidad.",
@@ -715,7 +716,7 @@
         "F2.4.T1",
         "F2.4.T2"
       ],
-      "estimateHours": 6,
+      "estimateHours": 6.0,
       "files": [
         "packages/pdf/PresupuestoPDF.tsx"
       ],
@@ -726,7 +727,7 @@
       "id": "F2.4.T5",
       "phase": 2,
       "title": "Route Handler `/api/pdf/presupuesto/[id]`",
-      "description": "**Objetivo**\n\nEndpoint Next.js igual a resultados pero para presupuestos.\n\n**Alcance**\n\n- `apps/web/app/api/pdf/presupuesto/[id]/route.ts`.\n- Mismo patrón que F2.resultados.T05 (helper + guards + streaming).\n\n**Criterios de aceptación**\n\n- [ ] Request válido devuelve PDF.\n- [ ] Errores 401/403/404 correctos.\n- [ ] p95 warm < 3s.",
+      "description": "**Objetivo**\n\nEndpoint Next.js igual a resultados pero para presupuestos.\n\n**Alcance**\n\n- `apps/web/app/api/pdf/presupuesto/[id]/route.ts`.\n- Mismo patrón que F2.resultados.T05 (helper + guards + streaming).\n\n**Criterios de aceptación**\n\n- [ ] Request válido devuelve PDF.\n- [ ] Errores 401/403/404 correctos.\n- [ ] p95 warm \u003c 3s.",
       "model": "opencode/claude-sonnet-4-6",
       "reason": "Task de implementación estándar — Sonnet balancea costo/calidad.",
       "status": "done",
@@ -735,7 +736,7 @@
         "F2.4.T4",
         "F2.3.T5"
       ],
-      "estimateHours": 3,
+      "estimateHours": 3.0,
       "files": [
         "apps/web/app/api/pdf/presupuesto/[id]/route.ts"
       ],
@@ -746,7 +747,7 @@
       "id": "F2.4.T6",
       "phase": 2,
       "title": "UI `/presupuestos` (list + form + detalle + convertir)",
-      "description": "**Objetivo**\n\nPágina con lista + filtros; form nuevo con doble moneda live; detalle con botones \"Aprobar\", \"Convertir a Resultado\", \"Descargar PDF\".\n\n**Contexto**\n\nPRD §4 F6 completo; ARCH §4.2 sequence.\n\n**Alcance**\n\nSí hace:\n- `apps/web/app/(app)/presupuestos/page.tsx` — lista con filtros.\n- `apps/web/app/(app)/presupuestos/nuevo/page.tsx` — form:\n  - Toggle \"Paciente registrado\" vs \"Nombre libre\".\n  - `<PacienteAutocomplete>` o `<input>` según toggle.\n  - \"Cargar Paquete\" (F2.paquetes.T03).\n  - Agregar exámenes uno a uno.\n  - Descuento %, Ganancia % (visible sólo en UI, no en PDF).\n  - Tasa Bs pre-rellenada con `tasa.getLatest()` + badge \"stale\" si >24h.\n  - Cálculo LIVE de subtotal, Total USD, Total Bs mientras el usuario edita.\n- `apps/web/app/(app)/presupuestos/[id]/page.tsx` — detalle:\n  - Botones según estado: Borrador → \"Aprobar\", Aprobado → \"Convertir a Resultado\", \"Descargar PDF\" siempre.\n  - Modal confirmar convertir → si nombre libre → mensaje \"primero crear ficha\" con link a form pacientes con datos precargados.\n- Edición sólo en Borrador.\n\n**Criterios de aceptación**\n\n- [ ] Cálculo live actualiza al cambiar cualquier campo.\n- [ ] Aprobar cambia estado y bloquea edición.\n- [ ] Convertir con paciente real → navega a nuevo resultado precargado.\n- [ ] Convertir con nombre libre → muestra bloqueo con acción \"crear ficha\".\n- [ ] Tasa BCV se pre-rellena; badge \"stale\" visible si >24h.\n- [ ] PDF descarga OK.",
+      "description": "**Objetivo**\n\nPágina con lista + filtros; form nuevo con doble moneda live; detalle con botones \"Aprobar\", \"Convertir a Resultado\", \"Descargar PDF\".\n\n**Contexto**\n\nPRD §4 F6 completo; ARCH §4.2 sequence.\n\n**Alcance**\n\nSí hace:\n- `apps/web/app/(app)/presupuestos/page.tsx` — lista con filtros.\n- `apps/web/app/(app)/presupuestos/nuevo/page.tsx` — form:\n  - Toggle \"Paciente registrado\" vs \"Nombre libre\".\n  - `\u003cPacienteAutocomplete\u003e` o `\u003cinput\u003e` según toggle.\n  - \"Cargar Paquete\" (F2.paquetes.T03).\n  - Agregar exámenes uno a uno.\n  - Descuento %, Ganancia % (visible sólo en UI, no en PDF).\n  - Tasa Bs pre-rellenada con `tasa.getLatest()` + badge \"stale\" si \u003e24h.\n  - Cálculo LIVE de subtotal, Total USD, Total Bs mientras el usuario edita.\n- `apps/web/app/(app)/presupuestos/[id]/page.tsx` — detalle:\n  - Botones según estado: Borrador → \"Aprobar\", Aprobado → \"Convertir a Resultado\", \"Descargar PDF\" siempre.\n  - Modal confirmar convertir → si nombre libre → mensaje \"primero crear ficha\" con link a form pacientes con datos precargados.\n- Edición sólo en Borrador.\n\n**Criterios de aceptación**\n\n- [ ] Cálculo live actualiza al cambiar cualquier campo.\n- [ ] Aprobar cambia estado y bloquea edición.\n- [ ] Convertir con paciente real → navega a nuevo resultado precargado.\n- [ ] Convertir con nombre libre → muestra bloqueo con acción \"crear ficha\".\n- [ ] Tasa BCV se pre-rellena; badge \"stale\" visible si \u003e24h.\n- [ ] PDF descarga OK.",
       "model": "opencode/claude-sonnet-4-6",
       "reason": "Task de implementación estándar — Sonnet balancea costo/calidad.",
       "status": "done",
@@ -761,7 +762,7 @@
         "F2.4.T5",
         "F2.3.T3"
       ],
-      "estimateHours": 14,
+      "estimateHours": 14.0,
       "files": [
         "apps/web/app/(app)/presupuestos/page.tsx",
         "apps/web/app/(app)/presupuestos/PresupuestosList.tsx",
@@ -780,7 +781,7 @@
     {
       "id": "F3.2.T7",
       "phase": 3,
-      "title": "Componente `<ExportButton>` reusable",
+      "title": "Componente `\u003cExportButton\u003e` reusable",
       "description": "**Objetivo**\n\nBotón \"Exportar\" en cada lista (pacientes, presupuestos, resultados) que llama la action correspondiente y descarga el CSV.\n\n**Alcance**\n\nSí hace:\n- `packages/ui/exports/ExportButton.tsx`:\n  - Props: `actionName: string`, `filters?`.\n  - `useAction(...)` → recibe storageId → `useMutation(getSignedUrl)` → `window.open`.\n  - Loading state.\n- Integrado en `/pacientes`, `/presupuestos`, `/resultados` (páginas existentes de F2).\n\n**Criterios de aceptación**\n\n- [ ] Click descarga CSV con filtros aplicados.\n- [ ] Loading visible.\n- [ ] Error toast si falla.\n\n**Notas técnicas**\n\nFeature flag `NEXT_PUBLIC_FEATURE_EXPORTACION` para poder deshabilitar si el SPIKE S6 tarda.",
       "model": "opencode/claude-sonnet-4-6",
       "reason": "Task de implementación estándar — Sonnet balancea costo/calidad.",
@@ -791,7 +792,7 @@
         "F3.2.T4",
         "F3.2.T5"
       ],
-      "estimateHours": 3,
+      "estimateHours": 3.0,
       "files": [
         "packages/ui/exports/ExportButton.tsx",
         "apps/web/app/(app)/pacientes/PacientesList.tsx",
@@ -810,7 +811,7 @@
       "reason": "Task de implementación estándar — Sonnet balancea costo/calidad.",
       "status": "done",
       "dependencies": [],
-      "estimateHours": 6,
+      "estimateHours": 6.0,
       "files": [
         "packages/ui/feedback/EmptyState.tsx",
         "packages/ui/feedback/Skeleton.tsx",
@@ -823,12 +824,12 @@
       "id": "F4.1.T5",
       "phase": 4,
       "title": "Tests E2E Playwright de flujos críticos",
-      "description": "**Objetivo**\n\nSuite Playwright cubriendo flujos que si fallan bloquean operación: login, crear paciente, crear resultado + PDF, crear presupuesto + convertir, exportar CSV.\n\n**Alcance**\n\nSí hace:\n- `apps/web/e2e/` con Playwright config.\n- Test `auth.spec.ts` (login OK, login fail).\n- Test `paciente.spec.ts` (crear + buscar).\n- Test `resultado.spec.ts` (crear + descargar PDF).\n- Test `presupuesto.spec.ts` (crear + aprobar + convertir a resultado).\n- Test `export.spec.ts` (exportar presupuestos).\n- Fixtures seed data.\n- CI job E2E (separado, con headless Chrome).\n\n**Criterios de aceptación**\n\n- [ ] 5 tests pasan en local + CI.\n- [ ] Tiempo total < 5min.\n- [ ] Screenshot on failure.",
+      "description": "**Objetivo**\n\nSuite Playwright cubriendo flujos que si fallan bloquean operación: login, crear paciente, crear resultado + PDF, crear presupuesto + convertir, exportar CSV.\n\n**Alcance**\n\nSí hace:\n- `apps/web/e2e/` con Playwright config.\n- Test `auth.spec.ts` (login OK, login fail).\n- Test `paciente.spec.ts` (crear + buscar).\n- Test `resultado.spec.ts` (crear + descargar PDF).\n- Test `presupuesto.spec.ts` (crear + aprobar + convertir a resultado).\n- Test `export.spec.ts` (exportar presupuestos).\n- Fixtures seed data.\n- CI job E2E (separado, con headless Chrome).\n\n**Criterios de aceptación**\n\n- [ ] 5 tests pasan en local + CI.\n- [ ] Tiempo total \u003c 5min.\n- [ ] Screenshot on failure.",
       "model": "opencode/claude-sonnet-4-6",
       "reason": "Task de implementación estándar — Sonnet balancea costo/calidad.",
       "status": "done",
       "dependencies": [],
-      "estimateHours": 10,
+      "estimateHours": 10.0,
       "files": [
         "apps/web/e2e/*.spec.ts",
         "apps/web/playwright.config.ts",
@@ -841,7 +842,7 @@
       "id": "F4.2.T1",
       "phase": 4,
       "title": "Dry-run completo migración contra copia MySQL prod",
-      "description": "**Objetivo**\n\nEjecutar `migrate-wp --dry-run --verify` contra dump/copia de MySQL prod para reportar lo que va a migrar sin escribir.\n\n**Contexto**\n\nDepende de F1.migracion.T08 (`--verify` implementado). Reunión con Admin post-run para revisar reporte.\n\n**Alcance**\n\nSí hace:\n- Obtener dump MySQL prod (o snapshot readonly con timestamp T0).\n- Correr `pnpm --filter migrate-wp run migrate -- --dry-run --verify` contra el dump.\n- Generar reporte JSON + tabla humana con: counts esperados, conflictos detectados, warnings.\n- Sesión con Admin (Rosa) para revisar y aprobar/ajustar `resolutions/pacientes.json`.\n- Timeline documentado del run (cuánto tarda).\n\nNo hace:\n- Escritura real (dry-run).\n\n**Criterios de aceptación**\n\n- [ ] Reporte con counts exactos (204+ pacientes, 250+ exámenes, etc.).\n- [ ] Cero conflictos no resueltos.\n- [ ] Admin firma la aprobación por escrito (comentario en tracker).\n- [ ] Timeline < 60min conocido.",
+      "description": "**Objetivo**\n\nEjecutar `migrate-wp --dry-run --verify` contra dump/copia de MySQL prod para reportar lo que va a migrar sin escribir.\n\n**Contexto**\n\nDepende de F1.migracion.T08 (`--verify` implementado). Reunión con Admin post-run para revisar reporte.\n\n**Alcance**\n\nSí hace:\n- Obtener dump MySQL prod (o snapshot readonly con timestamp T0).\n- Correr `pnpm --filter migrate-wp run migrate -- --dry-run --verify` contra el dump.\n- Generar reporte JSON + tabla humana con: counts esperados, conflictos detectados, warnings.\n- Sesión con Admin (Rosa) para revisar y aprobar/ajustar `resolutions/pacientes.json`.\n- Timeline documentado del run (cuánto tarda).\n\nNo hace:\n- Escritura real (dry-run).\n\n**Criterios de aceptación**\n\n- [ ] Reporte con counts exactos (204+ pacientes, 250+ exámenes, etc.).\n- [ ] Cero conflictos no resueltos.\n- [ ] Admin firma la aprobación por escrito (comentario en tracker).\n- [ ] Timeline \u003c 60min conocido.",
       "model": "opencode/claude-sonnet-4-6",
       "reason": "Task de implementación estándar — Sonnet balancea costo/calidad.",
       "status": "blocked",
@@ -849,9 +850,9 @@
         "F1.3.T8",
         "F4.1.T3"
       ],
-      "estimateHours": 6,
+      "estimateHours": 6.0,
       "files": [
-        "docs/migration/dry-run-<fecha>.md",
+        "docs/migration/dry-run-\u003cfecha\u003e.md",
         "scripts/migrate-wp/resolutions/pacientes.json"
       ],
       "specRef": "f4.md#F4.2.T1",
@@ -869,7 +870,7 @@
         "F4.2.T2",
         "F4.1.T5"
       ],
-      "estimateHours": 4,
+      "estimateHours": 4.0,
       "files": [
         "docs/migration/SMOKE-TESTS.md"
       ],
@@ -885,7 +886,7 @@
       "reason": "Task de infraestructura estándar — deepseek cubre deploy guiado por docs oficiales.",
       "status": "done",
       "dependencies": [],
-      "estimateHours": 4,
+      "estimateHours": 4.0,
       "files": [
         ".env.example",
         "docs/deploy/insforge-vps.md",
@@ -905,7 +906,7 @@
       "dependencies": [
         "F0.0.T1"
       ],
-      "estimateHours": 6,
+      "estimateHours": 6.0,
       "files": [
         "packages/db/schema.sql",
         "packages/db/migrations/0001_init.sql",
@@ -928,7 +929,7 @@
         "F0.0.T1",
         "F0.2.T8"
       ],
-      "estimateHours": 4,
+      "estimateHours": 4.0,
       "files": [
         "apps/web/app/(auth)/forgot-password/page.tsx",
         "apps/web/app/(auth)/forgot-password/ForgotForm.tsx",
@@ -952,7 +953,7 @@
         "F0.1.T8",
         "F0.2.T6"
       ],
-      "estimateHours": 6,
+      "estimateHours": 6.0,
       "files": [
         "packages/db/migrations/0002_user_invitations.sql",
         "packages/db/repos/usuarios.ts",
@@ -968,7 +969,7 @@
       "id": "F0.2.T8",
       "phase": 0,
       "title": "Portar auth a InsForge: login, sesión, middleware y RBAC",
-      "description": "- **Objetivo**\n\nReimplementar sobre InsForge Auth la funcionalidad que hoy quedó ejecutada bajo Convex Auth (historial F0.2.T1–T5): login email+password, sesión 8h, middleware con auth guard + role guard, tabla `usuarios` sincronizada y audit log de auth.\n\n- **Contexto**\n\nADR-11. InsForge Auth maneja credenciales/sesiones JWT (access token + refresh cookie httpOnly); los roles siguen siendo de dominio en nuestra tabla `usuarios`.\n\n- **Alcance**\n\nSí hace:\n- `apps/web/app/providers.tsx`: reemplazar `ConvexAuthNextjsProvider` por el provider/auth client de InsForge (`@insforge/sdk`).\n- LoginForm (`/login`): signIn password contra InsForge; redirección a `/dashboard`; error visible con credenciales inválidas; loading state.\n- Sesión 8h: configurar expiración de access/refresh token en InsForge Auth config.\n- `packages/lib/server/auth.ts`:\n  - `getCurrentUser()`: lee sesión InsForge server-side → `{ userId, email, role }` o lanza `UNAUTHENTICATED`.\n  - `requireRole(role)`: valida contra fila `usuarios` y lanza `UNAUTHORIZED`.\n- Tabla `usuarios`: columna `auth_user_id uuid UNIQUE` + sync post-login/post-alta (crea fila con role default `operador` si no existe).\n- `apps/web/middleware.ts`: protege `(app)` (redirect a `/login` sin sesión), bloquea `/config/*` + `/examenes/*` a no-admin, redirect `/login` → `/dashboard` si hay sesión; matcher excluye `/api/pdf/*` y `/api/cron/*`.\n- Audit de auth en `audit_log`: login exitoso, logout, fallo (`metadata.email_intent`); rate limit lógico >5 fallos/15min por email (query propia o nativo InsForge — preferir nativo si cubre).\n- Query `usuarios.me()` (endpoint `/api/me`) para el header.\n\nNo hace:\n- Password reset (T06) ni invitaciones (T07).\n- UI de gestión de usuarios completa.\n\n- **Criterios de aceptación**\n  - [ ] Login válido entra a `/dashboard`; inválido muestra toast rojo.\n  - [ ] Cookie/session InsForge verificable en devtools (httpOnly refresh).\n  - [ ] Sin sesión, `/dashboard` redirige a `/login`.\n  - [ ] Operador no accede a `/config` ni `/examenes` (middleware + `requireRole`).\n  - [ ] Al crear usuario existe fila `usuarios` con role default e `auth_user_id`.\n  - [ ] Login exitoso/fallido genera filas en `audit_log`; 6to fallo en 15min bloquea.",
+      "description": "- **Objetivo**\n\nReimplementar sobre InsForge Auth la funcionalidad que hoy quedó ejecutada bajo Convex Auth (historial F0.2.T1–T5): login email+password, sesión 8h, middleware con auth guard + role guard, tabla `usuarios` sincronizada y audit log de auth.\n\n- **Contexto**\n\nADR-11. InsForge Auth maneja credenciales/sesiones JWT (access token + refresh cookie httpOnly); los roles siguen siendo de dominio en nuestra tabla `usuarios`.\n\n- **Alcance**\n\nSí hace:\n- `apps/web/app/providers.tsx`: reemplazar `ConvexAuthNextjsProvider` por el provider/auth client de InsForge (`@insforge/sdk`).\n- LoginForm (`/login`): signIn password contra InsForge; redirección a `/dashboard`; error visible con credenciales inválidas; loading state.\n- Sesión 8h: configurar expiración de access/refresh token en InsForge Auth config.\n- `packages/lib/server/auth.ts`:\n  - `getCurrentUser()`: lee sesión InsForge server-side → `{ userId, email, role }` o lanza `UNAUTHENTICATED`.\n  - `requireRole(role)`: valida contra fila `usuarios` y lanza `UNAUTHORIZED`.\n- Tabla `usuarios`: columna `auth_user_id uuid UNIQUE` + sync post-login/post-alta (crea fila con role default `operador` si no existe).\n- `apps/web/middleware.ts`: protege `(app)` (redirect a `/login` sin sesión), bloquea `/config/*` + `/examenes/*` a no-admin, redirect `/login` → `/dashboard` si hay sesión; matcher excluye `/api/pdf/*` y `/api/cron/*`.\n- Audit de auth en `audit_log`: login exitoso, logout, fallo (`metadata.email_intent`); rate limit lógico \u003e5 fallos/15min por email (query propia o nativo InsForge — preferir nativo si cubre).\n- Query `usuarios.me()` (endpoint `/api/me`) para el header.\n\nNo hace:\n- Password reset (T06) ni invitaciones (T07).\n- UI de gestión de usuarios completa.\n\n- **Criterios de aceptación**\n  - [ ] Login válido entra a `/dashboard`; inválido muestra toast rojo.\n  - [ ] Cookie/session InsForge verificable en devtools (httpOnly refresh).\n  - [ ] Sin sesión, `/dashboard` redirige a `/login`.\n  - [ ] Operador no accede a `/config` ni `/examenes` (middleware + `requireRole`).\n  - [ ] Al crear usuario existe fila `usuarios` con role default e `auth_user_id`.\n  - [ ] Login exitoso/fallido genera filas en `audit_log`; 6to fallo en 15min bloquea.",
       "model": "opencode/deepseek-v4-pro",
       "reason": "Porteo integral de auth — deepseek con docs InsForge + código existente como referencia.",
       "status": "done",
@@ -976,7 +977,7 @@
         "F0.0.T1",
         "F0.1.T8"
       ],
-      "estimateHours": 8,
+      "estimateHours": 8.0,
       "files": [
         "apps/web/app/providers.tsx",
         "apps/web/middleware.ts",
@@ -992,7 +993,7 @@
       "id": "F1.1.T2",
       "phase": 1,
       "title": "Upload de assets (logo, firma, sello) a InsForge Storage",
-      "description": "**Objetivo**\n\nFlujo que permite Admin subir 3 imágenes (logo, firma, sello) al bucket `assets` de InsForge Storage y guardar los object keys en `laboratorio_config`.\n\n**Contexto**\n\nARCH ADR-01 (storage), ADR-02 (PDFs leen assets vía URL firmada), ADR-11 (InsForge Storage S3-compatible con upload/download strategy). Assets: PNG/JPG ≤ 2 MB (PRD §7 dependencias).\n\n**Alcance**\n\nSí hace:\n- Route Handler `POST /api/config/assets/upload` (Admin only): pide a InsForge la *upload strategy* (URL presignada cuando el backend usa S3) y la retorna junto con el object key generado (`assets/{tipo}/{uuid}.{ext}`).\n- Cliente hace `PUT` a la URL presignada y luego confirma; el Route Handler `POST /api/config/assets/confirm` valida MIME image/* y tamaño ≤ 2 MB server-side antes de persistir.\n- Handler `POST /api/config/assets/set` que actualiza el campo correspondiente (`logo_object_key`, `firma_object_key`, `sello_object_key`) en `laboratorio_config`.\n- Al reemplazar asset: borrar el objeto anterior de storage (Delete Object de InsForge).\n- Handler `GET /api/config/assets/url?type=` retorna URL firmada vía *download strategy* (TTL ~1h).\n\nNo hace:\n- Recorte/redimensionado.\n- Preview (UI en T04).\n\n**Criterios de aceptación**\n\n- [ ] Upload de PNG 500KB funciona; el objeto queda en bucket `assets`.\n- [ ] Upload de archivo > 2 MB rechaza cliente + rechaza confirm (defense in depth).\n- [ ] Upload de PDF (mime incorrecto) rechaza.\n- [ ] `GET /api/config/assets/url` retorna URL válida por 1h.\n- [ ] Reemplazar logo borra el archivo anterior.\n- [ ] Operador rechazado.\n\n**Notas técnicas**\n\nInsForge retorna la estrategia (presigned o direct) según configuración `S3_USE_PRESIGNED_URLS`; el flujo del cliente debe leerla de la respuesta, no asumirla. Helper compartido en `packages/lib/storage.ts`.",
+      "description": "**Objetivo**\n\nFlujo que permite Admin subir 3 imágenes (logo, firma, sello) al bucket `assets` de InsForge Storage y guardar los object keys en `laboratorio_config`.\n\n**Contexto**\n\nARCH ADR-01 (storage), ADR-02 (PDFs leen assets vía URL firmada), ADR-11 (InsForge Storage S3-compatible con upload/download strategy). Assets: PNG/JPG ≤ 2 MB (PRD §7 dependencias).\n\n**Alcance**\n\nSí hace:\n- Route Handler `POST /api/config/assets/upload` (Admin only): pide a InsForge la *upload strategy* (URL presignada cuando el backend usa S3) y la retorna junto con el object key generado (`assets/{tipo}/{uuid}.{ext}`).\n- Cliente hace `PUT` a la URL presignada y luego confirma; el Route Handler `POST /api/config/assets/confirm` valida MIME image/* y tamaño ≤ 2 MB server-side antes de persistir.\n- Handler `POST /api/config/assets/set` que actualiza el campo correspondiente (`logo_object_key`, `firma_object_key`, `sello_object_key`) en `laboratorio_config`.\n- Al reemplazar asset: borrar el objeto anterior de storage (Delete Object de InsForge).\n- Handler `GET /api/config/assets/url?type=` retorna URL firmada vía *download strategy* (TTL ~1h).\n\nNo hace:\n- Recorte/redimensionado.\n- Preview (UI en T04).\n\n**Criterios de aceptación**\n\n- [ ] Upload de PNG 500KB funciona; el objeto queda en bucket `assets`.\n- [ ] Upload de archivo \u003e 2 MB rechaza cliente + rechaza confirm (defense in depth).\n- [ ] Upload de PDF (mime incorrecto) rechaza.\n- [ ] `GET /api/config/assets/url` retorna URL válida por 1h.\n- [ ] Reemplazar logo borra el archivo anterior.\n- [ ] Operador rechazado.\n\n**Notas técnicas**\n\nInsForge retorna la estrategia (presigned o direct) según configuración `S3_USE_PRESIGNED_URLS`; el flujo del cliente debe leerla de la respuesta, no asumirla. Helper compartido en `packages/lib/storage.ts`.",
       "model": "opencode/deepseek-v4-pro",
       "reason": "Task de implementación estándar — deepseek cubre integración REST/SDK documentada.",
       "status": "done",
@@ -1000,7 +1001,7 @@
         "F0.0.T1",
         "F1.1.T5"
       ],
-      "estimateHours": 4,
+      "estimateHours": 4.0,
       "files": [
         "packages/db/repos/config.ts",
         "packages/lib/storage.ts",
@@ -1023,7 +1024,7 @@
       "dependencies": [
         "F0.1.T8"
       ],
-      "estimateHours": 2,
+      "estimateHours": 2.0,
       "files": [
         "packages/db/repos/tasa.ts"
       ],
@@ -1042,7 +1043,7 @@
         "F0.1.T8",
         "F0.2.T8"
       ],
-      "estimateHours": 3,
+      "estimateHours": 3.0,
       "files": [
         "packages/db/repos/config.ts",
         "packages/lib/schemas/config.ts",
@@ -1063,7 +1064,7 @@
         "F0.1.T8",
         "F0.2.T8"
       ],
-      "estimateHours": 4,
+      "estimateHours": 4.0,
       "files": [
         "packages/db/repos/examenes.ts",
         "apps/web/app/api/examenes/titulos/route.ts",
@@ -1083,7 +1084,7 @@
       "dependencies": [
         "F1.2.T1"
       ],
-      "estimateHours": 5,
+      "estimateHours": 5.0,
       "files": [
         "packages/db/repos/examenes.ts",
         "apps/web/app/api/examenes/route.ts",
@@ -1096,7 +1097,7 @@
       "id": "F1.2.T4",
       "phase": 1,
       "title": "Importación Excel (SheetJS) con reporte",
-      "description": "**Objetivo**\n\nRoute Handler que recibe un archivo XLSX (multipart) y crea/actualiza títulos+exámenes en batch dentro de una transacción, con reporte de creados / actualizados / duplicados / errores.\n\n**Contexto**\n\nPRD §4 F4 (bullet importación masiva). Debe ser Admin. Volumen 250+ exámenes. ADR-11: la ingesta directa en Route Handler Node reemplaza al Convex action — y gana atomicidad ACID.\n\n**Alcance**\n\nSí hace:\n- `packages/lib/xlsx-import.ts`: parser server-side de XLSX a rows `{ titulo, nombre, precio_usd, unidad?, valores_referencia? }`.\n- Route Handler `POST /api/examenes/import` (Admin only, multipart ≤ 10 MB):\n  - Parsea con SheetJS (`xlsx`).\n  - Por cada row: crea título si no existe; crea o actualiza examen (upsert por `titulo_id + nombre`, `ON CONFLICT DO UPDATE`).\n  - Todo el batch en UNA transacción Postgres; filas inválidas se reportan y se aplican las válidas (o rollback total según flag `--all-or-nothing`; default: reportar y continuar).\n  - Retorna reporte `{ titulos_creados, examenes_creados, examenes_actualizados, duplicados_ignorados, errores: [{ row, msg }] }`.\n- UI: página `/examenes/import` con drag-drop + tabla de reporte post-import.\n- Template XLSX de ejemplo disponible para descarga (`/public/plantilla-import.xlsx`).\n\nNo hace:\n- CSV import (v1 es sólo XLSX).\n- Migración WP (F1.migracion).\n\n**Criterios de aceptación**\n\n- [ ] Upload XLSX válido inserta títulos y exámenes.\n- [ ] Reporte muestra counts correctos.\n- [ ] Fila con `titulo` vacío se reporta como error, no rompe todo.\n- [ ] Reimport idempotente (mismo archivo dos veces no duplica).\n- [ ] Operador rechazado.\n- [ ] Archivo > 10 MB rechaza.\n\n**Notas técnicas**\n\nSheetJS `xlsx` tiene CVEs conocidas (ver ARCH §9). Pin versión, usar sólo server-side.",
+      "description": "**Objetivo**\n\nRoute Handler que recibe un archivo XLSX (multipart) y crea/actualiza títulos+exámenes en batch dentro de una transacción, con reporte de creados / actualizados / duplicados / errores.\n\n**Contexto**\n\nPRD §4 F4 (bullet importación masiva). Debe ser Admin. Volumen 250+ exámenes. ADR-11: la ingesta directa en Route Handler Node reemplaza al Convex action — y gana atomicidad ACID.\n\n**Alcance**\n\nSí hace:\n- `packages/lib/xlsx-import.ts`: parser server-side de XLSX a rows `{ titulo, nombre, precio_usd, unidad?, valores_referencia? }`.\n- Route Handler `POST /api/examenes/import` (Admin only, multipart ≤ 10 MB):\n  - Parsea con SheetJS (`xlsx`).\n  - Por cada row: crea título si no existe; crea o actualiza examen (upsert por `titulo_id + nombre`, `ON CONFLICT DO UPDATE`).\n  - Todo el batch en UNA transacción Postgres; filas inválidas se reportan y se aplican las válidas (o rollback total según flag `--all-or-nothing`; default: reportar y continuar).\n  - Retorna reporte `{ titulos_creados, examenes_creados, examenes_actualizados, duplicados_ignorados, errores: [{ row, msg }] }`.\n- UI: página `/examenes/import` con drag-drop + tabla de reporte post-import.\n- Template XLSX de ejemplo disponible para descarga (`/public/plantilla-import.xlsx`).\n\nNo hace:\n- CSV import (v1 es sólo XLSX).\n- Migración WP (F1.migracion).\n\n**Criterios de aceptación**\n\n- [ ] Upload XLSX válido inserta títulos y exámenes.\n- [ ] Reporte muestra counts correctos.\n- [ ] Fila con `titulo` vacío se reporta como error, no rompe todo.\n- [ ] Reimport idempotente (mismo archivo dos veces no duplica).\n- [ ] Operador rechazado.\n- [ ] Archivo \u003e 10 MB rechaza.\n\n**Notas técnicas**\n\nSheetJS `xlsx` tiene CVEs conocidas (ver ARCH §9). Pin versión, usar sólo server-side.",
       "model": "opencode/deepseek-v4-pro",
       "reason": "Task de implementación estándar — deepseek cubre parser + handler + UI wiring.",
       "status": "done",
@@ -1104,7 +1105,7 @@
         "F1.2.T1",
         "F1.2.T2"
       ],
-      "estimateHours": 10,
+      "estimateHours": 10.0,
       "files": [
         "packages/lib/xlsx-import.ts",
         "apps/web/app/api/examenes/import/route.ts",
@@ -1130,7 +1131,7 @@
         "F1.2.T1",
         "F1.2.T2"
       ],
-      "estimateHours": 5,
+      "estimateHours": 5.0,
       "files": [
         "scripts/migrate-wp/mappers/titulos.ts",
         "scripts/migrate-wp/mappers/examenes.ts"
@@ -1150,7 +1151,7 @@
         "F1.3.T2",
         "F1.3.T3"
       ],
-      "estimateHours": 4,
+      "estimateHours": 4.0,
       "files": [
         "scripts/migrate-wp/mappers/pacientes.ts",
         "scripts/migrate-wp/resolutions/pacientes.json"
@@ -1169,7 +1170,7 @@
       "dependencies": [
         "F1.3.T3"
       ],
-      "estimateHours": 3,
+      "estimateHours": 3.0,
       "files": [
         "scripts/migrate-wp/mappers/paquetes.ts"
       ],
@@ -1188,7 +1189,7 @@
         "F1.3.T3",
         "F1.3.T4"
       ],
-      "estimateHours": 7,
+      "estimateHours": 7.0,
       "files": [
         "scripts/migrate-wp/mappers/resultados.ts"
       ],
@@ -1207,7 +1208,7 @@
         "F1.3.T3",
         "F1.3.T4"
       ],
-      "estimateHours": 7,
+      "estimateHours": 7.0,
       "files": [
         "scripts/migrate-wp/mappers/presupuestos.ts"
       ],
@@ -1229,7 +1230,7 @@
         "F1.3.T6",
         "F1.3.T7"
       ],
-      "estimateHours": 5,
+      "estimateHours": 5.0,
       "files": [
         "scripts/migrate-wp/verify.ts",
         "scripts/migrate-wp/reset.ts",
@@ -1251,7 +1252,7 @@
         "F0.2.T8",
         "F2.1.T1"
       ],
-      "estimateHours": 5,
+      "estimateHours": 5.0,
       "files": [
         "packages/db/repos/pacientes.ts",
         "apps/web/app/api/pacientes/route.ts",
@@ -1264,7 +1265,7 @@
       "id": "F2.1.T3",
       "phase": 2,
       "title": "Búsqueda con debounce y top-10 (SQL prefix)",
-      "description": "**Objetivo**\n\nBúsqueda de pacientes por prefix en nombre/apellido/cédula, retorna top 10.\n\n**Contexto**\n\nARCH §5.1. NFR búsqueda ≤ 300 ms p95.\n\n**Alcance**\n\nSí hace:\n- `pacientesSearch({ term })` en repos:\n  - Normaliza term (si empieza con V/E → intenta match por cédula normalizada).\n  - Sino: prefix search en `nombre` + `apellido` (`ILIKE term || '%'`).\n  - Retorna top 10 con `{ id, nombre, apellido, cedula, fecha_nacimiento }`.\n- Endpoint `GET /api/pacientes/search?term=`.\n- Component reusable `packages/ui/pacientes/PacienteAutocomplete.tsx`:\n  - Input debounced 300ms (fetch al endpoint).\n  - Dropdown con highlight.\n  - `onSelect(paciente)`.\n- Tests unitarios (mock fetch).\n\nNo hace:\n- Fuzzy search.\n\n**Criterios de aceptación**\n\n- [ ] Term \"Juan\" retorna pacientes matcheando prefix.\n- [ ] Term \"V-2119\" retorna pacientes con cédula matcheando prefix.\n- [ ] Debounce funciona (verificado con test manual).\n- [ ] p95 < 300 ms con 500+ pacientes migrados (medir post-cutover).\n\n**Notas técnicas**\n\nÍndice B-tree sobre `lower(nombre)`, `lower(apellido)` y `cedula` alcanzan para este volumen; pg_trgm documentado como upgrade.",
+      "description": "**Objetivo**\n\nBúsqueda de pacientes por prefix en nombre/apellido/cédula, retorna top 10.\n\n**Contexto**\n\nARCH §5.1. NFR búsqueda ≤ 300 ms p95.\n\n**Alcance**\n\nSí hace:\n- `pacientesSearch({ term })` en repos:\n  - Normaliza term (si empieza con V/E → intenta match por cédula normalizada).\n  - Sino: prefix search en `nombre` + `apellido` (`ILIKE term || '%'`).\n  - Retorna top 10 con `{ id, nombre, apellido, cedula, fecha_nacimiento }`.\n- Endpoint `GET /api/pacientes/search?term=`.\n- Component reusable `packages/ui/pacientes/PacienteAutocomplete.tsx`:\n  - Input debounced 300ms (fetch al endpoint).\n  - Dropdown con highlight.\n  - `onSelect(paciente)`.\n- Tests unitarios (mock fetch).\n\nNo hace:\n- Fuzzy search.\n\n**Criterios de aceptación**\n\n- [ ] Term \"Juan\" retorna pacientes matcheando prefix.\n- [ ] Term \"V-2119\" retorna pacientes con cédula matcheando prefix.\n- [ ] Debounce funciona (verificado con test manual).\n- [ ] p95 \u003c 300 ms con 500+ pacientes migrados (medir post-cutover).\n\n**Notas técnicas**\n\nÍndice B-tree sobre `lower(nombre)`, `lower(apellido)` y `cedula` alcanzan para este volumen; pg_trgm documentado como upgrade.",
       "model": "opencode/deepseek-v4-pro",
       "reason": "Task de implementación estándar — deepseek cubre query + componente.",
       "status": "done",
@@ -1272,7 +1273,7 @@
         "F2.1.T2",
         "F1.2.T3"
       ],
-      "estimateHours": 5,
+      "estimateHours": 5.0,
       "files": [
         "packages/db/repos/pacientes.ts",
         "apps/web/app/api/pacientes/search/route.ts",
@@ -1294,7 +1295,7 @@
         "F2.3.T2",
         "F2.4.T2"
       ],
-      "estimateHours": 3,
+      "estimateHours": 3.0,
       "files": [
         "packages/db/repos/pacientes.ts",
         "apps/web/app/api/pacientes/[id]/historial/route.ts",
@@ -1316,7 +1317,7 @@
         "F0.2.T8",
         "F1.2.T2"
       ],
-      "estimateHours": 4,
+      "estimateHours": 4.0,
       "files": [
         "packages/lib/schemas/paquete.ts",
         "packages/db/repos/paquetes.ts",
@@ -1342,7 +1343,7 @@
         "F2.1.T2",
         "F2.3.T1"
       ],
-      "estimateHours": 8,
+      "estimateHours": 8.0,
       "files": [
         "packages/db/repos/resultados.ts",
         "apps/web/app/api/resultados/route.ts",
@@ -1363,7 +1364,7 @@
         "F2.3.T2",
         "F2.4.T2"
       ],
-      "estimateHours": 4,
+      "estimateHours": 4.0,
       "files": [
         "packages/db/repos/presupuestos.ts",
         "apps/web/app/api/presupuestos/[id]/convertir/route.ts"
@@ -1375,7 +1376,7 @@
       "id": "F2.3.T5",
       "phase": 2,
       "title": "Route Handler `/api/pdf/resultado/[id]`",
-      "description": "**Objetivo**\n\nEndpoint Next.js Node runtime que valida sesión, llama `resultados.getForPDF`, renderiza `<ResultadoPDF>` y streamea `application/pdf`.\n\n**Contexto**\n\nARCH ADR-02 y ADR-11 (el handler accede directo a Postgres + InsForge Storage; sin backend intermedio).\n\n**Alcance**\n\nSí hace:\n- `apps/web/app/api/pdf/resultado/[id]/route.ts` con `export const runtime = 'nodejs'`.\n- Lee sesión InsForge de la cookie y valida con helper server-side.\n- Helper `apps/web/lib/db-server.ts` con el pool postgres.js server-side (reemplaza al antiguo `convex-server.ts`).\n- Guard: si nombre de laboratorio vacío → `403 NOMBRE_LABORATORIO_REQUERIDO` (bloqueante PDF).\n- Assets (logo/firma/sello): URL firmada vía download strategy de InsForge Storage.\n- `ReactPDF.renderToStream(<ResultadoPDF data={...} />)` → respuesta `application/pdf` streamed.\n- Cache in-memory de assets (5min TTL).\n- Errores: 401 sin sesión, 404 sin resultado, 403 sin permisos o config incompleta.\n- Metric log `pdf_render_duration_ms`.\n\n**Criterios de aceptación**\n\n- [ ] Request con sesión válida devuelve PDF válido.\n- [ ] Request sin sesión responde 401.\n- [ ] Request de resultado inexistente responde 404.\n- [ ] Nombre laboratorio vacío responde 403 con mensaje claro.\n- [ ] Streaming funciona (Content-Length no obligatorio).\n- [ ] p95 warm < 3s (medir en preview).",
+      "description": "**Objetivo**\n\nEndpoint Next.js Node runtime que valida sesión, llama `resultados.getForPDF`, renderiza `\u003cResultadoPDF\u003e` y streamea `application/pdf`.\n\n**Contexto**\n\nARCH ADR-02 y ADR-11 (el handler accede directo a Postgres + InsForge Storage; sin backend intermedio).\n\n**Alcance**\n\nSí hace:\n- `apps/web/app/api/pdf/resultado/[id]/route.ts` con `export const runtime = 'nodejs'`.\n- Lee sesión InsForge de la cookie y valida con helper server-side.\n- Helper `apps/web/lib/db-server.ts` con el pool postgres.js server-side (reemplaza al antiguo `convex-server.ts`).\n- Guard: si nombre de laboratorio vacío → `403 NOMBRE_LABORATORIO_REQUERIDO` (bloqueante PDF).\n- Assets (logo/firma/sello): URL firmada vía download strategy de InsForge Storage.\n- `ReactPDF.renderToStream(\u003cResultadoPDF data={...} /\u003e)` → respuesta `application/pdf` streamed.\n- Cache in-memory de assets (5min TTL).\n- Errores: 401 sin sesión, 404 sin resultado, 403 sin permisos o config incompleta.\n- Metric log `pdf_render_duration_ms`.\n\n**Criterios de aceptación**\n\n- [ ] Request con sesión válida devuelve PDF válido.\n- [ ] Request sin sesión responde 401.\n- [ ] Request de resultado inexistente responde 404.\n- [ ] Nombre laboratorio vacío responde 403 con mensaje claro.\n- [ ] Streaming funciona (Content-Length no obligatorio).\n- [ ] p95 warm \u003c 3s (medir en preview).",
       "model": "opencode/deepseek-v4-pro",
       "reason": "Task de implementación estándar — deepseek cubre route handler + streaming.",
       "status": "done",
@@ -1386,7 +1387,7 @@
         "F2.3.T2",
         "F2.3.T4"
       ],
-      "estimateHours": 6,
+      "estimateHours": 6.0,
       "files": [
         "apps/web/app/api/pdf/resultado/[id]/route.ts",
         "apps/web/lib/db-server.ts",
@@ -1410,7 +1411,7 @@
         "F2.1.T2",
         "F2.4.T1"
       ],
-      "estimateHours": 8,
+      "estimateHours": 8.0,
       "files": [
         "packages/lib/schemas/presupuesto.ts",
         "packages/db/repos/presupuestos.ts",
@@ -1424,7 +1425,7 @@
       "id": "F2.4.T3",
       "phase": 2,
       "title": "Tasa BCV: `getLatest` + `setManual`",
-      "description": "**Objetivo**\n\n`tasaRepo.getLatest()` (ya iniciada en F1.1.T3) + handler manual `POST /api/tasa/manual` `{ tasa, motivo }` (Admin only).\n\n**Contexto**\n\nARCH ADR-07, §6, ADR-11. Se usa en form de presupuesto para pre-rellenar `tasa_bs`. F3.bcv agrega el cron.\n\n**Alcance**\n\nSí hace:\n- Completa `packages/db/repos/tasa.ts`:\n  - `getLatest()` retorna `{ tasa, fuente, scraped_at, stale }` (stale = age > 24h).\n  - Handler `/api/tasa/manual` (Admin) — inserta con `fuente: \"manual\"`.\n- Endpoint `GET /api/tasa/latest` para el frontend.\n- Audit log.\n\n**Criterios de aceptación**\n\n- [ ] `getLatest` retorna null si tabla vacía.\n- [ ] `getLatest` marca `stale: true` si > 24h.\n- [ ] Manual Admin only.\n- [ ] audit_log registra motivo.",
+      "description": "**Objetivo**\n\n`tasaRepo.getLatest()` (ya iniciada en F1.1.T3) + handler manual `POST /api/tasa/manual` `{ tasa, motivo }` (Admin only).\n\n**Contexto**\n\nARCH ADR-07, §6, ADR-11. Se usa en form de presupuesto para pre-rellenar `tasa_bs`. F3.bcv agrega el cron.\n\n**Alcance**\n\nSí hace:\n- Completa `packages/db/repos/tasa.ts`:\n  - `getLatest()` retorna `{ tasa, fuente, scraped_at, stale }` (stale = age \u003e 24h).\n  - Handler `/api/tasa/manual` (Admin) — inserta con `fuente: \"manual\"`.\n- Endpoint `GET /api/tasa/latest` para el frontend.\n- Audit log.\n\n**Criterios de aceptación**\n\n- [ ] `getLatest` retorna null si tabla vacía.\n- [ ] `getLatest` marca `stale: true` si \u003e 24h.\n- [ ] Manual Admin only.\n- [ ] audit_log registra motivo.",
       "model": "opencode/deepseek-v4-pro",
       "reason": "Task pequeña — deepseek alcanza.",
       "status": "done",
@@ -1432,7 +1433,7 @@
         "F0.2.T8",
         "F1.1.T3"
       ],
-      "estimateHours": 2,
+      "estimateHours": 2.0,
       "files": [
         "packages/db/repos/tasa.ts",
         "apps/web/app/api/tasa/manual/route.ts",
@@ -1445,7 +1446,7 @@
       "id": "F3.1.T1",
       "phase": 3,
       "title": "Queries de dashboard: KPIs y actividad reciente",
-      "description": "**Objetivo**\n\nBackend con queries SQL eficientes para el dashboard.\n\n**Alcance**\n\nSí hace:\n- `packages/db/repos/dashboard.ts`:\n  - `getKPIs()` retorna `{ pacientesMes, resultadosMes, presupuestosMes, ingresosEstimadosUsd }`:\n    - Cuenta pacientes creados este mes.\n    - Cuenta resultados completados este mes.\n    - Cuenta presupuestos aprobados+convertidos este mes.\n    - Suma `total_usd` de presupuestos aprobados+convertidos.\n  - `getResultadosPorMes(months)` retorna array `[{ mes: \"2026-08\", count: 42 }, ...]` de los últimos N meses (`date_trunc('month', ...)` + `GROUP BY`, ceros rellenados en JS o generate_series).\n  - `getRecentActivity(limit)` retorna `{ resultados: [...], presupuestos: [...] }` últimos 5.\n- Endpoints bajo `/api/dashboard/*`.\n- Auth requerida (Operador OK — ve mismo dashboard).\n\nNo hace:\n- UI (T02).\n\n**Criterios de aceptación**\n\n- [ ] `getKPIs` retorna números correctos (test con dataset seed).\n- [ ] `getResultadosPorMes(6)` retorna 6 items.\n- [ ] `getRecentActivity(5)` retorna arrays con hasta 5 items.\n- [ ] Performance < 500ms con dataset migrado.\n\n**Notas técnicas**\n\nSQL agregado directo (COUNT/SUM/GROUP BY) sobre índices por fecha — mucho más simple que la agregación en JS que exigía Convex. Una sola query por KPI set si conviene.",
+      "description": "**Objetivo**\n\nBackend con queries SQL eficientes para el dashboard.\n\n**Alcance**\n\nSí hace:\n- `packages/db/repos/dashboard.ts`:\n  - `getKPIs()` retorna `{ pacientesMes, resultadosMes, presupuestosMes, ingresosEstimadosUsd }`:\n    - Cuenta pacientes creados este mes.\n    - Cuenta resultados completados este mes.\n    - Cuenta presupuestos aprobados+convertidos este mes.\n    - Suma `total_usd` de presupuestos aprobados+convertidos.\n  - `getResultadosPorMes(months)` retorna array `[{ mes: \"2026-08\", count: 42 }, ...]` de los últimos N meses (`date_trunc('month', ...)` + `GROUP BY`, ceros rellenados en JS o generate_series).\n  - `getRecentActivity(limit)` retorna `{ resultados: [...], presupuestos: [...] }` últimos 5.\n- Endpoints bajo `/api/dashboard/*`.\n- Auth requerida (Operador OK — ve mismo dashboard).\n\nNo hace:\n- UI (T02).\n\n**Criterios de aceptación**\n\n- [ ] `getKPIs` retorna números correctos (test con dataset seed).\n- [ ] `getResultadosPorMes(6)` retorna 6 items.\n- [ ] `getRecentActivity(5)` retorna arrays con hasta 5 items.\n- [ ] Performance \u003c 500ms con dataset migrado.\n\n**Notas técnicas**\n\nSQL agregado directo (COUNT/SUM/GROUP BY) sobre índices por fecha — mucho más simple que la agregación en JS que exigía Convex. Una sola query por KPI set si conviene.",
       "model": "opencode/deepseek-v4-pro",
       "reason": "Task de implementación estándar — deepseek cubre SQL agregado + endpoints.",
       "status": "done",
@@ -1455,7 +1456,7 @@
         "F2.3.T2",
         "F2.4.T2"
       ],
-      "estimateHours": 4,
+      "estimateHours": 4.0,
       "files": [
         "packages/db/repos/dashboard.ts",
         "apps/web/app/api/dashboard/route.ts"
@@ -1467,7 +1468,7 @@
       "id": "F3.1.T2",
       "phase": 3,
       "title": "UI `/dashboard` con KPI cards + chart + actividad",
-      "description": "**Objetivo**\n\nPágina `/dashboard` con layout de 4 cards KPI, chart de línea/barra de últimos 6 meses, dos listas de actividad reciente, accesos directos.\n\n**Contexto**\n\nPRD §4 F1; ARCH §9 (Recharts con `next/dynamic sin SSR`). ADR-11: sin realtime Convex → polling liviano.\n\n**Alcance**\n\nSí hace:\n- `apps/web/app/(app)/dashboard/page.tsx` — Server component con preload.\n- Cards KPI (4): Pacientes mes, Resultados mes, Presupuestos mes, Ingresos USD estimados.\n- Chart Recharts (import dinámico) barras/línea de resultados últimos 6 meses.\n- Lista \"Últimos 5 resultados\" con link a detalle.\n- Lista \"Últimos 5 presupuestos\" con link a detalle.\n- Cards de \"Acceso rápido\" a los módulos operativos.\n- Refresh automático cada 30s (SWR polling) + revalidación tras mutaciones.\n- Loading states + empty state (\"empezá creando tu primer paciente\").\n\n**Criterios de aceptación**\n\n- [ ] Renderiza sin errores con dataset seed.\n- [ ] Cards KPI se refrescan solas (polling 30s) y tras crear resultado/presupuesto.\n- [ ] Chart legible; tooltip funciona.\n- [ ] Links de actividad navegan al detalle correcto.\n- [ ] Recharts import dinámico (verificado en bundle analyzer).\n\n**Notas técnicas**\n\n`const Chart = dynamic(() => import('./ResultadosChart'), { ssr: false })`.",
+      "description": "**Objetivo**\n\nPágina `/dashboard` con layout de 4 cards KPI, chart de línea/barra de últimos 6 meses, dos listas de actividad reciente, accesos directos.\n\n**Contexto**\n\nPRD §4 F1; ARCH §9 (Recharts con `next/dynamic sin SSR`). ADR-11: sin realtime Convex → polling liviano.\n\n**Alcance**\n\nSí hace:\n- `apps/web/app/(app)/dashboard/page.tsx` — Server component con preload.\n- Cards KPI (4): Pacientes mes, Resultados mes, Presupuestos mes, Ingresos USD estimados.\n- Chart Recharts (import dinámico) barras/línea de resultados últimos 6 meses.\n- Lista \"Últimos 5 resultados\" con link a detalle.\n- Lista \"Últimos 5 presupuestos\" con link a detalle.\n- Cards de \"Acceso rápido\" a los módulos operativos.\n- Refresh automático cada 30s (SWR polling) + revalidación tras mutaciones.\n- Loading states + empty state (\"empezá creando tu primer paciente\").\n\n**Criterios de aceptación**\n\n- [ ] Renderiza sin errores con dataset seed.\n- [ ] Cards KPI se refrescan solas (polling 30s) y tras crear resultado/presupuesto.\n- [ ] Chart legible; tooltip funciona.\n- [ ] Links de actividad navegan al detalle correcto.\n- [ ] Recharts import dinámico (verificado en bundle analyzer).\n\n**Notas técnicas**\n\n`const Chart = dynamic(() =\u003e import('./ResultadosChart'), { ssr: false })`.",
       "model": "opencode/deepseek-v4-pro",
       "reason": "Task de implementación estándar — deepseek cubre UI + polling.",
       "status": "done",
@@ -1476,7 +1477,7 @@
         "F0.2.T8",
         "F3.1.T1"
       ],
-      "estimateHours": 8,
+      "estimateHours": 8.0,
       "files": [
         "apps/web/app/(app)/dashboard/page.tsx",
         "apps/web/app/(app)/dashboard/KPICards.tsx",
@@ -1491,7 +1492,7 @@
       "id": "F3.2.T1",
       "phase": 3,
       "title": "Utility CSV writer + subir a Storage + URL firmada",
-      "description": "**Objetivo**\n\nHelper reutilizable para: generar CSV string desde rows → subir a InsForge Storage (bucket `exports`) → retornar object key + URL firmada.\n\n**Alcance**\n\nSí hace:\n- `packages/lib/csv-export.ts`:\n  - `writeCsv(rows: Array<Record<string, unknown>>, columns: Array<{ key, header, format? }>): string` (UTF-8 BOM).\n  - `uploadCsv(csv: string, filename: string): Promise<objectKey>` — sube a bucket `exports` vía SDK/REST de InsForge server-side.\n  - `getSignedDownloadUrl(objectKey)` — URL firmada TTL ~1h vía download strategy.\n- Endpoint compartido `GET /api/export/url?key=` que devuelve URL firmada para un key del bucket exports.\n- Cache-Control header apropiado en la descarga.\n\n**Criterios de aceptación**\n\n- [ ] `writeCsv` escapa comillas y comas correctamente.\n- [ ] UTF-8 BOM presente (Excel-friendly).\n- [ ] `uploadCsv` sube y retorna key válido.\n- [ ] `getSignedDownloadUrl` retorna URL descargable ~1h.\n\n**Notas técnicas**\n\nEscribir CSV a mano (sin dependencia) como en diseño original; keys con prefijo de fecha `exports/2026-08/pacientes-<ts>.csv` facilita el cleanup.",
+      "description": "**Objetivo**\n\nHelper reutilizable para: generar CSV string desde rows → subir a InsForge Storage (bucket `exports`) → retornar object key + URL firmada.\n\n**Alcance**\n\nSí hace:\n- `packages/lib/csv-export.ts`:\n  - `writeCsv(rows: Array\u003cRecord\u003cstring, unknown\u003e\u003e, columns: Array\u003c{ key, header, format? }\u003e): string` (UTF-8 BOM).\n  - `uploadCsv(csv: string, filename: string): Promise\u003cobjectKey\u003e` — sube a bucket `exports` vía SDK/REST de InsForge server-side.\n  - `getSignedDownloadUrl(objectKey)` — URL firmada TTL ~1h vía download strategy.\n- Endpoint compartido `GET /api/export/url?key=` que devuelve URL firmada para un key del bucket exports.\n- Cache-Control header apropiado en la descarga.\n\n**Criterios de aceptación**\n\n- [ ] `writeCsv` escapa comillas y comas correctamente.\n- [ ] UTF-8 BOM presente (Excel-friendly).\n- [ ] `uploadCsv` sube y retorna key válido.\n- [ ] `getSignedDownloadUrl` retorna URL descargable ~1h.\n\n**Notas técnicas**\n\nEscribir CSV a mano (sin dependencia) como en diseño original; keys con prefijo de fecha `exports/2026-08/pacientes-\u003cts\u003e.csv` facilita el cleanup.",
       "model": "opencode/deepseek-v4-pro",
       "reason": "Task de implementación estándar — deepseek cubre helper + integración storage.",
       "status": "done",
@@ -1499,7 +1500,7 @@
         "F0.0.T1",
         "F0.2.T8"
       ],
-      "estimateHours": 4,
+      "estimateHours": 4.0,
       "files": [
         "packages/lib/csv-export.ts",
         "apps/web/app/api/export/url/route.ts"
@@ -1519,7 +1520,7 @@
         "F2.1.T2",
         "F3.2.T1"
       ],
-      "estimateHours": 3,
+      "estimateHours": 3.0,
       "files": [
         "apps/web/app/api/export/pacientes/route.ts"
       ],
@@ -1538,7 +1539,7 @@
         "F2.4.T2",
         "F3.2.T1"
       ],
-      "estimateHours": 3,
+      "estimateHours": 3.0,
       "files": [
         "apps/web/app/api/export/presupuestos/route.ts"
       ],
@@ -1557,7 +1558,7 @@
         "F2.3.T2",
         "F3.2.T1"
       ],
-      "estimateHours": 3,
+      "estimateHours": 3.0,
       "files": [
         "apps/web/app/api/export/resultados/route.ts"
       ],
@@ -1577,7 +1578,7 @@
         "F2.4.T2",
         "F3.2.T1"
       ],
-      "estimateHours": 4,
+      "estimateHours": 4.0,
       "files": [
         "apps/web/app/api/export/costos/route.ts"
       ],
@@ -1587,15 +1588,15 @@
     {
       "id": "F3.2.T6",
       "phase": 3,
-      "title": "Cleanup semanal de exports (> 7 días)",
-      "description": "**Objetivo**\n\nJob programado que borra archivos del bucket `exports` con age > 7 días.\n\n**Contexto**\n\nARCH ADR-09 y ADR-11 (cron via crontab VPS → Route Handler protegido).\n\n**Alcance**\n\nSí hace:\n- Route Handler interno `POST /api/cron/cleanup-exports` protegido con header `CRON_SECRET`:\n  - Lista objetos del bucket exports con key anterior a 7d (prefijo de fecha).\n  - Borra los vencidos vía API de InsForge Storage.\n- Línea de crontab en el VPS (semanal) documentada en `docs/deploy/insforge-vps.md`.\n- Audit log del borrado (cantidad de objetos).\n\n**Criterios de aceptación**\n\n- [ ] Ejecución manual con secret OK; sin secret rechaza 401.\n- [ ] Borrado sólo elimina objetos del bucket exports vencidos.\n- [ ] Audit log presente.",
+      "title": "Cleanup semanal de exports (\u003e 7 días)",
+      "description": "**Objetivo**\n\nJob programado que borra archivos del bucket `exports` con age \u003e 7 días.\n\n**Contexto**\n\nARCH ADR-09 y ADR-11 (cron via crontab VPS → Route Handler protegido).\n\n**Alcance**\n\nSí hace:\n- Route Handler interno `POST /api/cron/cleanup-exports` protegido con header `CRON_SECRET`:\n  - Lista objetos del bucket exports con key anterior a 7d (prefijo de fecha).\n  - Borra los vencidos vía API de InsForge Storage.\n- Línea de crontab en el VPS (semanal) documentada en `docs/deploy/insforge-vps.md`.\n- Audit log del borrado (cantidad de objetos).\n\n**Criterios de aceptación**\n\n- [ ] Ejecución manual con secret OK; sin secret rechaza 401.\n- [ ] Borrado sólo elimina objetos del bucket exports vencidos.\n- [ ] Audit log presente.",
       "model": "opencode/deepseek-v4-pro",
       "reason": "Task pequeña — deepseek alcanza.",
       "status": "done",
       "dependencies": [
         "F3.2.T1"
       ],
-      "estimateHours": 2,
+      "estimateHours": 2.0,
       "files": [
         "apps/web/app/api/cron/cleanup-exports/route.ts",
         "docs/deploy/insforge-vps.md"
@@ -1614,7 +1615,7 @@
       "dependencies": [
         "F0.1.T8"
       ],
-      "estimateHours": 4,
+      "estimateHours": 4.0,
       "files": [
         "apps/web/app/api/cron/scrape-bcv/route.ts",
         "packages/lib/scrape/bcv.ts"
@@ -1633,7 +1634,7 @@
       "dependencies": [
         "F3.3.T1"
       ],
-      "estimateHours": 2,
+      "estimateHours": 2.0,
       "files": [
         "packages/lib/scrape/dolartoday.ts"
       ],
@@ -1651,7 +1652,7 @@
       "dependencies": [
         "F3.3.T1"
       ],
-      "estimateHours": 1,
+      "estimateHours": 1.0,
       "files": [
         "docs/deploy/insforge-vps.md"
       ],
@@ -1662,7 +1663,7 @@
       "id": "F3.3.T4",
       "phase": 3,
       "title": "Banner UI \"tasa stale\" + alerta email a Admin (2 días)",
-      "description": "**Objetivo**\n\nComponente banner que aparece en `/presupuestos/*` cuando la tasa tiene > 24h. Alerta email a Admin si > 2 días.\n\n**Contexto**\n\nARCH ADR-07 (banner amarillo), §7.3 (alerta email), ADR-11 (email vía InsForge Messaging).\n\n**Alcance**\n\nSí hace:\n- Componente `packages/ui/tasa/StaleTasaBadge.tsx`:\n  - Consume `GET /api/tasa/latest` (SWR, refresco 5min).\n  - Si `stale === true` → badge amarillo con tooltip \"Última: X horas atrás\".\n  - Si tasa null → badge rojo \"Sin tasa registrada\".\n- Insertar badge en form nuevo presupuesto (F2.presupuestos.T06).\n- Job `POST /api/cron/check-stale-tasa` (protegido CRON_SECRET, crontab diario) que:\n  - Si tasa más reciente > 48h → envía email a Admin (`usuarios.role = \"admin\"`) vía InsForge Messaging SDK.\n  - Idempotente (no re-envía si ya alertó hoy — marca en audit_log).\n\n**Criterios de aceptación**\n\n- [ ] Badge amarillo con tasa > 24h.\n- [ ] Badge rojo sin tasa.\n- [ ] Email a Admin con tasa > 48h (mock/log en dev).\n- [ ] No re-envía el mismo día.",
+      "description": "**Objetivo**\n\nComponente banner que aparece en `/presupuestos/*` cuando la tasa tiene \u003e 24h. Alerta email a Admin si \u003e 2 días.\n\n**Contexto**\n\nARCH ADR-07 (banner amarillo), §7.3 (alerta email), ADR-11 (email vía InsForge Messaging).\n\n**Alcance**\n\nSí hace:\n- Componente `packages/ui/tasa/StaleTasaBadge.tsx`:\n  - Consume `GET /api/tasa/latest` (SWR, refresco 5min).\n  - Si `stale === true` → badge amarillo con tooltip \"Última: X horas atrás\".\n  - Si tasa null → badge rojo \"Sin tasa registrada\".\n- Insertar badge en form nuevo presupuesto (F2.presupuestos.T06).\n- Job `POST /api/cron/check-stale-tasa` (protegido CRON_SECRET, crontab diario) que:\n  - Si tasa más reciente \u003e 48h → envía email a Admin (`usuarios.role = \"admin\"`) vía InsForge Messaging SDK.\n  - Idempotente (no re-envía si ya alertó hoy — marca en audit_log).\n\n**Criterios de aceptación**\n\n- [ ] Badge amarillo con tasa \u003e 24h.\n- [ ] Badge rojo sin tasa.\n- [ ] Email a Admin con tasa \u003e 48h (mock/log en dev).\n- [ ] No re-envía el mismo día.",
       "model": "opencode/deepseek-v4-pro",
       "reason": "Task de implementación estándar — deepseek cubre UI + job + Messaging.",
       "status": "done",
@@ -1671,7 +1672,7 @@
         "F2.4.T3",
         "F3.3.T1"
       ],
-      "estimateHours": 4,
+      "estimateHours": 4.0,
       "files": [
         "packages/ui/tasa/StaleTasaBadge.tsx",
         "apps/web/app/api/cron/check-stale-tasa/route.ts",
@@ -1689,7 +1690,7 @@
       "reason": "Task de implementación estándar — deepseek cubre boundaries + mapping.",
       "status": "done",
       "dependencies": [],
-      "estimateHours": 5,
+      "estimateHours": 5.0,
       "files": [
         "apps/web/app/(app)/error.tsx",
         "apps/web/app/(app)/*/error.tsx",
@@ -1703,7 +1704,7 @@
       "id": "F4.1.T3",
       "phase": 4,
       "title": "Validaciones edge (fechas, límites, XOR checks)",
-      "description": "**Objetivo**\n\nCubrir edge cases identificados en QA: fechas absurdas, cédulas rebordes, montos negativos, descuento > 100%, tasa 0.\n\n**Alcance**\n\nSí hace:\n- Refuerzo Zod schemas con `.refine` para:\n  - Fecha muestra ≤ hoy.\n  - Fecha resultado ≥ fecha muestra si ambas.\n  - Descuento 0-100.\n  - Ganancia ≥ 0.\n  - Tasa > 0.\n  - Cédula sin caracteres raros.\n- Backend defensive check duplicado (repos validan además de UI; CHECKs de DDL como última red).\n- Tests unitarios + de integración cubriendo cada edge (integración contra Postgres real o contenedor efímero).\n\n**Criterios de aceptación**\n\n- [ ] Fecha muestra futura rechaza.\n- [ ] Descuento 150% rechaza en form y backend.\n- [ ] Presupuesto con `paciente_id` + `nombre_libre` rechaza en backend (test integración — CHECK de DDL dispara).\n- [ ] Test coverage de schemas > 90%.",
+      "description": "**Objetivo**\n\nCubrir edge cases identificados en QA: fechas absurdas, cédulas rebordes, montos negativos, descuento \u003e 100%, tasa 0.\n\n**Alcance**\n\nSí hace:\n- Refuerzo Zod schemas con `.refine` para:\n  - Fecha muestra ≤ hoy.\n  - Fecha resultado ≥ fecha muestra si ambas.\n  - Descuento 0-100.\n  - Ganancia ≥ 0.\n  - Tasa \u003e 0.\n  - Cédula sin caracteres raros.\n- Backend defensive check duplicado (repos validan además de UI; CHECKs de DDL como última red).\n- Tests unitarios + de integración cubriendo cada edge (integración contra Postgres real o contenedor efímero).\n\n**Criterios de aceptación**\n\n- [ ] Fecha muestra futura rechaza.\n- [ ] Descuento 150% rechaza en form y backend.\n- [ ] Presupuesto con `paciente_id` + `nombre_libre` rechaza en backend (test integración — CHECK de DDL dispara).\n- [ ] Test coverage de schemas \u003e 90%.",
       "model": "opencode/deepseek-v4-pro",
       "reason": "Task de implementación estándar — deepseek cubre schemas + tests integración.",
       "status": "done",
@@ -1712,7 +1713,7 @@
         "F2.3.T1",
         "F2.4.T1"
       ],
-      "estimateHours": 5,
+      "estimateHours": 5.0,
       "files": [
         "packages/lib/schemas/*.ts",
         "packages/db/repos/*.ts"
@@ -1731,7 +1732,7 @@
       "dependencies": [
         "F2.3.T5"
       ],
-      "estimateHours": 2,
+      "estimateHours": 2.0,
       "files": [
         "apps/web/app/api/pdf/health/route.ts",
         "docs/deploy/insforge-vps.md"
@@ -1751,7 +1752,7 @@
         "F0.2.T8",
         "F0.2.T5"
       ],
-      "estimateHours": 4,
+      "estimateHours": 4.0,
       "files": [
         "packages/db/repos/audit.ts",
         "apps/web/app/api/audit/route.ts",
@@ -1772,7 +1773,7 @@
       "dependencies": [
         "F4.2.T1"
       ],
-      "estimateHours": 8,
+      "estimateHours": 8.0,
       "files": [
         "docs/migration/CUTOVER-RUNBOOK.md"
       ],
@@ -1790,7 +1791,7 @@
       "dependencies": [
         "F1.3.T8"
       ],
-      "estimateHours": 4,
+      "estimateHours": 4.0,
       "files": [
         "docs/migration/POST-CUTOVER-PLAYBOOK.md"
       ],
@@ -1801,14 +1802,14 @@
       "id": "F4.2.T5",
       "phase": 4,
       "title": "Monitoreo uptime + primer mes post-cutover",
-      "description": "**Objetivo**\n\nConfigurar monitoreo, alertas y checkpoint del primer mes.\n\n**Contexto**\n\nPRD §9 success (uptime 99.5%, cero P0/P1 15d post-cutover). ADR-11: stack self-hosted — monitoreo externo + logs del VPS.\n\n**Alcance**\n\nSí hace:\n- Monitoreo uptime externo (UptimeRobot o equivalente) contra `/api/pdf/health` y el health endpoint de InsForge; alerta si < 99.5%.\n- Alerta email BCV stale (F3.bcv.T04 ya lo cubre).\n- Métricas: logs del contenedor apps/web (docker logs / pm2), PDF render > 5s p95 desde logs de requests.\n- Dashboard interno simple: página Admin `/audit` + logs; InsForge dashboard/diagnose para el backend.\n- Ceremonia checkpoint día 15 y día 30 post-cutover con Admin.\n- Documentar tickets/incidentes encontrados.\n\n**Criterios de aceptación**\n\n- [ ] Alertas activas (uptime + BCV stale).\n- [ ] Checkpoints día 15 y 30 realizados.\n- [ ] Reporte \"primer mes\" con métricas vs targets del PRD §9.\n- [ ] Cero P0/P1 abiertos al día 15 (success criteria).",
+      "description": "**Objetivo**\n\nConfigurar monitoreo, alertas y checkpoint del primer mes.\n\n**Contexto**\n\nPRD §9 success (uptime 99.5%, cero P0/P1 15d post-cutover). ADR-11: stack self-hosted — monitoreo externo + logs del VPS.\n\n**Alcance**\n\nSí hace:\n- Monitoreo uptime externo (UptimeRobot o equivalente) contra `/api/pdf/health` y el health endpoint de InsForge; alerta si \u003c 99.5%.\n- Alerta email BCV stale (F3.bcv.T04 ya lo cubre).\n- Métricas: logs del contenedor apps/web (docker logs / pm2), PDF render \u003e 5s p95 desde logs de requests.\n- Dashboard interno simple: página Admin `/audit` + logs; InsForge dashboard/diagnose para el backend.\n- Ceremonia checkpoint día 15 y día 30 post-cutover con Admin.\n- Documentar tickets/incidentes encontrados.\n\n**Criterios de aceptación**\n\n- [ ] Alertas activas (uptime + BCV stale).\n- [ ] Checkpoints día 15 y 30 realizados.\n- [ ] Reporte \"primer mes\" con métricas vs targets del PRD §9.\n- [ ] Cero P0/P1 abiertos al día 15 (success criteria).",
       "model": "opencode/deepseek-v4-pro",
       "reason": "Task de config/operación — deepseek alcanza.",
       "status": "done",
       "dependencies": [
         "F4.2.T3"
       ],
-      "estimateHours": 4,
+      "estimateHours": 4.0,
       "files": [
         "docs/deploy/monitoreo.md",
         "docs/migration/POST-CUTOVER-METRICS.md"
@@ -1828,7 +1829,7 @@
         "F0.0.T1",
         "F1.1.T5"
       ],
-      "estimateHours": 3,
+      "estimateHours": 3.0,
       "files": [
         "packages/lib/storage.ts",
         "apps/web/app/api/config/assets/upload/route.ts",
@@ -1850,7 +1851,7 @@
       "dependencies": [
         "F0.1.T8"
       ],
-      "estimateHours": 2,
+      "estimateHours": 2.0,
       "files": [
         "packages/db/repos/tasa.ts"
       ],
@@ -1869,7 +1870,7 @@
         "F0.1.T8",
         "F0.2.T8"
       ],
-      "estimateHours": 3,
+      "estimateHours": 3.0,
       "files": [
         "packages/db/repos/examenes.ts",
         "apps/web/app/api/examenes/titulos/route.ts",
@@ -1890,7 +1891,7 @@
         "F0.0.T1",
         "F0.2.T8"
       ],
-      "estimateHours": 3,
+      "estimateHours": 3.0,
       "files": [
         "packages/lib/csv-export.ts",
         "apps/web/app/api/export/url/route.ts"
@@ -1902,12 +1903,12 @@
       "id": "F4.1.T5-R",
       "phase": 4,
       "title": "E2E Playwright en verde (fix de F4.1.T5)",
-      "description": "La suite e2e de apps/web entrega 7/7 fallos. La app funciona (login OK aislado pasa); los fallos son: (1) selectores ambiguos — getByRole('alert') colisiona con __next-route-announcer__, usar .first() o filter; (2) el test de PDF espera popup hacia /api/pdf/resultado/{id} que cuelga — debuggear getCurrentUser contra el mock InsForge (e2e/server/mock-insforge.cjs) y el render de react-pdf; (3) verificar los demás specs (export, presupuesto).\n\nENTORNO YA RESUELTO por el orquestador:\n- Postgres local: docker labo-e2e-pg en localhost:55432 (postgres/e2e, db insforge, schema 0001 aplicado, 14 tablas)\n- Comando: cd apps/web && DATABASE_URL='postgresql://postgres:e2e@localhost:55432/insforge' pnpm exec playwright test --reporter=line\n- El config levanta su propio next dev en :3100 + mock InsForge en :7330 (si EADDRINUSE: kill $(lsof -ti:3100))\n- Criterio: pnpm exec playwright test sale 0 con los 7 tests en verde. NO modificar código de la app salvo bug real demostrado.",
+      "description": "La suite e2e de apps/web entrega 7/7 fallos. La app funciona (login OK aislado pasa); los fallos son: (1) selectores ambiguos — getByRole('alert') colisiona con __next-route-announcer__, usar .first() o filter; (2) el test de PDF espera popup hacia /api/pdf/resultado/{id} que cuelga — debuggear getCurrentUser contra el mock InsForge (e2e/server/mock-insforge.cjs) y el render de react-pdf; (3) verificar los demás specs (export, presupuesto).\n\nENTORNO YA RESUELTO por el orquestador:\n- Postgres local: docker labo-e2e-pg en localhost:55432 (postgres/e2e, db insforge, schema 0001 aplicado, 14 tablas)\n- Comando: cd apps/web \u0026\u0026 DATABASE_URL='postgresql://postgres:e2e@localhost:55432/insforge' pnpm exec playwright test --reporter=line\n- El config levanta su propio next dev en :3100 + mock InsForge en :7330 (si EADDRINUSE: kill $(lsof -ti:3100))\n- Criterio: pnpm exec playwright test sale 0 con los 7 tests en verde. NO modificar código de la app salvo bug real demostrado.",
       "model": "opencode/deepseek-v4-pro",
       "reason": "F4.1.T5 cerró prematuramente: entregó andamiaje sin tests en verde",
       "status": "done",
       "dependencies": [],
-      "estimateHours": 3,
+      "estimateHours": 3.0,
       "files": [
         "apps/web/e2e/auth.spec.ts",
         "apps/web/e2e/paciente.spec.ts",
@@ -1963,7 +1964,7 @@
       "id": "F5.1.T3",
       "phase": 5,
       "title": "Arreglo de Typecheck en monorepo",
-      "description": "**Objetivo**\n\nResolver todos los errores de TypeScript en monorepo (`tsc --noEmit`), garantizando tipado estricto y limpio en `@labo/db`, `@labo/web` y packages asociados.\n\n**Alcance**\n\nSí hace:\n- Corregir el tipado de `CustomTooltip` en `apps/web/app/(app)/dashboard/ResultadosChart.tsx` compatible con Recharts.\n- Corregir el tipado del retorno de `renderToStream` en `apps/web/app/api/pdf/presupuesto/[id]/route.ts` y `apps/web/app/api/pdf/resultado/[id]/route.ts`.\n- Resolver la incompatibilidad de tipos `Record<string, unknown>` vs `JSONValue` en el metadata de audit log en `packages/db/repos/presupuestos.ts`.\n- Limpiar variables no usadas (`sql` en `packages/db/repos/dashboard.integration.test.ts`, `email` en `apps/web/app/api/usuarios/invite/route.ts`).\n- Asegurar que `packages/pdf` resuelva correctamente los tipos de `@react-pdf/renderer`.\n\n**Criterios de aceptación**\n\n- [ ] `pnpm --filter @labo/db typecheck` pasa en verde (0 errores).\n- [ ] `pnpm --filter @labo/web typecheck` pasa en verde (0 errores).\n- [ ] `pnpm run typecheck` en la raíz pasa exitosamente para todos los workspaces.",
+      "description": "**Objetivo**\n\nResolver todos los errores de TypeScript en monorepo (`tsc --noEmit`), garantizando tipado estricto y limpio en `@labo/db`, `@labo/web` y packages asociados.\n\n**Alcance**\n\nSí hace:\n- Corregir el tipado de `CustomTooltip` en `apps/web/app/(app)/dashboard/ResultadosChart.tsx` compatible con Recharts.\n- Corregir el tipado del retorno de `renderToStream` en `apps/web/app/api/pdf/presupuesto/[id]/route.ts` y `apps/web/app/api/pdf/resultado/[id]/route.ts`.\n- Resolver la incompatibilidad de tipos `Record\u003cstring, unknown\u003e` vs `JSONValue` en el metadata de audit log en `packages/db/repos/presupuestos.ts`.\n- Limpiar variables no usadas (`sql` en `packages/db/repos/dashboard.integration.test.ts`, `email` en `apps/web/app/api/usuarios/invite/route.ts`).\n- Asegurar que `packages/pdf` resuelva correctamente los tipos de `@react-pdf/renderer`.\n\n**Criterios de aceptación**\n\n- [ ] `pnpm --filter @labo/db typecheck` pasa en verde (0 errores).\n- [ ] `pnpm --filter @labo/web typecheck` pasa en verde (0 errores).\n- [ ] `pnpm run typecheck` en la raíz pasa exitosamente para todos los workspaces.",
       "model": "opencode/gemini-3.1-pro",
       "reason": "Razonamiento de tipos e interfaces complejas en monorepo con Gemini 3.1 Pro.",
       "status": "done",
@@ -1997,7 +1998,7 @@
         "F5.1.T2",
         "F5.1.T3"
       ],
-      "estimateHours": 2,
+      "estimateHours": 2.0,
       "files": [
         "apps/web/app/(app)/layout.tsx",
         "apps/web/app/api/me/route.ts",
@@ -2010,14 +2011,14 @@
       "id": "F6.1.T1",
       "phase": 6,
       "title": "Mover /login a la raíz / en Next.js App Router",
-      "description": "**Objetivo**\n\nMover la pantalla de autenticación a la ruta raíz `/` de Next.js App Router (`apps/web/app/(auth)/page.tsx`), eliminar la ruta duplicada `/login` y configurar redirect 308 permanente en `next.config.mjs`.\n\n**Alcance**\n\nSí hace:\n- Mover `apps/web/app/(auth)/login/page.tsx` a `apps/web/app/(auth)/page.tsx`.\n- Eliminar o dejar stub de redirect para `apps/web/app/(auth)/login/page.tsx`.\n- Configurar regla de redirects permanentes HTTP 308 en `apps/web/next.config.mjs` mapeando `/login` -> `/`.\n\n**Criterios de aceptación**\n\n- [ ] `GET /` renderiza directamente la interfaz de login cuando no existe sesión activa.\n- [ ] `GET /login` responde con redirección permanente HTTP 308 hacia `/`.\n- [ ] La build y el árbol de rutas de Next.js reconocen `/(auth)/page.tsx` como el entrypoint principal.",
+      "description": "**Objetivo**\n\nMover la pantalla de autenticación a la ruta raíz `/` de Next.js App Router (`apps/web/app/(auth)/page.tsx`), eliminar la ruta duplicada `/login` y configurar redirect 308 permanente en `next.config.mjs`.\n\n**Alcance**\n\nSí hace:\n- Mover `apps/web/app/(auth)/login/page.tsx` a `apps/web/app/(auth)/page.tsx`.\n- Eliminar o dejar stub de redirect para `apps/web/app/(auth)/login/page.tsx`.\n- Configurar regla de redirects permanentes HTTP 308 en `apps/web/next.config.mjs` mapeando `/login` -\u003e `/`.\n\n**Criterios de aceptación**\n\n- [ ] `GET /` renderiza directamente la interfaz de login cuando no existe sesión activa.\n- [ ] `GET /login` responde con redirección permanente HTTP 308 hacia `/`.\n- [ ] La build y el árbol de rutas de Next.js reconocen `/(auth)/page.tsx` como el entrypoint principal.",
       "model": "opencode/gpt-5.6-codex",
       "reason": "Refactor arquitectural de routing en Next.js App Router y configuración de redirects 308 con GPT-5.6 Codex.",
       "status": "done",
       "dependencies": [
         "F5.1.T4"
       ],
-      "estimateHours": 1,
+      "estimateHours": 1.0,
       "files": [
         "apps/web/app/(auth)/page.tsx",
         "apps/web/app/(auth)/login/page.tsx",
@@ -2037,7 +2038,7 @@
       "dependencies": [
         "F6.1.T1"
       ],
-      "estimateHours": 1,
+      "estimateHours": 1.0,
       "files": [
         "apps/web/middleware.ts",
         "apps/web/app/(app)/layout.tsx"
@@ -2057,7 +2058,7 @@
         "F6.1.T1",
         "F6.1.T2"
       ],
-      "estimateHours": 1,
+      "estimateHours": 1.0,
       "files": [
         "packages/lib/error-messages.ts",
         "apps/web/app/(auth)/forgot-password/ForgotForm.tsx",
@@ -2089,13 +2090,13 @@
     {
       "id": "F6.1.T5",
       "phase": 6,
-      "title": "Pacientes DDL & Zod: migración sexo NOT NULL y validaciones",
-      "description": "**Objetivo**\n\nHacer obligatorio el campo `sexo` a nivel de base de datos PostgreSQL (`NOT NULL`), actualizar `schema.sql` y definir validaciones Zod estrictas con código de error `SEXO_REQUERIDO` junto con sus tests unitarios.\n\n**Alcance**\n\nSí hace:\n- Crear migración SQL `packages/db/migrations/0003_paciente_sexo_not_null.sql` actualizando filas nulas legadas y ejecutando `ALTER TABLE pacientes ALTER COLUMN sexo SET NOT NULL;`.\n- Actualizar `packages/db/schema.sql` con el constraint `NOT NULL` en `pacientes.sexo`.\n- Actualizar `packages/lib/schemas/paciente.ts` requiriendo `sexo: z.enum([\"M\", \"F\"], { errorMap: () => ({ message: \"SEXO_REQUERIDO\" }) })`.\n- Crear tests unitarios en `packages/lib/schemas/paciente.test.ts`.\n\n**Criterios de aceptación**\n\n- [ ] Migración `0003_paciente_sexo_not_null.sql` aplica limpia sobre PostgreSQL.\n- [ ] Schema Zod rechaza payloads de paciente sin `sexo` emitiendo mensaje `SEXO_REQUERIDO`.\n- [ ] Tests unitarios `pnpm --filter @labo/lib test` pasan al 100% en verde.",
+      "title": "Pacientes DDL \u0026 Zod: migración sexo NOT NULL y validaciones",
+      "description": "**Objetivo**\n\nHacer obligatorio el campo `sexo` a nivel de base de datos PostgreSQL (`NOT NULL`), actualizar `schema.sql` y definir validaciones Zod estrictas con código de error `SEXO_REQUERIDO` junto con sus tests unitarios.\n\n**Alcance**\n\nSí hace:\n- Crear migración SQL `packages/db/migrations/0003_paciente_sexo_not_null.sql` actualizando filas nulas legadas y ejecutando `ALTER TABLE pacientes ALTER COLUMN sexo SET NOT NULL;`.\n- Actualizar `packages/db/schema.sql` con el constraint `NOT NULL` en `pacientes.sexo`.\n- Actualizar `packages/lib/schemas/paciente.ts` requiriendo `sexo: z.enum([\"M\", \"F\"], { errorMap: () =\u003e ({ message: \"SEXO_REQUERIDO\" }) })`.\n- Crear tests unitarios en `packages/lib/schemas/paciente.test.ts`.\n\n**Criterios de aceptación**\n\n- [ ] Migración `0003_paciente_sexo_not_null.sql` aplica limpia sobre PostgreSQL.\n- [ ] Schema Zod rechaza payloads de paciente sin `sexo` emitiendo mensaje `SEXO_REQUERIDO`.\n- [ ] Tests unitarios `pnpm --filter @labo/lib test` pasan al 100% en verde.",
       "model": "opencode/gpt-5.6-codex",
       "reason": "Migración SQL DDL y esquemas Zod con validación clínica estricta con GPT-5.6 Codex.",
       "status": "done",
       "dependencies": [],
-      "estimateHours": 1,
+      "estimateHours": 1.0,
       "files": [
         "packages/db/migrations/0003_paciente_sexo_not_null.sql",
         "packages/db/schema.sql",
@@ -2109,12 +2110,12 @@
       "id": "F6.1.T6",
       "phase": 6,
       "title": "Pacientes Dominio: utilidades de edad desglosada y etapas pediátricas",
-      "description": "**Objetivo**\n\nImplementar en `@labo/lib/edad.ts` la función pura `calcularEdadDesglosada` con cálculo preciso de años, meses y días, clasificación de etapas clínicas (Neonato a Adulto Mayor) y tests unitarios exhaustivos.\n\n**Alcance**\n\nSí hace:\n- Implementar `calcularEdadDesglosada(fechaNacimiento, fechaReferencia?)` en `packages/lib/edad.ts` retornando `{ anos, meses, dias, etapa, textoFormateado }`.\n- Soportar etapas clínicas: Neonato (<28d), Lactante menor (1m-11m), Lactante mayor (12m-23m), Preescolar (2a-5a), Escolar (6a-11a), Adolescente (12a-17a), Adulto (18a-59a), Adulto mayor (60a+).\n- Manejar casos borde: años bisiestos, diferencias de fin de mes, fechas futuras (retornar error o null).\n- Crear suite exhaustiva de tests unitarios en `packages/lib/edad.test.ts`.\n\n**Criterios de aceptación**\n\n- [ ] `calcularEdadDesglosada` calcula con precisión exacta días, meses y años para cualquier fecha histórica.\n- [ ] Clasifica correctamente cada etapa clínica de desarrollo pediátrico y adulto.\n- [ ] Formatea textos compactos y legibles (ej: \"15 días\", \"4 meses 12 días\", \"3 años 2 meses\", \"28 años\").\n- [ ] Suite de tests en `packages/lib/edad.test.ts` pasa 100% en verde.",
+      "description": "**Objetivo**\n\nImplementar en `@labo/lib/edad.ts` la función pura `calcularEdadDesglosada` con cálculo preciso de años, meses y días, clasificación de etapas clínicas (Neonato a Adulto Mayor) y tests unitarios exhaustivos.\n\n**Alcance**\n\nSí hace:\n- Implementar `calcularEdadDesglosada(fechaNacimiento, fechaReferencia?)` en `packages/lib/edad.ts` retornando `{ anos, meses, dias, etapa, textoFormateado }`.\n- Soportar etapas clínicas: Neonato (\u003c28d), Lactante menor (1m-11m), Lactante mayor (12m-23m), Preescolar (2a-5a), Escolar (6a-11a), Adolescente (12a-17a), Adulto (18a-59a), Adulto mayor (60a+).\n- Manejar casos borde: años bisiestos, diferencias de fin de mes, fechas futuras (retornar error o null).\n- Crear suite exhaustiva de tests unitarios en `packages/lib/edad.test.ts`.\n\n**Criterios de aceptación**\n\n- [ ] `calcularEdadDesglosada` calcula con precisión exacta días, meses y años para cualquier fecha histórica.\n- [ ] Clasifica correctamente cada etapa clínica de desarrollo pediátrico y adulto.\n- [ ] Formatea textos compactos y legibles (ej: \"15 días\", \"4 meses 12 días\", \"3 años 2 meses\", \"28 años\").\n- [ ] Suite de tests en `packages/lib/edad.test.ts` pasa 100% en verde.",
       "model": "opencode/deepseek-v4-pro",
       "reason": "Lógica de cálculo matemático/clínico y suite de tests unitarios puros con DeepSeek V4 Pro.",
       "status": "done",
       "dependencies": [],
-      "estimateHours": 1,
+      "estimateHours": 1.0,
       "files": [
         "packages/lib/edad.ts",
         "packages/lib/edad.test.ts"
@@ -2134,7 +2135,7 @@
         "F6.1.T5",
         "F6.1.T6"
       ],
-      "estimateHours": 2,
+      "estimateHours": 2.0,
       "files": [
         "apps/web/app/(app)/pacientes/PacienteFormDialog.tsx",
         "apps/web/app/(app)/pacientes/PacientesList.tsx",
@@ -2146,13 +2147,13 @@
     {
       "id": "F6.2.T1",
       "phase": 6,
-      "title": "Presupuestos DDL & Schemas: estados de pipeline y motivo de rechazo",
+      "title": "Presupuestos DDL \u0026 Schemas: estados de pipeline y motivo de rechazo",
       "description": "**Objetivo**\n\nActualizar el esquema PostgreSQL y los contratos Zod para soportar los 6 estados del pipeline comercial (`Borrador`, `Enviado`, `Aprobado`, `Rechazado`, `Cancelado`, `Convertido`), agregar la columna `motivo_rechazo` y tests unitarios.\n\n**Alcance**\n\nSí hace:\n- Crear migración SQL `packages/db/migrations/0004_presupuestos_pipeline_estados.sql` con constraint de estados ampliados y columna `motivo_rechazo text`.\n- Actualizar `packages/db/schema.sql` reflejando las nuevas columnas y constraints.\n- Actualizar `packages/lib/schemas/presupuesto.ts` con `PresupuestoEstadoEnum` y validación condicional que exija `motivo_rechazo` (mínimo 3 caracteres) cuando el estado sea `Rechazado`.\n- Añadir tests unitarios en `packages/lib/schemas/presupuesto.test.ts`.\n\n**Criterios de aceptación**\n\n- [ ] Migración `0004_presupuestos_pipeline_estados.sql` aplica limpia en PostgreSQL.\n- [ ] Schema Zod valida transiciones y rechaza estado `Rechazado` si `motivo_rechazo` está vacío.\n- [ ] Tests unitarios `pnpm --filter @labo/lib test` pasan en verde.",
       "model": "opencode/gpt-5.6-codex",
       "reason": "Migración DDL SQL y tipado de esquemas Zod con GPT-5.6 Codex.",
       "status": "done",
       "dependencies": [],
-      "estimateHours": 1,
+      "estimateHours": 1.0,
       "files": [
         "packages/db/migrations/0004_presupuestos_pipeline_estados.sql",
         "packages/db/schema.sql",
@@ -2166,7 +2167,7 @@
       "id": "F6.2.T2",
       "phase": 6,
       "title": "Presupuestos Repositorios y API: máquina de estados y endpoint PATCH",
-      "description": "**Objetivo**\n\nImplementar en `packages/db/repos/presupuestos.ts` la matriz de transiciones permitidas, filtros por múltiples estados, y exponer el endpoint `PATCH /api/presupuestos/[id]` con auditoría de cambios de estado.\n\n**Alcance**\n\nSí hace:\n- Definir matriz de transiciones válidas en `packages/db/repos/presupuestos.ts` (`Borrador` -> `Enviado`/`Cancelado`, `Enviado` -> `Aprobado`/`Rechazado`/`Cancelado`, etc.).\n- Implementar función `cambiarEstado(id, nuevoEstado, motivoRechazo?, userId?)` que valide la transición y registre auditoría.\n- Soportar filtrado por array de estados en `presupuestosRepo.list`.\n- Crear o actualizar Route Handler `apps/web/app/api/presupuestos/[id]/route.ts` para peticiones `PATCH`.\n- Crear tests de integración en `packages/db/repos/presupuestos.integration.test.ts`.\n\n**Criterios de aceptación**\n\n- [ ] Intentos de transiciones no permitidas devuelven error 400 `TRANSICION_ESTADO_INVALIDA`.\n- [ ] Al cambiar a `Rechazado`, `motivo_rechazo` se almacena correctamente en la base de datos.\n- [ ] Peticiones `PATCH /api/presupuestos/[id]` actualizan el estado y generan entrada en `audit_log`.\n- [ ] Tests de integración en `@labo/db` pasan en verde.",
+      "description": "**Objetivo**\n\nImplementar en `packages/db/repos/presupuestos.ts` la matriz de transiciones permitidas, filtros por múltiples estados, y exponer el endpoint `PATCH /api/presupuestos/[id]` con auditoría de cambios de estado.\n\n**Alcance**\n\nSí hace:\n- Definir matriz de transiciones válidas en `packages/db/repos/presupuestos.ts` (`Borrador` -\u003e `Enviado`/`Cancelado`, `Enviado` -\u003e `Aprobado`/`Rechazado`/`Cancelado`, etc.).\n- Implementar función `cambiarEstado(id, nuevoEstado, motivoRechazo?, userId?)` que valide la transición y registre auditoría.\n- Soportar filtrado por array de estados en `presupuestosRepo.list`.\n- Crear o actualizar Route Handler `apps/web/app/api/presupuestos/[id]/route.ts` para peticiones `PATCH`.\n- Crear tests de integración en `packages/db/repos/presupuestos.integration.test.ts`.\n\n**Criterios de aceptación**\n\n- [ ] Intentos de transiciones no permitidas devuelven error 400 `TRANSICION_ESTADO_INVALIDA`.\n- [ ] Al cambiar a `Rechazado`, `motivo_rechazo` se almacena correctamente en la base de datos.\n- [ ] Peticiones `PATCH /api/presupuestos/[id]` actualizan el estado y generan entrada en `audit_log`.\n- [ ] Tests de integración en `@labo/db` pasan en verde.",
       "model": "opencode/deepseek-v4-pro",
       "reason": "Máquina de estados SQL, repositorios transaccionales y Route Handlers con DeepSeek V4 Pro.",
       "status": "done",
@@ -2205,13 +2206,13 @@
     {
       "id": "F6.3.T1",
       "phase": 6,
-      "title": "Catálogo DDL & Schemas: columnas tipo_analisis y metodo con snapshots",
+      "title": "Catálogo DDL \u0026 Schemas: columnas tipo_analisis y metodo con snapshots",
       "description": "**Objetivo**\n\nCrear la migración `0005_examenes_tipo_analisis_metodo.sql` para agregar `tipo_analisis` y `metodo` en la tabla `examenes` y sus columnas de snapshot (`tipo_analisis_snap`, `metodo_snap`) en `resultados_examenes`, actualizando `schema.sql` y esquemas Zod con tests.\n\n**Alcance**\n\nSí hace:\n- Crear migración SQL `packages/db/migrations/0005_examenes_tipo_analisis_metodo.sql` con `ALTER TABLE examenes ADD COLUMN tipo_analisis text, ADD COLUMN metodo text;` y `ALTER TABLE resultados_examenes ADD COLUMN tipo_analisis_snap text, ADD COLUMN metodo_snap text;`.\n- Actualizar `packages/db/schema.sql`.\n- Actualizar `packages/lib/schemas/examen.ts` incorporando validaciones Zod para `tipo_analisis` (opcional) y `metodo` (opcional).\n- Añadir tests unitarios en `packages/lib/schemas/examen.test.ts`.\n\n**Criterios de aceptación**\n\n- [ ] Migración `0005_examenes_tipo_analisis_metodo.sql` aplica limpia en PostgreSQL.\n- [ ] `packages/db/schema.sql` refleja las nuevas columnas de catálogo y snapshots.\n- [ ] Schema Zod valida correctamente campos `tipo_analisis` y `metodo` como strings sanitizados opcionales.\n- [ ] Tests unitarios en `@labo/lib` pasan en verde.",
       "model": "opencode/gpt-5.6-codex",
       "reason": "Migración SQL DDL y esquemas Zod con GPT-5.6 Codex.",
       "status": "done",
       "dependencies": [],
-      "estimateHours": 1,
+      "estimateHours": 1.0,
       "files": [
         "packages/db/migrations/0005_examenes_tipo_analisis_metodo.sql",
         "packages/db/schema.sql",
@@ -2224,7 +2225,7 @@
     {
       "id": "F6.3.T2",
       "phase": 6,
-      "title": "Catálogo Excel & Repositorios: importación y captura de snapshots",
+      "title": "Catálogo Excel \u0026 Repositorios: importación y captura de snapshots",
       "description": "**Objetivo**\n\nActualizar el parser de importación `packages/lib/xlsx-import.ts` y la plantilla de ejemplo para soportar columnas de \"Tipo de Análisis\" y \"Método\", y actualizar métodos en `packages/db/repos/examenes.ts` y `packages/db/repos/resultados.ts` para persistir y capturar snapshots.\n\n**Alcance**\n\nSí hace:\n- Actualizar `packages/lib/xlsx-import.ts` para mapear encabezados de Tipo de Análisis y Método.\n- Actualizar `apps/web/public/plantilla-import.xlsx` incorporando columnas de ejemplo.\n- Actualizar métodos `create`, `update` y `upsertBatch` en `packages/db/repos/examenes.ts` para guardar `tipo_analisis` y `metodo`.\n- Actualizar `packages/db/repos/resultados.ts` para copiar `tipo_analisis` y `metodo` a los campos snapshot al instanciar un resultado.\n\n**Criterios de aceptación**\n\n- [ ] Parser de Excel procesa correctamente archivos XLSX con o sin columnas de Tipo de Análisis y Método.\n- [ ] Operaciones de guardado en catálogo persisten los nuevos campos.\n- [ ] Creación de resultado clínico almacena snapshots inmutables de tipo y método.\n- [ ] Tests unitarios de importación pasan en verde.",
       "model": "opencode/deepseek-v4-pro",
       "reason": "Lógica de parser SheetJS, repositorios SQL y persistencia de snapshots con DeepSeek V4 Pro.",
@@ -2264,8 +2265,8 @@
     {
       "id": "F6.3.T4",
       "phase": 6,
-      "title": "Resultados PDF & Tabla: agrupación jerárquica por tipo de análisis y método",
-      "description": "**Objetivo**\n\nActualizar el renderizado del informe clínico en `@labo/pdf/ResultadoPDF.tsx` y la tabla de resultados (`ExamenesTable.tsx`) para agrupar por Grupo (Título), sub-agrupar por Tipo de Análisis y mostrar la línea de Método.\n\n**Alcance**\n\nSí hace:\n- Modificar `packages/pdf/components/ExamenesTable.tsx` y `packages/pdf/ResultadoPDF.tsx` para estructurar la tabla jerárquicamente: Título -> Sub-encabezado de Tipo de Análisis -> Lista de Exámenes.\n- Imprimir la leyenda `Método: {metodo_snap}` debajo del nombre de cada examen cuando esté definido.\n- Mantener diseño limpio y compacto en `@react-pdf/renderer` asegurando saltos de página adecuados sin cortar grupos.\n\n**Criterios de aceptación**\n\n- [ ] El reporte PDF renderiza sub-encabezados de Tipo de Análisis dentro de cada grupo de examen.\n- [ ] Muestra el método clínico correspondiente junto a cada examen que posea `metodo_snap`.\n- [ ] Exámenes sin sub-agrupación ni método se renderizan limpiamente con espaciado consistente.",
+      "title": "Resultados PDF \u0026 Tabla: agrupación jerárquica por tipo de análisis y método",
+      "description": "**Objetivo**\n\nActualizar el renderizado del informe clínico en `@labo/pdf/ResultadoPDF.tsx` y la tabla de resultados (`ExamenesTable.tsx`) para agrupar por Grupo (Título), sub-agrupar por Tipo de Análisis y mostrar la línea de Método.\n\n**Alcance**\n\nSí hace:\n- Modificar `packages/pdf/components/ExamenesTable.tsx` y `packages/pdf/ResultadoPDF.tsx` para estructurar la tabla jerárquicamente: Título -\u003e Sub-encabezado de Tipo de Análisis -\u003e Lista de Exámenes.\n- Imprimir la leyenda `Método: {metodo_snap}` debajo del nombre de cada examen cuando esté definido.\n- Mantener diseño limpio y compacto en `@react-pdf/renderer` asegurando saltos de página adecuados sin cortar grupos.\n\n**Criterios de aceptación**\n\n- [ ] El reporte PDF renderiza sub-encabezados de Tipo de Análisis dentro de cada grupo de examen.\n- [ ] Muestra el método clínico correspondiente junto a cada examen que posea `metodo_snap`.\n- [ ] Exámenes sin sub-agrupación ni método se renderizan limpiamente con espaciado consistente.",
       "model": "opencode/gemini-3.1-pro",
       "reason": "Plantillas de reporte médico en @react-pdf y componentes de tabla con Gemini 3.1 Pro.",
       "status": "done",
@@ -2273,7 +2274,7 @@
         "F6.3.T2",
         "F6.6.T2"
       ],
-      "estimateHours": 2,
+      "estimateHours": 2.0,
       "files": [
         "packages/pdf/components/ExamenesTable.tsx",
         "packages/pdf/ResultadoPDF.tsx"
@@ -2284,13 +2285,13 @@
     {
       "id": "F6.4.T1",
       "phase": 6,
-      "title": "Paquetes DDL & Schemas: columna precio_base y repositorios",
+      "title": "Paquetes DDL \u0026 Schemas: columna precio_base y repositorios",
       "description": "**Objetivo**\n\nCrear la migración `0006_paquetes_precio_base.sql` para añadir la columna `precio_base numeric(12,2) NOT NULL DEFAULT 0` a la tabla `paquetes`, actualizar esquemas Zod en `@labo/lib/schemas/paquete.ts` y métodos en `packages/db/repos/paquetes.ts`.\n\n**Alcance**\n\nSí hace:\n- Crear migración SQL `packages/db/migrations/0006_paquetes_precio_base.sql` agregando `precio_base numeric(12,2) NOT NULL DEFAULT 0;`.\n- Actualizar `packages/db/schema.sql`.\n- Actualizar esquemas Zod en `packages/lib/schemas/paquete.ts` validando `precio_base: z.number().min(0)`.\n- Actualizar métodos CRUD en `packages/db/repos/paquetes.ts` para persistir y retornar `precio_base`.\n\n**Criterios de aceptación**\n\n- [ ] Migración `0006_paquetes_precio_base.sql` aplica correctamente en PostgreSQL.\n- [ ] Schema Zod rechaza precios base negativos.\n- [ ] Repositorio de paquetes persiste y recupera `precio_base`.\n- [ ] Tests unitarios en `@labo/lib` pasan en verde.",
       "model": "opencode/gpt-5.6-codex",
       "reason": "Migración SQL DDL, esquemas Zod y repositorio de paquetes con GPT-5.6 Codex.",
       "status": "done",
       "dependencies": [],
-      "estimateHours": 1,
+      "estimateHours": 1.0,
       "files": [
         "packages/db/migrations/0006_paquetes_precio_base.sql",
         "packages/db/schema.sql",
@@ -2312,7 +2313,7 @@
       "dependencies": [
         "F6.4.T1"
       ],
-      "estimateHours": 2,
+      "estimateHours": 2.0,
       "files": [
         "apps/web/app/(app)/paquetes/PaqueteBuilder.tsx",
         "apps/web/app/(app)/paquetes/page.tsx"
@@ -2383,7 +2384,7 @@
     {
       "id": "F6.5.T4",
       "phase": 6,
-      "title": "Presupuestos PDF & Conversión: transparencia de precios y orden clínica",
+      "title": "Presupuestos PDF \u0026 Conversión: transparencia de precios y orden clínica",
       "description": "**Objetivo**\n\nActualizar `@labo/pdf/PresupuestoPDF.tsx` para renderizar precios finales transparentes por línea coincidiendo exactamente con el total general, y asegurar que la conversión de presupuesto a resultado clínico (`convertirPresupuestoAResultado`) instancie únicamente los exámenes conservados.\n\n**Alcance**\n\nSí hace:\n- Modificar `packages/pdf/PresupuestoPDF.tsx` para imprimir cada línea con su `precio_final_snap` asegurando que la suma visual de líneas coincida al centavo con el total en USD y Bs.\n- Eliminar conceptos ambiguos o recargos no transparentes en el documento impreso.\n- Actualizar `packages/db/repos/presupuestos.ts` y el endpoint `/api/presupuestos/[id]/convertir` para transferir a la orden de resultados únicamente los exámenes activos presentes en el presupuesto.\n\n**Criterios de aceptación**\n\n- [ ] El PDF del presupuesto presenta líneas con precios transparentes cuya sumatoria cuadra exactamente con el total general.\n- [ ] La conversión de presupuesto genera una orden de resultados que incluye exclusivamente los exámenes conservados en el presupuesto.\n- [ ] No se transfieren a la orden clínica exámenes que hayan sido eliminados del presupuesto previo.",
       "model": "opencode/deepseek-v4-pro",
       "reason": "Lógica de conversión transaccional en backend y formato de documento comercial PDF con DeepSeek V4 Pro.",
@@ -2404,7 +2405,7 @@
     {
       "id": "F6.6.T1",
       "phase": 6,
-      "title": "Schemas & Config Institucional: RIF flexible, campos bioanálisis y seed",
+      "title": "Schemas \u0026 Config Institucional: RIF flexible, campos bioanálisis y seed",
       "description": "**Objetivo**\n\nFlexibilizar la validación del RIF en `@labo/lib/schemas/config.ts` para aceptar personas naturales y jurídicas venezolanas (`^[VJGPEC]-\\d{7,9}-\\d$`), enriquecer la entidad institucional con `colegio_bioanalistas` y `mpps`, y actualizar la migración/seed de `laboratorio_config` con los datos profesionales de Lcda. Yuna Ramírez.\n\n**Alcance**\n\nSí hace:\n- Actualizar `RIF_REGEX` en `packages/lib/schemas/config.ts` al patrón flexible `/^[VJGPEC]-\\d{7,9}-\\d$/`.\n- Enriquecer `configUpdateSchema` y `configUpdatePartialSchema` con los campos opcionales `colegio_bioanalistas` y `mpps`.\n- Crear migración SQL `packages/db/migrations/0008_laboratorio_config_institucional.sql` para añadir `colegio_bioanalistas text` y `mpps text` a la tabla `laboratorio_config`.\n- Actualizar `packages/db/schema.sql` y `packages/db/repos/config.ts` para persistir, leer y auditar los nuevos campos.\n- Actualizar el seed de configuración inicial con los datos oficiales: Lcda. Yuna Ramírez, Colegio de Bioanalistas N° 713, MPPS 10738, RIF institucional, teléfono y correo electrónico.\n- Crear tests unitarios en `packages/lib/schemas/config.test.ts` y tests de repo en `packages/db/repos/config.integration.test.ts`.\n\n**Criterios de aceptación**\n\n- [ ] `RIF_REGEX` valida correctamente RIFs de personas naturales y jurídicas (`V-14794920-8`, `J-12345678-9`, `G-20000123-4`, etc.).\n- [ ] La migración `0008_laboratorio_config_institucional.sql` aplica limpia sobre PostgreSQL.\n- [ ] `laboratorio_config` persiste y retorna `colegio_bioanalistas` y `mpps`.\n- [ ] Suite de tests unitarios y de integración de configuración pasa 100% en verde.",
       "model": "opencode/gpt-5.6-codex",
       "reason": "Refactor de esquemas Zod, migración SQL DDL y datos institucionales con GPT-5.6 Codex.",
@@ -2447,8 +2448,8 @@
     {
       "id": "F6.6.T3",
       "phase": 6,
-      "title": "Assets & Storage Seed (Logo, Firma, Sello y Endpoint Resolution)",
-      "description": "**Objetivo**\n\nProcesar y optimizar los assets visuales corporativos (`1.png`, firma y sello de `docs/logoypdfsrvlaboratorio/`), construir script de seed / carga al bucket `assets` de InsForge Storage y verificar la resolución de URLs en los endpoints de generación de PDF.\n\n**Alcance**\n\nSí hace:\n- Procesar y optimizar `docs/logoypdfsrvlaboratorio/1.png` para generar el logo oficial liviano (< 150KB) en formato PNG transparente.\n- Extraer y vectorizar/optimizar los assets de firma y sello de la bioanalista responsable desde los documentos de muestra en `docs/logoypdfsrvlaboratorio/`.\n- Crear script de inicialización `packages/db/scripts/seed-assets.ts` para sincronizar los assets al bucket `assets` de InsForge Storage y registrar sus `object_key` en `laboratorio_config`.\n- Disponer copias de fallback en `apps/web/public/assets/` para generación local y testing offline.\n- Verificar que los Route Handlers `apps/web/app/api/pdf/resultado/[id]/route.ts` y `apps/web/app/api/pdf/presupuesto/[id]/route.ts` resuelvan correctamente las URLs públicas firmadas de los assets sin bloqueos de red.\n- Tests de integración de resolución de assets para exportación PDF.\n\n**Criterios de aceptación**\n\n- [ ] Logo, firma y sello optimizados están disponibles con fondo transparente y peso liviano (< 200KB).\n- [ ] El script de seed de assets ejecuta idempotentemente y actualiza `laboratorio_config`.\n- [ ] Los endpoints `/api/pdf/resultado/[id]` y `/api/pdf/presupuesto/[id]` descargan y embeben los assets en el PDF generado sin errores.\n- [ ] Tests de integración de endpoints PDF pasan en verde.",
+      "title": "Assets \u0026 Storage Seed (Logo, Firma, Sello y Endpoint Resolution)",
+      "description": "**Objetivo**\n\nProcesar y optimizar los assets visuales corporativos (`1.png`, firma y sello de `docs/logoypdfsrvlaboratorio/`), construir script de seed / carga al bucket `assets` de InsForge Storage y verificar la resolución de URLs en los endpoints de generación de PDF.\n\n**Alcance**\n\nSí hace:\n- Procesar y optimizar `docs/logoypdfsrvlaboratorio/1.png` para generar el logo oficial liviano (\u003c 150KB) en formato PNG transparente.\n- Extraer y vectorizar/optimizar los assets de firma y sello de la bioanalista responsable desde los documentos de muestra en `docs/logoypdfsrvlaboratorio/`.\n- Crear script de inicialización `packages/db/scripts/seed-assets.ts` para sincronizar los assets al bucket `assets` de InsForge Storage y registrar sus `object_key` en `laboratorio_config`.\n- Disponer copias de fallback en `apps/web/public/assets/` para generación local y testing offline.\n- Verificar que los Route Handlers `apps/web/app/api/pdf/resultado/[id]/route.ts` y `apps/web/app/api/pdf/presupuesto/[id]/route.ts` resuelvan correctamente las URLs públicas firmadas de los assets sin bloqueos de red.\n- Tests de integración de resolución de assets para exportación PDF.\n\n**Criterios de aceptación**\n\n- [ ] Logo, firma y sello optimizados están disponibles con fondo transparente y peso liviano (\u003c 200KB).\n- [ ] El script de seed de assets ejecuta idempotentemente y actualiza `laboratorio_config`.\n- [ ] Los endpoints `/api/pdf/resultado/[id]` y `/api/pdf/presupuesto/[id]` descargan y embeben los assets en el PDF generado sin errores.\n- [ ] Tests de integración de endpoints PDF pasan en verde.",
       "model": "opencode/deepseek-v4-pro",
       "reason": "Optimización de imágenes, scripts de seed en InsForge Storage y endpoints PDF con DeepSeek V4 Pro.",
       "status": "done",
@@ -2476,7 +2477,7 @@
       "reason": "Cambios de formulario, endpoints y migraciones con lógica de negocio.",
       "status": "done",
       "dependencies": [],
-      "estimateHours": 4,
+      "estimateHours": 4.0,
       "files": [
         "apps/web/app/(app)/examenes/ExamenFormDialog.tsx",
         "apps/web/app/(app)/examenes/TituloFormDialog.tsx",
@@ -2506,7 +2507,7 @@
       "reason": "Cambios acotados de UI, mensajes y documentación.",
       "status": "done",
       "dependencies": [],
-      "estimateHours": 1,
+      "estimateHours": 1.0,
       "files": [
         "packages/lib/error-messages.ts",
         "apps/web/app/api/examenes/route.ts",
@@ -2532,7 +2533,7 @@
       "reason": "Cambios de formulario, endpoints y migraciones con lógica de negocio.",
       "status": "done",
       "dependencies": [],
-      "estimateHours": 3,
+      "estimateHours": 3.0,
       "files": [
         "apps/web/app/(app)/paquetes/PaqueteBuilder.tsx",
         "packages/ui/dnd/SortableList.tsx",
@@ -2559,7 +2560,7 @@
       "reason": "Cambios acotados de UI, mensajes y documentación.",
       "status": "done",
       "dependencies": [],
-      "estimateHours": 2,
+      "estimateHours": 2.0,
       "files": [
         "apps/web/app/(app)/presupuestos/nuevo/PresupuestoForm.tsx"
       ],
@@ -2578,12 +2579,12 @@
       "id": "F7.2.T2",
       "phase": 7,
       "title": "Toma de muestra y domicilio: base, schema y cálculo",
-      "description": "**Objetivo**\n\nAgregar los dos cargos por servicio que el laboratorio cobra aparte de los exámenes, como columnas planas del presupuesto para no tocar la FK de líneas ni la conversión a orden.\n\n**Alcance**\n\nSí hace:\n- Migración `0015_presupuestos_servicios.sql`: `toma_muestra_usd numeric(12,2) NOT NULL DEFAULT 0 CHECK (>= 0)` y `domicilio_usd` igual, en `presupuestos`.\n- `laboratorio_config`: `toma_muestra_default_usd numeric(12,2) DEFAULT 0`.\n- `presupuestoCreateSchema` y `presupuestoUpdateSchema`: ambos campos opcionales, no negativos.\n- `calcularTotales`: nuevo input `serviciosUsd` que se suma al total después de descuento y ganancia, en USD y Bs. Tests.\n- `repos/presupuestos.ts` create y update persisten y devuelven los campos. La conversión a orden no los copia.\n- Aplicar la migración en la instancia hosted por el endpoint de migraciones (ver `docs/deploy/insforge-vps.md`).\n\nNo hace:\n- UI ni PDF (F7.2.T3).\n\n**Criterios de aceptación**\n\n- [ ] Un presupuesto con subtotal 13, ganancia 0, toma 4 y domicilio 6 da total 23 USD y el Bs correspondiente.\n- [ ] Los tests de `calcular-totales` y `schemas/presupuesto` pasan.",
+      "description": "**Objetivo**\n\nAgregar los dos cargos por servicio que el laboratorio cobra aparte de los exámenes, como columnas planas del presupuesto para no tocar la FK de líneas ni la conversión a orden.\n\n**Alcance**\n\nSí hace:\n- Migración `0015_presupuestos_servicios.sql`: `toma_muestra_usd numeric(12,2) NOT NULL DEFAULT 0 CHECK (\u003e= 0)` y `domicilio_usd` igual, en `presupuestos`.\n- `laboratorio_config`: `toma_muestra_default_usd numeric(12,2) DEFAULT 0`.\n- `presupuestoCreateSchema` y `presupuestoUpdateSchema`: ambos campos opcionales, no negativos.\n- `calcularTotales`: nuevo input `serviciosUsd` que se suma al total después de descuento y ganancia, en USD y Bs. Tests.\n- `repos/presupuestos.ts` create y update persisten y devuelven los campos. La conversión a orden no los copia.\n- Aplicar la migración en la instancia hosted por el endpoint de migraciones (ver `docs/deploy/insforge-vps.md`).\n\nNo hace:\n- UI ni PDF (F7.2.T3).\n\n**Criterios de aceptación**\n\n- [ ] Un presupuesto con subtotal 13, ganancia 0, toma 4 y domicilio 6 da total 23 USD y el Bs correspondiente.\n- [ ] Los tests de `calcular-totales` y `schemas/presupuesto` pasan.",
       "model": "opencode/deepseek-v4-pro",
       "reason": "Cambios de formulario, endpoints y migraciones con lógica de negocio.",
       "status": "done",
       "dependencies": [],
-      "estimateHours": 3,
+      "estimateHours": 3.0,
       "files": [
         "packages/db/migrations/0015_presupuestos_servicios.sql",
         "packages/lib/schemas/presupuesto.ts",
@@ -2620,7 +2621,7 @@
       "dependencies": [
         "F7.2.T2"
       ],
-      "estimateHours": 3,
+      "estimateHours": 3.0,
       "files": [
         "apps/web/app/(app)/presupuestos/nuevo/PresupuestoForm.tsx",
         "apps/web/app/(app)/presupuestos/[id]/PresupuestoDetalle.tsx",
@@ -2647,7 +2648,7 @@
       "reason": "Cambios de formulario, endpoints y migraciones con lógica de negocio.",
       "status": "done",
       "dependencies": [],
-      "estimateHours": 2,
+      "estimateHours": 2.0,
       "files": [
         "apps/web/app/(app)/presupuestos/nuevo/PresupuestoForm.tsx",
         "packages/lib/calcular-totales.test.ts"
@@ -2672,7 +2673,7 @@
       "reason": "Cambios acotados de UI, mensajes y documentación.",
       "status": "hecha, con seguimiento",
       "dependencies": [],
-      "estimateHours": 1,
+      "estimateHours": 1.0,
       "files": [
         "apps/web/app/r/[slug]/page.tsx"
       ],
@@ -2698,7 +2699,7 @@
       "dependencies": [
         "F7.3.T1"
       ],
-      "estimateHours": 6,
+      "estimateHours": 6.0,
       "files": [
         "packages/db/migrations/0016_enlaces_verificacion.sql",
         "packages/lib/enlace-resultado.ts",
@@ -2727,7 +2728,7 @@
       "reason": "Cambios acotados de UI, mensajes y documentación.",
       "status": "done",
       "dependencies": [],
-      "estimateHours": 2,
+      "estimateHours": 2.0,
       "files": [
         "packages/ui/resultados/RefinarObservacionesButton.tsx",
         "apps/web/app/(app)/resultados/[id]/ResultadoDetalle.tsx",
@@ -2753,7 +2754,7 @@
       "reason": "Cambios de formulario, endpoints y migraciones con lógica de negocio.",
       "status": "done",
       "dependencies": [],
-      "estimateHours": 5,
+      "estimateHours": 5.0,
       "files": [
         "packages/db/migrations/0017_metodos_analisis.sql",
         "packages/db/repos/metodos.ts",
@@ -2781,7 +2782,7 @@
       "reason": "Cambios acotados de UI, mensajes y documentación.",
       "status": "done",
       "dependencies": [],
-      "estimateHours": 2,
+      "estimateHours": 2.0,
       "files": [
         "packages/db/migrations/0018_pacientes_ubicacion.sql",
         "packages/lib/schemas/paciente.ts",
@@ -2808,7 +2809,7 @@
       "reason": "Cambios acotados de UI, mensajes y documentación.",
       "status": "done",
       "dependencies": [],
-      "estimateHours": 2,
+      "estimateHours": 2.0,
       "files": [
         "docs/deploy/coolify-staged.md",
         "apps/web/app/api/tasa/manual/route.ts",
@@ -2837,7 +2838,7 @@
       "dependencies": [
         "F7.3.T1"
       ],
-      "estimateHours": 2,
+      "estimateHours": 2.0,
       "files": [
         "apps/web/app/api/r/[slug]/pdf/route.ts",
         "apps/web/app/api/pdf/resultado/[id]/route.ts",
@@ -2866,7 +2867,7 @@
         "F7.1.T1",
         "F7.1.T3"
       ],
-      "estimateHours": 2,
+      "estimateHours": 2.0,
       "files": [
         "packages/db/repos/paquetes.ts",
         "apps/web/app/(app)/resultados/nuevo/ResultadoForm.tsx",
@@ -2902,7 +2903,7 @@
         "F7.3.T1b",
         "F7.2.T4"
       ],
-      "estimateHours": 2,
+      "estimateHours": 2.0,
       "files": [
         "apps/web/middleware.ts",
         "apps/web/app/(app)/presupuestos/[id]/page.tsx",
@@ -2936,7 +2937,7 @@
       "reason": "Arreglos de tooling con diagnóstico hecho.",
       "status": "done",
       "dependencies": [],
-      "estimateHours": 3,
+      "estimateHours": 3.0,
       "files": [
         "packages/lib/package.json",
         "packages/db/repos/dashboard.integration.test.ts",
@@ -2966,7 +2967,7 @@
         "F7.3.T3",
         "F7.5.T1"
       ],
-      "estimateHours": 3,
+      "estimateHours": 3.0,
       "files": [
         "packages/db/repos/ordenes.ts",
         "apps/web/app/(app)/resultados/[id]/ResultadoDetalle.tsx",
@@ -3003,7 +3004,7 @@
       "dependencies": [
         "F7.3.T2"
       ],
-      "estimateHours": 2,
+      "estimateHours": 2.0,
       "files": [
         "packages/db/repos/ordenes.ts",
         "apps/web/app/api/pdf/resultado/[id]/route.ts",
@@ -3038,7 +3039,7 @@
       "dependencies": [
         "F7.4.T1"
       ],
-      "estimateHours": 4,
+      "estimateHours": 4.0,
       "files": [
         "packages/db/migrations/0019_tipos_analisis.sql",
         "packages/db/repos/tipos-analisis.ts",
@@ -3069,7 +3070,7 @@
       "dependencies": [
         "F7.3.T4"
       ],
-      "estimateHours": 3,
+      "estimateHours": 3.0,
       "files": [
         "apps/web/app/(app)/config/ConfigForm.tsx",
         "apps/web/app/(app)/config/page.tsx"
@@ -3094,7 +3095,7 @@
       "reason": "Bug con diagnóstico acotado.",
       "status": "done",
       "dependencies": [],
-      "estimateHours": 3,
+      "estimateHours": 3.0,
       "files": [
         "apps/web/app/api/config/assets",
         "apps/web/app/api/storage/[bucket]/[...path]/route.ts",
@@ -3111,7 +3112,249 @@
           "text": "Bug real: assets/set borraba el archivo viejo antes de confirmar la config nueva; si el upsert fallaba, quedaba sin asset. Orden invertido. Verificado contra el contenedor real de staging: volumen montado y sin errores de storage en 72h; el reporte es probablemente anterior. Producción no tenía compose ni volumen: docker-compose.production.yml nuevo. Test de que el upsert de config no pisa las claves. Pendiente del usuario: confirmar en Coolify si producción apunta al compose nuevo; en este VPS solo corre el contenedor de staging."
         }
       ]
+    },
+    {
+      "id": "F8.1.T1",
+      "phase": 8,
+      "title": "Borrar paquetes desde la interfaz (borrado lógico)",
+      "description": "Hoy existe `DELETE /api/paquetes/[id]` (`apps/web/app/api/paquetes/[id]/route.ts`, solo admin), pero ninguna pantalla lo llama. Además hace borrado físico (`packages/db/repos/paquetes.ts`, función `deletePaquete`), que falla con 500 `ERROR_GENERICO` cuando el paquete aparece en una línea de presupuesto (FK `ON DELETE RESTRICT` de `0007`).\n\nQué hacer:\n- Migración `packages/db/migrations/0022_paquetes_activo.sql`: `ALTER TABLE paquetes ADD COLUMN IF NOT EXISTS activo boolean NOT NULL DEFAULT true`. Cabecera de comentario al estilo de `0013`.\n- `repos/paquetes.ts`: el borrado pasa a `update ... set activo = false`. `list` devuelve solo activos. `getById` sigue devolviendo inactivos, porque los presupuestos viejos los muestran. `setExamenes`, `setContenido`, `setTitulos` y `update` rechazan un paquete inactivo con el mismo error que un id inexistente.\n- UI: botón “Eliminar paquete” (variante destructiva) en el constructor `apps/web/app/(app)/paquetes/PaqueteBuilder.tsx`, visible solo para admin. Pide confirmación con `window.confirm` (así lo hacen `PacientesList.tsx` y `TitulosNavigator.tsx`), muestra un toast de éxito o error como el resto de las acciones de escritura (commit 4042bbd) y vuelve a `/paquetes`.\n- Aplicar la migración en la instancia hosted.\n\nListo cuando: un admin elimina un paquete que está en un presupuesto y no sale error; el paquete desaparece de `/paquetes` y del selector “Cargar paquete” del presupuesto; el detalle del presupuesto viejo sigue mostrando sus líneas; un operador no ve el botón y `DELETE` le responde 403.",
+      "model": "opencode-go/kimi-k2.6",
+      "reason": "Migración de una columna y un botón con patrón ya existente en el repo.",
+      "status": "backlog",
+      "dependencies": [],
+      "estimateHours": 2.5,
+      "files": [
+        "packages/db/migrations/0022_paquetes_activo.sql",
+        "packages/db/repos/paquetes.ts",
+        "apps/web/app/api/paquetes/[id]/route.ts",
+        "apps/web/app/(app)/paquetes/PaqueteBuilder.tsx",
+        "apps/web/app/(app)/paquetes/[id]/page.tsx"
+      ],
+      "specRef": "F8/sprint-feedback-cliente-2.md#F8.1.T1",
+      "comments": []
+    },
+    {
+      "id": "F8.2.T1",
+      "phase": 8,
+      "title": "Ficha incompleta de paciente: base, schemas y repos",
+      "description": "Hoy un presupuesto con nombre libre guarda `presupuestos.paciente_nombre_libre` sin `paciente_id` (check `presupuestos_paciente_xor` de `0001`). No se puede enviar: `api/presupuestos/[id]/enviar/route.ts` devuelve `PACIENTE_LIBRE_REQUIERE_FICHA`. Tampoco aparece en Pacientes. La decisión es crear una ficha incompleta.\n\nQué hacer:\n- Migración `packages/db/migrations/0023_pacientes_ficha_incompleta.sql`:\n  - `cedula`, `fecha_nacimiento` y `sexo` pasan a aceptar NULL. `pacientes_cedula_unique` se mantiene, porque Postgres permite varios NULL.\n  - Nuevo `CHECK pacientes_identificable`: `cedula IS NOT NULL OR telefono IS NOT NULL OR email IS NOT NULL`.\n  - Sin columna nueva: una ficha es incompleta cuando le falta cédula, fecha de nacimiento o sexo. Exponer esa regla como función pura `esFichaIncompleta(p)` en `packages/lib/schemas/paciente.ts`, con test.\n- `packages/lib/schemas/paciente.ts`: `pacienteProvisionalSchema` con `nombre`, `apellido`, `telefono?` y `email?`; exige teléfono o email (código `CONTACTO_REQUERIDO`). `pacienteCreateSchema` no cambia: la ficha completa sigue exigiendo todo.\n- `packages/lib/schemas/presupuesto.ts`: `presupuestoCreateSchema` acepta `paciente_provisional` como tercera alternativa a `paciente_id` y `paciente_nombre_libre`, y exactamente una de las tres debe venir. `paciente_nombre_libre` sigue siendo válido para no romper clientes, pero la UI deja de usarlo (F8.2.T2).\n- `packages/db/repos/pacientes.ts`: `createProvisional(db, input)` inserta la ficha incompleta. `update` permite completar la ficha; al completarla valida cédula, fecha y sexo con las mismas reglas de `pacienteCreateSchema`. Los tipos de fila pasan `cedula`, `fecha_nacimiento` y `sexo` a `string | null`; corregir en este paquete los usos que dejen de compilar.\n- `packages/db/repos/presupuestos.ts`: `create` con `paciente_provisional` crea la ficha y guarda el presupuesto con ese `paciente_id`. Si falla el presupuesto, borra la ficha recién creada. `convertToOrden` rechaza con `PACIENTE_FICHA_INCOMPLETA` si el paciente asignado tiene la ficha incompleta.\n- `packages/lib/error-messages.ts`: mensajes en tuteo para `CONTACTO_REQUERIDO` (“Indica un teléfono o un email para poder enviarle el presupuesto.”) y `PACIENTE_FICHA_INCOMPLETA` (“Completa la cédula, la fecha de nacimiento y el sexo del paciente antes de crear la orden.”).\n- Aplicar la migración en la instancia hosted.\n\nNo hace: UI (F8.2.T2 y F8.2.T3), ni migrar los presupuestos viejos con nombre libre, que no tienen datos de contacto.\n\nListo cuando: pasan los tests de `schemas/paciente`, `schemas/presupuesto` y `presupuestos.integration.test.ts`, con casos nuevos para crear un presupuesto con `paciente_provisional` solo con teléfono, rechazar uno sin teléfono ni email, y rechazar la conversión a orden con la ficha incompleta; `pnpm typecheck` pasa en todo el monorepo.",
+      "model": "opencode/deepseek-v4-pro",
+      "reason": "Relaja NOT NULL en una tabla con datos clínicos; toca reglas de integridad y la conversión a orden.",
+      "status": "backlog",
+      "dependencies": [],
+      "estimateHours": 4.0,
+      "files": [
+        "packages/db/migrations/0023_pacientes_ficha_incompleta.sql",
+        "packages/lib/schemas/paciente.ts",
+        "packages/lib/schemas/paciente.test.ts",
+        "packages/lib/schemas/presupuesto.ts",
+        "packages/lib/schemas/presupuesto.test.ts",
+        "packages/lib/error-messages.ts",
+        "packages/db/repos/pacientes.ts",
+        "packages/db/repos/presupuestos.ts",
+        "packages/db/repos/presupuestos.integration.test.ts"
+      ],
+      "specRef": "F8/sprint-feedback-cliente-2.md#F8.2.T1",
+      "comments": []
+    },
+    {
+      "id": "F8.2.T2",
+      "phase": 8,
+      "title": "Presupuesto con paciente nuevo: formulario y envío",
+      "description": "Usa la base de F8.2.T1. En `apps/web/app/(app)/presupuestos/nuevo/PresupuestoForm.tsx`, el modo “libre” deja de pedir un nombre suelto y pide Nombre, Apellido, Teléfono y Email, con la ayuda “Indica al menos un teléfono o un email para poder enviarle el presupuesto”. Al guardar se envía `paciente_provisional`. Los faltantes del botón guardar (F7.2.T1) incluyen “Falta teléfono o email”.\n\nEn `apps/web/app/(app)/presupuestos/[id]/PresupuestoDetalle.tsx`:\n- Si el paciente tiene la ficha incompleta, mostrar la etiqueta “Ficha incompleta” junto al nombre, con enlace a `/pacientes/[id]`.\n- El diálogo de convertir a orden, con la ficha incompleta, explica que hay que completarla y enlaza a la ficha, en vez de fallar al confirmar.\n- Los botones de envío (`packages/ui/envio/EnviarButtons.tsx`) ya se habilitan con el teléfono o el email del paciente; comprobar que funcionan con la ficha incompleta sin cambiar el componente.\n\nListo cuando: crear un presupuesto “libre” con nombre, apellido y teléfono deja al paciente en `/pacientes` y el botón WhatsApp del detalle queda habilitado; sin teléfono ni email, guardar muestra el faltante; convertir con la ficha incompleta muestra el aviso con enlace.",
+      "model": "opencode-go/kimi-k2.6",
+      "reason": "UI sobre un contrato ya definido en F8.2.T1.",
+      "status": "backlog",
+      "dependencies": [
+        "F8.2.T1"
+      ],
+      "estimateHours": 3.0,
+      "files": [
+        "apps/web/app/(app)/presupuestos/nuevo/PresupuestoForm.tsx",
+        "apps/web/app/(app)/presupuestos/[id]/PresupuestoDetalle.tsx"
+      ],
+      "specRef": "F8/sprint-feedback-cliente-2.md#F8.2.T2",
+      "comments": []
+    },
+    {
+      "id": "F8.2.T3",
+      "phase": 8,
+      "title": "Pacientes: mostrar y completar la ficha incompleta",
+      "description": "Usa `esFichaIncompleta` de F8.2.T1.\n- `apps/web/app/(app)/pacientes/PacientesList.tsx`: etiqueta “Ficha incompleta” en la fila y “—” donde falten cédula, fecha o edad. No debe romperse con `cedula` o `fecha_nacimiento` en null (revisar `packages/lib/edad.ts` y `packages/lib/cedula.ts` en ese flujo).\n- Ficha `apps/web/app/(app)/pacientes/[id]/page.tsx` y `FichaTabs.tsx`: aviso arriba “Faltan datos para poder crear órdenes: cédula, fecha de nacimiento, sexo” (solo los que falten), con botón que abre `PacienteFormDialog.tsx` en modo edición.\n- `PacienteFormDialog.tsx`: editar una ficha incompleta exige los tres campos para guardar.\n\nListo cuando: la ficha creada desde un presupuesto aparece con la etiqueta en la lista, se abre sin errores y, al completarla, la etiqueta desaparece y el presupuesto ya puede convertirse en orden.",
+      "model": "opencode-go/kimi-k2.6",
+      "reason": "Ajustes de UI con nulos; sin lógica de dominio nueva.",
+      "status": "backlog",
+      "dependencies": [
+        "F8.2.T1"
+      ],
+      "estimateHours": 2.5,
+      "files": [
+        "apps/web/app/(app)/pacientes/PacientesList.tsx",
+        "apps/web/app/(app)/pacientes/PacienteFormDialog.tsx",
+        "apps/web/app/(app)/pacientes/[id]/page.tsx",
+        "apps/web/app/(app)/pacientes/[id]/FichaTabs.tsx"
+      ],
+      "specRef": "F8/sprint-feedback-cliente-2.md#F8.2.T3",
+      "comments": []
+    },
+    {
+      "id": "F8.2.T4",
+      "phase": 8,
+      "title": "Quitar el Estado del PDF de presupuesto",
+      "description": "`packages/pdf/PresupuestoPDF.tsx`, líneas 269-270 aproximadamente, imprime la etiqueta `Estado` con `data.estado` en el bloque de datos. Quitar ese campo del PDF y reacomodar el bloque para que no quede un hueco. `estado` puede seguir en `PresupuestoPDFData`, porque lo usa quien arma los datos. `ResultadoPDF.tsx` no imprime el estado: no tocarlo.\n\nListo cuando: el PDF de un presupuesto (`/api/pdf/...` o el test de `packages/pdf/render.test.tsx`) no contiene el texto “Estado” y `render.test.tsx` pasa.",
+      "model": "opencode-go/kimi-k2.6",
+      "reason": "Quitar un campo de un componente.",
+      "status": "backlog",
+      "dependencies": [],
+      "estimateHours": 0.5,
+      "files": [
+        "packages/pdf/PresupuestoPDF.tsx",
+        "packages/pdf/render.test.tsx"
+      ],
+      "specRef": "F8/sprint-feedback-cliente-2.md#F8.2.T4",
+      "comments": []
+    },
+    {
+      "id": "F8.2.T5",
+      "phase": 8,
+      "title": "Número de presupuesto visible en la lista y búsqueda que funcione",
+      "description": "El número `PR-2026-000123` (`numero_correlativo` de `0013`, formateado con `packages/lib/numero-presupuesto.ts`) ya sale en el detalle y en el PDF, pero no en la lista ni en el tablero. Además la búsqueda está rota:\n- `api/presupuestos/route.ts` devuelve el array de `search()`, mientras que `PresupuestosList.tsx` lee `data.items`, así que cualquier término deja la lista vacía.\n- `search()` ignora el estado, las fechas y la paginación.\n- `search()` no busca por número ni por cédula.\n\nQué hacer:\n- `packages/lib/numero-presupuesto.ts`: `parseNumeroPresupuesto(term)` acepta `PR-2026-000123`, `pr-2026-123`, `000123` y `123`, y devuelve el entero o null. Con test.\n- `packages/db/repos/presupuestos.ts`: unificar la búsqueda dentro de `list`, con un filtro `term` que devuelve la misma forma paginada `{ items, total, ... }`. Si el término es un número, filtra `numero_correlativo = n`; si no, busca con ilike en `paciente_nombre_libre`, nombre, apellido y cédula del paciente. El término se combina con estado, desde y hasta. Eliminar `search` si nadie más lo usa.\n- `api/presupuestos/route.ts`: siempre `list`, pasando `term`.\n- `PresupuestosList.tsx`: mostrar el número en la tarjeta del tablero (hoy calcula `numeroLegible` y no lo muestra) y como primera columna “Nº” en la vista tabla. Placeholder: “Buscar por nº, paciente o cédula…”.\n\nListo cuando: buscar `PR-2026-000001`, `1` o un apellido devuelve el presupuesto en ambas vistas; buscar con el estado “Borrador” seleccionado respeta el filtro; `presupuestos.integration.test.ts` tiene un caso por número y pasa.",
+      "model": "opencode/deepseek-v4-pro",
+      "reason": "Corrige un bug de contrato API↔UI y reescribe una consulta con filtros combinados.",
+      "status": "backlog",
+      "dependencies": [
+        "F8.2.T1"
+      ],
+      "estimateHours": 3.0,
+      "files": [
+        "packages/lib/numero-presupuesto.ts",
+        "packages/lib/numero-presupuesto.test.ts",
+        "packages/db/repos/presupuestos.ts",
+        "packages/db/repos/presupuestos.integration.test.ts",
+        "apps/web/app/api/presupuestos/route.ts",
+        "apps/web/app/(app)/presupuestos/PresupuestosList.tsx"
+      ],
+      "specRef": "F8/sprint-feedback-cliente-2.md#F8.2.T5",
+      "comments": []
+    },
+    {
+      "id": "F8.3.T1",
+      "phase": 8,
+      "title": "Quitar el Estado de la página pública del resultado",
+      "description": "`apps/web/app/r/[slug]/page.tsx`, líneas 86-89 aproximadamente, muestra `Estado` con el valor crudo de `orden.estado` (“Validando”, “En proceso”) en el link que se envía al paciente. Quitar ese campo y reacomodar la grilla. Se mantiene el 404 para órdenes anuladas (línea 51). `v/[slug]` y `p/[slug]` no muestran el estado: no tocarlos.\n\nListo cuando: abrir un link `/r/\u003cslug\u003e` de una orden en cualquier estado no muestra la palabra “Estado”.",
+      "model": "opencode-go/kimi-k2.6",
+      "reason": "Quitar un campo de una página.",
+      "status": "backlog",
+      "dependencies": [],
+      "estimateHours": 0.5,
+      "files": [
+        "apps/web/app/r/[slug]/page.tsx"
+      ],
+      "specRef": "F8/sprint-feedback-cliente-2.md#F8.3.T1",
+      "comments": []
+    },
+    {
+      "id": "F8.3.T2",
+      "phase": 8,
+      "title": "Número correlativo de resultado: base y PDF",
+      "description": "`ordenes` no tiene número: el “Nº” del PDF es `id.split(\"-\")[0].toUpperCase()` (`packages/pdf/ResultadoPDF.tsx`, función `referencia`, que recibe los datos de `getForPDF` en `packages/db/repos/ordenes.ts`).\n\nQué hacer:\n- Migración `packages/db/migrations/0024_ordenes_numero_correlativo.sql`, sin usar `ADD COLUMN serial` directo, que numera en orden físico y no cronológico:\n  1. `ADD COLUMN numero_correlativo integer`.\n  2. Rellenar con `row_number() OVER (ORDER BY created_at, id)`.\n  3. `CREATE SEQUENCE ordenes_numero_correlativo_seq OWNED BY ordenes.numero_correlativo`, `setval` al máximo y `DEFAULT nextval(...)`.\n  4. `SET NOT NULL` e índice único.\n  Todo en una transacción y con la cabecera de comentario de `0013`.\n- `packages/lib/numero-orden.ts` y su test, igual que `numero-presupuesto.ts`: `formatNumeroOrden(n, createdAt)` devuelve `RS-{año}-{000123}` y `parseNumeroOrden(term)` acepta `RS-2026-000123`, `rs-2026-123`, `000123` y `123`.\n- `repos/ordenes.ts`: incluir `numero_correlativo` en los tipos y en los select de `getById`, `list`, `search` y `getForPDF`. No cambiar filtros (eso es F8.3.T4).\n- `ResultadoPDF.tsx`: “Nº” muestra `formatNumeroOrden`. Eliminar `referencia` basada en el UUID.\n- Aplicar la migración en la instancia hosted.\n\nListo cuando: después de migrar, la orden más antigua tiene el número 1 y una orden nueva recibe el siguiente; el PDF de resultado muestra `RS-2026-…`; pasan `render.test.tsx` y el test nuevo de `numero-orden`.",
+      "model": "opencode/deepseek-v4-pro",
+      "reason": "Migración con relleno y secuencia sobre datos de producción; hay que acertar el orden.",
+      "status": "backlog",
+      "dependencies": [
+        "F8.2.T4"
+      ],
+      "estimateHours": 3.0,
+      "files": [
+        "packages/db/migrations/0024_ordenes_numero_correlativo.sql",
+        "packages/lib/numero-orden.ts",
+        "packages/lib/numero-orden.test.ts",
+        "packages/db/repos/ordenes.ts",
+        "packages/pdf/ResultadoPDF.tsx",
+        "packages/pdf/render.test.tsx"
+      ],
+      "specRef": "F8/sprint-feedback-cliente-2.md#F8.3.T2",
+      "comments": []
+    },
+    {
+      "id": "F8.3.T3",
+      "phase": 8,
+      "title": "Número de resultado visible y búsqueda por número en el sistema",
+      "description": "Usa `numero_correlativo` y `numero-orden.ts` de F8.3.T2.\n- `apps/web/app/(app)/resultados/ResultadosList.tsx`: primera columna “Nº” con `formatNumeroOrden`. Placeholder “Buscar por nº, paciente o cédula…”; hoy dice “o fecha”, pero la búsqueda por fecha no existe, y para eso están los filtros desde y hasta.\n- `OrdenesPipelineSection.tsx`: el número en cada tarjeta.\n- `resultados/[id]/ResultadoDetalle.tsx`: el número en el encabezado.\n- `packages/db/repos/ordenes.ts`: unificar `search` dentro de `list` con un filtro `term`, que hoy descarta desde y hasta y no pagina. Si `parseNumeroOrden(term)` da un número, filtra por `numero_correlativo`; si no, ilike por nombre, apellido y cédula. El término se combina con estado, desde y hasta, y la respuesta es paginada.\n- `apps/web/app/api/resultados/route.ts`: siempre `list`, pasando `term`.\n\nListo cuando: buscar `RS-2026-000005` o `5` encuentra la orden; buscar un apellido con un rango de fechas respeta el rango; el número se ve en la lista, el tablero y el detalle.",
+      "model": "opencode/deepseek-v4-pro",
+      "reason": "Reescribe la consulta de búsqueda con filtros combinados y toca tres vistas.",
+      "status": "backlog",
+      "dependencies": [
+        "F8.3.T2"
+      ],
+      "estimateHours": 3.0,
+      "files": [
+        "packages/db/repos/ordenes.ts",
+        "apps/web/app/api/resultados/route.ts",
+        "apps/web/app/(app)/resultados/ResultadosList.tsx",
+        "apps/web/app/(app)/resultados/OrdenesPipelineSection.tsx",
+        "apps/web/app/(app)/resultados/[id]/ResultadoDetalle.tsx"
+      ],
+      "specRef": "F8/sprint-feedback-cliente-2.md#F8.3.T3",
+      "comments": []
+    },
+    {
+      "id": "F8.3.T4",
+      "phase": 8,
+      "title": "Fecha de resultado: zona horaria de Caracas y etiquetas claras",
+      "description": "El cliente pidió revisar la fecha de resultado. `packages/lib/fecha.ts` ya formatea en `America/Caracas`, pero casi nadie lo usa:\n- `packages/pdf/theme.ts` (`formatDateDMY`, con `getUTC*`), `apps/web/app/r/[slug]/page.tsx`, `ResultadosList.tsx`, `OrdenesPipelineSection.tsx` y `ResultadoDetalle.tsx` formatean con `timeZone: \"UTC\"`. `updateEstado` (`packages/db/repos/ordenes.ts`, al pasar a Entregada) guarda la hora real, así que una entrega después de las 20:00 de Caracas aparece con el día siguiente. Lo mismo pasa con “Emitido el” del PDF, que cae en `new Date()`.\n- `apps/web/app/(app)/resultados/nuevo/ResultadoForm.tsx`: `hoyInput()` y `formatDateInput` usan `toISOString().slice(0,10)`, así que después de las 20:00 proponen la fecha de mañana y al editar corren la fecha un día.\n- `list` en `ordenes.ts` compara desde y hasta de `fecha_muestra` con límites de día en UTC.\n- En el PDF, la cabecera dice “Fecha” pero muestra `fecha_muestra`, mientras que el cuerpo tiene “Fecha de muestra” y “Fecha de resultado”. Cambiar la etiqueta de la cabecera a “Fecha de muestra”.\n\nQué hacer: que todos esos lugares usen los helpers de `packages/lib/fecha.ts`, agregando los que falten, como “fecha de hoy en Caracas como YYYY-MM-DD” y “límites de un día de Caracas en UTC”, con tests en `fecha.test.ts`. En `ordenes.ts` solo cambian los límites de desde y hasta de `list` (F8.3.T3 ya unificó la búsqueda ahí).\n\nListo cuando: una orden entregada el 16/09 a las 22:30 de Caracas muestra 16/09/2026 en la lista, el detalle, el tablero, `/r/\u003cslug\u003e` y el PDF; a las 21:00 de Caracas el formulario nuevo propone la fecha de hoy; filtrar desde 16/09 hasta 16/09 incluye una muestra tomada a las 22:00 de Caracas; pasan `fecha.test.ts` y `render.test.tsx`.",
+      "model": "opencode/deepseek-v4-pro",
+      "reason": "Bugs de zona horaria repartidos en siete archivos; hay que razonar bien los límites de día.",
+      "status": "backlog",
+      "dependencies": [
+        "F8.3.T1",
+        "F8.3.T3"
+      ],
+      "estimateHours": 3.0,
+      "files": [
+        "packages/lib/fecha.ts",
+        "packages/lib/fecha.test.ts",
+        "packages/pdf/theme.ts",
+        "packages/pdf/ResultadoPDF.tsx",
+        "packages/db/repos/ordenes.ts",
+        "apps/web/app/r/[slug]/page.tsx",
+        "apps/web/app/(app)/resultados/ResultadosList.tsx",
+        "apps/web/app/(app)/resultados/OrdenesPipelineSection.tsx",
+        "apps/web/app/(app)/resultados/[id]/ResultadoDetalle.tsx",
+        "apps/web/app/(app)/resultados/nuevo/ResultadoForm.tsx"
+      ],
+      "specRef": "F8/sprint-feedback-cliente-2.md#F8.3.T4",
+      "comments": []
+    },
+    {
+      "id": "F8.4.T1",
+      "phase": 8,
+      "title": "Textos de voseo argentino a español de Venezuela",
+      "description": "El cliente pidió “quitar español argentino y usar español venezolano”. El locale ya es correcto: todo usa `es-VE` y `America/Caracas`, sin ningún `es-AR`. El problema es la redacción: hay unas 155 formas de voseo en 44 archivos. Va al final para no pisar a las demás tareas de F8, que tocan muchos de esos archivos.\n\nQué hacer:\n- Pasar a tuteo todo texto visible para el usuario: UI, `packages/lib/error-messages.ts`, emails (`packages/lib/server/email.ts` y el HTML de `apps/web/app/api/usuarios/invite/route.ts`), las páginas públicas `v/[slug]`, `r/[slug]` y `p/[slug]`, y la leyenda del QR de `packages/pdf/components/PDFQr.tsx`. Ejemplos: tenés → tienes, hacé clic → haz clic, intentá → intenta, querés → quieres, cargala → cárgala, acá → aquí. El “Vos” de `usuarios/UsuariosList.tsx` pasa a “Tú”.\n- Quitar giros argentinos: “arrancamos bien, sin vueltas” (`PacientesList.tsx`) y “arrancar” (`PresupuestosList.tsx`). Tono neutro y cordial.\n- Los mensajes de WhatsApp (`enlace-resultado.ts`, `enlace-presupuesto.ts`) ya están en “usted”: no tocarlos.\n- `apps/web/app/layout.tsx`: `\u003chtml lang=\"es-VE\"\u003e`.\n- Actualizar los e2e que buscan por texto: `apps/web/e2e/resultado.spec.ts` y `apps/web/e2e/presupuesto.spec.ts` (`getByPlaceholder(\"Buscá por nombre del examen\")`).\n- Los comentarios de código no son necesarios.\n\nPara encontrar todo: `grep -rnP \"\\b(\\w+(á|é|í)(s)?|tenés|podés|querés|sos|vos|acá|fijate|asegurate|\\w+ala|\\w+alo)\\b\"` en `apps/web` y `packages/{ui,lib,pdf}`, excluyendo `node_modules` y `.next`, y revisar cada resultado a mano (hay falsos positivos como “está”, “más” o “aquí”).\n\nListo cuando: ese grep no devuelve voseo en textos visibles; `pnpm typecheck`, `pnpm lint` y los tests unitarios pasan; los e2e modificados usan los textos nuevos.",
+      "model": "opencode-go/kimi-k2.6",
+      "reason": "Reemplazo mecánico de textos en muchos archivos; no tiene lógica.",
+      "status": "backlog",
+      "dependencies": [
+        "F8.1.T1",
+        "F8.2.T2",
+        "F8.2.T3",
+        "F8.2.T4",
+        "F8.2.T5",
+        "F8.3.T4"
+      ],
+      "estimateHours": 3.0,
+      "files": [
+        "apps/web/app/**",
+        "apps/web/components/**",
+        "apps/web/e2e/resultado.spec.ts",
+        "apps/web/e2e/presupuesto.spec.ts",
+        "packages/ui/**",
+        "packages/lib/error-messages.ts",
+        "packages/lib/server/email.ts",
+        "packages/pdf/components/PDFQr.tsx"
+      ],
+      "specRef": "F8/sprint-feedback-cliente-2.md#F8.4.T1",
+      "comments": []
     }
-  ],
-  "phases": []
+  ]
 }
