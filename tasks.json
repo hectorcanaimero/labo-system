@@ -2669,7 +2669,7 @@
       "phase": 7,
       "title": "Enmascarar la página pública del resultado",
       "description": "**Objetivo**\n\nLa página `/r/[slug]` muestra nombre completo, cédula completa y valores. Enmascarar la cédula y quitar los valores de la vista web, dejando el PDF como único lugar con el resultado.\n\n**Alcance**\n\nSí hace:\n- Cédula como `V-***.***.*45`.\n- Quitar la tabla de valores de la página; dejar laboratorio, paciente, fecha, botón de descarga del PDF y aviso de vencimiento.\n\nNo hace:\n- QR ni vista de verificación (F7.3.T2).\n\n**Criterios de aceptación**\n\n- [ ] Abrir el enlace muestra la cédula enmascarada y ningún valor de examen en el HTML.",
-      "model": "opencode-go/kimi-k2.6",
+      "model": "claude/claude-sonnet-5",
       "reason": "Cambios acotados de UI, mensajes y documentación.",
       "status": "hecha, con seguimiento",
       "dependencies": [],
