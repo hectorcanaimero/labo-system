@@ -45,7 +45,7 @@ Qué hacer:
 
 Listo cuando: un admin elimina un paquete que está en un presupuesto y no sale error; el paquete desaparece de `/paquetes` y del selector “Cargar paquete” del presupuesto; el detalle del presupuesto viejo sigue mostrando sus líneas; un operador no ve el botón y `DELETE` le responde 403.
 
-- **Modelo**: opencode-go/kimi-k2.6
+- **Modelo**: claude/claude-sonnet-5
 - **Estimación**: 2.5h
 - **Razón**: Migración de una columna y un botón con patrón ya existente en el repo.
 - **Dependencies**:
@@ -78,7 +78,7 @@ No hace: UI (F8.2.T2 y F8.2.T3), ni migrar los presupuestos viejos con nombre li
 
 Listo cuando: pasan los tests de `schemas/paciente`, `schemas/presupuesto` y `presupuestos.integration.test.ts`, con casos nuevos para crear un presupuesto con `paciente_provisional` solo con teléfono, rechazar uno sin teléfono ni email, y rechazar la conversión a orden con la ficha incompleta; `pnpm typecheck` pasa en todo el monorepo.
 
-- **Modelo**: opencode/deepseek-v4-pro
+- **Modelo**: claude/claude-sonnet-5
 - **Estimación**: 4h
 - **Razón**: Relaja NOT NULL en una tabla con datos clínicos; toca reglas de integridad y la conversión a orden.
 - **Dependencies**:
@@ -104,7 +104,7 @@ En `apps/web/app/(app)/presupuestos/[id]/PresupuestoDetalle.tsx`:
 
 Listo cuando: crear un presupuesto “libre” con nombre, apellido y teléfono deja al paciente en `/pacientes` y el botón WhatsApp del detalle queda habilitado; sin teléfono ni email, guardar muestra el faltante; convertir con la ficha incompleta muestra el aviso con enlace.
 
-- **Modelo**: opencode-go/kimi-k2.6
+- **Modelo**: claude/claude-sonnet-5
 - **Estimación**: 3h
 - **Razón**: UI sobre un contrato ya definido en F8.2.T1.
 - **Dependencies**: F8.2.T1
@@ -121,7 +121,7 @@ Usa `esFichaIncompleta` de F8.2.T1.
 
 Listo cuando: la ficha creada desde un presupuesto aparece con la etiqueta en la lista, se abre sin errores y, al completarla, la etiqueta desaparece y el presupuesto ya puede convertirse en orden.
 
-- **Modelo**: opencode-go/kimi-k2.6
+- **Modelo**: claude/claude-sonnet-5
 - **Estimación**: 2.5h
 - **Razón**: Ajustes de UI con nulos; sin lógica de dominio nueva.
 - **Dependencies**: F8.2.T1
@@ -137,7 +137,7 @@ Listo cuando: la ficha creada desde un presupuesto aparece con la etiqueta en la
 
 Listo cuando: el PDF de un presupuesto (`/api/pdf/...` o el test de `packages/pdf/render.test.tsx`) no contiene el texto “Estado” y `render.test.tsx` pasa.
 
-- **Modelo**: opencode-go/kimi-k2.6
+- **Modelo**: claude/claude-haiku-4-5
 - **Estimación**: 0.5h
 - **Razón**: Quitar un campo de un componente.
 - **Dependencies**:
@@ -160,7 +160,7 @@ Qué hacer:
 
 Listo cuando: buscar `PR-2026-000001`, `1` o un apellido devuelve el presupuesto en ambas vistas; buscar con el estado “Borrador” seleccionado respeta el filtro; `presupuestos.integration.test.ts` tiene un caso por número y pasa.
 
-- **Modelo**: opencode/deepseek-v4-pro
+- **Modelo**: claude/claude-sonnet-5
 - **Estimación**: 3h
 - **Razón**: Corrige un bug de contrato API↔UI y reescribe una consulta con filtros combinados.
 - **Dependencies**: F8.2.T1
@@ -180,7 +180,7 @@ Listo cuando: buscar `PR-2026-000001`, `1` o un apellido devuelve el presupuesto
 
 Listo cuando: abrir un link `/r/<slug>` de una orden en cualquier estado no muestra la palabra “Estado”.
 
-- **Modelo**: opencode-go/kimi-k2.6
+- **Modelo**: claude/claude-haiku-4-5
 - **Estimación**: 0.5h
 - **Razón**: Quitar un campo de una página.
 - **Dependencies**:
@@ -205,7 +205,7 @@ Qué hacer:
 
 Listo cuando: después de migrar, la orden más antigua tiene el número 1 y una orden nueva recibe el siguiente; el PDF de resultado muestra `RS-2026-…`; pasan `render.test.tsx` y el test nuevo de `numero-orden`.
 
-- **Modelo**: opencode/deepseek-v4-pro
+- **Modelo**: claude/claude-sonnet-5
 - **Estimación**: 3h
 - **Razón**: Migración con relleno y secuencia sobre datos de producción; hay que acertar el orden.
 - **Dependencies**: F8.2.T4
@@ -228,7 +228,7 @@ Usa `numero_correlativo` y `numero-orden.ts` de F8.3.T2.
 
 Listo cuando: buscar `RS-2026-000005` o `5` encuentra la orden; buscar un apellido con un rango de fechas respeta el rango; el número se ve en la lista, el tablero y el detalle.
 
-- **Modelo**: opencode/deepseek-v4-pro
+- **Modelo**: claude/claude-sonnet-5
 - **Estimación**: 3h
 - **Razón**: Reescribe la consulta de búsqueda con filtros combinados y toca tres vistas.
 - **Dependencies**: F8.3.T2
@@ -251,7 +251,7 @@ Qué hacer: que todos esos lugares usen los helpers de `packages/lib/fecha.ts`, 
 
 Listo cuando: una orden entregada el 16/09 a las 22:30 de Caracas muestra 16/09/2026 en la lista, el detalle, el tablero, `/r/<slug>` y el PDF; a las 21:00 de Caracas el formulario nuevo propone la fecha de hoy; filtrar desde 16/09 hasta 16/09 incluye una muestra tomada a las 22:00 de Caracas; pasan `fecha.test.ts` y `render.test.tsx`.
 
-- **Modelo**: opencode/deepseek-v4-pro
+- **Modelo**: claude/claude-sonnet-5
 - **Estimación**: 3h
 - **Razón**: Bugs de zona horaria repartidos en siete archivos; hay que razonar bien los límites de día.
 - **Dependencies**: F8.3.T1, F8.3.T3
@@ -285,7 +285,7 @@ Para encontrar todo: `grep -rnP "\b(\w+(á|é|í)(s)?|tenés|podés|querés|sos|
 
 Listo cuando: ese grep no devuelve voseo en textos visibles; `pnpm typecheck`, `pnpm lint` y los tests unitarios pasan; los e2e modificados usan los textos nuevos.
 
-- **Modelo**: opencode-go/kimi-k2.6
+- **Modelo**: claude/claude-haiku-4-5
 - **Estimación**: 3h
 - **Razón**: Reemplazo mecánico de textos en muchos archivos; no tiene lógica.
 - **Dependencies**: F8.1.T1, F8.2.T2, F8.2.T3, F8.2.T4, F8.2.T5, F8.3.T4
