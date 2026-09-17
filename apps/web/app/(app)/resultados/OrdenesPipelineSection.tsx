@@ -23,9 +23,12 @@ import {
 import { toHumanError } from "@labo/lib/error-messages";
 import { notifyError, notifySuccess } from "@labo/ui/feedback/toast";
 import type { EstadoOrden } from "@labo/lib/schemas/orden";
+import { formatNumeroOrden } from "@labo/lib/numero-orden";
 
 export interface OrdenPipelineItem {
   id: string;
+  numero_correlativo: number;
+  created_at: string;
   estado: EstadoOrden;
   paciente_nombre: string;
   paciente_apellido: string;
@@ -194,7 +197,7 @@ export function OrdenesPipelineSection({ items }: OrdenesPipelineSectionProps) {
       mergedItems.map((r) => ({
         id: r.id,
         estado: r.estado,
-        pacienteLabel: `${r.paciente_nombre} ${r.paciente_apellido}`.trim(),
+        pacienteLabel: `${formatNumeroOrden(r.numero_correlativo, r.created_at)} · ${r.paciente_nombre} ${r.paciente_apellido}`.trim(),
         cedula: r.paciente_cedula,
         fechaMuestraLabel: formatDate(r.fecha_muestra),
         examenesCount: r.examenes_count,

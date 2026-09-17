@@ -36,6 +36,8 @@ export default async function ResultadosPage() {
 
   const pipelineItems: OrdenPipelineItem[] = pipelineResult.items.map((item) => ({
     id: item.id,
+    numero_correlativo: item.numero_correlativo,
+    created_at: item.created_at,
     estado: item.estado,
     paciente_nombre: item.paciente_nombre,
     paciente_apellido: item.paciente_apellido,

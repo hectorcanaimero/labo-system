@@ -15,6 +15,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@labo/ui/feedback";
 import { RefinarObservacionesButton } from "@labo/ui/resultados/RefinarObservacionesButton";
+import { formatNumeroOrden } from "@labo/lib/numero-orden";
 
 import { EnviarResultadoButtons } from "./EnviarResultadoButtons";
 import { ResultadoForm } from "../nuevo/ResultadoForm";
@@ -25,6 +26,7 @@ interface ResultadoDetalleProps {
   role: string;
   initialData: {
     id: string;
+    numero_correlativo: number;
     paciente_id: string;
     fecha_muestra: string;
     fecha_resultado: string | null;
@@ -178,7 +180,7 @@ export function ResultadoDetalle({ role, initialData }: ResultadoDetalleProps) {
   return (
     <div className="flex flex-col gap-4">
       <PageHeader
-        title={`${initialData.patient.nombre} ${initialData.patient.apellido}`}
+        title={`${formatNumeroOrden(initialData.numero_correlativo, initialData.created_at)} · ${initialData.patient.nombre} ${initialData.patient.apellido}`}
         count={initialData.patient.cedula}
         description="Ficha de la orden: estado, fechas, contacto y exámenes."
         back={{ href: "/resultados", label: "Órdenes" }}
