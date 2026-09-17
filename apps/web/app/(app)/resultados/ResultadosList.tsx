@@ -15,6 +15,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { toHumanError } from "@labo/lib/error-messages";
+import { formatFechaLab } from "@labo/lib/fecha";
 import { EmptyState, SkeletonTable } from "@labo/ui/feedback";
 import { ExportButton } from "@labo/ui/exports/ExportButton";
 import { OrdenEstadoBadge } from "@labo/ui/ordenes/OrdenEstadoBadge";
@@ -54,18 +55,6 @@ interface ResultadosListProps {
 }
 
 const SEARCH_DEBOUNCE_MS = 250;
-
-function formatDate(value: string | null): string {
-  if (!value) return "—";
-  try {
-    return new Intl.DateTimeFormat("es-VE", {
-      dateStyle: "medium",
-      timeZone: "UTC",
-    }).format(new Date(value));
-  } catch {
-    return "—";
-  }
-}
 
 export function ResultadosList({ initialData, pageSize }: ResultadosListProps) {
   const [data, setData] = useState(initialData);
@@ -260,10 +249,10 @@ export function ResultadosList({ initialData, pageSize }: ResultadosListProps) {
                         {resultado.paciente_cedula}
                       </TableCell>
                       <TableCell className="py-1.5 font-mono text-xs tabular-nums text-muted-foreground">
-                        {formatDate(resultado.fecha_muestra)}
+                        {formatFechaLab(resultado.fecha_muestra)}
                       </TableCell>
                       <TableCell className="py-1.5 font-mono text-xs tabular-nums text-muted-foreground">
-                        {formatDate(resultado.fecha_resultado)}
+                        {formatFechaLab(resultado.fecha_resultado)}
                       </TableCell>
                       <TableCell className="py-1.5">
                         <OrdenEstadoBadge estado={resultado.estado as EstadoOrden} />

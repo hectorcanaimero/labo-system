@@ -25,6 +25,7 @@ import {
 } from "@/components/ui/dialog";
 import { indicesSinValor, mensajeSinValor, tieneValor } from "@labo/lib/entrega-orden";
 import { toHumanError } from "@labo/lib/error-messages";
+import { fechaInputLab, hoyLabInput } from "@labo/lib/fecha";
 import { ESTADO_ORDEN, type EstadoOrden } from "@labo/lib/schemas/orden";
 import {
   PacienteAutocomplete,
@@ -40,10 +41,6 @@ type ResultadoMode = "create" | "edit";
 
 /** Estados que se pueden elegir al cargar o editar. Anular es una acción aparte. */
 const ESTADOS_ELEGIBLES: readonly EstadoOrden[] = ESTADO_ORDEN.filter((e) => e !== "Anulada");
-
-function hoyInput(): string {
-  return new Date().toISOString().slice(0, 10);
-}
 
 interface ExamenCatalogoItem {
   id: string;
@@ -110,11 +107,6 @@ interface ResultadoFormProps {
   onCancelEdit?: () => void;
 }
 
-function formatDateInput(value: string | null | undefined): string {
-  if (!value) return "";
-  return new Date(value).toISOString().slice(0, 10);
-}
-
 function toApiDate(value: string): string | undefined {
   if (!value) return undefined;
   return new Date(`${value}T12:00:00.000Z`).toISOString();
@@ -173,8 +165,8 @@ export function ResultadoForm({ mode, initialData, onSaved, onCancelEdit }: Resu
         }
       : null,
   );
-  const [fechaMuestra, setFechaMuestra] = useState(formatDateInput(initialData?.fecha_muestra));
-  const [fechaResultado, setFechaResultado] = useState(formatDateInput(initialData?.fecha_resultado));
+  const [fechaMuestra, setFechaMuestra] = useState(fechaInputLab(initialData?.fecha_muestra));
+  const [fechaResultado, setFechaResultado] = useState(fechaInputLab(initialData?.fecha_resultado));
   // El estado es explícito: lo elige el operador. Sólo se sugiere "Entregada"
   // al cargar una fecha de resultado si todavía no lo tocó a mano.
   const [estado, setEstado] = useState<EstadoOrden>(
@@ -223,7 +215,7 @@ export function ResultadoForm({ mode, initialData, onSaved, onCancelEdit }: Resu
     setEstadoTocado(true);
     // Registrada no admite fecha de resultado; Entregada la exige.
     if (value === "Registrada") setFechaResultado("");
-    if (value === "Entregada" && !fechaResultado) setFechaResultado(hoyInput());
+    if (value === "Entregada" && !fechaResultado) setFechaResultado(hoyLabInput());
   }
 
   function abrirCrearPaciente(query: string): void {

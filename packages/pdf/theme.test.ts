@@ -19,9 +19,10 @@ describe("assetOrNull", () => {
 });
 
 describe("formatDateDMY", () => {
-  it("formatea dd/mm/aaaa en UTC y tolera null/inválido", () => {
-    expect(formatDateDMY("2026-08-31T00:00:00.000Z")).toBe("31/08/2026");
-    expect(formatDateDMY(new Date(Date.UTC(2026, 0, 5)))).toBe("05/01/2026");
+  it("formatea dd/mm/aaaa en America/Caracas y tolera null/inválido", () => {
+    // Medianoche UTC del 31/08 son las 20:00 del 30/08 en Caracas.
+    expect(formatDateDMY("2026-08-31T00:00:00.000Z")).toBe("30/08/2026");
+    expect(formatDateDMY(new Date(Date.UTC(2026, 0, 5, 4)))).toBe("05/01/2026");
     expect(formatDateDMY(null)).toBe("—");
     expect(formatDateDMY("no es fecha")).toBe("—");
   });
@@ -40,9 +41,9 @@ describe("formatDateTimeDMY", () => {
     expect(formatDateTimeDMY(new Date(Date.UTC(2026, 8, 7, 4, 0)))).toBe("07/09/2026 00:00");
   });
 
-  it("difiere de formatDateDMY cuando la hora local cae en el día anterior", () => {
+  it("coincide en el día con formatDateDMY, ambos en la zona del laboratorio", () => {
     const nocheEnCaracas = "2026-09-07T02:00:00.000Z";
-    expect(formatDateDMY(nocheEnCaracas)).toBe("07/09/2026");
+    expect(formatDateDMY(nocheEnCaracas)).toBe("06/09/2026");
     expect(formatDateTimeDMY(nocheEnCaracas)).toBe("06/09/2026 22:00");
   });
 
