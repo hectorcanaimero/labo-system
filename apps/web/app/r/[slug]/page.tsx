@@ -84,10 +84,6 @@ export default async function ResultadoPublicoPage({
             <dd className="text-sm font-medium">{enmascararCedula(paciente.cedula)}</dd>
           </div>
           <div>
-            <dt className="text-xs uppercase tracking-wide text-muted-foreground">Estado</dt>
-            <dd className="text-sm font-medium">{orden.estado}</dd>
-          </div>
-          <div>
             <dt className="text-xs uppercase tracking-wide text-muted-foreground">
               Fecha de muestra
             </dt>
