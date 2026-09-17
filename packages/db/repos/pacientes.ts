@@ -4,6 +4,7 @@ import {
   pacienteSearch,
   pacienteCreate,
   pacienteUpdate,
+  pacienteProvisionalSchema,
 } from "@labo/lib/schemas/paciente";
 import type { EstadoPresupuesto } from "@labo/lib/schemas/presupuesto";
 import type { EstadoResultado } from "@labo/lib/schemas/resultado";
@@ -29,8 +30,13 @@ export interface Paciente {
   id: string;
   nombre: string;
   apellido: string;
-  cedula: string;
-  fecha_nacimiento: Date;
+  /**
+   * Nullable desde F8.2.T1 (0023): una ficha provisional se crea sin cédula,
+   * fecha de nacimiento ni sexo. `esFichaIncompleta` (`@labo/lib/schemas/paciente`)
+   * es la fuente de verdad de si a esta ficha le falta algo.
+   */
+  cedula: string | null;
+  fecha_nacimiento: Date | null;
   sexo: "M" | "F" | "O" | null;
   telefono: string | null;
   email: string | null;
@@ -160,8 +166,8 @@ function mapPaciente(row: Record<string, unknown>): Paciente {
     id: row.id as string,
     nombre: row.nombre as string,
     apellido: row.apellido as string,
-    cedula: row.cedula as string,
-    fecha_nacimiento: toDate(row.fecha_nacimiento),
+    cedula: (row.cedula as string | null) ?? null,
+    fecha_nacimiento: row.fecha_nacimiento == null ? null : toDate(row.fecha_nacimiento),
     sexo: (row.sexo as "M" | "F" | "O" | null) ?? null,
     telefono: (row.telefono as string | null) ?? null,
     email: (row.email as string | null) ?? null,
@@ -176,7 +182,9 @@ function mapPaciente(row: Record<string, unknown>): Paciente {
 function mapPacienteWithEdad(paciente: Paciente): PacienteWithEdad {
   return {
     ...paciente,
-    edad: calcularEdad(paciente.fecha_nacimiento),
+    // Ficha incompleta (sin fecha de nacimiento): la UI decide cómo mostrar
+    // la ausencia mirando `paciente.fecha_nacimiento`, no este 0 (F8.2.T3).
+    edad: paciente.fecha_nacimiento ? calcularEdad(paciente.fecha_nacimiento) : 0,
   };
 }
 
@@ -503,6 +511,40 @@ export async function create(db: Db, input: unknown): Promise<Paciente> {
   }
 
   const payload = mapPacienteCreate(parsed.data as unknown as Record<string, unknown>);
+
+  const { data, error } = await db
+    .from("pacientes")
+    .insert(payload)
+    .select()
+    .single();
+
+  if (error) mapUniqueCedulaError(error);
+  return mapPaciente(data as Record<string, unknown>);
+}
+
+/**
+ * Crea la ficha incompleta de un paciente (F8.2.T1): usada por
+ * `presupuestos.create` cuando el operador no tiene la ficha completa del
+ * paciente a mano. Sin cédula, fecha de nacimiento ni sexo — se completan
+ * después desde la ficha (`update`).
+ */
+export async function createProvisional(db: Db, input: unknown): Promise<Paciente> {
+  const parsed = pacienteProvisionalSchema.safeParse(input);
+  if (!parsed.success) {
+    throw toDomainValidationError(parsed.error);
+  }
+
+  const payload = {
+    nombre: parsed.data.nombre,
+    apellido: parsed.data.apellido,
+    cedula: null,
+    fecha_nacimiento: null,
+    sexo: null,
+    telefono: parsed.data.telefono && parsed.data.telefono.length > 0 ? parsed.data.telefono : null,
+    email: parsed.data.email && parsed.data.email.length > 0 ? parsed.data.email : null,
+    direccion: null,
+    ubicacion_url: null,
+  };
 
   const { data, error } = await db
     .from("pacientes")
