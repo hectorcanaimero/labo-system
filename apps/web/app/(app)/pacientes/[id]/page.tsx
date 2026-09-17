@@ -35,10 +35,7 @@ export default async function PacienteDetallePage({ params }: PacienteDetallePag
     const fichaData: PacienteFichaData = {
       paciente: {
         ...historial.paciente,
-        // F8.2.T1 — ficha incompleta: cédula/fecha de nacimiento pueden venir
-        // en null. Placeholder acá; F8.2.T3 se encarga de mostrarlo bien.
-        cedula: historial.paciente.cedula ?? "",
-        fecha_nacimiento: historial.paciente.fecha_nacimiento?.toISOString() ?? "",
+        fecha_nacimiento: historial.paciente.fecha_nacimiento?.toISOString() ?? null,
         created_at: historial.paciente.created_at.toISOString(),
         updated_at: historial.paciente.updated_at.toISOString(),
       },
