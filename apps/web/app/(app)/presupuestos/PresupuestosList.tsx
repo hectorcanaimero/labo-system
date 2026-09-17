@@ -804,12 +804,12 @@ export function PresupuestosList({ initialData, pageSize }: PresupuestosListProp
               <Table>
                 <TableHeader>
                   <TableRow className="bg-muted/40 hover:bg-muted/40">
-                    <TableHead className="h-9 w-28 py-1.5">Nº</TableHead>
+                    <TableHead className="h-9 w-28 py-1.5 pr-5">Nº</TableHead>
                     <TableHead className="h-9 py-1.5">Paciente</TableHead>
                     <TableHead className="h-9 py-1.5">Fecha</TableHead>
                     <TableHead className="h-9 py-1.5">Estado</TableHead>
                     <TableHead className="h-9 w-28 py-1.5 text-right">Total USD</TableHead>
-                    <TableHead className="h-9 w-28 py-1.5 text-right">Total Bs</TableHead>
+                    <TableHead className="h-9 w-28 py-1.5 pl-5 text-right">Total Bs</TableHead>
                     <TableHead className="h-9 w-9 py-1.5" />
                   </TableRow>
                 </TableHeader>
@@ -818,7 +818,7 @@ export function PresupuestosList({ initialData, pageSize }: PresupuestosListProp
                     const pacienteName = pacienteNombre(presupuesto);
                     return (
                       <TableRow key={presupuesto.id} className="h-9">
-                        <TableCell className="py-1.5 font-mono text-xs tabular-nums text-muted-foreground">
+                        <TableCell className="whitespace-nowrap py-1.5 pr-5 font-mono text-xs tabular-nums text-muted-foreground">
                           {formatNumeroPresupuesto(presupuesto.numero_correlativo, presupuesto.created_at)}
                         </TableCell>
                         <TableCell className="py-1.5 font-medium text-foreground">
@@ -835,10 +835,10 @@ export function PresupuestosList({ initialData, pageSize }: PresupuestosListProp
                         <TableCell className="py-1.5">
                           <PresupuestoEstadoBadge estado={presupuesto.estado} />
                         </TableCell>
-                        <TableCell className="py-1.5 text-right font-mono tabular-nums text-muted-foreground">
+                        <TableCell className="whitespace-nowrap py-1.5 text-right font-mono tabular-nums text-muted-foreground">
                           {formatCurrency(presupuesto.total_usd, "$")}
                         </TableCell>
-                        <TableCell className="py-1.5 text-right font-mono tabular-nums text-muted-foreground">
+                        <TableCell className="whitespace-nowrap py-1.5 pl-5 text-right font-mono tabular-nums text-muted-foreground">
                           {formatCurrency(presupuesto.total_bs, "Bs")}
                         </TableCell>
                         <TableCell className="py-1.5 text-right">
