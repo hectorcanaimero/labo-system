@@ -65,8 +65,9 @@ export interface PacienteSerializable {
   id: string;
   nombre: string;
   apellido: string;
-  cedula: string;
-  fecha_nacimiento: string;
+  /** Ficha incompleta (F8.2.T1): puede venir en null hasta completarse. */
+  cedula: string | null;
+  fecha_nacimiento: string | null;
   sexo: "M" | "F" | "O" | null;
   telefono: string | null;
   email: string | null;
@@ -99,7 +100,7 @@ interface PacienteFormDialogProps {
   onDeleted?: () => void | Promise<void>;
 }
 
-function toDateInputValue(value: string | undefined): string {
+function toDateInputValue(value: string | null | undefined): string {
   if (!value) return "";
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return "";

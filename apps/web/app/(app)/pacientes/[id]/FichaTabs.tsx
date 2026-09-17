@@ -9,6 +9,7 @@ import {
   NotebookTabs,
   PencilLine,
   ReceiptText,
+  TriangleAlert,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -26,6 +27,7 @@ import type { EstadoOrden } from "@labo/lib/schemas/orden";
 import type { EstadoPresupuesto } from "@labo/lib/schemas/presupuesto";
 import { calcularEdadDesglosada } from "@labo/lib/edad";
 import { resolverUbicacionMaps } from "@labo/lib/ubicacion";
+import { esFichaIncompleta } from "@labo/lib/schemas/paciente";
 
 import {
   PacienteFormDialog,
@@ -123,10 +125,12 @@ export function FichaTabs({ data }: FichaTabsProps) {
   const [isEditOpen, setIsEditOpen] = useState(false);
 
   const meta = useMemo(() => {
-    const edadInfo = calcularEdadDesglosada(new Date(data.paciente.fecha_nacimiento));
+    const edadInfo = data.paciente.fecha_nacimiento
+      ? calcularEdadDesglosada(new Date(data.paciente.fecha_nacimiento))
+      : null;
     return {
       edad: edadInfo,
-      cedula: data.paciente.cedula,
+      cedula: data.paciente.cedula ?? "—",
       nacimiento: formatDate(data.paciente.fecha_nacimiento),
       sexo: sexoLabel(data.paciente.sexo),
       telefono: data.paciente.telefono,
@@ -136,8 +140,39 @@ export function FichaTabs({ data }: FichaTabsProps) {
     };
   }, [data.paciente]);
 
+  const camposFaltantes = useMemo(() => {
+    const faltantes: string[] = [];
+    if (data.paciente.cedula == null) faltantes.push("cédula");
+    if (data.paciente.fecha_nacimiento == null) faltantes.push("fecha de nacimiento");
+    if (data.paciente.sexo == null) faltantes.push("sexo");
+    return faltantes;
+  }, [data.paciente]);
+
+  const fichaIncompleta = esFichaIncompleta(data.paciente);
+
   return (
     <div className="flex flex-col gap-4">
+      {fichaIncompleta ? (
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-md border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-900 dark:border-amber-900 dark:bg-amber-950 dark:text-amber-200">
+          <div className="flex items-start gap-2">
+            <TriangleAlert className="mt-0.5 h-4 w-4 shrink-0" />
+            <span>
+              Faltan datos para poder crear órdenes: {camposFaltantes.join(", ")}.
+            </span>
+          </div>
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            className="h-8 border-amber-400 bg-transparent hover:bg-amber-100 dark:hover:bg-amber-900"
+            onClick={() => setIsEditOpen(true)}
+          >
+            <PencilLine className="h-3.5 w-3.5" />
+            Completar ficha
+          </Button>
+        </div>
+      ) : null}
+
       {/* Metadata card */}
       <Card className="shadow-none">
         <CardHeader className="flex flex-row items-start justify-between space-y-0 border-b border-border py-3">
