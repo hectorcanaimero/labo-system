@@ -5,12 +5,16 @@ import {
   presupuestoCambiarEstadoSchema,
   type EstadoPresupuesto,
 } from "@labo/lib/schemas/presupuesto";
+import { esFichaIncompleta } from "@labo/lib/schemas/paciente";
 import { calcularTotales } from "@labo/lib/calcular-totales";
+
+import { createProvisional as createPacienteProvisional } from "./pacientes";
 
 export const PRESUPUESTO_NO_ENCONTRADO = "PRESUPUESTO_NO_ENCONTRADO";
 export const PRESUPUESTO_NO_BORRADOR = "PRESUPUESTO_NO_BORRADOR";
 export const PRESUPUESTO_NO_APROBADO = "PRESUPUESTO_NO_APROBADO";
 export const PACIENTE_LIBRE_REQUIERE_FICHA = "PACIENTE_LIBRE_REQUIERE_FICHA";
+export const PACIENTE_FICHA_INCOMPLETA = "PACIENTE_FICHA_INCOMPLETA";
 export const PACIENTE_XOR_REQUIRED = "PACIENTE_XOR_REQUIRED";
 export const TRANSICION_ESTADO_INVALIDA = "TRANSICION_ESTADO_INVALIDA";
 export const EXAMEN_NO_ENCONTRADO = "EXAMEN_NO_ENCONTRADO";
@@ -224,6 +228,11 @@ async function hydrate(
   return rows.map((r) => ({ ...mapHeader(r), lineas: byId.get(r.id) ?? [] }));
 }
 
+async function deleteFichaProvisionalBestEffort(db: Db, pacienteId: string): Promise<void> {
+  const { error } = await db.from("pacientes").delete().eq("id", pacienteId);
+  if (error) console.warn(`[presupuestos.create rollback ficha]`, error.message);
+}
+
 async function auditBestEffort(
   db: Db,
   row: {
@@ -433,10 +442,22 @@ export async function create(
     })),
   });
 
+  // F8.2.T1 — sin ficha (ni `paciente_id` ni `paciente_nombre_libre`), crear
+  // la ficha incompleta ahora: así el presupuesto siempre queda ligado a un
+  // paciente real (se puede enviar, aparece en Pacientes) aunque falten
+  // cédula/fecha de nacimiento/sexo.
+  let pacienteId = parsed.data.paciente_id ?? null;
+  let fichaCreadaId: string | null = null;
+  if (parsed.data.paciente_provisional) {
+    const ficha = await createPacienteProvisional(db, parsed.data.paciente_provisional);
+    pacienteId = ficha.id;
+    fichaCreadaId = ficha.id;
+  }
+
   const insRes = await db
     .from("presupuestos")
     .insert({
-      paciente_id: parsed.data.paciente_id ?? null,
+      paciente_id: pacienteId,
       paciente_nombre_libre: parsed.data.paciente_nombre_libre ?? null,
       descuento_pct: parsed.data.descuento_pct,
       ganancia_pct: parsed.data.ganancia_pct,
@@ -450,9 +471,15 @@ export async function create(
     })
     .select("id")
     .limit(1);
-  if (insRes.error) throw new Error(`presupuestos.create: ${insRes.error.message}`);
+  if (insRes.error) {
+    if (fichaCreadaId) await deleteFichaProvisionalBestEffort(db, fichaCreadaId);
+    throw new Error(`presupuestos.create: ${insRes.error.message}`);
+  }
   const id = (insRes.data?.[0] as { id: string } | undefined)?.id;
-  if (!id) throw new Error("presupuestos.create: sin id retornado");
+  if (!id) {
+    if (fichaCreadaId) await deleteFichaProvisionalBestEffort(db, fichaCreadaId);
+    throw new Error("presupuestos.create: sin id retornado");
+  }
 
   const lineasPayload = lineasInput.map((item, orden) => ({
     presupuesto_id: id,
@@ -791,6 +818,20 @@ export async function convertToOrden(
 
   if (!pacienteId) {
     throw new Error(PACIENTE_LIBRE_REQUIERE_FICHA);
+  }
+
+  const fichaRes = await db
+    .from("pacientes")
+    .select("cedula, fecha_nacimiento, sexo")
+    .eq("id", pacienteId)
+    .limit(1);
+  if (fichaRes.error) throw new Error(`presupuestos.convert ficha: ${fichaRes.error.message}`);
+  const ficha = fichaRes.data?.[0] as
+    | { cedula: string | null; fecha_nacimiento: string | null; sexo: string | null }
+    | undefined;
+  if (!ficha) throw new Error("PACIENTE_NO_ENCONTRADO");
+  if (esFichaIncompleta(ficha)) {
+    throw new Error(PACIENTE_FICHA_INCOMPLETA);
   }
 
   const presupuestoConPaciente = { ...presupuesto, paciente_id: pacienteId };

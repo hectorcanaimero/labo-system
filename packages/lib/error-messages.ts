@@ -54,6 +54,9 @@ export const DOMAIN_ERROR_MESSAGES: Readonly<Record<string, string>> = {
   DIRECCION_REQUERIDA: "La dirección es requerida (mínimo 5 caracteres).",
   UBICACION_INVALIDA:
     "La ubicación debe ser un enlace de mapa o coordenadas \"lat,long\".",
+  CONTACTO_REQUERIDO: "Indica un teléfono o un email para poder enviarle el presupuesto.",
+  PACIENTE_FICHA_INCOMPLETA:
+    "Completa la cédula, la fecha de nacimiento y el sexo del paciente antes de crear la orden.",
 
   // ── Presupuestos / Resultados / Paquetes (F2, F3) ─────────────────────
   PRESUPUESTO_NO_ENCONTRADO: "El presupuesto que buscás ya no existe.",

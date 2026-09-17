@@ -48,7 +48,9 @@ export default async function ResultadoDetallePage({ params }: { params: { id: s
             id: paciente.id,
             nombre: paciente.nombre,
             apellido: paciente.apellido,
-            cedula: paciente.cedula,
+            // F8.2.T1 — convertToOrden exige ficha completa, así que en la
+            // práctica siempre hay cédula; el `?? ""` es solo por el tipo.
+            cedula: paciente.cedula ?? "",
             telefono: paciente.telefono,
             email: paciente.email,
           },
