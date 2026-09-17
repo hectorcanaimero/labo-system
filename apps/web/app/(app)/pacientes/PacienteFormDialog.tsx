@@ -295,7 +295,7 @@ export function PacienteFormDialog({
     if (!paciente) return;
 
     const confirmed = window.confirm(
-      `¿Seguro que querés desactivar a ${paciente.nombre} ${paciente.apellido}?`,
+      `¿Seguro que quieres desactivar a ${paciente.nombre} ${paciente.apellido}?`,
     );
     if (!confirmed) return;
 
@@ -329,8 +329,8 @@ export function PacienteFormDialog({
           <DialogTitle>{dialogTitle}</DialogTitle>
           <DialogDescription>
             {isEdit
-              ? "Actualizá la ficha base del paciente y mantené el historial alineado."
-              : "Completá los datos mínimos para registrar una nueva ficha."}
+              ? "Actualiza la ficha base del paciente y mantén el historial alineado."
+              : "Completa los datos mínimos para registrar una nueva ficha."}
           </DialogDescription>
         </DialogHeader>
 

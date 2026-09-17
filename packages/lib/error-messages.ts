@@ -20,26 +20,26 @@
  */
 export const DOMAIN_ERROR_MESSAGES: Readonly<Record<string, string>> = {
   // ── Auth ──────────────────────────────────────────────────────────────
-  UNAUTHENTICATED: "Tu sesión expiró. Ingresá de nuevo.",
-  UNAUTHORIZED: "No tenés permisos para realizar esta acción.",
+  UNAUTHENTICATED: "Tu sesión expiró. Ingresa de nuevo.",
+  UNAUTHORIZED: "No tienes permisos para realizar esta acción.",
   CREDENCIALES_INVALIDAS: "Correo o contraseña incorrectos.",
 
   // ── Exámenes (packages/convex/examenes.ts) ────────────────────────────
   TITULO_DUPLICADO: "Ya existe un grupo con ese nombre.",
-  TITULO_NO_ENCONTRADO: "El grupo que buscás ya no existe.",
+  TITULO_NO_ENCONTRADO: "El grupo que buscas ya no existe.",
   TITULO_TIENE_EXAMENES:
     "No se puede eliminar el grupo porque tiene exámenes asociados.",
   EXAMEN_DUPLICADO_EN_TITULO:
     "Ya existe un examen con ese nombre en este grupo.",
 
   // ── Config (packages/convex/config.ts) ────────────────────────────────
-  ASSET_NO_ENCONTRADO: "El recurso que intentás usar ya no existe.",
+  ASSET_NO_ENCONTRADO: "El recurso que intentas usar ya no existe.",
   ASSET_MIME_INVALIDO: "El tipo de archivo no está permitido.",
   ASSET_TAMANO_EXCEDIDO: "El archivo supera el tamaño máximo permitido.",
 
   // ── Órdenes (packages/db/repos/ordenes.ts) ────────────────────────────
   ENTREGA_REQUIERE_VALORES:
-    "No se puede entregar: hay exámenes sin valor cargado. Completalos o quitá la fecha de resultado.",
+    "No se puede entregar: hay exámenes sin valor cargado. Complétalos o quita la fecha de resultado.",
   ESTADO_REQUIERE_FECHA_RESULTADO: "Para entregar la orden hace falta la fecha de resultado.",
   TRANSICION_ORDEN_INVALIDA: "Ese cambio de estado no está permitido desde el estado actual.",
 
@@ -49,7 +49,7 @@ export const DOMAIN_ERROR_MESSAGES: Readonly<Record<string, string>> = {
   // ── Pacientes (F2.pacientes) ──────────────────────────────────────────
   CEDULA_DUPLICADA: "Ya existe un paciente con esa cédula.",
   CEDULA_INVALIDA: "El formato de la cédula no es válido.",
-  PACIENTE_NO_ENCONTRADO: "El paciente que buscás ya no existe.",
+  PACIENTE_NO_ENCONTRADO: "El paciente que buscas ya no existe.",
   SEXO_REQUERIDO: "El sexo biológico es requerido (M o F).",
   DIRECCION_REQUERIDA: "La dirección es requerida (mínimo 5 caracteres).",
   UBICACION_INVALIDA:
@@ -59,25 +59,25 @@ export const DOMAIN_ERROR_MESSAGES: Readonly<Record<string, string>> = {
     "Completa la cédula, la fecha de nacimiento y el sexo del paciente antes de crear la orden.",
 
   // ── Presupuestos / Resultados / Paquetes (F2, F3) ─────────────────────
-  PRESUPUESTO_NO_ENCONTRADO: "El presupuesto que buscás ya no existe.",
+  PRESUPUESTO_NO_ENCONTRADO: "El presupuesto que buscas ya no existe.",
   PRESUPUESTO_YA_CONVERTIDO:
     "Este presupuesto ya fue convertido en resultado.",
   PRESUPUESTO_VENCIDO: "El presupuesto venció y ya no se puede utilizar.",
-  RESULTADO_NO_ENCONTRADO: "El resultado que buscás ya no existe.",
+  RESULTADO_NO_ENCONTRADO: "El resultado que buscas ya no existe.",
   RESULTADO_DUPLICADO: "Ya existe un resultado para esa muestra y examen.",
-  PAQUETE_NO_ENCONTRADO: "El paquete que buscás ya no existe.",
+  PAQUETE_NO_ENCONTRADO: "El paquete que buscas ya no existe.",
   PAQUETE_DUPLICADO: "Ya existe un paquete con ese nombre.",
   PAQUETE_EN_USO:
     "El paquete no se puede eliminar porque tiene presupuestos asociados.",
-  EXAMEN_NO_ENCONTRADO: "El examen que buscás ya no existe.",
+  EXAMEN_NO_ENCONTRADO: "El examen que buscas ya no existe.",
   GANANCIA_NEGATIVA: "La ganancia no puede ser negativa.",
-  EXAMENES_REQUERIDOS: "Agregá al menos un examen.",
+  EXAMENES_REQUERIDOS: "Agrega al menos un examen.",
   TASA_INVALIDA: "La tasa debe ser mayor a cero.",
   PRECIO_INVALIDO: "El precio no puede ser negativo.",
 
   // ── General ───────────────────────────────────────────────────────────
-  VALIDACION_FALLIDA: "Revisá los datos ingresados e intentá de nuevo.",
-  ERROR_GENERICO: "Algo salió mal. Intentá de nuevo.",
+  VALIDACION_FALLIDA: "Revisa los datos ingresados e intenta de nuevo.",
+  ERROR_GENERICO: "Algo salió mal. Intenta de nuevo.",
 } as const;
 
 /**

@@ -21,7 +21,7 @@ test.describe("Resultados (F4.1.T5)", () => {
     await page.getByLabel(/Fecha de muestra/).fill("2024-05-10");
 
     // 3. Agregar examen del catálogo y cargar valor.
-    await page.getByPlaceholder("Buscá por nombre del examen").fill("Hemograma");
+    await page.getByPlaceholder("Busca por nombre del examen").fill("Hemograma");
     await page.getByRole("button", { name: /Hemograma Completo/ }).click();
     await page.getByPlaceholder("Ej: 5.4").fill("5.0");
 

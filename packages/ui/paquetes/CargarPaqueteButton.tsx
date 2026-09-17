@@ -174,7 +174,7 @@ export function CargarPaqueteButton({
         <DialogHeader className="px-6 pb-2 pr-12 pt-6">
           <DialogTitle>Cargar paquete</DialogTitle>
           <DialogDescription>
-            Elegí un paquete y cargamos sus exámenes automáticamente.
+            Elige un paquete y cargamos sus exámenes automáticamente.
           </DialogDescription>
         </DialogHeader>
 

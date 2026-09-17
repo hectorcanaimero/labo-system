@@ -328,7 +328,7 @@ export function TitulosNavigator({ initialTitulos }: TitulosNavigatorProps) {
 
   const handleDeleteTitulo = async (titulo: TituloListItem) => {
     const confirmed = window.confirm(
-      `¿Seguro que querés eliminar "${titulo.nombre}"? Si tiene exámenes, el sistema lo va a rechazar.`
+      `¿Seguro que quieres eliminar "${titulo.nombre}"? Si tiene exámenes, el sistema lo va a rechazar.`
     );
     if (!confirmed) {
       return;
@@ -420,7 +420,7 @@ export function TitulosNavigator({ initialTitulos }: TitulosNavigatorProps) {
                 type="search"
                 value={searchTerm}
                 onChange={(event) => setSearchTerm(event.target.value)}
-                placeholder="Probá con hemo, perfil, glucosa..."
+                placeholder="Prueba con hemo, perfil, glucosa..."
                 className="flex h-11 w-full rounded-md border border-input bg-background py-2 pl-9 pr-3 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
               />
             </div>
@@ -468,7 +468,7 @@ export function TitulosNavigator({ initialTitulos }: TitulosNavigatorProps) {
             <EmptyState
               compact
               title="No pudimos completar la búsqueda"
-              description={searchState.errorMessage ?? 'Intentá de nuevo en unos segundos.'}
+              description={searchState.errorMessage ?? 'Intenta de nuevo en unos segundos.'}
               icon={<Search className="h-5 w-5" />}
             />
           ) : null}
@@ -477,7 +477,7 @@ export function TitulosNavigator({ initialTitulos }: TitulosNavigatorProps) {
             <EmptyState
               compact
               title="Sin coincidencias"
-              description="Probá con otro prefijo o abrí un grupo para revisar el catálogo completo."
+              description="Prueba con otro prefijo o abre un grupo para revisar el catálogo completo."
               icon={<Search className="h-5 w-5" />}
             />
           ) : null}
@@ -536,7 +536,7 @@ export function TitulosNavigator({ initialTitulos }: TitulosNavigatorProps) {
       {titulos.length === 0 ? (
         <EmptyState
           title="Todavía no hay grupos cargados"
-          description="Creá el primer grupo para empezar a organizar el catálogo de exámenes."
+          description="Crea el primer grupo para empezar a organizar el catálogo de exámenes."
           icon={<FlaskConical className="h-6 w-6" />}
           action={
             <Button type="button" onClick={handleOpenCreateTitulo}>
@@ -649,7 +649,7 @@ export function TitulosNavigator({ initialTitulos }: TitulosNavigatorProps) {
                         compact
                         title="No pudimos cargar los exámenes"
                         description={
-                          examenesState.errorMessage ?? 'Intentá expandir el título otra vez.'
+                          examenesState.errorMessage ?? 'Intenta expandir el título otra vez.'
                         }
                         icon={<FlaskConical className="h-5 w-5" />}
                         action={
@@ -669,7 +669,7 @@ export function TitulosNavigator({ initialTitulos }: TitulosNavigatorProps) {
                       <EmptyState
                         compact
                         title="Este grupo todavía no tiene exámenes"
-                        description="Creá el primer examen del grupo para empezar a usarlo en presupuestos y resultados."
+                        description="Crea el primer examen del grupo para empezar a usarlo en presupuestos y resultados."
                         icon={<FlaskConical className="h-5 w-5" />}
                         action={
                           <Button

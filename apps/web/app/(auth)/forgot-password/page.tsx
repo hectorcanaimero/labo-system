@@ -10,7 +10,7 @@ export default function ForgotPasswordPage() {
       <div className="mb-5 flex flex-col gap-1 text-center">
         <h1 className="text-xl font-semibold tracking-tight">RV Laboratorio</h1>
         <p className="text-xs text-muted-foreground">
-          Ingresá tu email para recibir un código de recuperación
+          Ingresa tu email para recibir un código de recuperación
         </p>
       </div>
       <ForgotForm />

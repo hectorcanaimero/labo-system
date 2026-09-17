@@ -374,7 +374,7 @@ export function PresupuestoForm({
       if (!libreNombreOk) items.push("Falta elegir paciente");
       else if (!libreContactoOk) items.push("Falta teléfono o email");
     }
-    if (lineas.length === 0) items.push("Agregá al menos un examen");
+    if (lineas.length === 0) items.push("Agrega al menos un examen");
     if (!descuentoValido) items.push("El descuento debe estar entre 0 y 100");
     if (!gananciaValida) items.push("La ganancia global no puede ser negativa");
     if (!gananciaPorLineaValida) items.push("La ganancia por línea no puede ser negativa");
@@ -458,7 +458,7 @@ export function PresupuestoForm({
 
     if (conflicto) {
       setMessage(
-        `"${conflicto.nombre_snap}" ya forma parte de otro paquete cargado. Quitá ese paquete primero si querés cambiar de modalidad.`,
+        `"${conflicto.nombre_snap}" ya forma parte de otro paquete cargado. Quita ese paquete primero si quieres cambiar de modalidad.`,
       );
       return;
     }
@@ -646,7 +646,7 @@ export function PresupuestoForm({
         <div>
           <h2 className="text-lg font-semibold">Paciente</h2>
           <p className="text-sm text-muted-foreground">
-            Usá una ficha registrada o un nombre libre para una cotización rápida.
+            Usa una ficha registrada o un nombre libre para una cotización rápida.
           </p>
         </div>
 
@@ -792,7 +792,7 @@ export function PresupuestoForm({
           <div>
             <h2 className="text-lg font-semibold">Exámenes del presupuesto</h2>
             <p className="text-sm text-muted-foreground">
-              Agregá exámenes individuales o cargá un paquete en modo cerrado o desglosado.
+              Agrega exámenes individuales o carga un paquete en modo cerrado o desglosado.
             </p>
           </div>
 
@@ -811,7 +811,7 @@ export function PresupuestoForm({
         {paquetePanelOpen ? (
           <div className="mt-4 rounded-xl border border-border bg-background/60 p-4">
             <p className="text-sm font-medium text-foreground">
-              Elegí un paquete y después el modo de carga
+              Elige un paquete y después el modo de carga
             </p>
 
             {paquetesLoading ? (
@@ -856,7 +856,7 @@ export function PresupuestoForm({
                         </span>
                       </span>
                       <span className="shrink-0 text-xs font-medium text-primary">
-                        {elegido ? "Elegí el modo" : "Seleccionar"}
+                        {elegido ? "Elige el modo" : "Seleccionar"}
                       </span>
                     </button>
 
@@ -895,10 +895,10 @@ export function PresupuestoForm({
             onSelect={addExamen}
             selectedIds={selectedExamIds}
             autoFocusOnSelect
-            placeholder="Buscá por nombre del examen"
+            placeholder="Busca por nombre del examen"
           />
           <p className="text-xs text-muted-foreground">
-            Buscá y agregá con Enter o clic; el campo recupera el foco para seguir cargando.
+            Busca y agrega con Enter o clic; el campo recupera el foco para seguir cargando.
           </p>
         </div>
 
@@ -923,7 +923,7 @@ export function PresupuestoForm({
                     colSpan={mostrarColumnaGanancia ? 6 : 5}
                     className="px-4 py-8 text-center text-sm text-muted-foreground"
                   >
-                    Todavía no agregaste exámenes. Usá el buscador o cargá un paquete.
+                    Todavía no agregaste exámenes. Usa el buscador o carga un paquete.
                   </td>
                 </tr>
               ) : (

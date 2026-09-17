@@ -127,7 +127,7 @@ export function ResultadoDetalle({ role, initialData }: ResultadoDetalleProps) {
   }
 
   async function deleteResultado(): Promise<void> {
-    const confirmed = window.confirm("¿Seguro que querés eliminar este resultado? Esta acción no se puede deshacer.");
+    const confirmed = window.confirm("¿Seguro que quieres eliminar este resultado? Esta acción no se puede deshacer.");
     if (!confirmed) return;
 
     try {
@@ -150,7 +150,7 @@ export function ResultadoDetalle({ role, initialData }: ResultadoDetalleProps) {
       <div className="flex flex-col gap-4">
         <PageHeader
           title="Editar orden"
-          description="Actualizá valores, observaciones y fechas manteniendo los snapshots del resultado."
+          description="Actualiza valores, observaciones y fechas manteniendo los snapshots del resultado."
           back={{ href: "/resultados", label: "Órdenes" }}
         />
 

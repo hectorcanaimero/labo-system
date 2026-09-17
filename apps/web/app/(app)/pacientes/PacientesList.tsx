@@ -242,7 +242,7 @@ export function PacientesList({ initialData, pageSize }: PacientesListProps) {
 
   async function handleDeactivate(paciente: PacienteSerializable): Promise<void> {
     const confirmed = window.confirm(
-      `¿Seguro que querés desactivar a ${paciente.nombre} ${paciente.apellido}?`,
+      `¿Seguro que quieres desactivar a ${paciente.nombre} ${paciente.apellido}?`,
     );
 
     if (!confirmed) return;
@@ -317,8 +317,8 @@ export function PacientesList({ initialData, pageSize }: PacientesListProps) {
               title={isSearching ? "No encontramos pacientes" : "Sin pacientes"}
               description={
                 isSearching
-                  ? "Probá con otro nombre o cédula. Apenas limpies la búsqueda vuelve la lista completa."
-                  : "Todavía no hay fichas registradas. Creá la primera y arrancamos bien, sin vueltas."
+                  ? "Prueba con otro nombre o cédula. Apenas limpies la búsqueda vuelve la lista completa."
+                  : "Todavía no hay fichas registradas. Crea la primera para comenzar."
               }
               icon={<UserRound className="h-6 w-6" />}
               action={

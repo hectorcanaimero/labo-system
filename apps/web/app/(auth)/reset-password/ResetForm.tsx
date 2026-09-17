@@ -10,11 +10,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
 const ERROR_MESSAGES: Record<string, string> = {
-  INVALID_CODE: "Código incorrecto. Verificá e intentá de nuevo.",
-  TOKEN_EXPIRED: "El código expiró. Solicitá uno nuevo.",
-  RATE_LIMITED: "Demasiados intentos. Esperá unos minutos.",
+  INVALID_CODE: "Código incorrecto. Verifica e intenta de nuevo.",
+  TOKEN_EXPIRED: "El código expiró. Solicita uno nuevo.",
+  RATE_LIMITED: "Demasiados intentos. Espera unos minutos.",
   PASSWORD_TOO_SHORT: "La contraseña debe tener al menos 8 caracteres.",
-  RESET_FAILED: "No se pudo restablecer la contraseña. Intentá de nuevo.",
+  RESET_FAILED: "No se pudo restablecer la contraseña. Intenta de nuevo.",
 };
 
 interface Props {
@@ -33,7 +33,7 @@ export function ResetForm({ email }: Props) {
     return (
       <div className="flex flex-col items-center gap-3 text-center">
         <p className="text-xs text-muted-foreground">
-          Link inválido o expirado. Solicitá un nuevo código de recuperación.
+          Link inválido o expirado. Solicita un nuevo código de recuperación.
         </p>
         <Link
           href="/forgot-password"
@@ -50,7 +50,7 @@ export function ResetForm({ email }: Props) {
     setError(null);
 
     if (!/^\d{6}$/.test(code.trim())) {
-      setError("Ingresá el código de 6 dígitos que recibiste por email.");
+      setError("Ingresa el código de 6 dígitos que recibiste por email.");
       return;
     }
     if (password.length < 8) {
@@ -91,7 +91,7 @@ export function ResetForm({ email }: Props) {
   return (
     <form onSubmit={onSubmit} className="flex flex-col gap-3" noValidate>
       <p className="text-xs text-muted-foreground">
-        Ingresá el código de 6 dígitos que enviamos a{" "}
+        Ingresa el código de 6 dígitos que enviamos a{" "}
         <span className="font-mono tabular-nums text-foreground">{email}</span>.
       </p>
 
@@ -144,7 +144,7 @@ export function ResetForm({ email }: Props) {
           value={confirm}
           onChange={(event) => setConfirm(event.target.value)}
           disabled={submitting}
-          placeholder="Repetí la contraseña"
+          placeholder="Repite la contraseña"
           className="h-9 text-sm"
         />
       </div>

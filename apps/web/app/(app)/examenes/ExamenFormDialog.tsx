@@ -141,7 +141,7 @@ export function ExamenFormDialog({
     }
 
     if (tipoAnalisis.trim().length === 0) {
-      setErrorMessage('Elegí un tipo de análisis.');
+      setErrorMessage('Elige un tipo de análisis.');
       return;
     }
 
@@ -202,8 +202,8 @@ export function ExamenFormDialog({
           <DialogTitle>{dialogTitle}</DialogTitle>
           <DialogDescription>
             {isEdit
-              ? `Actualizá nombre, precio y referencia de ${tituloNombre}.`
-              : `Agregá un nuevo examen dentro de ${tituloNombre}.`}
+              ? `Actualiza nombre, precio y referencia de ${tituloNombre}.`
+              : `Agrega un nuevo examen dentro de ${tituloNombre}.`}
           </DialogDescription>
         </DialogHeader>
 

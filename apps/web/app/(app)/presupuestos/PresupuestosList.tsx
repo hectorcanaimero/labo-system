@@ -228,7 +228,7 @@ function KanbanDraggableCard({ card, disabled, onAbrirDetalle }: KanbanDraggable
       role="button"
       tabIndex={0}
       aria-roledescription="Tarjeta arrastrable"
-      aria-label={`Presupuesto de ${card.pacienteLabel}. Enter abre el detalle; usá "Mover a…" para cambiar su estado.`}
+      aria-label={`Presupuesto de ${card.pacienteLabel}. Enter abre el detalle; usa "Mover a…" para cambiar su estado.`}
       className={`relative cursor-grab touch-none select-none rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ${
         isDragging ? "opacity-40" : ""
       }`}
@@ -324,7 +324,7 @@ function AccionesRapidasModal({
                 setMotivo(event.target.value);
                 if (motivoError) setMotivoError(null);
               }}
-              placeholder="Contá brevemente por qué se rechaza…"
+              placeholder="Cuenta brevemente por qué se rechaza…"
               className="flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             />
             {motivoError ? <p className="text-sm text-destructive">{motivoError}</p> : null}
@@ -344,7 +344,7 @@ function AccionesRapidasModal({
             <p className="text-sm text-muted-foreground">
               Se creará un resultado clínico en estado{" "}
               <strong className="text-foreground">Pendiente</strong> con los exámenes de este
-              presupuesto y no podrá revertirse desde acá.
+              presupuesto y no podrá revertirse desde aquí.
             </p>
             <div className="flex justify-end gap-2">
               <Button type="button" variant="outline" onClick={onClose}>
@@ -722,7 +722,7 @@ export function PresupuestosList({ initialData, pageSize }: PresupuestosListProp
           <div className="p-6">
             <EmptyState
               title="No encontramos presupuestos"
-              description="Ajustá los filtros o creá un nuevo presupuesto para arrancar."
+              description="Ajusta los filtros o crea un nuevo presupuesto para continuar."
               icon={<FileText className="h-6 w-6" />}
               action={
                 <Link href="/presupuestos/nuevo">

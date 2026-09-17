@@ -82,7 +82,7 @@ export function TituloFormDialog({
     const trimmedNombre = nombre.trim();
 
     if (trimmedNombre.length === 0) {
-      setErrorMessage("Ingresá un nombre para el grupo.");
+      setErrorMessage("Ingresa un nombre para el grupo.");
       return;
     }
 
@@ -129,8 +129,8 @@ export function TituloFormDialog({
           <DialogTitle>{dialogTitle}</DialogTitle>
           <DialogDescription>
             {isEdit
-              ? "Actualizá el nombre visible del grupo en el catálogo."
-              : "Creá un nuevo grupo para organizar exámenes relacionados."}
+              ? "Actualiza el nombre visible del grupo en el catálogo."
+              : "Crea un nuevo grupo para organizar exámenes relacionados."}
           </DialogDescription>
         </DialogHeader>
 
