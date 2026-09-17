@@ -627,7 +627,7 @@ export function PresupuestosList({ initialData, pageSize }: PresupuestosListProp
             type="search"
             value={searchTerm}
             onChange={(event) => setSearchTerm(event.target.value)}
-            placeholder="Buscar por paciente o código…"
+            placeholder="Buscar por nº, paciente o cédula…"
             className="flex h-8 w-full rounded-md border border-input bg-background py-1 pl-8 pr-3 text-xs ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1"
           />
         </div>
@@ -804,6 +804,7 @@ export function PresupuestosList({ initialData, pageSize }: PresupuestosListProp
               <Table>
                 <TableHeader>
                   <TableRow className="bg-muted/40 hover:bg-muted/40">
+                    <TableHead className="h-9 w-28 py-1.5">Nº</TableHead>
                     <TableHead className="h-9 py-1.5">Paciente</TableHead>
                     <TableHead className="h-9 py-1.5">Fecha</TableHead>
                     <TableHead className="h-9 py-1.5">Estado</TableHead>
@@ -817,6 +818,9 @@ export function PresupuestosList({ initialData, pageSize }: PresupuestosListProp
                     const pacienteName = pacienteNombre(presupuesto);
                     return (
                       <TableRow key={presupuesto.id} className="h-9">
+                        <TableCell className="py-1.5 font-mono text-xs tabular-nums text-muted-foreground">
+                          {formatNumeroPresupuesto(presupuesto.numero_correlativo, presupuesto.created_at)}
+                        </TableCell>
                         <TableCell className="py-1.5 font-medium text-foreground">
                           <Link
                             href={`/presupuestos/${presupuesto.id}`}
