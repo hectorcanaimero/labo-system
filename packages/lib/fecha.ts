@@ -50,3 +50,28 @@ export function formatFechaHoraLab(value: Date | string | null | undefined): str
   const hora = p.hour === "24" ? "00" : p.hour;
   return `${p.day}/${p.month}/${p.year} ${hora}:${p.minute}`;
 }
+
+/** `yyyy-mm-dd` en la zona del laboratorio, para el `value` de un `<input type="date">`. */
+export function fechaInputLab(value: Date | string | null | undefined): string {
+  const p = partes(value, { year: "numeric", month: "2-digit", day: "2-digit" });
+  if (!p) return "";
+  return `${p.year}-${p.month}-${p.day}`;
+}
+
+/** Fecha de hoy en la zona del laboratorio, como `yyyy-mm-dd`. */
+export function hoyLabInput(): string {
+  return fechaInputLab(new Date());
+}
+
+/**
+ * Límites en UTC de un día calendario `yyyy-mm-dd` de la zona del laboratorio.
+ * `hasta` es exclusivo (medianoche del día siguiente), para usar con `< hasta`.
+ *
+ * Venezuela no aplica horario de verano, así que el offset `-04:00` es fijo.
+ */
+export function limitesDiaLabUTC(fechaYMD: string): { desde: Date; hasta: Date } {
+  const desde = new Date(`${fechaYMD}T00:00:00.000-04:00`);
+  const hasta = new Date(desde);
+  hasta.setUTCDate(hasta.getUTCDate() + 1);
+  return { desde, hasta };
+}

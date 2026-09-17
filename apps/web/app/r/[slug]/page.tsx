@@ -8,6 +8,7 @@ import { getById as getPacienteById } from "@labo/db/repos/pacientes";
 import { getById as getOrden } from "@labo/db/repos/ordenes";
 import { enmascararCedula } from "@labo/lib/cedula";
 import { SLUG_PATTERN } from "@labo/lib/enlace-resultado";
+import { formatFechaLab } from "@labo/lib/fecha";
 import { Button } from "@/components/ui/button";
 import { getAdminDb } from "@/lib/db-server";
 
@@ -28,13 +29,6 @@ export const metadata: Metadata = {
   title: "Resultados de laboratorio",
   robots: { index: false, follow: false },
 };
-
-function formatDate(value: string | Date | null): string {
-  if (!value) return "—";
-  return new Intl.DateTimeFormat("es-VE", { dateStyle: "long", timeZone: "UTC" }).format(
-    new Date(value),
-  );
-}
 
 export default async function ResultadoPublicoPage({
   params,
@@ -87,13 +81,13 @@ export default async function ResultadoPublicoPage({
             <dt className="text-xs uppercase tracking-wide text-muted-foreground">
               Fecha de muestra
             </dt>
-            <dd className="text-sm font-medium">{formatDate(orden.fecha_muestra)}</dd>
+            <dd className="text-sm font-medium">{formatFechaLab(orden.fecha_muestra)}</dd>
           </div>
           <div>
             <dt className="text-xs uppercase tracking-wide text-muted-foreground">
               Fecha de resultado
             </dt>
-            <dd className="text-sm font-medium">{formatDate(orden.fecha_resultado)}</dd>
+            <dd className="text-sm font-medium">{formatFechaLab(orden.fecha_resultado)}</dd>
           </div>
           {orden.medico_solicitante ? (
             <div className="sm:col-span-2">
@@ -132,7 +126,7 @@ export default async function ResultadoPublicoPage({
       <p className="pb-8 text-xs text-muted-foreground">
         Este informe es de carácter personal y confidencial. Los resultados deben ser
         interpretados por su médico tratante. Enlace válido hasta el{" "}
-        {formatDate(enlace.expira_en)}.
+        {formatFechaLab(enlace.expira_en)}.
       </p>
     </main>
   );

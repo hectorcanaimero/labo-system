@@ -1,5 +1,6 @@
 import type { Db } from "../sdk";
 import { ENTREGA_REQUIERE_VALORES, assertPuedeEntregarse } from "@labo/lib/entrega-orden";
+import { limitesDiaLabUTC } from "@labo/lib/fecha";
 import { crearOReutilizarVerificacion, VERIFICACION_TABLA_FALTANTE } from "./enlaces";
 import {
   estadoOrdenSchema,
@@ -195,6 +196,11 @@ export type ResultadoConfig = OrdenConfig;
 // ─────────────────────────────────────────────────────────────────────────────
 // Helpers
 // ─────────────────────────────────────────────────────────────────────────────
+
+/** `desde`/`hasta` de los filtros llegan como `yyyy-mm-dd`; un `Date` se reduce a su día UTC. */
+function toCalendarDateString(value: string | Date): string {
+  return typeof value === "string" ? value : value.toISOString().slice(0, 10);
+}
 
 function normalizePagination(input: OrdenListInput) {
   const page = Number.isFinite(input.page) ? Math.trunc(input.page!) : DEFAULT_PAGE;
@@ -415,17 +421,15 @@ export async function list(
     let out = q;
     if (filters.pacienteId?.trim()) out = out.eq("paciente_id", filters.pacienteId.trim());
     if (filters.estado) out = out.eq("estado", filters.estado);
+    // Los límites de día son los de la zona del laboratorio (America/Caracas),
+    // no UTC: una muestra tomada a las 22:00 de Caracas es del día siguiente en UTC.
     if (filters.desde) {
-      const iso =
-        filters.desde instanceof Date ? filters.desde.toISOString() : filters.desde;
-      out = out.gte("fecha_muestra", iso);
+      const ymd = toCalendarDateString(filters.desde);
+      out = out.gte("fecha_muestra", limitesDiaLabUTC(ymd).desde.toISOString());
     }
     if (filters.hasta) {
-      // "menor que el día siguiente" — replica el `< hasta + 1 day` original.
-      const base = filters.hasta instanceof Date ? filters.hasta : new Date(filters.hasta);
-      const next = new Date(base);
-      next.setUTCDate(next.getUTCDate() + 1);
-      out = out.lt("fecha_muestra", next.toISOString());
+      const ymd = toCalendarDateString(filters.hasta);
+      out = out.lt("fecha_muestra", limitesDiaLabUTC(ymd).hasta.toISOString());
     }
     return out;
   };

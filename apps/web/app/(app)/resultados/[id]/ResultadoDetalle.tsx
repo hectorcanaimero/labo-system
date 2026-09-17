@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { formatFechaLab } from "@labo/lib/fecha";
 import { EmptyState } from "@labo/ui/feedback";
 import { RefinarObservacionesButton } from "@labo/ui/resultados/RefinarObservacionesButton";
 
@@ -50,14 +51,6 @@ interface ResultadoDetalleProps {
       valores_referencia_snap: string | null;
     }>;
   };
-}
-
-function formatDate(value: string | null): string {
-  if (!value) return "—";
-  return new Intl.DateTimeFormat("es-VE", {
-    dateStyle: "medium",
-    timeZone: "UTC",
-  }).format(new Date(value));
 }
 
 async function requestJson<T>(url: string, init?: RequestInit): Promise<T> {
@@ -221,11 +214,11 @@ export function ResultadoDetalle({ role, initialData }: ResultadoDetalleProps) {
           </div>
           <div className="rounded-md border border-border bg-background p-3">
             <p className="text-xs uppercase tracking-wide text-muted-foreground">Fecha de muestra</p>
-            <p className="mt-1 text-sm font-medium text-foreground">{formatDate(initialData.fecha_muestra)}</p>
+            <p className="mt-1 text-sm font-medium text-foreground">{formatFechaLab(initialData.fecha_muestra)}</p>
           </div>
           <div className="rounded-md border border-border bg-background p-3">
             <p className="text-xs uppercase tracking-wide text-muted-foreground">Fecha de resultado</p>
-            <p className="mt-1 text-sm font-medium text-foreground">{formatDate(initialData.fecha_resultado)}</p>
+            <p className="mt-1 text-sm font-medium text-foreground">{formatFechaLab(initialData.fecha_resultado)}</p>
           </div>
           <div className="rounded-md border border-border bg-background p-3">
             <p className="text-xs uppercase tracking-wide text-muted-foreground">Médico solicitante</p>

@@ -213,7 +213,7 @@ export function ResultadoPDF({ data }: ResultadoPDFProps) {
 
   const meta = [
     { label: "Nº", value: numero },
-    { label: "Fecha", value: formatDateDMY(data.fecha_muestra) },
+    { label: "Fecha de muestra", value: formatDateDMY(data.fecha_muestra) },
   ];
 
   return (

@@ -21,6 +21,7 @@ import {
   type PipelineOrdenCard,
 } from "@labo/ui/ordenes/OrdenPipelineKanban";
 import { toHumanError } from "@labo/lib/error-messages";
+import { formatFechaLab } from "@labo/lib/fecha";
 import { notifyError, notifySuccess } from "@labo/ui/feedback/toast";
 import type { EstadoOrden } from "@labo/lib/schemas/orden";
 
@@ -38,18 +39,6 @@ export interface OrdenPipelineItem {
 
 interface OrdenesPipelineSectionProps {
   items: OrdenPipelineItem[];
-}
-
-function formatDate(value: string | null): string {
-  if (!value) return "—";
-  try {
-    return new Intl.DateTimeFormat("es-VE", {
-      dateStyle: "medium",
-      timeZone: "UTC",
-    }).format(new Date(value));
-  } catch {
-    return "—";
-  }
 }
 
 // ────────────────────────────────────────────────────────────────────────────
@@ -196,7 +185,7 @@ export function OrdenesPipelineSection({ items }: OrdenesPipelineSectionProps) {
         estado: r.estado,
         pacienteLabel: `${r.paciente_nombre} ${r.paciente_apellido}`.trim(),
         cedula: r.paciente_cedula,
-        fechaMuestraLabel: formatDate(r.fecha_muestra),
+        fechaMuestraLabel: formatFechaLab(r.fecha_muestra),
         examenesCount: r.examenes_count,
         medico: r.medico_solicitante,
       })),
