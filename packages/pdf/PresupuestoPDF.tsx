@@ -260,14 +260,10 @@ export function PresupuestoPDF({ data }: PresupuestoPDFProps) {
             <Text style={[styles.infoValue, styles.infoValueLarge]}>{patient.name}</Text>
             <Text style={styles.infoMeta}>{patient.meta}</Text>
           </View>
-          <View style={[styles.infoCell, { flex: 1 }]}>
+          <View style={[styles.infoCell, styles.infoCellLast, { flex: 1 }]}>
             <Text style={styles.infoLabel}>Tasa BCV</Text>
             <Text style={styles.infoValue}>Bs. {formatBs(data.tasa_bs)} por USD</Text>
             <Text style={styles.infoMeta}>del {fecha}</Text>
-          </View>
-          <View style={[styles.infoCell, styles.infoCellLast, { flex: 1 }]}>
-            <Text style={styles.infoLabel}>Estado</Text>
-            <Text style={styles.infoValue}>{data.estado}</Text>
           </View>
         </View>
 
