@@ -198,6 +198,15 @@ export function PresupuestoForm({
     setCrearPacienteOpen(true);
   }
   const [nombreLibre, setNombreLibre] = useState(initialData?.paciente_nombre_libre ?? "");
+  // F8.2.T2 — al crear, "libre" deja de guardar un nombre suelto: pide los
+  // datos mínimos para armar la ficha provisional (`paciente_provisional`).
+  // Al editar, un presupuesto viejo con `paciente_nombre_libre` sigue
+  // editándose con ese único campo: `presupuestoUpdateSchema` no acepta
+  // `paciente_provisional` (F8.2.T1 sólo lo agregó al crear).
+  const [libreNombre, setLibreNombre] = useState("");
+  const [libreApellido, setLibreApellido] = useState("");
+  const [libreTelefono, setLibreTelefono] = useState("");
+  const [libreEmail, setLibreEmail] = useState("");
   const [lineas, setLineas] = useState<PresupuestoLineaForm[]>(
     initialData?.lineas.map((item) => ({
       examen_id: item.examen_id,
@@ -339,9 +348,14 @@ export function PresupuestoForm({
         ? `Ganancia (${hasValue(gananciaPct) ? gananciaNum : 0}% del paquete)`
         : "Ganancia (por línea)";
 
+  const libreNombreOk =
+    mode === "create"
+      ? libreNombre.trim().length > 0 && libreApellido.trim().length > 0
+      : nombreLibre.trim().length > 0;
+  const libreContactoOk = mode !== "create" || hasValue(libreTelefono) || hasValue(libreEmail);
   const pacienteOk =
     (modoPaciente === "registrado" && Boolean(selectedPaciente?.id)) ||
-    (modoPaciente === "libre" && nombreLibre.trim().length > 0);
+    (modoPaciente === "libre" && libreNombreOk && libreContactoOk);
   const canSubmit =
     pacienteOk &&
     lineas.length > 0 &&
@@ -354,7 +368,12 @@ export function PresupuestoForm({
 
   const faltantes = useMemo(() => {
     const items: string[] = [];
-    if (!pacienteOk) items.push("Falta elegir paciente");
+    if (modoPaciente === "registrado" && !selectedPaciente?.id) {
+      items.push("Falta elegir paciente");
+    } else if (modoPaciente === "libre") {
+      if (!libreNombreOk) items.push("Falta elegir paciente");
+      else if (!libreContactoOk) items.push("Falta teléfono o email");
+    }
     if (lineas.length === 0) items.push("Agregá al menos un examen");
     if (!descuentoValido) items.push("El descuento debe estar entre 0 y 100");
     if (!gananciaValida) items.push("La ganancia global no puede ser negativa");
@@ -364,7 +383,10 @@ export function PresupuestoForm({
     if (!tasaValida) items.push("No hay tasa registrada — cargala en Configuración");
     return items;
   }, [
-    pacienteOk,
+    modoPaciente,
+    selectedPaciente,
+    libreNombreOk,
+    libreContactoOk,
     lineas.length,
     descuentoValido,
     gananciaValida,
@@ -536,7 +558,17 @@ export function PresupuestoForm({
 
       const payload = {
         paciente_id: modoPaciente === "registrado" ? selectedPaciente?.id : undefined,
-        paciente_nombre_libre: modoPaciente === "libre" ? nombreLibre.trim() : undefined,
+        paciente_nombre_libre:
+          modoPaciente === "libre" && mode === "edit" ? nombreLibre.trim() : undefined,
+        paciente_provisional:
+          modoPaciente === "libre" && mode === "create"
+            ? {
+                nombre: libreNombre.trim(),
+                apellido: libreApellido.trim(),
+                telefono: hasValue(libreTelefono) ? libreTelefono.trim() : undefined,
+                email: hasValue(libreEmail) ? libreEmail.trim() : undefined,
+              }
+            : undefined,
         descuento_pct: descuentoNum,
         ganancia_pct: gananciaNum,
         tasa_bs: tasaNum,
@@ -698,6 +730,49 @@ export function PresupuestoForm({
                 ) : null}
               </div>
             )}
+          </div>
+        ) : mode === "create" ? (
+          <div className="grid gap-4 sm:grid-cols-2">
+            <label className="space-y-2 text-sm font-medium">
+              <span>Nombre</span>
+              <input
+                value={libreNombre}
+                onChange={(event) => setLibreNombre(event.target.value)}
+                placeholder="Ej: Juan"
+                className="h-11 w-full rounded-md border border-input bg-background px-3 text-sm"
+              />
+            </label>
+            <label className="space-y-2 text-sm font-medium">
+              <span>Apellido</span>
+              <input
+                value={libreApellido}
+                onChange={(event) => setLibreApellido(event.target.value)}
+                placeholder="Ej: Pérez"
+                className="h-11 w-full rounded-md border border-input bg-background px-3 text-sm"
+              />
+            </label>
+            <label className="space-y-2 text-sm font-medium">
+              <span>Teléfono</span>
+              <input
+                value={libreTelefono}
+                onChange={(event) => setLibreTelefono(event.target.value)}
+                placeholder="Ej: 04121234567"
+                className="h-11 w-full rounded-md border border-input bg-background px-3 text-sm"
+              />
+            </label>
+            <label className="space-y-2 text-sm font-medium">
+              <span>Email</span>
+              <input
+                type="email"
+                value={libreEmail}
+                onChange={(event) => setLibreEmail(event.target.value)}
+                placeholder="Ej: juan@correo.com"
+                className="h-11 w-full rounded-md border border-input bg-background px-3 text-sm"
+              />
+            </label>
+            <p className="text-xs text-muted-foreground sm:col-span-2">
+              Indica al menos un teléfono o un email para poder enviarle el presupuesto.
+            </p>
           </div>
         ) : (
           <label className="space-y-2 text-sm font-medium">
