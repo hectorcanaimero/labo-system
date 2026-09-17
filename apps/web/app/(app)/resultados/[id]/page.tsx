@@ -36,6 +36,7 @@ export default async function ResultadoDetallePage({ params }: { params: { id: s
         role={role}
         initialData={{
           id: resultado.id,
+          numero_correlativo: resultado.numero_correlativo,
           paciente_id: resultado.paciente_id,
           fecha_muestra: resultado.fecha_muestra,
           fecha_resultado: resultado.fecha_resultado ?? null,

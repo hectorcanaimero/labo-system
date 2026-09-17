@@ -19,10 +19,12 @@ import { EmptyState, SkeletonTable } from "@labo/ui/feedback";
 import { ExportButton } from "@labo/ui/exports/ExportButton";
 import { OrdenEstadoBadge } from "@labo/ui/ordenes/OrdenEstadoBadge";
 import { ESTADO_ORDEN, type EstadoOrden } from "@labo/lib/schemas/orden";
+import { formatNumeroOrden } from "@labo/lib/numero-orden";
 
 import { apiFetch } from "@/lib/api-client";
 export interface ResultadoListItem {
   id: string;
+  numero_correlativo: number;
   paciente_id: string;
   paciente_nombre: string;
   paciente_apellido: string;
@@ -156,7 +158,7 @@ export function ResultadosList({ initialData, pageSize }: ResultadosListProps) {
             type="search"
             value={searchTerm}
             onChange={(event) => setSearchTerm(event.target.value)}
-            placeholder="Buscar por paciente, cédula o fecha…"
+            placeholder="Buscar por nº, paciente o cédula…"
             className="flex h-8 w-full rounded-md border border-input bg-background py-1 pl-8 pr-3 text-xs ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1"
           />
         </div>
@@ -228,6 +230,7 @@ export function ResultadosList({ initialData, pageSize }: ResultadosListProps) {
             <Table>
               <TableHeader>
                 <TableRow className="bg-muted/40 hover:bg-muted/40">
+                  <TableHead className="h-9 py-1.5">Nº</TableHead>
                   <TableHead className="h-9 py-1.5">Paciente</TableHead>
                   <TableHead className="h-9 py-1.5">Cédula</TableHead>
                   <TableHead className="h-9 py-1.5">F. muestra</TableHead>
@@ -242,6 +245,9 @@ export function ResultadosList({ initialData, pageSize }: ResultadosListProps) {
                   const pacienteName = `${resultado.paciente_nombre || ""} ${resultado.paciente_apellido || ""}`.trim();
                   return (
                     <TableRow key={resultado.id} className="h-9">
+                      <TableCell className="py-1.5 font-mono text-xs tabular-nums text-muted-foreground">
+                        {formatNumeroOrden(resultado.numero_correlativo, resultado.created_at)}
+                      </TableCell>
                       <TableCell className="py-1.5 font-medium text-foreground">
                         <Link
                           href={`/resultados/${resultado.id}`}
