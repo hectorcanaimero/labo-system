@@ -32,7 +32,7 @@ export default async function NuevoPresupuestoPage() {
     <div className="mx-auto flex max-w-6xl flex-col gap-4">
       <PageHeader
         title="Nuevo presupuesto"
-        description="Elegí un paciente o usá un nombre libre, cargá exámenes y el total se calcula en vivo en USD y Bs."
+        description="Elige un paciente o usa un nombre libre, carga exámenes y el total se calcula en vivo en USD y Bs."
         back={{ href: "/presupuestos", label: "Presupuestos" }}
       />
 

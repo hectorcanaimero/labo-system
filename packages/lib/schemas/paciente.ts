@@ -17,6 +17,7 @@ export const FECHA_NACIMIENTO_FUTURA = "FECHA_NACIMIENTO_FUTURA";
 export const SEXO_REQUERIDO = "SEXO_REQUERIDO";
 export const DIRECCION_REQUERIDA = "DIRECCION_REQUERIDA";
 export const UBICACION_INVALIDA = "UBICACION_INVALIDA";
+export const CONTACTO_REQUERIDO = "CONTACTO_REQUERIDO";
 
 /**
  * Sexo biológico admitido para pacientes (ADR-06 / §6 modelo de datos).
@@ -109,3 +110,43 @@ export const pacienteSearch = z.object({
 });
 
 export type PacienteSearchInput = z.infer<typeof pacienteSearch>;
+
+/**
+ * Ficha provisional (F8.2.T1): la crea `presupuestos.create` cuando el
+ * presupuesto no tiene un paciente con ficha completa todavía (antes se
+ * guardaba solo `paciente_nombre_libre`, que no se podía enviar ni aparecía
+ * en Pacientes). Pide lo mínimo para poder contactar al paciente; cédula,
+ * fecha de nacimiento y sexo se completan después desde la ficha.
+ */
+export const pacienteProvisionalSchema = z
+  .object({
+    nombre: z.string().trim().min(1, { message: NOMBRE_REQUERIDO }),
+    apellido: z.string().trim().min(1, { message: APELLIDO_REQUERIDO }),
+    telefono: z.string().trim().optional(),
+    email: z.string().trim().optional(),
+  })
+  .refine((data) => (data.telefono?.length ?? 0) > 0 || (data.email?.length ?? 0) > 0, {
+    message: CONTACTO_REQUERIDO,
+    path: ["telefono"],
+  });
+
+export type PacienteProvisionalInput = z.infer<typeof pacienteProvisionalSchema>;
+
+/**
+ * Una ficha es incompleta cuando le falta cédula, fecha de nacimiento o sexo
+ * — los tres campos que `0023_pacientes_ficha_incompleta.sql` relajó a NULL
+ * para permitir crear la ficha provisional de un presupuesto. No hay columna
+ * "incompleta": esta función pura es la única fuente de la regla, para que
+ * UI y backend no diverjan.
+ */
+export interface FichaIncompleta {
+  cedula: string | null;
+  fecha_nacimiento: unknown;
+  sexo: string | null;
+}
+
+export function esFichaIncompleta(paciente: FichaIncompleta): boolean {
+  return (
+    paciente.cedula == null || paciente.fecha_nacimiento == null || paciente.sexo == null
+  );
+}

@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   ArrowLeft,
@@ -46,12 +46,14 @@ import {
 import { formatBs, formatUsd } from "@labo/lib/bs-format";
 import { toHumanError } from "@labo/lib/error-messages";
 import { formatNumeroPresupuesto } from "@labo/lib/numero-presupuesto";
+import { esFichaIncompleta } from "@labo/lib/schemas/paciente";
 import type { EstadoPresupuesto } from "@labo/lib/schemas/presupuesto";
 
-// String de error del backend — inline para no arrastrar el repo del server
+// Strings de error del backend — inline para no arrastrar el repo del server
 // (`@labo/db/repos/presupuestos` importa `@insforge/sdk` y rompería el bundle
 // del cliente al traer contexts server-only).
 const PACIENTE_LIBRE_REQUIERE_FICHA = "PACIENTE_LIBRE_REQUIERE_FICHA";
+const PACIENTE_FICHA_INCOMPLETA = "PACIENTE_FICHA_INCOMPLETA";
 
 import { PresupuestoForm } from "../nuevo/PresupuestoForm";
 import { EnviarPresupuestoButtons } from "./EnviarPresupuestoButtons";
@@ -151,10 +153,35 @@ export function PresupuestoDetalle({
   const isAprobado = initialData.estado === "Aprobado";
   const esNombreLibre = !initialData.paciente_id;
   const [pacienteAsignado, setPacienteAsignado] = useState<PacienteAutocompleteItem | null>(null);
+  // F8.2.T2 — la ficha incompleta (F8.2.T1) no viaja como prop del server:
+  // se resuelve acá con el mismo GET que usa el resto de la app, así no hace
+  // falta ensanchar el contrato de la página para un solo dato derivado.
+  const [pacienteFichaIncompleta, setPacienteFichaIncompleta] = useState(false);
 
   const pacienteLabel = initialData.paciente_id
     ? `${initialData.paciente_nombre || ""} ${initialData.paciente_apellido || ""}`.trim()
     : initialData.paciente_nombre_libre || "Nombre libre";
+
+  useEffect(() => {
+    if (!initialData.paciente_id) return;
+    let cancelled = false;
+    void (async () => {
+      try {
+        const paciente = await requestJson<{
+          cedula: string | null;
+          fecha_nacimiento: string | null;
+          sexo: string | null;
+        }>(`/api/pacientes/${initialData.paciente_id}`);
+        if (!cancelled) setPacienteFichaIncompleta(esFichaIncompleta(paciente));
+      } catch {
+        // Silencioso: si el fetch falla, el detalle sigue usable; el backend
+        // vuelve a validar la ficha al convertir.
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [initialData.paciente_id]);
 
   async function aprobar(): Promise<void> {
     try {
@@ -201,6 +228,15 @@ export function PresupuestoDetalle({
         setConverting(false);
         return;
       }
+      if (message === PACIENTE_FICHA_INCOMPLETA) {
+        // El fetch de fondo puede no haber llegado todavía (o haber fallado
+        // en silencio): el backend es la fuente de la verdad, así que
+        // igual mostramos el aviso con el enlace en vez del error crudo.
+        setPacienteFichaIncompleta(true);
+        setConfirmOpen(true);
+        setConverting(false);
+        return;
+      }
       setError(toHumanError(reason));
       notifyError(reason);
       setConverting(false);
@@ -216,7 +252,7 @@ export function PresupuestoDetalle({
       <div className="flex flex-col gap-4">
         <PageHeader
           title="Editar presupuesto"
-          description="Actualizá paciente, exámenes, descuento y tasa mientras el presupuesto siga en Borrador."
+          description="Actualiza paciente, exámenes, descuento y tasa mientras el presupuesto siga en Borrador."
           back={{ href: "/presupuestos", label: "Presupuestos" }}
         />
 
@@ -272,6 +308,15 @@ export function PresupuestoDetalle({
                 )}
               </span>
               <PresupuestoEstadoBadge estado={initialData.estado} />
+              {pacienteFichaIncompleta && initialData.paciente_id ? (
+                <Link
+                  href={`/pacientes/${initialData.paciente_id}`}
+                  className="inline-flex items-center gap-1 rounded-full border border-amber-300 bg-amber-50 px-2 py-0.5 text-[11px] font-medium text-amber-700 hover:bg-amber-100 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-300"
+                >
+                  <AlertTriangle className="h-3 w-3" />
+                  Ficha incompleta
+                </Link>
+              ) : null}
             </div>
             <p className="mt-0.5 flex items-center gap-1.5 text-xs text-muted-foreground">
               <UserRound className="h-3 w-3" />
@@ -467,7 +512,7 @@ export function PresupuestoDetalle({
                   <span className="font-medium text-foreground">
                     {initialData.paciente_nombre_libre}
                   </span>
-                  . Elegí una ficha existente para vincularla y crear la orden.
+                  . Elige una ficha existente para vincularla y crear la orden.
                 </DialogDescription>
               </DialogHeader>
 
@@ -526,6 +571,37 @@ export function PresupuestoDetalle({
                   <UserRound className="h-3.5 w-3.5" />
                   {converting ? "Convirtiendo…" : "Vincular y convertir"}
                 </Button>
+              </DialogFooter>
+            </>
+          ) : pacienteFichaIncompleta ? (
+            <>
+              <DialogHeader>
+                <DialogTitle className="flex items-center gap-2 text-base">
+                  <AlertTriangle className="h-4 w-4 text-amber-500" />
+                  Completa la ficha antes de convertir
+                </DialogTitle>
+                <DialogDescription className="text-xs">
+                  A <span className="font-medium text-foreground">{pacienteLabel}</span> le
+                  falta la cédula, la fecha de nacimiento o el sexo. Completa esos datos en su
+                  ficha para poder crear la orden.
+                </DialogDescription>
+              </DialogHeader>
+              <DialogFooter className="gap-2">
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="ghost"
+                  className="h-8"
+                  onClick={() => setConfirmOpen(false)}
+                >
+                  Cancelar
+                </Button>
+                <Link href={`/pacientes/${initialData.paciente_id}`}>
+                  <Button type="button" size="sm" className="h-8">
+                    <UserRound className="h-3.5 w-3.5" />
+                    Ir a la ficha
+                  </Button>
+                </Link>
               </DialogFooter>
             </>
           ) : (

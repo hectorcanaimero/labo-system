@@ -228,7 +228,7 @@ function KanbanDraggableCard({ card, disabled, onAbrirDetalle }: KanbanDraggable
       role="button"
       tabIndex={0}
       aria-roledescription="Tarjeta arrastrable"
-      aria-label={`Presupuesto de ${card.pacienteLabel}. Enter abre el detalle; usá "Mover a…" para cambiar su estado.`}
+      aria-label={`Presupuesto de ${card.pacienteLabel}. Enter abre el detalle; usa "Mover a…" para cambiar su estado.`}
       className={`relative cursor-grab touch-none select-none rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ${
         isDragging ? "opacity-40" : ""
       }`}
@@ -324,7 +324,7 @@ function AccionesRapidasModal({
                 setMotivo(event.target.value);
                 if (motivoError) setMotivoError(null);
               }}
-              placeholder="Contá brevemente por qué se rechaza…"
+              placeholder="Cuenta brevemente por qué se rechaza…"
               className="flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             />
             {motivoError ? <p className="text-sm text-destructive">{motivoError}</p> : null}
@@ -344,7 +344,7 @@ function AccionesRapidasModal({
             <p className="text-sm text-muted-foreground">
               Se creará un resultado clínico en estado{" "}
               <strong className="text-foreground">Pendiente</strong> con los exámenes de este
-              presupuesto y no podrá revertirse desde acá.
+              presupuesto y no podrá revertirse desde aquí.
             </p>
             <div className="flex justify-end gap-2">
               <Button type="button" variant="outline" onClick={onClose}>
@@ -627,7 +627,7 @@ export function PresupuestosList({ initialData, pageSize }: PresupuestosListProp
             type="search"
             value={searchTerm}
             onChange={(event) => setSearchTerm(event.target.value)}
-            placeholder="Buscar por paciente o código…"
+            placeholder="Buscar por nº, paciente o cédula…"
             className="flex h-8 w-full rounded-md border border-input bg-background py-1 pl-8 pr-3 text-xs ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1"
           />
         </div>
@@ -722,7 +722,7 @@ export function PresupuestosList({ initialData, pageSize }: PresupuestosListProp
           <div className="p-6">
             <EmptyState
               title="No encontramos presupuestos"
-              description="Ajustá los filtros o creá un nuevo presupuesto para arrancar."
+              description="Ajusta los filtros o crea un nuevo presupuesto para continuar."
               icon={<FileText className="h-6 w-6" />}
               action={
                 <Link href="/presupuestos/nuevo">
@@ -804,11 +804,12 @@ export function PresupuestosList({ initialData, pageSize }: PresupuestosListProp
               <Table>
                 <TableHeader>
                   <TableRow className="bg-muted/40 hover:bg-muted/40">
+                    <TableHead className="h-9 w-28 py-1.5 pr-5">Nº</TableHead>
                     <TableHead className="h-9 py-1.5">Paciente</TableHead>
                     <TableHead className="h-9 py-1.5">Fecha</TableHead>
                     <TableHead className="h-9 py-1.5">Estado</TableHead>
                     <TableHead className="h-9 w-28 py-1.5 text-right">Total USD</TableHead>
-                    <TableHead className="h-9 w-28 py-1.5 text-right">Total Bs</TableHead>
+                    <TableHead className="h-9 w-28 py-1.5 pl-5 text-right">Total Bs</TableHead>
                     <TableHead className="h-9 w-9 py-1.5" />
                   </TableRow>
                 </TableHeader>
@@ -817,6 +818,9 @@ export function PresupuestosList({ initialData, pageSize }: PresupuestosListProp
                     const pacienteName = pacienteNombre(presupuesto);
                     return (
                       <TableRow key={presupuesto.id} className="h-9">
+                        <TableCell className="whitespace-nowrap py-1.5 pr-5 font-mono text-xs tabular-nums text-muted-foreground">
+                          {formatNumeroPresupuesto(presupuesto.numero_correlativo, presupuesto.created_at)}
+                        </TableCell>
                         <TableCell className="py-1.5 font-medium text-foreground">
                           <Link
                             href={`/presupuestos/${presupuesto.id}`}
@@ -831,10 +835,10 @@ export function PresupuestosList({ initialData, pageSize }: PresupuestosListProp
                         <TableCell className="py-1.5">
                           <PresupuestoEstadoBadge estado={presupuesto.estado} />
                         </TableCell>
-                        <TableCell className="py-1.5 text-right font-mono tabular-nums text-muted-foreground">
+                        <TableCell className="whitespace-nowrap py-1.5 text-right font-mono tabular-nums text-muted-foreground">
                           {formatCurrency(presupuesto.total_usd, "$")}
                         </TableCell>
-                        <TableCell className="py-1.5 text-right font-mono tabular-nums text-muted-foreground">
+                        <TableCell className="whitespace-nowrap py-1.5 pl-5 text-right font-mono tabular-nums text-muted-foreground">
                           {formatCurrency(presupuesto.total_bs, "Bs")}
                         </TableCell>
                         <TableCell className="py-1.5 text-right">

@@ -4,11 +4,15 @@ import {
   pacienteCreate,
   pacienteSearch,
   pacienteUpdate,
+  pacienteProvisionalSchema,
+  esFichaIncompleta,
   CEDULA_INVALIDA,
   CEDULA_PREFIJO_INVALIDO,
+  CONTACTO_REQUERIDO,
   DIRECCION_REQUERIDA,
   FECHA_NACIMIENTO_FUTURA,
   NOMBRE_REQUERIDO,
+  APELLIDO_REQUERIDO,
   SEXO_REQUERIDO,
   UBICACION_INVALIDA,
 } from "./paciente";
@@ -232,5 +236,96 @@ describe("pacienteSearch", () => {
 
   it("trimea el término", () => {
     expect(pacienteSearch.parse({ term: "  Juan  " }).term).toBe("Juan");
+  });
+});
+
+function provisionalBase(overrides: Record<string, unknown> = {}) {
+  return {
+    nombre: "Juan",
+    apellido: "Pérez",
+    telefono: "0414-1234567",
+    ...overrides,
+  };
+}
+
+describe("pacienteProvisionalSchema", () => {
+  it("acepta ficha provisional con solo teléfono", () => {
+    const res = pacienteProvisionalSchema.safeParse(
+      provisionalBase({ telefono: "0414-1234567", email: undefined }),
+    );
+    expect(res.success).toBe(true);
+  });
+
+  it("acepta ficha provisional con solo email", () => {
+    const res = pacienteProvisionalSchema.safeParse(
+      provisionalBase({ telefono: undefined, email: "juan@example.com" }),
+    );
+    expect(res.success).toBe(true);
+  });
+
+  it("rechaza sin teléfono ni email con CONTACTO_REQUERIDO", () => {
+    const res = pacienteProvisionalSchema.safeParse(
+      provisionalBase({ telefono: undefined, email: undefined }),
+    );
+    expect(res.success).toBe(false);
+    if (!res.success) {
+      expect(res.error.issues[0].message).toBe(CONTACTO_REQUERIDO);
+    }
+  });
+
+  it("rechaza teléfono y email en blanco con CONTACTO_REQUERIDO", () => {
+    const res = pacienteProvisionalSchema.safeParse(
+      provisionalBase({ telefono: "   ", email: "" }),
+    );
+    expect(res.success).toBe(false);
+    if (!res.success) {
+      expect(res.error.issues[0].message).toBe(CONTACTO_REQUERIDO);
+    }
+  });
+
+  it("rechaza nombre vacío", () => {
+    const res = pacienteProvisionalSchema.safeParse(provisionalBase({ nombre: "" }));
+    expect(res.success).toBe(false);
+    if (!res.success) {
+      expect(res.error.issues[0].message).toBe(NOMBRE_REQUERIDO);
+    }
+  });
+
+  it("rechaza apellido vacío", () => {
+    const res = pacienteProvisionalSchema.safeParse(provisionalBase({ apellido: "" }));
+    expect(res.success).toBe(false);
+    if (!res.success) {
+      expect(res.error.issues[0].message).toBe(APELLIDO_REQUERIDO);
+    }
+  });
+
+  it("no exige cédula, fecha de nacimiento, sexo ni dirección", () => {
+    expect(pacienteProvisionalSchema.safeParse(provisionalBase()).success).toBe(true);
+  });
+});
+
+describe("esFichaIncompleta", () => {
+  const completa = { cedula: "V-12345678", fecha_nacimiento: new Date("1990-01-01"), sexo: "M" };
+
+  it("una ficha completa no está incompleta", () => {
+    expect(esFichaIncompleta(completa)).toBe(false);
+  });
+
+  it("sin cédula está incompleta", () => {
+    expect(esFichaIncompleta({ ...completa, cedula: null })).toBe(true);
+  });
+
+  it("sin fecha de nacimiento está incompleta", () => {
+    expect(esFichaIncompleta({ ...completa, fecha_nacimiento: null })).toBe(true);
+  });
+
+  it("sin sexo está incompleta", () => {
+    expect(esFichaIncompleta({ ...completa, sexo: null })).toBe(true);
+  });
+
+  it("una ficha provisional (los tres en null) está incompleta", () => {
+    expect(
+      esFichaIncompleta({ cedula: null, fecha_nacimiento: null, sexo: null }),
+    ).toBe(true);
   });
 });

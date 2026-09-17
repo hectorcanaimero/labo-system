@@ -1,5 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { create, list, search } from "@labo/db/repos/presupuestos";
+import { create, list } from "@labo/db/repos/presupuestos";
 import { AuthError, getCurrentUser } from "@/lib/server/auth";
 import { getAdminDb } from "@/lib/db-server";
 
@@ -20,9 +20,7 @@ export async function GET(request: NextRequest): Promise<Response> {
     const user = await getCurrentUser();
     if (user.role !== "admin" && user.role !== "operador") throw new AuthError("UNAUTHORIZED");
     const params = request.nextUrl.searchParams;
-    const term = params.get("term")?.trim();
     const db = getAdminDb();
-    if (term) return NextResponse.json(await search(db, { term }));
     const page = Number(params.get("page") ?? 1);
     const limit = Number(params.get("limit") ?? 20);
     return NextResponse.json(await list(db, { page, limit, filters: {
@@ -30,6 +28,7 @@ export async function GET(request: NextRequest): Promise<Response> {
       estado: (params.get("estado") as "Borrador" | "Aprobado" | "Cerrado" | null) ?? undefined,
       desde: params.get("desde") ?? undefined,
       hasta: params.get("hasta") ?? undefined,
+      term: params.get("term")?.trim() || undefined,
     } }));
   } catch (error) { return response(error); }
 }

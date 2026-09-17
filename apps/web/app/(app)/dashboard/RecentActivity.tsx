@@ -117,8 +117,8 @@ export function RecentActivity({ initialActivity }: RecentActivityProps) {
       <Card className="shadow-none">
         <CardContent className="p-6">
           <EmptyState
-            title="Empezá creando tu primer paciente"
-            description="Registrá un paciente para comenzar a gestionar órdenes y presupuestos."
+            title="Empieza creando tu primer paciente"
+            description="Registra un paciente para comenzar a gestionar órdenes y presupuestos."
             icon={<ClipboardList className="h-6 w-6" />}
             action={
               <Link href="/pacientes">

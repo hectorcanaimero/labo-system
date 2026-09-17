@@ -26,7 +26,7 @@ export default async function NuevoResultadoPage() {
     <div className="mx-auto flex max-w-6xl flex-col gap-4">
       <PageHeader
         title="Nueva orden"
-        description="Seleccioná un paciente, agregá líneas manualmente o desde un paquete y guardá el resultado clínico."
+        description="Selecciona un paciente, agrega líneas manualmente o desde un paquete y guarda el resultado clínico."
         back={{ href: "/resultados", label: "Órdenes" }}
       />
 

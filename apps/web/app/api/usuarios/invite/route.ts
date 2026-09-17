@@ -33,7 +33,7 @@ function buildInviteEmail(
         </p>
         <p style="margin: 0 0 20px;">
           El enlace es válido por <strong>${INVITE_TTL_DAYS} días</strong>.
-          Al aceptar, elegís tu contraseña y tu cuenta queda activa de inmediato.
+          Al aceptar, eliges tu contraseña y tu cuenta queda activa de inmediato.
         </p>
         <p style="margin: 0 0 24px;">
           <a href="${inviteUrl}"
@@ -42,7 +42,7 @@ function buildInviteEmail(
           </a>
         </p>
         <p style="margin: 0; color: #64748b; font-size: 12px;">
-          Si no esperabas esta invitación, ignorá este email.
+          Si no esperabas esta invitación, ignora este email.
         </p>
       </div>
     `,

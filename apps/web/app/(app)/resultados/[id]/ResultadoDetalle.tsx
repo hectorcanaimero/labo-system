@@ -13,8 +13,10 @@ import {
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { formatFechaLab } from "@labo/lib/fecha";
 import { EmptyState } from "@labo/ui/feedback";
 import { RefinarObservacionesButton } from "@labo/ui/resultados/RefinarObservacionesButton";
+import { formatNumeroOrden } from "@labo/lib/numero-orden";
 
 import { EnviarResultadoButtons } from "./EnviarResultadoButtons";
 import { ResultadoForm } from "../nuevo/ResultadoForm";
@@ -25,6 +27,7 @@ interface ResultadoDetalleProps {
   role: string;
   initialData: {
     id: string;
+    numero_correlativo: number;
     paciente_id: string;
     fecha_muestra: string;
     fecha_resultado: string | null;
@@ -50,14 +53,6 @@ interface ResultadoDetalleProps {
       valores_referencia_snap: string | null;
     }>;
   };
-}
-
-function formatDate(value: string | null): string {
-  if (!value) return "—";
-  return new Intl.DateTimeFormat("es-VE", {
-    dateStyle: "medium",
-    timeZone: "UTC",
-  }).format(new Date(value));
 }
 
 async function requestJson<T>(url: string, init?: RequestInit): Promise<T> {
@@ -125,7 +120,7 @@ export function ResultadoDetalle({ role, initialData }: ResultadoDetalleProps) {
   }
 
   async function deleteResultado(): Promise<void> {
-    const confirmed = window.confirm("¿Seguro que querés eliminar este resultado? Esta acción no se puede deshacer.");
+    const confirmed = window.confirm("¿Seguro que quieres eliminar este resultado? Esta acción no se puede deshacer.");
     if (!confirmed) return;
 
     try {
@@ -148,7 +143,7 @@ export function ResultadoDetalle({ role, initialData }: ResultadoDetalleProps) {
       <div className="flex flex-col gap-4">
         <PageHeader
           title="Editar orden"
-          description="Actualizá valores, observaciones y fechas manteniendo los snapshots del resultado."
+          description="Actualiza valores, observaciones y fechas manteniendo los snapshots del resultado."
           back={{ href: "/resultados", label: "Órdenes" }}
         />
 
@@ -178,7 +173,7 @@ export function ResultadoDetalle({ role, initialData }: ResultadoDetalleProps) {
   return (
     <div className="flex flex-col gap-4">
       <PageHeader
-        title={`${initialData.patient.nombre} ${initialData.patient.apellido}`}
+        title={`${formatNumeroOrden(initialData.numero_correlativo, initialData.created_at)} · ${initialData.patient.nombre} ${initialData.patient.apellido}`}
         count={initialData.patient.cedula}
         description="Ficha de la orden: estado, fechas, contacto y exámenes."
         back={{ href: "/resultados", label: "Órdenes" }}
@@ -221,11 +216,11 @@ export function ResultadoDetalle({ role, initialData }: ResultadoDetalleProps) {
           </div>
           <div className="rounded-md border border-border bg-background p-3">
             <p className="text-xs uppercase tracking-wide text-muted-foreground">Fecha de muestra</p>
-            <p className="mt-1 text-sm font-medium text-foreground">{formatDate(initialData.fecha_muestra)}</p>
+            <p className="mt-1 text-sm font-medium text-foreground">{formatFechaLab(initialData.fecha_muestra)}</p>
           </div>
           <div className="rounded-md border border-border bg-background p-3">
             <p className="text-xs uppercase tracking-wide text-muted-foreground">Fecha de resultado</p>
-            <p className="mt-1 text-sm font-medium text-foreground">{formatDate(initialData.fecha_resultado)}</p>
+            <p className="mt-1 text-sm font-medium text-foreground">{formatFechaLab(initialData.fecha_resultado)}</p>
           </div>
           <div className="rounded-md border border-border bg-background p-3">
             <p className="text-xs uppercase tracking-wide text-muted-foreground">Médico solicitante</p>

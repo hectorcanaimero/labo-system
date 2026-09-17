@@ -46,7 +46,8 @@ describe("PDF templates render", () => {
       pdf_pie_pagina: "Gracias por confiar en nuestro laboratorio.",
     };
     const resultado = {
-      id: "f9fede93-9830-406f-be54-4c2fae9c11f8",
+      numero_correlativo: 42,
+      created_at: "2026-08-31T12:00:00Z",
       estado: "Entregada",
       fecha_muestra: "2026-08-31",
       fecha_resultado: "2026-08-31",
@@ -95,6 +96,8 @@ describe("PDF templates render", () => {
 
   it("renders ResultadoPDF without crashing", async () => {
     const data = {
+      numero_correlativo: 1,
+      created_at: new Date(),
       estado: "Completado",
       fecha_muestra: new Date(),
       fecha_resultado: new Date(),
@@ -241,7 +244,8 @@ describe("PDF templates render", () => {
 
   it("renders ResultadoPDF con QR de verificación", async () => {
     const base = {
-      id: "f9fede93-9830-406f-be54-4c2fae9c11f8",
+      numero_correlativo: 7,
+      created_at: "2026-09-06T12:00:00Z",
       estado: "Entregada",
       fecha_muestra: "2026-09-06",
       fecha_resultado: "2026-09-06",
@@ -273,7 +277,8 @@ describe("PDF templates render", () => {
     // Una orden sin enlace de verificación (migración 0016 sin aplicar, por
     // ejemplo) tiene que emitir el informe igual, sin recuadro de QR.
     const data = {
-      id: "f9fede93-9830-406f-be54-4c2fae9c11f8",
+      numero_correlativo: 8,
+      created_at: "2026-09-06T12:00:00Z",
       estado: "Entregada",
       fecha_muestra: "2026-09-06",
       fecha_resultado: null,
@@ -394,6 +399,8 @@ describe("PDF templates render", () => {
 
   it("renders ResultadoPDF con jerarquía multi-grupo/multi-tipo sin crashing", async () => {
     const data = {
+      numero_correlativo: 9,
+      created_at: new Date(),
       estado: "Completado",
       fecha_muestra: new Date(),
       fecha_resultado: new Date(),

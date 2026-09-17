@@ -65,8 +65,9 @@ export interface PacienteSerializable {
   id: string;
   nombre: string;
   apellido: string;
-  cedula: string;
-  fecha_nacimiento: string;
+  /** Ficha incompleta (F8.2.T1): puede venir en null hasta completarse. */
+  cedula: string | null;
+  fecha_nacimiento: string | null;
   sexo: "M" | "F" | "O" | null;
   telefono: string | null;
   email: string | null;
@@ -99,7 +100,7 @@ interface PacienteFormDialogProps {
   onDeleted?: () => void | Promise<void>;
 }
 
-function toDateInputValue(value: string | undefined): string {
+function toDateInputValue(value: string | null | undefined): string {
   if (!value) return "";
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return "";
@@ -294,7 +295,7 @@ export function PacienteFormDialog({
     if (!paciente) return;
 
     const confirmed = window.confirm(
-      `¿Seguro que querés desactivar a ${paciente.nombre} ${paciente.apellido}?`,
+      `¿Seguro que quieres desactivar a ${paciente.nombre} ${paciente.apellido}?`,
     );
     if (!confirmed) return;
 
@@ -328,8 +329,8 @@ export function PacienteFormDialog({
           <DialogTitle>{dialogTitle}</DialogTitle>
           <DialogDescription>
             {isEdit
-              ? "Actualizá la ficha base del paciente y mantené el historial alineado."
-              : "Completá los datos mínimos para registrar una nueva ficha."}
+              ? "Actualiza la ficha base del paciente y mantén el historial alineado."
+              : "Completa los datos mínimos para registrar una nueva ficha."}
           </DialogDescription>
         </DialogHeader>
 

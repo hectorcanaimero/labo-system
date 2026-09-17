@@ -177,8 +177,8 @@ export default function PaquetesPage() {
               </h2>
               <p className="mt-1 text-xs text-muted-foreground">
                 {q
-                  ? "Probá con otro término de búsqueda."
-                  : "Creá el primero para dejar de repetir selecciones manualmente."}
+                  ? "Prueba con otro término de búsqueda."
+                  : "Crea el primero para dejar de repetir selecciones manualmente."}
               </p>
             </div>
             {canManage && !q ? (

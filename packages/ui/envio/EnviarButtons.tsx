@@ -52,7 +52,7 @@ interface EnviarResponse {
 const MENSAJES_ERROR_COMUNES: Record<string, string> = {
   PACIENTE_SIN_TELEFONO: "El paciente no tiene un teléfono válido cargado.",
   PACIENTE_SIN_EMAIL: "El paciente no tiene un correo válido cargado.",
-  UNAUTHORIZED: "No tenés permisos para enviar esto.",
+  UNAUTHORIZED: "No tienes permisos para enviar esto.",
 };
 
 /**

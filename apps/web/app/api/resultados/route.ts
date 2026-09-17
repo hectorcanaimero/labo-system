@@ -5,7 +5,6 @@ import {
   EXAMEN_NO_ENCONTRADO,
   list,
   PACIENTE_NO_ENCONTRADO,
-  search,
   type ResultadoFilters,
 } from "@labo/db/repos/resultados";
 import { AuthError, getCurrentUser } from "@/lib/server/auth";
@@ -87,6 +86,7 @@ function filters(params: URLSearchParams): ResultadoFilters | null {
   const estado = params.get("estado");
   const desde = params.get("desde");
   const hasta = params.get("hasta");
+  const term = params.get("term");
   if (pacienteId !== null && !isUuid(pacienteId)) return null;
   if (estado !== null && !isEstado(estado)) return null;
   if (desde !== null && !isCalendarDate(desde)) return null;
@@ -96,6 +96,7 @@ function filters(params: URLSearchParams): ResultadoFilters | null {
     estado: estado ?? undefined,
     desde: desde ?? undefined,
     hasta: hasta ?? undefined,
+    term: term ?? undefined,
   };
 }
 
@@ -108,8 +109,6 @@ export async function GET(request: NextRequest): Promise<Response> {
     const limit = parsePositiveInteger(params.get("limit"), 20);
     if (!parsedFilters || page === null || limit === null) return bad(400, "VALIDACION_FALLIDA");
     const db = getAdminDb();
-    const term = params.get("term");
-    if (term !== null) return NextResponse.json(await search(db, { term, filters: parsedFilters }));
     return NextResponse.json(await list(db, {
       page,
       limit,

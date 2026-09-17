@@ -24,7 +24,7 @@ export function ForgotForm() {
 
     const trimmedEmail = email.trim();
     if (!EMAIL_REGEX.test(trimmedEmail)) {
-      setError("Ingresá un email válido.");
+      setError("Ingresa un email válido.");
       return;
     }
 
@@ -50,7 +50,7 @@ export function ForgotForm() {
         <MailCheck className="h-8 w-8 text-primary" />
         <p className="text-xs text-muted-foreground">
           Si ese email está registrado, vas a recibir un código para restablecer
-          tu contraseña. Revisá también la carpeta de spam.
+          tu contraseña. Revisa también la carpeta de spam.
         </p>
         <Link
           href="/"

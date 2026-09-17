@@ -91,7 +91,7 @@ function buildTasaStaleAlert(input: SendTasaStaleAlertInput): {
           </tr>
         </tbody>
       </table>
-      <p style="margin: 0; color: #64748b; font-size: 12px;">Revisá el scraper BCV o cargá una tasa manual desde Config Empresa.</p>
+      <p style="margin: 0; color: #64748b; font-size: 12px;">Revisa el scraper BCV o carga una tasa manual desde Config Empresa.</p>
     </div>
   `;
 
@@ -193,7 +193,7 @@ export async function sendEmail(options: SendEmailOptions): Promise<void> {
       return sendViaInsforge(options);
     case 'none':
       console.warn(
-        '[@labo/lib/server/email] sin proveedor de email: definí RESEND_API_KEY (o INSFORGE_API_KEY).',
+        '[@labo/lib/server/email] sin proveedor de email: define RESEND_API_KEY (o INSFORGE_API_KEY).',
       );
       throw new Error(EMAIL_NO_DISPONIBLE);
   }

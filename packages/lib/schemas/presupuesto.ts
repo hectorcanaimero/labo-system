@@ -1,5 +1,7 @@
 import { z } from 'zod';
 
+import { pacienteProvisionalSchema } from './paciente';
+
 /**
  * Errores de validación del dominio de presupuestos.
  *
@@ -138,18 +140,29 @@ export const lineaPresupuestoSchema = z.object({
 export type LineaPresupuestoInput = z.infer<typeof lineaPresupuestoSchema>;
 
 /**
- * Regla XOR (ADR-05): exactamente uno de `paciente_id` / `paciente_nombre_libre`.
+ * Regla XOR (ADR-05, extendida en F8.2.T1): exactamente uno de `paciente_id`,
+ * `paciente_nombre_libre` o `paciente_provisional`.
  *
- * `(a == null) !== (b == null)` es `true` solo cuando exactamente uno es `null`.
+ * `paciente_nombre_libre` se mantiene válido para no romper clientes viejos,
+ * pero la UI deja de usarlo (F8.2.T2): un presupuesto sin ficha ahora crea
+ * una ficha provisional en vez de guardar solo un nombre suelto.
  */
-function xorPaciente(data: { paciente_id?: string; paciente_nombre_libre?: string }): boolean {
-  return (data.paciente_id == null) !== (data.paciente_nombre_libre == null);
+function exactlyOnePaciente(data: {
+  paciente_id?: string;
+  paciente_nombre_libre?: string;
+  paciente_provisional?: unknown;
+}): boolean {
+  const presentes = [data.paciente_id, data.paciente_nombre_libre, data.paciente_provisional].filter(
+    (v) => v != null,
+  ).length;
+  return presentes === 1;
 }
 
 /**
  * Schema de creación de un presupuesto.
  *
- * - XOR: exactamente uno de `paciente_id` (ficha) o `paciente_nombre_libre`.
+ * - XOR: exactamente uno de `paciente_id` (ficha), `paciente_nombre_libre`
+ *   (histórico) o `paciente_provisional` (crea la ficha incompleta, F8.2.T1).
  * - `descuento_pct`, `ganancia_pct`, `tasa_bs` validados en rango.
  * - `toma_muestra_usd` / `domicilio_usd` opcionales, >= 0; se suman al total
  *   después del descuento y la ganancia.
@@ -162,6 +175,7 @@ export const presupuestoCreateSchema = z
   .object({
     paciente_id: z.string().min(1).optional(),
     paciente_nombre_libre: z.string().trim().min(1).optional(),
+    paciente_provisional: pacienteProvisionalSchema.optional(),
     descuento_pct: descuentoPctSchema,
     ganancia_pct: gananciaPctSchema,
     tasa_bs: tasaBsSchema,
@@ -169,7 +183,7 @@ export const presupuestoCreateSchema = z
     domicilio_usd: servicioUsdSchema.optional(),
     examenes: z.array(lineaPresupuestoSchema).min(1, { message: EXAMENES_REQUERIDOS }),
   })
-  .refine(xorPaciente, {
+  .refine(exactlyOnePaciente, {
     message: PACIENTE_XOR_REQUIRED,
     path: ['paciente_id'],
   });

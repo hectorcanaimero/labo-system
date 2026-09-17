@@ -20,7 +20,7 @@ export function aItemAutocomplete(paciente: PacienteSerializable): PacienteAutoc
     id: paciente.id,
     nombre: paciente.nombre,
     apellido: paciente.apellido,
-    cedula: paciente.cedula,
-    fecha_nacimiento: paciente.fecha_nacimiento,
+    cedula: paciente.cedula ?? "",
+    fecha_nacimiento: paciente.fecha_nacimiento ?? "",
   };
 }

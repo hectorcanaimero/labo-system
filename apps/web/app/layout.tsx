@@ -29,7 +29,7 @@ export default function RootLayout({
   children: ReactNode;
 }) {
   return (
-    <html lang="es" className={`${fontSans.variable} ${fontMono.variable}`}>
+    <html lang="es-VE" className={`${fontSans.variable} ${fontMono.variable}`}>
       <body className="min-h-screen bg-background font-sans text-foreground antialiased">
         {children}
       </body>

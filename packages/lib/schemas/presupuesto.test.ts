@@ -21,6 +21,7 @@ import {
   servicioUsdSchema,
   tasaBsSchema,
 } from "./presupuesto";
+import { CONTACTO_REQUERIDO } from "./paciente";
 
 const EXAMEN_ID = "j70abc12345678901234567890";
 
@@ -247,6 +248,49 @@ describe("presupuestoCreateSchema", () => {
         createInput({ paciente_id: undefined, paciente_nombre_libre: "   " }),
       );
       expect(res.success).toBe(false);
+    });
+
+    it("acepta paciente_provisional solo con teléfono", () => {
+      const res = presupuestoCreateSchema.safeParse(
+        createInput({
+          paciente_id: undefined,
+          paciente_provisional: { nombre: "Juan", apellido: "Pérez", telefono: "0414-1234567" },
+        }),
+      );
+      expect(res.success).toBe(true);
+    });
+
+    it("rechaza paciente_provisional sin teléfono ni email con CONTACTO_REQUERIDO", () => {
+      const res = presupuestoCreateSchema.safeParse(
+        createInput({
+          paciente_id: undefined,
+          paciente_provisional: { nombre: "Juan", apellido: "Pérez" },
+        }),
+      );
+      expect(res.success).toBe(false);
+      expect(res.error?.issues[0]?.message).toBe(CONTACTO_REQUERIDO);
+    });
+
+    it("rechaza paciente_id + paciente_provisional a la vez", () => {
+      const res = presupuestoCreateSchema.safeParse(
+        createInput({
+          paciente_provisional: { nombre: "Juan", apellido: "Pérez", telefono: "0414-1234567" },
+        }),
+      );
+      expect(res.success).toBe(false);
+      expect(res.error?.issues[0]?.message).toBe(PACIENTE_XOR_REQUERIDO);
+    });
+
+    it("rechaza paciente_nombre_libre + paciente_provisional a la vez", () => {
+      const res = presupuestoCreateSchema.safeParse(
+        createInput({
+          paciente_id: undefined,
+          paciente_nombre_libre: "Walk-in",
+          paciente_provisional: { nombre: "Juan", apellido: "Pérez", telefono: "0414-1234567" },
+        }),
+      );
+      expect(res.success).toBe(false);
+      expect(res.error?.issues[0]?.message).toBe(PACIENTE_XOR_REQUERIDO);
     });
   });
 });

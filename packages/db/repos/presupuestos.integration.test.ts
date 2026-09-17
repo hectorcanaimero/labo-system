@@ -7,9 +7,13 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { closeSql } from "../client";
 import {
   cambiarEstado,
+  create as crearPresupuestoRepo,
+  convertToOrden,
   list as listPresupuestos,
+  PACIENTE_FICHA_INCOMPLETA,
   TRANSICION_ESTADO_INVALIDA,
 } from "./presupuestos";
+import { CONTACTO_REQUERIDO } from "@labo/lib/schemas/paciente";
 import type { Db } from "../sdk";
 
 // `cambiarEstado`/`list` migraron a recibir el cliente InsForge (`Db`,
@@ -310,5 +314,326 @@ describeIfDb("presupuestos — integración Postgres (DDL CHECKs + máquina de e
     });
     expect(uno.total).toBe(1);
     expect(uno.items[0].estado).toBe("Aprobado");
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// F8.2.T1 — ficha incompleta de paciente (paciente_provisional)
+//
+// Sin `Db` InsForge real disponible en este fixture (ver nota arriba), estos
+// casos se prueban contra un Db falso que imita la cadena fluida del SDK
+// (mismo patrón que `ordenes.entrega.test.ts`), alcanza para verificar que el
+// repo arma bien las escrituras y corta ANTES de crear la orden con la ficha
+// incompleta.
+// ─────────────────────────────────────────────────────────────────────────────
+
+type FakeRespuesta = { data?: unknown; count?: number; error?: { message: string } | null };
+type FakeLlamada = { table: string; op: string; payload?: unknown };
+
+function fakeDb(responder: (table: string, op: string) => FakeRespuesta) {
+  const llamadas: FakeLlamada[] = [];
+  function builder(table: string) {
+    const state = { op: "select", payload: undefined as unknown };
+    const chain: Record<string, unknown> = {};
+    for (const m of [
+      "select",
+      "eq",
+      "limit",
+      "order",
+      "in",
+      "range",
+      "or",
+      "ilike",
+      "gte",
+      "lte",
+      "maybeSingle",
+      "single",
+    ]) {
+      chain[m] = (...args: unknown[]) => {
+        llamadas.push({ table, op: m, payload: args });
+        return chain;
+      };
+    }
+    for (const m of ["insert", "update", "delete", "upsert"]) {
+      chain[m] = (payload?: unknown) => {
+        state.op = m;
+        state.payload = payload;
+        return chain;
+      };
+    }
+    chain.then = (resolve: (v: FakeRespuesta) => void, reject: (e: unknown) => void) => {
+      llamadas.push({ table, op: state.op, payload: state.payload });
+      try {
+        resolve({ error: null, ...responder(table, state.op) });
+      } catch (e) {
+        reject(e);
+      }
+    };
+    return chain;
+  }
+  const fake = { from: (table: string) => builder(table) } as unknown as Db;
+  return { db: fake, llamadas };
+}
+
+const EXAMEN = { id: "ex-1", nombre: "Hemograma", precio_usd: 10 };
+const FICHA_PROVISIONAL = {
+  id: "pac-provisional-1",
+  nombre: "Juan",
+  apellido: "Pérez",
+  cedula: null,
+  fecha_nacimiento: null,
+  sexo: null,
+  telefono: "0414-1234567",
+  email: null,
+  direccion: null,
+  ubicacion_url: null,
+  activo: true,
+  created_at: "2026-09-16T00:00:00.000Z",
+  updated_at: "2026-09-16T00:00:00.000Z",
+};
+
+function presupuestoRow(overrides: Record<string, unknown> = {}) {
+  return {
+    id: "pres-1",
+    numero_correlativo: 1,
+    paciente_id: FICHA_PROVISIONAL.id,
+    paciente_nombre_libre: null,
+    descuento_pct: 0,
+    ganancia_pct: 30,
+    tasa_bs: 36.5,
+    toma_muestra_usd: 0,
+    domicilio_usd: 0,
+    total_usd: 13,
+    total_bs: 474.5,
+    estado: "Borrador",
+    orden_id: null,
+    created_at: "2026-09-16T00:00:00.000Z",
+    created_by: "u1",
+    pacientes: { nombre: FICHA_PROVISIONAL.nombre, apellido: FICHA_PROVISIONAL.apellido },
+    ...overrides,
+  };
+}
+
+const CREATE_INPUT_PROVISIONAL = {
+  paciente_provisional: { nombre: "Juan", apellido: "Pérez", telefono: "0414-1234567" },
+  descuento_pct: 0,
+  ganancia_pct: 30,
+  tasa_bs: 36.5,
+  examenes: [{ examen_id: EXAMEN.id }],
+};
+
+describe("presupuestos.create — paciente_provisional (F8.2.T1)", () => {
+  it("crea la ficha incompleta y el presupuesto queda ligado a ella (solo teléfono)", async () => {
+    const { db, llamadas } = fakeDb((table, op) => {
+      if (table === "examenes") return { data: [EXAMEN] };
+      if (table === "pacientes" && op === "insert") return { data: FICHA_PROVISIONAL };
+      if (table === "presupuestos" && op === "insert") return { data: [{ id: presupuestoRow().id }] };
+      if (table === "presupuestos_examenes") return { data: [] };
+      if (table === "audit_log") return { data: [] };
+      if (table === "presupuestos" && op === "select") return { data: [presupuestoRow()] };
+      return { data: [] };
+    });
+
+    const creado = await crearPresupuestoRepo(db, CREATE_INPUT_PROVISIONAL, "u1");
+
+    expect(creado.paciente_id).toBe(FICHA_PROVISIONAL.id);
+
+    const fichaInsert = llamadas.find((l) => l.table === "pacientes" && l.op === "insert");
+    expect(fichaInsert?.payload).toMatchObject({
+      nombre: "Juan",
+      apellido: "Pérez",
+      telefono: "0414-1234567",
+      cedula: null,
+      fecha_nacimiento: null,
+      sexo: null,
+    });
+
+    const presupuestoInsert = llamadas.find((l) => l.table === "presupuestos" && l.op === "insert");
+    expect(presupuestoInsert?.payload).toMatchObject({
+      paciente_id: FICHA_PROVISIONAL.id,
+      paciente_nombre_libre: null,
+    });
+  });
+
+  it("rechaza un paciente_provisional sin teléfono ni email antes de tocar la base", async () => {
+    const { db, llamadas } = fakeDb(() => ({ data: [] }));
+
+    await expect(
+      crearPresupuestoRepo(
+        db,
+        {
+          ...CREATE_INPUT_PROVISIONAL,
+          paciente_provisional: { nombre: "Juan", apellido: "Pérez" },
+        },
+        "u1",
+      ),
+    ).rejects.toThrow(CONTACTO_REQUERIDO);
+    expect(llamadas).toHaveLength(0);
+  });
+
+  it("si falla el insert del presupuesto, borra la ficha recién creada", async () => {
+    const { db, llamadas } = fakeDb((table, op) => {
+      if (table === "examenes") return { data: [EXAMEN] };
+      if (table === "pacientes" && op === "insert") return { data: FICHA_PROVISIONAL };
+      if (table === "presupuestos" && op === "insert") {
+        return { error: { message: "boom" } };
+      }
+      return { data: [] };
+    });
+
+    await expect(crearPresupuestoRepo(db, CREATE_INPUT_PROVISIONAL, "u1")).rejects.toThrow(
+      "presupuestos.create",
+    );
+
+    const fichaDelete = llamadas.find((l) => l.table === "pacientes" && l.op === "delete");
+    expect(fichaDelete).toBeTruthy();
+  });
+});
+
+describe("presupuestos.convertToOrden — ficha incompleta (F8.2.T1)", () => {
+  it("rechaza con PACIENTE_FICHA_INCOMPLETA si al paciente le falta cédula/fecha/sexo", async () => {
+    const { db, llamadas } = fakeDb((table) => {
+      if (table === "presupuestos") {
+        return {
+          data: [
+            {
+              id: "pres-1",
+              paciente_id: FICHA_PROVISIONAL.id,
+              estado: "Aprobado",
+              orden_id: null,
+              created_by: "u1",
+            },
+          ],
+        };
+      }
+      if (table === "pacientes") {
+        return { data: [{ cedula: null, fecha_nacimiento: null, sexo: null }] };
+      }
+      return { data: [] };
+    });
+
+    await expect(convertToOrden(db, "pres-1", "u1")).rejects.toThrow(PACIENTE_FICHA_INCOMPLETA);
+    expect(llamadas.some((l) => l.table === "ordenes")).toBe(false);
+  });
+
+  it("permite convertir cuando la ficha del paciente está completa", async () => {
+    const { db } = fakeDb((table) => {
+      if (table === "presupuestos") {
+        return {
+          data: [
+            {
+              id: "pres-1",
+              paciente_id: "pac-completo",
+              estado: "Aprobado",
+              orden_id: null,
+              created_by: "u1",
+            },
+          ],
+        };
+      }
+      if (table === "pacientes") {
+        return { data: [{ cedula: "V-12345678", fecha_nacimiento: "1990-01-01", sexo: "M" }] };
+      }
+      if (table === "ordenes") return { data: [{ id: "orden-1" }] };
+      if (table === "presupuestos_examenes") return { data: [] };
+      if (table === "examenes") return { data: [] };
+      if (table === "audit_log") return { data: [] };
+      return { data: [] };
+    });
+
+    await expect(convertToOrden(db, "pres-1", "u1")).resolves.toMatchObject({
+      orden_id: "orden-1",
+    });
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// F8.2.T5 — list() con búsqueda unificada por término
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe("presupuestos.list — término de búsqueda (F8.2.T5)", () => {
+  it("un término numérico filtra por numero_correlativo sin resolver pacientes", async () => {
+    const { db, llamadas } = fakeDb((table, op) => {
+      if (table === "presupuestos" && op === "select") {
+        return { data: [presupuestoRow({ numero_correlativo: 1 })], count: 1 };
+      }
+      if (table === "presupuestos_examenes") return { data: [] };
+      return { data: [] };
+    });
+
+    const result = await listPresupuestos(db, { filters: { term: "PR-2026-000001" } });
+
+    expect(result.total).toBe(1);
+    expect(result.items[0]?.numero_correlativo).toBe(1);
+    expect(llamadas.some((l) => l.table === "pacientes")).toBe(false);
+    expect(
+      llamadas.some(
+        (l) =>
+          l.table === "presupuestos" &&
+          l.op === "eq" &&
+          Array.isArray(l.payload) &&
+          l.payload[0] === "numero_correlativo" &&
+          l.payload[1] === 1,
+      ),
+    ).toBe(true);
+  });
+
+  it("un término de texto resuelve pacientes por apellido antes de filtrar presupuestos", async () => {
+    const { db, llamadas } = fakeDb((table, op) => {
+      if (table === "pacientes" && op === "select") return { data: [{ id: "pac-1" }] };
+      if (table === "presupuestos" && op === "select") {
+        return { data: [presupuestoRow({ paciente_id: "pac-1" })], count: 1 };
+      }
+      if (table === "presupuestos_examenes") return { data: [] };
+      return { data: [] };
+    });
+
+    const result = await listPresupuestos(db, { filters: { term: "Pérez" } });
+
+    expect(result.total).toBe(1);
+    expect(llamadas.some((l) => l.table === "pacientes" && l.op === "select")).toBe(true);
+    expect(
+      llamadas.some(
+        (l) =>
+          l.table === "presupuestos" &&
+          l.op === "or" &&
+          Array.isArray(l.payload) &&
+          typeof l.payload[0] === "string" &&
+          (l.payload[0] as string).includes("paciente_id.in.(pac-1)"),
+      ),
+    ).toBe(true);
+  });
+
+  it("combina el término con el filtro de estado", async () => {
+    const { db, llamadas } = fakeDb((table, op) => {
+      if (table === "presupuestos" && op === "select") {
+        return { data: [presupuestoRow({ numero_correlativo: 1, estado: "Borrador" })], count: 1 };
+      }
+      if (table === "presupuestos_examenes") return { data: [] };
+      return { data: [] };
+    });
+
+    await listPresupuestos(db, { filters: { term: "1", estado: "Borrador" } });
+
+    expect(
+      llamadas.some(
+        (l) =>
+          l.table === "presupuestos" &&
+          l.op === "eq" &&
+          Array.isArray(l.payload) &&
+          l.payload[0] === "estado" &&
+          l.payload[1] === "Borrador",
+      ),
+    ).toBe(true);
+    expect(
+      llamadas.some(
+        (l) =>
+          l.table === "presupuestos" &&
+          l.op === "eq" &&
+          Array.isArray(l.payload) &&
+          l.payload[0] === "numero_correlativo" &&
+          l.payload[1] === 1,
+      ),
+    ).toBe(true);
   });
 });

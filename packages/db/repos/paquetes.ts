@@ -91,6 +91,12 @@ function toDomainValidationError(error: unknown): Error {
   return new Error(message);
 }
 
+async function assertActivo(db: Db, id: string): Promise<void> {
+  const res = await db.from("paquetes").select("id").eq("id", id).eq("activo", true).limit(1);
+  if (res.error) throw new Error(`paquetes.assertActivo: ${res.error.message}`);
+  if (!res.data?.[0]) throw new Error(PAQUETE_NO_ENCONTRADO);
+}
+
 function toPaquete(row: PaqueteRow): Paquete {
   return {
     ...row,
@@ -119,6 +125,7 @@ export async function list(db: Db): Promise<PaqueteListItem[]> {
   const paqRes = await db
     .from("paquetes")
     .select("id, nombre, descripcion, precio_base, created_at")
+    .eq("activo", true)
     .order("nombre", { ascending: true });
   if (paqRes.error) throw new Error(`paquetes.list: ${paqRes.error.message}`);
   const paquetes = (paqRes.data ?? []) as PaqueteRow[];
@@ -383,6 +390,8 @@ export async function update(
   const parsed = paqueteUpdate.safeParse(input);
   if (!parsed.success) throw toDomainValidationError(parsed.error);
 
+  await assertActivo(db, id);
+
   const patch: Record<string, unknown> = {};
   if (parsed.data.nombre !== undefined) patch.nombre = parsed.data.nombre;
   if (Object.prototype.hasOwnProperty.call(parsed.data, "descripcion")) {
@@ -413,17 +422,14 @@ export async function update(
 }
 
 async function deletePaquete(db: Db, id: string): Promise<Paquete> {
-  const before = await db
+  const { data, error } = await db
     .from("paquetes")
-    .select("id, nombre, descripcion, precio_base, created_at")
+    .update({ activo: false })
     .eq("id", id)
-    .limit(1);
-  if (before.error) throw new Error(`paquetes.delete: ${before.error.message}`);
-  const row = before.data?.[0] as PaqueteRow | undefined;
-  if (!row) throw new Error(PAQUETE_NO_ENCONTRADO);
-
-  const { error } = await db.from("paquetes").delete().eq("id", id);
+    .select("id, nombre, descripcion, precio_base, created_at");
   if (error) throw new Error(`paquetes.delete: ${error.message}`);
+  const row = data?.[0] as PaqueteRow | undefined;
+  if (!row) throw new Error(PAQUETE_NO_ENCONTRADO);
   return toPaquete(row);
 }
 
@@ -440,9 +446,7 @@ export async function setExamenes(
 ): Promise<PaqueteExamen[]> {
   const examenIds = parseIds(examenIdsInput);
 
-  const paqRes = await db.from("paquetes").select("id").eq("id", id).limit(1);
-  if (paqRes.error) throw new Error(`paquetes.setExamenes: ${paqRes.error.message}`);
-  if (!paqRes.data?.[0]) throw new Error(PAQUETE_NO_ENCONTRADO);
+  await assertActivo(db, id);
 
   if (examenIds.length > 0) {
     const activosRes = await db
@@ -531,6 +535,8 @@ export async function setContenido(
   const examenIds = quiereExamenes ? parseIds(body.examenIds) : null;
   const tituloIds = quiereTitulos ? parseIds(body.tituloIds) : null;
 
+  await assertActivo(db, id);
+
   const previo = await getById(db, id);
   if (!previo) throw new Error(PAQUETE_NO_ENCONTRADO);
 
@@ -581,9 +587,7 @@ export async function setTitulos(
 ): Promise<PaqueteTitulo[]> {
   const tituloIds = parseIds(tituloIdsInput);
 
-  const paqRes = await db.from("paquetes").select("id").eq("id", id).limit(1);
-  if (paqRes.error) throw new Error(`paquetes.setTitulos: ${paqRes.error.message}`);
-  if (!paqRes.data?.[0]) throw new Error(PAQUETE_NO_ENCONTRADO);
+  await assertActivo(db, id);
 
   if (tituloIds.length > 0) {
     const existRes = await db

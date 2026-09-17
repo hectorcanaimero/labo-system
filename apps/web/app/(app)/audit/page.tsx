@@ -249,7 +249,7 @@ export default function AuditPage() {
           description={
             hasActiveFilters
               ? "No hay eventos que matcheen los filtros aplicados."
-              : "Los eventos de login, configuración y negocios van a aparecer acá."
+              : "Los eventos de login, configuración y negocios van a aparecer aquí."
           }
           icon={<ClipboardList className="h-8 w-8" />}
         />

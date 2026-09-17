@@ -1,6 +1,8 @@
 import type { Db } from "../sdk";
 import { ENTREGA_REQUIERE_VALORES, assertPuedeEntregarse } from "@labo/lib/entrega-orden";
+import { limitesDiaLabUTC } from "@labo/lib/fecha";
 import { crearOReutilizarVerificacion, VERIFICACION_TABLA_FALTANTE } from "./enlaces";
+import { parseNumeroOrden } from "@labo/lib/numero-orden";
 import {
   estadoOrdenSchema,
   ordenCreateSchema,
@@ -25,7 +27,6 @@ export { ENTREGA_REQUIERE_VALORES };
 const DEFAULT_PAGE = 1;
 const DEFAULT_LIMIT = 20;
 const MAX_LIMIT = 100;
-const SEARCH_LIMIT = 50;
 const ENTITY_TYPE = "ordenes";
 
 /**
@@ -57,6 +58,7 @@ type Numeric = number | string;
 
 interface OrdenRow {
   id: string;
+  numero_correlativo: number;
   paciente_id: string;
   fecha_muestra: string;
   fecha_resultado: string | null;
@@ -97,6 +99,8 @@ export interface OrdenFilters {
   estado?: EstadoOrden;
   desde?: string | Date;
   hasta?: string | Date;
+  /** Nº de orden (`RS-2026-000005`, `5`) o texto libre (nombre/apellido/cédula). */
+  term?: string;
 }
 
 export interface OrdenListInput {
@@ -128,11 +132,6 @@ export interface OrdenListResult {
   limit: number;
   total: number;
   totalPages: number;
-}
-
-export interface OrdenSearchInput {
-  term: string;
-  filters?: OrdenFilters;
 }
 
 export interface OrdenPaciente {
@@ -184,7 +183,6 @@ export type ResultadoLinea = OrdenLinea;
 export type ResultadoListItem = OrdenListItem;
 export type ResultadoListResult = OrdenListResult;
 export type ResultadoListInput = OrdenListInput;
-export type ResultadoSearchInput = OrdenSearchInput;
 export type ResultadoFilters = OrdenFilters;
 export type ResultadoForPDF = OrdenForPDF;
 export type ResultadoLineaPDF = OrdenLineaPDF;
@@ -194,6 +192,11 @@ export type ResultadoConfig = OrdenConfig;
 // ─────────────────────────────────────────────────────────────────────────────
 // Helpers
 // ─────────────────────────────────────────────────────────────────────────────
+
+/** `desde`/`hasta` de los filtros llegan como `yyyy-mm-dd`; un `Date` se reduce a su día UTC. */
+function toCalendarDateString(value: string | Date): string {
+  return typeof value === "string" ? value : value.toISOString().slice(0, 10);
+}
 
 function normalizePagination(input: OrdenListInput) {
   const page = Number.isFinite(input.page) ? Math.trunc(input.page!) : DEFAULT_PAGE;
@@ -257,7 +260,7 @@ const LINEA_COLS =
   "tipo_analisis_snap, metodo_snap, valor, observacion, orden";
 
 const ORDEN_COLS =
-  "id, paciente_id, fecha_muestra, fecha_resultado, medico_solicitante, " +
+  "id, numero_correlativo, paciente_id, fecha_muestra, fecha_resultado, medico_solicitante, " +
   "estado, observaciones, origen_presupuesto_id, created_at, created_by";
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -403,29 +406,49 @@ export async function list(
   const { page, limit } = normalizePagination(input);
   const filters = input.filters ?? {};
 
+  // `term`: si parsea como número de orden, filtra por numero_correlativo;
+  // si no, es texto libre y resuelve primero a ids de pacientes (nombre,
+  // apellido o cédula) para acotar la búsqueda en `ordenes`.
+  const term = filters.term?.trim() || null;
+  const numeroTerm = term ? parseNumeroOrden(term) : null;
+  let pacIds: string[] | null = null;
+  if (term && numeroTerm === null) {
+    const pattern = `%${term}%`;
+    const pacRes = await db
+      .from("pacientes")
+      .select("id")
+      .or(`nombre.ilike.${pattern},apellido.ilike.${pattern},cedula.ilike.${pattern}`);
+    if (pacRes.error) throw new Error(`ordenes.list pac: ${pacRes.error.message}`);
+    pacIds = ((pacRes.data ?? []) as Array<{ id: string }>).map((p) => p.id);
+    if (pacIds.length === 0) {
+      return { items: [], page, limit, total: 0, totalPages: 0 };
+    }
+  }
+
   // Tipo mínimo del builder del SDK: sólo los filtros que usamos, cada uno
   // devolviendo el mismo builder para poder encadenar.
   type Filtrable<T> = {
     eq: (column: string, value: unknown) => T;
     gte: (column: string, value: unknown) => T;
     lt: (column: string, value: unknown) => T;
+    in: (column: string, values: unknown[]) => T;
   };
   const applyFilters = <T extends Filtrable<T>>(q: T): T => {
     let out = q;
     if (filters.pacienteId?.trim()) out = out.eq("paciente_id", filters.pacienteId.trim());
     if (filters.estado) out = out.eq("estado", filters.estado);
+    // Los límites de día son los de la zona del laboratorio (America/Caracas),
+    // no UTC: una muestra tomada a las 22:00 de Caracas es del día siguiente en UTC.
     if (filters.desde) {
-      const iso =
-        filters.desde instanceof Date ? filters.desde.toISOString() : filters.desde;
-      out = out.gte("fecha_muestra", iso);
+      const ymd = toCalendarDateString(filters.desde);
+      out = out.gte("fecha_muestra", limitesDiaLabUTC(ymd).desde.toISOString());
     }
     if (filters.hasta) {
-      // "menor que el día siguiente" — replica el `< hasta + 1 day` original.
-      const base = filters.hasta instanceof Date ? filters.hasta : new Date(filters.hasta);
-      const next = new Date(base);
-      next.setUTCDate(next.getUTCDate() + 1);
-      out = out.lt("fecha_muestra", next.toISOString());
+      const ymd = toCalendarDateString(filters.hasta);
+      out = out.lt("fecha_muestra", limitesDiaLabUTC(ymd).hasta.toISOString());
     }
+    if (numeroTerm !== null) out = out.eq("numero_correlativo", numeroTerm);
+    if (pacIds) out = out.in("paciente_id", pacIds);
     return out;
   };
 
@@ -451,42 +474,6 @@ export async function list(
     total,
     totalPages: total ? Math.ceil(total / limit) : 0,
   };
-}
-
-export async function search(
-  db: Db,
-  input: OrdenSearchInput,
-): Promise<OrdenListItem[]> {
-  const term = input.term.trim();
-  if (!term) return [];
-  const pattern = `%${term}%`;
-
-  // 1) Pacientes que matchean por nombre/apellido/cedula.
-  const pacRes = await db
-    .from("pacientes")
-    .select("id")
-    .or(
-      `nombre.ilike.${pattern},apellido.ilike.${pattern},cedula.ilike.${pattern}`,
-    );
-  if (pacRes.error) throw new Error(`ordenes.search pac: ${pacRes.error.message}`);
-  const pacIds = ((pacRes.data ?? []) as Array<{ id: string }>).map((p) => p.id);
-
-  if (pacIds.length === 0) return [];
-
-  // 2) Órdenes de esos pacientes (limita) — aplicando filtros extra si vienen.
-  const filters = input.filters ?? {};
-  let q = db
-    .from("ordenes")
-    .select(ORDEN_COLS)
-    .in("paciente_id", pacIds)
-    .order("created_at", { ascending: false })
-    .order("id", { ascending: false })
-    .limit(SEARCH_LIMIT);
-  if (filters.estado) q = q.eq("estado", filters.estado);
-
-  const res = await q;
-  if (res.error) throw new Error(`ordenes.search: ${res.error.message}`);
-  return loadListItems(db, ((res.data ?? []) as unknown) as OrdenRow[]);
 }
 
 export async function getById(db: Db, id: string): Promise<OrdenDetail | null> {

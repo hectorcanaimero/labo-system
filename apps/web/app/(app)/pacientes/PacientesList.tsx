@@ -34,6 +34,7 @@ import { toHumanError } from "@labo/lib/error-messages";
 import { EmptyState, SkeletonTable } from "@labo/ui/feedback";
 import { ExportButton } from "@labo/ui/exports/ExportButton";
 import { calcularEdadDesglosada } from "@labo/lib/edad";
+import { esFichaIncompleta } from "@labo/lib/schemas/paciente";
 
 import {
   PacienteFormDialog,
@@ -54,8 +55,8 @@ interface SearchPacienteItem {
   id: string;
   nombre: string;
   apellido: string;
-  cedula: string;
-  fecha_nacimiento: string;
+  cedula: string | null;
+  fecha_nacimiento: string | null;
 }
 
 interface PacientesListProps {
@@ -241,7 +242,7 @@ export function PacientesList({ initialData, pageSize }: PacientesListProps) {
 
   async function handleDeactivate(paciente: PacienteSerializable): Promise<void> {
     const confirmed = window.confirm(
-      `¿Seguro que querés desactivar a ${paciente.nombre} ${paciente.apellido}?`,
+      `¿Seguro que quieres desactivar a ${paciente.nombre} ${paciente.apellido}?`,
     );
 
     if (!confirmed) return;
@@ -316,8 +317,8 @@ export function PacientesList({ initialData, pageSize }: PacientesListProps) {
               title={isSearching ? "No encontramos pacientes" : "Sin pacientes"}
               description={
                 isSearching
-                  ? "Probá con otro nombre o cédula. Apenas limpies la búsqueda vuelve la lista completa."
-                  : "Todavía no hay fichas registradas. Creá la primera y arrancamos bien, sin vueltas."
+                  ? "Prueba con otro nombre o cédula. Apenas limpies la búsqueda vuelve la lista completa."
+                  : "Todavía no hay fichas registradas. Crea la primera para comenzar."
               }
               icon={<UserRound className="h-6 w-6" />}
               action={
@@ -345,8 +346,13 @@ export function PacientesList({ initialData, pageSize }: PacientesListProps) {
               </TableHeader>
               <TableBody>
                 {visibleItems.map((paciente) => {
-                  const info = calcularEdadDesglosada(new Date(paciente.fecha_nacimiento));
+                  const info = paciente.fecha_nacimiento
+                    ? calcularEdadDesglosada(new Date(paciente.fecha_nacimiento))
+                    : null;
                   const isPediatric = info && info.anos < 18;
+                  // La búsqueda rápida no trae `sexo`, así que la etiqueta sólo
+                  // se calcula sobre la lista paginada (datos completos).
+                  const incompleta = !isSearching && esFichaIncompleta(paciente);
                   return (
                     <TableRow
                       key={paciente.id}
@@ -356,17 +362,22 @@ export function PacientesList({ initialData, pageSize }: PacientesListProps) {
                       <TableCell className="py-1.5 font-medium text-foreground">
                         <Link
                           href={`/pacientes/${paciente.id}`}
-                          className="focus-visible:underline focus-visible:outline-none"
+                          className="inline-flex items-center gap-2 focus-visible:underline focus-visible:outline-none"
                           onClick={(event) => event.stopPropagation()}
                         >
                           {paciente.nombre} {paciente.apellido}
+                          {incompleta ? (
+                            <span className="rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-amber-800 dark:bg-amber-950 dark:text-amber-300">
+                              Ficha incompleta
+                            </span>
+                          ) : null}
                         </Link>
                       </TableCell>
                       <TableCell className="py-1.5 font-mono text-xs tabular-nums text-muted-foreground">
-                        {paciente.cedula}
+                        {paciente.cedula ?? "—"}
                       </TableCell>
                       <TableCell className="py-1.5 font-mono text-xs tabular-nums text-muted-foreground">
-                        {formatDate(paciente.fecha_nacimiento)}
+                        {paciente.fecha_nacimiento ? formatDate(paciente.fecha_nacimiento) : "—"}
                       </TableCell>
                       <TableCell className="py-1.5 text-muted-foreground">
                         {formatSexo(paciente.sexo)}
@@ -382,7 +393,7 @@ export function PacientesList({ initialData, pageSize }: PacientesListProps) {
                             ) : null}
                           </div>
                         ) : (
-                          "N/A"
+                          "—"
                         )}
                       </TableCell>
                       <TableCell className="py-1.5 text-right" onClick={(event) => event.stopPropagation()}>

@@ -21,11 +21,15 @@ import {
   type PipelineOrdenCard,
 } from "@labo/ui/ordenes/OrdenPipelineKanban";
 import { toHumanError } from "@labo/lib/error-messages";
+import { formatFechaLab } from "@labo/lib/fecha";
 import { notifyError, notifySuccess } from "@labo/ui/feedback/toast";
 import type { EstadoOrden } from "@labo/lib/schemas/orden";
+import { formatNumeroOrden } from "@labo/lib/numero-orden";
 
 export interface OrdenPipelineItem {
   id: string;
+  numero_correlativo: number;
+  created_at: string;
   estado: EstadoOrden;
   paciente_nombre: string;
   paciente_apellido: string;
@@ -38,18 +42,6 @@ export interface OrdenPipelineItem {
 
 interface OrdenesPipelineSectionProps {
   items: OrdenPipelineItem[];
-}
-
-function formatDate(value: string | null): string {
-  if (!value) return "—";
-  try {
-    return new Intl.DateTimeFormat("es-VE", {
-      dateStyle: "medium",
-      timeZone: "UTC",
-    }).format(new Date(value));
-  } catch {
-    return "—";
-  }
 }
 
 // ────────────────────────────────────────────────────────────────────────────
@@ -89,7 +81,7 @@ function DraggableCardShell({
             onClick();
           }
         }}
-        aria-label={`Orden de ${card.pacienteLabel}. Enter abre el detalle; usá "Mover a…" para cambiar su estado.`}
+        aria-label={`Orden de ${card.pacienteLabel}. Enter abre el detalle; usa "Mover a…" para cambiar su estado.`}
         role="button"
         tabIndex={0}
         className="cursor-grab active:cursor-grabbing focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1"
@@ -194,9 +186,9 @@ export function OrdenesPipelineSection({ items }: OrdenesPipelineSectionProps) {
       mergedItems.map((r) => ({
         id: r.id,
         estado: r.estado,
-        pacienteLabel: `${r.paciente_nombre} ${r.paciente_apellido}`.trim(),
+        pacienteLabel: `${formatNumeroOrden(r.numero_correlativo, r.created_at)} · ${r.paciente_nombre} ${r.paciente_apellido}`.trim(),
         cedula: r.paciente_cedula,
-        fechaMuestraLabel: formatDate(r.fecha_muestra),
+        fechaMuestraLabel: formatFechaLab(r.fecha_muestra),
         examenesCount: r.examenes_count,
         medico: r.medico_solicitante,
       })),

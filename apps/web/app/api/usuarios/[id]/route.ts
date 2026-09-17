@@ -52,7 +52,7 @@ export async function PATCH(
     const isSelf = params.id === user.userId;
     if (isSelf && (nextActivo === false || (nextRole !== undefined && nextRole !== "admin"))) {
       return NextResponse.json(
-        { error: "No podés degradar ni desactivar tu propia cuenta." },
+        { error: "No puedes degradar ni desactivar tu propia cuenta." },
         { status: 400 },
       );
     }

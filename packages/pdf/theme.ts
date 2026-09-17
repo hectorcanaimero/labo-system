@@ -31,23 +31,17 @@ export const PDF_PAGE = {
   paddingBottom: 64,
 } as const;
 
-/** dd/mm/aaaa en UTC (las fechas de negocio se guardan sin hora local). */
-export function formatDateDMY(value: Date | string | null | undefined): string {
-  if (!value) return "—";
-  const d = value instanceof Date ? value : new Date(value);
-  if (Number.isNaN(d.getTime())) return "—";
-  const day = String(d.getUTCDate()).padStart(2, "0");
-  const month = String(d.getUTCMonth() + 1).padStart(2, "0");
-  return `${day}/${month}/${d.getUTCFullYear()}`;
-}
-
 /**
- * Fecha y hora en la zona del laboratorio: `dd/mm/aaaa hh:mm`.
+ * `dd/mm/aaaa` y `dd/mm/aaaa hh:mm` en la zona del laboratorio.
  *
- * Reexportado desde `@labo/lib/fecha`: la conversión de zona vive en un solo
+ * Reexportados desde `@labo/lib/fecha`: la conversión de zona vive en un solo
  * lugar, compartida con las páginas públicas.
  */
-export { LAB_TIMEZONE, formatFechaHoraLab as formatDateTimeDMY } from "@labo/lib/fecha";
+export {
+  LAB_TIMEZONE,
+  formatFechaLab as formatDateDMY,
+  formatFechaHoraLab as formatDateTimeDMY,
+} from "@labo/lib/fecha";
 
 export interface LaboratorioPDFConfig {
   nombre: string;

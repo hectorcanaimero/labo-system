@@ -81,7 +81,7 @@ export function InviteUserDialog({ onSuccess, onError }: InviteUserDialogProps) 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email.trim()) {
-      onError("Por favor, ingresá un correo electrónico válido.");
+      onError("Por favor, ingresa un correo electrónico válido.");
       return;
     }
 
@@ -172,7 +172,7 @@ export function InviteUserDialog({ onSuccess, onError }: InviteUserDialogProps) 
           <DialogHeader className="px-6 pb-4 pr-12 pt-6">
             <DialogTitle>Invitar Usuario</DialogTitle>
             <DialogDescription className="text-xs">
-              Enviá un enlace de acceso por email. Vence en 7 días.
+              Envía un enlace de acceso por email. Vence en 7 días.
             </DialogDescription>
           </DialogHeader>
 

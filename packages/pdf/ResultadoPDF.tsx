@@ -1,5 +1,6 @@
 import { Document, Page, StyleSheet, Text, View } from "@react-pdf/renderer";
 
+import { formatNumeroOrden } from "@labo/lib/numero-orden";
 import { ExamenesTable, type ExamenTableRow } from "./components/ExamenesTable";
 import { PacienteInfo } from "./components/PacienteInfo";
 import { PDFFirma } from "./components/PDFFirma";
@@ -27,8 +28,8 @@ export interface ExamenPDFRow {
 }
 
 export interface ResultadoPDFData {
-  /** Id de la orden; se imprime abreviado como referencia del informe. */
-  id?: string;
+  numero_correlativo: number;
+  created_at: Date | string;
   estado: string;
   fecha_muestra: Date | string;
   fecha_resultado: Date | string | null;
@@ -199,11 +200,6 @@ function ageAt(birthDate: Date | string, referenceDate: Date | string): number {
   return Math.max(0, age);
 }
 
-function referencia(id: string | undefined): string | null {
-  if (!id) return null;
-  return id.split("-")[0]?.toUpperCase() ?? null;
-}
-
 /**
  * Informe de resultados. Cabecera y pie fijos en todas las páginas; el bloque
  * de firma y sello (de la configuración) cierra el documento en la última.
@@ -212,12 +208,12 @@ export function ResultadoPDF({ data }: ResultadoPDFProps) {
   const config = data.config;
   const laboratoryName = config?.nombre.trim() || FALLBACK_LAB_NAME;
   const grupos = agruparExamenes(data.examenes);
-  const ref = referencia(data.id);
+  const numero = formatNumeroOrden(data.numero_correlativo, data.created_at);
   const fechaEmision = formatDateDMY(data.fecha_resultado ?? new Date());
 
   const meta = [
-    ...(ref ? [{ label: "Nº", value: ref }] : []),
-    { label: "Fecha", value: formatDateDMY(data.fecha_muestra) },
+    { label: "Nº", value: numero },
+    { label: "Fecha de muestra", value: formatDateDMY(data.fecha_muestra) },
   ];
 
   return (

@@ -35,7 +35,7 @@ export default async function PacienteDetallePage({ params }: PacienteDetallePag
     const fichaData: PacienteFichaData = {
       paciente: {
         ...historial.paciente,
-        fecha_nacimiento: historial.paciente.fecha_nacimiento.toISOString(),
+        fecha_nacimiento: historial.paciente.fecha_nacimiento?.toISOString() ?? null,
         created_at: historial.paciente.created_at.toISOString(),
         updated_at: historial.paciente.updated_at.toISOString(),
       },

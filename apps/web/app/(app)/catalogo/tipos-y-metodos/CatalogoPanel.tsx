@@ -260,7 +260,7 @@ export function CatalogoPanel({
           <EmptyState
             compact
             title={`Todavía no hay ${singular}s cargados`}
-            description="Agregá el primero para que aparezca en el selector de los exámenes."
+            description="Agrega el primero para que aparezca en el selector de los exámenes."
           />
         ) : filtrados.length === 0 ? (
           <EmptyState

@@ -25,6 +25,7 @@ import {
 } from "@/components/ui/dialog";
 import { indicesSinValor, mensajeSinValor, tieneValor } from "@labo/lib/entrega-orden";
 import { toHumanError } from "@labo/lib/error-messages";
+import { fechaInputLab, hoyLabInput } from "@labo/lib/fecha";
 import { ESTADO_ORDEN, type EstadoOrden } from "@labo/lib/schemas/orden";
 import {
   PacienteAutocomplete,
@@ -40,10 +41,6 @@ type ResultadoMode = "create" | "edit";
 
 /** Estados que se pueden elegir al cargar o editar. Anular es una acción aparte. */
 const ESTADOS_ELEGIBLES: readonly EstadoOrden[] = ESTADO_ORDEN.filter((e) => e !== "Anulada");
-
-function hoyInput(): string {
-  return new Date().toISOString().slice(0, 10);
-}
 
 interface ExamenCatalogoItem {
   id: string;
@@ -110,11 +107,6 @@ interface ResultadoFormProps {
   onCancelEdit?: () => void;
 }
 
-function formatDateInput(value: string | null | undefined): string {
-  if (!value) return "";
-  return new Date(value).toISOString().slice(0, 10);
-}
-
 function toApiDate(value: string): string | undefined {
   if (!value) return undefined;
   return new Date(`${value}T12:00:00.000Z`).toISOString();
@@ -173,8 +165,8 @@ export function ResultadoForm({ mode, initialData, onSaved, onCancelEdit }: Resu
         }
       : null,
   );
-  const [fechaMuestra, setFechaMuestra] = useState(formatDateInput(initialData?.fecha_muestra));
-  const [fechaResultado, setFechaResultado] = useState(formatDateInput(initialData?.fecha_resultado));
+  const [fechaMuestra, setFechaMuestra] = useState(fechaInputLab(initialData?.fecha_muestra));
+  const [fechaResultado, setFechaResultado] = useState(fechaInputLab(initialData?.fecha_resultado));
   // El estado es explícito: lo elige el operador. Sólo se sugiere "Entregada"
   // al cargar una fecha de resultado si todavía no lo tocó a mano.
   const [estado, setEstado] = useState<EstadoOrden>(
@@ -223,7 +215,7 @@ export function ResultadoForm({ mode, initialData, onSaved, onCancelEdit }: Resu
     setEstadoTocado(true);
     // Registrada no admite fecha de resultado; Entregada la exige.
     if (value === "Registrada") setFechaResultado("");
-    if (value === "Entregada" && !fechaResultado) setFechaResultado(hoyInput());
+    if (value === "Entregada" && !fechaResultado) setFechaResultado(hoyLabInput());
   }
 
   function abrirCrearPaciente(query: string): void {
@@ -335,7 +327,7 @@ export function ResultadoForm({ mode, initialData, onSaved, onCancelEdit }: Resu
 
   async function submit(): Promise<void> {
     if (!canSubmit) {
-      setMessage("Completá paciente, fecha de muestra y al menos un examen.");
+      setMessage("Completa paciente, fecha de muestra y al menos un examen.");
       return;
     }
     if (bloqueaEntrega) {
@@ -440,7 +432,7 @@ export function ResultadoForm({ mode, initialData, onSaved, onCancelEdit }: Resu
                 className="font-medium text-primary underline-offset-2 hover:underline"
                 onClick={() => abrirCrearPaciente("")}
               >
-                Crearlo sin salir de acá
+                Crearlo sin salir de aquí
               </button>
             </p>
           ) : null}
@@ -488,7 +480,7 @@ export function ResultadoForm({ mode, initialData, onSaved, onCancelEdit }: Resu
                 ? "Entregada exige fecha de resultado y todos los valores cargados."
                 : estado === "Registrada"
                   ? "Registrada no lleva fecha de resultado."
-                  : "Podés dejar valores pendientes en este estado."}
+                  : "Puedes dejar valores pendientes en este estado."}
             </span>
           </label>
         </div>
@@ -548,7 +540,7 @@ export function ResultadoForm({ mode, initialData, onSaved, onCancelEdit }: Resu
               <input
                 value={examSearch}
                 onChange={(event) => setExamSearch(event.target.value)}
-                placeholder="Buscá por nombre del examen"
+                placeholder="Busca por nombre del examen"
                 className="h-11 w-full rounded-md border border-input bg-background pl-9 pr-3 text-sm"
               />
             </div>
@@ -588,7 +580,7 @@ export function ResultadoForm({ mode, initialData, onSaved, onCancelEdit }: Resu
               <p className={`mt-1 text-sm ${bloqueaEntrega ? "font-medium text-destructive" : "text-muted-foreground"}`}>
                 {sinValor.length} {sinValor.length === 1 ? "examen sin valor" : "exámenes sin valor"}
                 {bloqueaEntrega
-                  ? ". Completalos o quitá la fecha de resultado para guardar como pendiente."
+                  ? ". Complétalos o quita la fecha de resultado para guardar como pendiente."
                   : "."}
               </p>
             ) : null}
@@ -610,7 +602,7 @@ export function ResultadoForm({ mode, initialData, onSaved, onCancelEdit }: Resu
               {lineas.length === 0 ? (
                 <tr>
                   <td colSpan={5} className="px-4 py-8 text-center text-sm text-muted-foreground">
-                    Todavía no agregaste exámenes. Usá el buscador o cargá un paquete.
+                    Todavía no agregaste exámenes. Usa el buscador o carga un paquete.
                   </td>
                 </tr>
               ) : (
@@ -670,7 +662,7 @@ export function ResultadoForm({ mode, initialData, onSaved, onCancelEdit }: Resu
           <DialogHeader className="px-6 pb-4 pr-12 pt-6">
             <DialogTitle className="text-xl">Cargar paquete</DialogTitle>
             <DialogDescription>
-              Elegí un paquete para agregar todos sus exámenes al resultado.
+              Elige un paquete para agregar todos sus exámenes al resultado.
             </DialogDescription>
           </DialogHeader>
 

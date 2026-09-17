@@ -51,7 +51,7 @@ export function OrdenesShell({
       <PageHeader
         title="Órdenes"
         count={total}
-        description="Pipeline operativo — arrastrá o hacé clic en una tarjeta para avanzar de estado."
+        description="Pipeline operativo — arrastra o haz clic en una tarjeta para avanzar de estado."
         actions={
           <>
           {/* Toggle Kanban ↔ Tabla */}

@@ -33,7 +33,10 @@ export default async function PacientesPage() {
     ...result,
     items: result.items.map((paciente) => ({
       ...paciente,
-      fecha_nacimiento: paciente.fecha_nacimiento.toISOString(),
+      // F8.2.T1 — ficha incompleta: cédula/fecha de nacimiento pueden venir
+      // en null. Placeholder acá; F8.2.T3 se encarga de mostrarlo bien.
+      cedula: paciente.cedula ?? "",
+      fecha_nacimiento: paciente.fecha_nacimiento?.toISOString() ?? "",
       created_at: paciente.created_at.toISOString(),
       updated_at: paciente.updated_at.toISOString(),
     })),

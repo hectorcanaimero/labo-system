@@ -32,7 +32,7 @@ const styles = StyleSheet.create({
  * Si el QR no se puede generar no se rompe el PDF: el informe vale igual sin
  * el recuadro de verificación.
  */
-export function PDFQr({ url, lado = 72, leyenda = "Verificá este informe" }: PDFQrProps) {
+export function PDFQr({ url, lado = 72, leyenda = "Verifica este informe" }: PDFQrProps) {
   let qr: { d: string; size: number };
   try {
     qr = generarQrPath(url);
