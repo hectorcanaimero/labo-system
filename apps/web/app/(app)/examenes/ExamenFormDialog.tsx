@@ -131,17 +131,17 @@ export function ExamenFormDialog({
     const parsedPrecio = Number.parseFloat(precioUsd.replace(',', '.'));
 
     if (trimmedNombre.length === 0) {
-      setErrorMessage('Ingresá el nombre del examen.');
+      setErrorMessage('Ingresa el nombre del examen.');
       return;
     }
 
     if (!Number.isFinite(parsedPrecio) || parsedPrecio < 0) {
-      setErrorMessage('Ingresá un precio válido en USD.');
+      setErrorMessage('Ingresa un precio válido en USD.');
       return;
     }
 
     if (tipoAnalisis.trim().length === 0) {
-      setErrorMessage('Elegí un tipo de análisis.');
+      setErrorMessage('Elige un tipo de análisis.');
       return;
     }
 
@@ -202,8 +202,8 @@ export function ExamenFormDialog({
           <DialogTitle>{dialogTitle}</DialogTitle>
           <DialogDescription>
             {isEdit
-              ? `Actualizá nombre, precio y referencia de ${tituloNombre}.`
-              : `Agregá un nuevo examen dentro de ${tituloNombre}.`}
+              ? `Actualiza nombre, precio y referencia de ${tituloNombre}.`
+              : `Agrega un nuevo examen dentro de ${tituloNombre}.`}
           </DialogDescription>
         </DialogHeader>
 

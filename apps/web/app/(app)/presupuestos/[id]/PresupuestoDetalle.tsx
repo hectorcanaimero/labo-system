@@ -252,7 +252,7 @@ export function PresupuestoDetalle({
       <div className="flex flex-col gap-4">
         <PageHeader
           title="Editar presupuesto"
-          description="Actualizá paciente, exámenes, descuento y tasa mientras el presupuesto siga en Borrador."
+          description="Actualiza paciente, exámenes, descuento y tasa mientras el presupuesto siga en Borrador."
           back={{ href: "/presupuestos", label: "Presupuestos" }}
         />
 
@@ -512,7 +512,7 @@ export function PresupuestoDetalle({
                   <span className="font-medium text-foreground">
                     {initialData.paciente_nombre_libre}
                   </span>
-                  . Elegí una ficha existente para vincularla y crear la orden.
+                  . Elige una ficha existente para vincularla y crear la orden.
                 </DialogDescription>
               </DialogHeader>
 

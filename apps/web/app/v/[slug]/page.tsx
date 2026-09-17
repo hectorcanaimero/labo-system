@@ -103,7 +103,7 @@ export default async function VerificacionPage({
       <section className="rounded-2xl border border-border bg-card p-5 shadow-sm">
         <h2 className="text-sm font-semibold">¿Algo no coincide?</h2>
         <p className="mt-2 text-sm text-muted-foreground">
-          Si los datos del papel que tenés no coinciden con los de esta página, escribinos
+          Si los datos del papel que tienes no coinciden con los de esta página, escribinos
           y lo revisamos.
         </p>
         {whatsapp ? (

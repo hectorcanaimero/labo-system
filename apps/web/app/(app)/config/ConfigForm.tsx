@@ -652,7 +652,7 @@ export function ConfigForm({ preloadedConfig, preloadedTasa }: ConfigFormProps) 
                 compact
                 icon={<AlertCircle className="h-5 w-5" />}
                 title="Sin tasa registrada"
-                description="Cargá la tasa para poder cotizar presupuestos."
+                description="Carga la tasa para poder cotizar presupuestos."
               />
             )}
 

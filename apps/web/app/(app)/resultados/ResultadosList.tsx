@@ -202,7 +202,7 @@ export function ResultadosList({ initialData, pageSize }: ResultadosListProps) {
           <div className="p-6">
             <EmptyState
               title="No encontramos órdenes"
-              description="Ajustá los filtros o cargá una nueva orden para comenzar."
+              description="Ajusta los filtros o carga una nueva orden para comenzar."
               icon={<FileText className="h-6 w-6" />}
               action={
                 <Link href="/resultados/nuevo">

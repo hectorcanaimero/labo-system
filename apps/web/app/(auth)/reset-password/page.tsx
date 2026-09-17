@@ -16,7 +16,7 @@ export default function ResetPasswordPage({ searchParams }: Props) {
       <div className="mb-5 flex flex-col gap-1 text-center">
         <h1 className="text-xl font-semibold tracking-tight">RV Laboratorio</h1>
         <p className="text-xs text-muted-foreground">
-          Ingresá el código y elegí tu nueva contraseña
+          Ingresa el código y elige tu nueva contraseña
         </p>
       </div>
       <ResetForm email={email} />

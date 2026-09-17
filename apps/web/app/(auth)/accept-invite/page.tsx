@@ -56,7 +56,7 @@ function AcceptInviteForm() {
       setSuccess(true);
       setTimeout(() => router.push("/login"), 2500);
     } catch {
-      setError("Error de red. Intentá de nuevo.");
+      setError("Error de red. Intenta de nuevo.");
     } finally {
       setSubmitting(false);
     }
@@ -117,7 +117,7 @@ function AcceptInviteForm() {
             autoComplete="new-password"
             value={confirm}
             onChange={(e) => setConfirm(e.target.value)}
-            placeholder="Repetí la contraseña"
+            placeholder="Repite la contraseña"
             disabled={submitting}
             className="flex h-10 w-full rounded-md border border-input bg-background py-2 pl-9 pr-3 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
           />
@@ -152,7 +152,7 @@ export default function AcceptInvitePage() {
         <div className="space-y-1 text-center">
           <h1 className="text-2xl font-bold tracking-tight">Aceptar invitación</h1>
           <p className="text-sm text-muted-foreground">
-            Elegí una contraseña para activar tu cuenta en RV Laboratorio.
+            Elige una contraseña para activar tu cuenta en RV Laboratorio.
           </p>
         </div>
 

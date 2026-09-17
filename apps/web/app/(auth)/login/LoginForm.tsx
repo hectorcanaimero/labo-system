@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-const INVALID_CREDENTIALS = "Credenciales inválidas. Intentá de nuevo.";
+const INVALID_CREDENTIALS = "Credenciales inválidas. Intenta de nuevo.";
 
 export function LoginForm() {
   const router = useRouter();
@@ -26,11 +26,11 @@ export function LoginForm() {
 
     const trimmedEmail = email.trim();
     if (!EMAIL_REGEX.test(trimmedEmail)) {
-      setError("Ingresá un email válido.");
+      setError("Ingresa un email válido.");
       return;
     }
     if (password.length === 0) {
-      setError("Ingresá tu contraseña.");
+      setError("Ingresa tu contraseña.");
       return;
     }
 

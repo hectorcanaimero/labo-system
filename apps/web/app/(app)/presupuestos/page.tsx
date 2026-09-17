@@ -43,7 +43,7 @@ export default async function PresupuestosPage() {
       <PageHeader
         title="Presupuestos"
         count={result.total}
-        description="Pipeline comercial — cotizá, enviá al cliente, aprobá y generá órdenes."
+        description="Pipeline comercial — cotiza, envía al cliente, aprueba y genera órdenes."
       />
 
       <PresupuestosList initialData={initialData} pageSize={PAGE_LIMIT} />

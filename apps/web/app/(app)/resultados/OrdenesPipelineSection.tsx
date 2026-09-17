@@ -81,7 +81,7 @@ function DraggableCardShell({
             onClick();
           }
         }}
-        aria-label={`Orden de ${card.pacienteLabel}. Enter abre el detalle; usá "Mover a…" para cambiar su estado.`}
+        aria-label={`Orden de ${card.pacienteLabel}. Enter abre el detalle; usa "Mover a…" para cambiar su estado.`}
         role="button"
         tabIndex={0}
         className="cursor-grab active:cursor-grabbing focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1"

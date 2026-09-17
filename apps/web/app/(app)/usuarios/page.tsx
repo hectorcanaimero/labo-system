@@ -42,7 +42,7 @@ export default async function UsuariosPage() {
       <PageHeader
         title="Usuarios"
         count={initialUsuarios.length}
-        description="Gestioná accesos: invitá operadores o admins, cambiá roles y controlá actividad."
+        description="Gestiona accesos: invita operadores o admins, cambia roles y controla actividad."
       />
 
       <UsuariosList currentUserId={user.userId} initialUsuarios={initialUsuarios} />
