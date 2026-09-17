@@ -327,7 +327,7 @@ describeIfDb("presupuestos — integración Postgres (DDL CHECKs + máquina de e
 // incompleta.
 // ─────────────────────────────────────────────────────────────────────────────
 
-type FakeRespuesta = { data?: unknown; error?: { message: string } | null };
+type FakeRespuesta = { data?: unknown; count?: number; error?: { message: string } | null };
 type FakeLlamada = { table: string; op: string; payload?: unknown };
 
 function fakeDb(responder: (table: string, op: string) => FakeRespuesta) {
@@ -335,8 +335,24 @@ function fakeDb(responder: (table: string, op: string) => FakeRespuesta) {
   function builder(table: string) {
     const state = { op: "select", payload: undefined as unknown };
     const chain: Record<string, unknown> = {};
-    for (const m of ["select", "eq", "limit", "order", "in", "maybeSingle", "single"]) {
-      chain[m] = () => chain;
+    for (const m of [
+      "select",
+      "eq",
+      "limit",
+      "order",
+      "in",
+      "range",
+      "or",
+      "ilike",
+      "gte",
+      "lte",
+      "maybeSingle",
+      "single",
+    ]) {
+      chain[m] = (...args: unknown[]) => {
+        llamadas.push({ table, op: m, payload: args });
+        return chain;
+      };
     }
     for (const m of ["insert", "update", "delete", "upsert"]) {
       chain[m] = (payload?: unknown) => {
@@ -528,5 +544,96 @@ describe("presupuestos.convertToOrden — ficha incompleta (F8.2.T1)", () => {
     await expect(convertToOrden(db, "pres-1", "u1")).resolves.toMatchObject({
       orden_id: "orden-1",
     });
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// F8.2.T5 — list() con búsqueda unificada por término
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe("presupuestos.list — término de búsqueda (F8.2.T5)", () => {
+  it("un término numérico filtra por numero_correlativo sin resolver pacientes", async () => {
+    const { db, llamadas } = fakeDb((table, op) => {
+      if (table === "presupuestos" && op === "select") {
+        return { data: [presupuestoRow({ numero_correlativo: 1 })], count: 1 };
+      }
+      if (table === "presupuestos_examenes") return { data: [] };
+      return { data: [] };
+    });
+
+    const result = await listPresupuestos(db, { filters: { term: "PR-2026-000001" } });
+
+    expect(result.total).toBe(1);
+    expect(result.items[0]?.numero_correlativo).toBe(1);
+    expect(llamadas.some((l) => l.table === "pacientes")).toBe(false);
+    expect(
+      llamadas.some(
+        (l) =>
+          l.table === "presupuestos" &&
+          l.op === "eq" &&
+          Array.isArray(l.payload) &&
+          l.payload[0] === "numero_correlativo" &&
+          l.payload[1] === 1,
+      ),
+    ).toBe(true);
+  });
+
+  it("un término de texto resuelve pacientes por apellido antes de filtrar presupuestos", async () => {
+    const { db, llamadas } = fakeDb((table, op) => {
+      if (table === "pacientes" && op === "select") return { data: [{ id: "pac-1" }] };
+      if (table === "presupuestos" && op === "select") {
+        return { data: [presupuestoRow({ paciente_id: "pac-1" })], count: 1 };
+      }
+      if (table === "presupuestos_examenes") return { data: [] };
+      return { data: [] };
+    });
+
+    const result = await listPresupuestos(db, { filters: { term: "Pérez" } });
+
+    expect(result.total).toBe(1);
+    expect(llamadas.some((l) => l.table === "pacientes" && l.op === "select")).toBe(true);
+    expect(
+      llamadas.some(
+        (l) =>
+          l.table === "presupuestos" &&
+          l.op === "or" &&
+          Array.isArray(l.payload) &&
+          typeof l.payload[0] === "string" &&
+          (l.payload[0] as string).includes("paciente_id.in.(pac-1)"),
+      ),
+    ).toBe(true);
+  });
+
+  it("combina el término con el filtro de estado", async () => {
+    const { db, llamadas } = fakeDb((table, op) => {
+      if (table === "presupuestos" && op === "select") {
+        return { data: [presupuestoRow({ numero_correlativo: 1, estado: "Borrador" })], count: 1 };
+      }
+      if (table === "presupuestos_examenes") return { data: [] };
+      return { data: [] };
+    });
+
+    await listPresupuestos(db, { filters: { term: "1", estado: "Borrador" } });
+
+    expect(
+      llamadas.some(
+        (l) =>
+          l.table === "presupuestos" &&
+          l.op === "eq" &&
+          Array.isArray(l.payload) &&
+          l.payload[0] === "estado" &&
+          l.payload[1] === "Borrador",
+      ),
+    ).toBe(true);
+    expect(
+      llamadas.some(
+        (l) =>
+          l.table === "presupuestos" &&
+          l.op === "eq" &&
+          Array.isArray(l.payload) &&
+          l.payload[0] === "numero_correlativo" &&
+          l.payload[1] === 1,
+      ),
+    ).toBe(true);
   });
 });

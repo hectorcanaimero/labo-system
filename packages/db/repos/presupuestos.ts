@@ -7,6 +7,7 @@ import {
 } from "@labo/lib/schemas/presupuesto";
 import { esFichaIncompleta } from "@labo/lib/schemas/paciente";
 import { calcularTotales } from "@labo/lib/calcular-totales";
+import { parseNumeroPresupuesto } from "@labo/lib/numero-presupuesto";
 
 import { createProvisional as createPacienteProvisional } from "./pacientes";
 
@@ -51,6 +52,11 @@ export interface PresupuestoFilters {
   estados?: EstadoPresupuesto[];
   desde?: Date | string;
   hasta?: Date | string;
+  /**
+   * Buscar por número (`PR-2026-000123`, `123`, …) o, si no parsea a número,
+   * por `paciente_nombre_libre`, nombre/apellido/cédula del paciente.
+   */
+  term?: string;
 }
 
 export interface PresupuestoLinea {
@@ -267,11 +273,32 @@ export async function list(
   const { page, limit } = normalizePagination(input.page, input.limit);
   const filters = input.filters ?? {};
 
+  // Si el término no parsea a número, resolver antes los pacientes que
+  // matchean por nombre/apellido/cédula: PostgREST no permite un OR entre una
+  // columna propia y una columna de una tabla relacionada en una sola query.
+  const term = filters.term?.trim();
+  let termNumero: number | null = null;
+  let termPacienteIds: string[] | null = null;
+  if (term) {
+    termNumero = parseNumeroPresupuesto(term);
+    if (termNumero === null) {
+      const pattern = `%${term}%`;
+      const pacRes = await db
+        .from("pacientes")
+        .select("id")
+        .or(`nombre.ilike.${pattern},apellido.ilike.${pattern},cedula.ilike.${pattern}`);
+      if (pacRes.error) throw new Error(`presupuestos.list term: ${pacRes.error.message}`);
+      termPacienteIds = ((pacRes.data ?? []) as Array<{ id: string }>).map((p) => p.id);
+    }
+  }
+
   type Filtrable<T> = {
     eq: (column: string, value: unknown) => T;
     in: (column: string, values: readonly unknown[]) => T;
     gte: (column: string, value: unknown) => T;
     lte: (column: string, value: unknown) => T;
+    ilike: (column: string, value: string) => T;
+    or: (filters: string) => T;
   };
   const applyFilters = <T extends Filtrable<T>>(q: T): T => {
     let out = q;
@@ -291,6 +318,17 @@ export async function list(
         "created_at",
         filters.hasta instanceof Date ? filters.hasta.toISOString() : filters.hasta,
       );
+    if (termNumero !== null) {
+      out = out.eq("numero_correlativo", termNumero);
+    } else if (termPacienteIds !== null) {
+      const pattern = `%${term}%`;
+      out =
+        termPacienteIds.length > 0
+          ? out.or(
+              `paciente_nombre_libre.ilike.${pattern},paciente_id.in.(${termPacienteIds.join(",")})`,
+            )
+          : out.ilike("paciente_nombre_libre", pattern);
+    }
     return out;
   };
 
@@ -329,53 +367,6 @@ export async function getById(db: Db, id: string): Promise<Presupuesto | null> {
 
 export async function getForPDF(db: Db, id: string): Promise<Presupuesto | null> {
   return getById(db, id);
-}
-
-export async function search(
-  db: Db,
-  input: { term: string },
-): Promise<Presupuesto[]> {
-  const term = input.term.trim();
-  const pattern = `%${term}%`;
-  // OR compuesto sobre columnas propias (id::text por conveniencia via
-  // `id.ilike` no funciona en uuid; usamos filtro sobre paciente_nombre_libre
-  // y join con pacientes vía dos queries para no complicar el OR con relaciones).
-  const [selfRes, pacRes] = await Promise.all([
-    db
-      .from("presupuestos")
-      .select(PRESUPUESTO_COLS)
-      .or(`paciente_nombre_libre.ilike.${pattern}`)
-      .order("created_at", { ascending: false })
-      .limit(20),
-    db
-      .from("pacientes")
-      .select("id")
-      .or(`nombre.ilike.${pattern},apellido.ilike.${pattern}`),
-  ]);
-  if (selfRes.error) throw new Error(`presupuestos.search: ${selfRes.error.message}`);
-  if (pacRes.error) throw new Error(`presupuestos.search: ${pacRes.error.message}`);
-
-  const pacIds = ((pacRes.data ?? []) as Array<{ id: string }>).map((p) => p.id);
-  let byPaciente: PresupuestoRow[] = [];
-  if (pacIds.length > 0) {
-    const r = await db
-      .from("presupuestos")
-      .select(PRESUPUESTO_COLS)
-      .in("paciente_id", pacIds)
-      .order("created_at", { ascending: false })
-      .limit(20);
-    if (r.error) throw new Error(`presupuestos.search: ${r.error.message}`);
-    byPaciente = ((r.data ?? []) as unknown) as PresupuestoRow[];
-  }
-
-  const seen = new Set<string>();
-  const merged: PresupuestoRow[] = [];
-  for (const row of [...(((selfRes.data ?? []) as unknown) as PresupuestoRow[]), ...byPaciente]) {
-    if (seen.has(row.id)) continue;
-    seen.add(row.id);
-    merged.push(row);
-  }
-  return hydrate(db, merged.slice(0, 20));
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
