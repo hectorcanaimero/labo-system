@@ -26,6 +26,7 @@ import {
   ChevronDown,
   ChevronUp,
   Layers,
+  Trash2,
   Wand2,
 } from "lucide-react";
 import Link from "next/link";
@@ -234,6 +235,7 @@ export function PaqueteBuilder({
   const [search, setSearch] = useState("");
   const [activeId, setActiveId] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
 
   useEffect(() => {
@@ -419,6 +421,25 @@ export function PaqueteBuilder({
     }
   }
 
+  async function eliminarPaquete(): Promise<void> {
+    const confirmed = window.confirm(
+      `¿Seguro que quieres eliminar el paquete "${initialData.nombre}"? Esta acción no se puede deshacer.`,
+    );
+    if (!confirmed) return;
+
+    try {
+      setDeleting(true);
+      await requestJson(`/api/paquetes/${initialData.id}`, { method: "DELETE" });
+      notifySuccess("Paquete eliminado.");
+      router.push("/paquetes");
+      router.refresh();
+    } catch (error) {
+      notifyError(error);
+    } finally {
+      setDeleting(false);
+    }
+  }
+
   // Suma sugerida: exámenes sueltos + exámenes activos de grupos incluidos.
   // Cuenta cada examen una sola vez (si un suelto está en un grupo, no dobla).
   const sumaSugerida = useMemo(() => {
@@ -470,16 +491,29 @@ export function PaqueteBuilder({
             </p>
           </div>
           {canEdit ? (
-            <Button
-              type="button"
-              size="sm"
-              className="h-8"
-              onClick={() => void save()}
-              disabled={busy}
-            >
-              <Save className="h-3.5 w-3.5" />
-              {busy ? "Guardando…" : "Guardar cambios"}
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button
+                type="button"
+                variant="destructive"
+                size="sm"
+                className="h-8"
+                onClick={() => void eliminarPaquete()}
+                disabled={busy || deleting}
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+                {deleting ? "Eliminando…" : "Eliminar paquete"}
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                className="h-8"
+                onClick={() => void save()}
+                disabled={busy || deleting}
+              >
+                <Save className="h-3.5 w-3.5" />
+                {busy ? "Guardando…" : "Guardar cambios"}
+              </Button>
+            </div>
           ) : (
             <span className="inline-flex h-6 items-center rounded bg-muted px-2 text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
               Solo lectura
