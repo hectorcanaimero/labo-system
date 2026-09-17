@@ -57,6 +57,7 @@ type Numeric = number | string;
 
 interface OrdenRow {
   id: string;
+  numero_correlativo: number;
   paciente_id: string;
   fecha_muestra: string;
   fecha_resultado: string | null;
@@ -257,7 +258,7 @@ const LINEA_COLS =
   "tipo_analisis_snap, metodo_snap, valor, observacion, orden";
 
 const ORDEN_COLS =
-  "id, paciente_id, fecha_muestra, fecha_resultado, medico_solicitante, " +
+  "id, numero_correlativo, paciente_id, fecha_muestra, fecha_resultado, medico_solicitante, " +
   "estado, observaciones, origen_presupuesto_id, created_at, created_by";
 
 // ─────────────────────────────────────────────────────────────────────────────
