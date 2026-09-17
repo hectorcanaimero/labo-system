@@ -719,7 +719,7 @@ export function PresupuestoForm({
                     className="font-medium text-primary underline-offset-2 hover:underline"
                     onClick={() => abrirCrearPaciente("")}
                   >
-                    Crearlo sin salir de acá
+                    Crearlo sin salir de aquí
                   </button>
                 </p>
                 {selectedPaciente ? (

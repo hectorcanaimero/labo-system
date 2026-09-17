@@ -131,7 +131,7 @@ export function UsuariosList({ currentUserId, initialUsuarios }: UsuariosListPro
         <CardContent className="p-0">
           {usuarios.length === 0 ? (
             <p className="px-4 py-8 text-center text-xs text-muted-foreground">
-              Todavía no hay usuarios. Invitá al primero para empezar.
+              Todavía no hay usuarios. Invita al primero para empezar.
             </p>
           ) : (
             <Table>
