@@ -177,10 +177,33 @@ async function fetchInsforgeUser(
  *  3. Sincroniza fila en `usuarios` (crea con role default `operador` si
  *     todavía no existe — cubre el primer login sin invitación previa).
  */
+// Cada request validaba la sesión con 2 idas y vueltas a InsForge
+// (sessions/current + usuarios) antes de la consulta real. Se recuerda el
+// resultado por token durante un minuto.
+// ponytail: caché en memoria por proceso; con varias réplicas, un cambio de
+// rol tarda hasta SESION_TTL_MS en verse en las demás.
+const SESION_TTL_MS = 60_000;
+const sesiones = new Map<string, { user: CurrentUser; hasta: number }>();
+
+/** Olvida las sesiones recordadas (tras cambiar rol o desactivar un usuario). */
+export function olvidarSesiones(): void {
+  sesiones.clear();
+}
+
 export async function getCurrentUser(): Promise<CurrentUser> {
   const token = readAccessTokenFromCookies();
   if (!token) throw new AuthError('UNAUTHENTICATED');
 
+  const recordada = sesiones.get(token);
+  if (recordada && recordada.hasta > Date.now()) return recordada.user;
+
+  const user = await resolverUsuario(token);
+  if (sesiones.size > 1000) sesiones.clear();
+  sesiones.set(token, { user, hasta: Date.now() + SESION_TTL_MS });
+  return user;
+}
+
+async function resolverUsuario(token: string): Promise<CurrentUser> {
   let authUser = await fetchInsforgeUser(token);
   if (!authUser?.id) {
     // Access token vencido: una única renovación con el refresh token antes

@@ -9,7 +9,7 @@ import {
   type UserRole,
 } from "@labo/db/repos/usuarios";
 import { getAdminDb } from "@/lib/db-server";
-import { AUTH_COOKIE_NAMES, tryGetCurrentUser } from "@/lib/server/auth";
+import { AUTH_COOKIE_NAMES, olvidarSesiones, tryGetCurrentUser } from "@/lib/server/auth";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -189,6 +189,7 @@ export async function DELETE(): Promise<Response> {
     }).catch(() => undefined);
   }
   clearSessionCookies();
+  olvidarSesiones();
   if (user) {
     await logAuthEvent(getAdminDb(), {
       usuarioId: user.userId,

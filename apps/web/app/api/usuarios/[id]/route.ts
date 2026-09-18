@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 
 import { setActivo, updateRole, type UserRole } from "@labo/db/repos/usuarios";
-import { AuthError, getCurrentUser } from "@/lib/server/auth";
+import { AuthError, getCurrentUser, olvidarSesiones } from "@/lib/server/auth";
 import { getAdminDb } from "@/lib/db-server";
 
 export const runtime = "nodejs";
@@ -70,6 +70,7 @@ export async function PATCH(
     if (!updated) {
       return NextResponse.json({ error: "USUARIO_NO_ENCONTRADO" }, { status: 404 });
     }
+    olvidarSesiones();
 
     return NextResponse.json({ usuario: updated });
   } catch (error) {
