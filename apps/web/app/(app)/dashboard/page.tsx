@@ -1,4 +1,4 @@
-import dynamic from "next/dynamic";
+import nextDynamic from "next/dynamic";
 import type { Metadata } from "next";
 
 import {
@@ -19,7 +19,10 @@ export const metadata: Metadata = {
   title: "Dashboard — RV Laboratorio",
 };
 
-const ResultadosChart = dynamic(() => import("./ResultadosChart"), {
+// Sin esto Next lo prerenderiza en el build y el dashboard muestra datos viejos.
+export const dynamic = "force-dynamic";
+
+const ResultadosChart = nextDynamic(() => import("./ResultadosChart"), {
   ssr: false,
   loading: () => (
     <div className="flex h-60 items-center justify-center text-xs text-muted-foreground">

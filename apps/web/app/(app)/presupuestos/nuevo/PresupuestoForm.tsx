@@ -770,7 +770,16 @@ export function PresupuestoForm({
                 className="h-11 w-full rounded-md border border-input bg-background px-3 text-sm"
               />
             </label>
-            <p className="text-xs text-muted-foreground sm:col-span-2">
+            {intentoGuardar && !libreNombreOk ? (
+              <p className="text-xs text-destructive sm:col-span-2">
+                Falta el nombre o el apellido del paciente.
+              </p>
+            ) : null}
+            <p
+              className={`text-xs sm:col-span-2 ${
+                intentoGuardar && !libreContactoOk ? "text-destructive" : "text-muted-foreground"
+              }`}
+            >
               Indica al menos un teléfono o un email para poder enviarle el presupuesto.
             </p>
           </div>
