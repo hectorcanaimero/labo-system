@@ -83,10 +83,15 @@ async function renovarAccessToken(
 }
 
 function redirigirAlLogin(request: NextRequest, motivo?: string): NextResponse {
+  // Una llamada a `/api/*` no puede seguir un redirect: `fetch` lo sigue y
+  // recibe el HTML del login con 200 ("Unexpected token '<'"). Devolvemos
+  // 401 JSON y `apiFetch` se encarga de mandar al login.
   const url = request.nextUrl.clone();
   url.pathname = "/";
   url.search = motivo ? `?motivo=${motivo}` : "";
-  const res = NextResponse.redirect(url);
+  const res = request.nextUrl.pathname.startsWith("/api/")
+    ? NextResponse.json({ error: "UNAUTHENTICATED" }, { status: 401 })
+    : NextResponse.redirect(url);
   if (motivo) {
     res.cookies.delete(ACCESS_COOKIE_NAME);
     res.cookies.delete(REFRESH_COOKIE_NAME);
@@ -99,6 +104,8 @@ const PUBLIC_ROUTES = [
   "/forgot-password",
   "/reset-password",
   "/accept-invite",
+  // El invitado aún no tiene sesión; la ruta valida el token de invitación.
+  "/api/usuarios/accept-invite",
   "/r",
   "/v",
   "/p",

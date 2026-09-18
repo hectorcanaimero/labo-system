@@ -65,7 +65,7 @@ export async function getKPIs(db: Db): Promise<DashboardKPIs> {
       .from("presupuestos")
       .select("total_usd")
       .gte("created_at", monthStart)
-      .in("estado", ["Aprobado", "Convertido"]),
+      .in("estado", ["Aprobado", "Cerrado"]),
   ]);
 
   if (pacientesRes.error) throw new Error(`dashboard.pacientes: ${pacientesRes.error.message}`);
