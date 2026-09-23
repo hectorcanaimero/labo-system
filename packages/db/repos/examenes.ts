@@ -72,8 +72,8 @@ function validatePrecioUsd(precio: unknown): number {
   return precio;
 }
 
-function trimOrNull(value: string | undefined): string | null {
-  if (value === undefined) return null;
+function trimOrNull(value: string | null | undefined): string | null {
+  if (value == null) return null;
   const trimmed = value.trim();
   return trimmed.length > 0 ? trimmed : null;
 }

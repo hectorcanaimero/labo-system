@@ -71,6 +71,9 @@ export default function ResultadosChart({ initialData }: ResultadosChartProps) {
       }
     }
 
+    // El router de Next reutiliza el render anterior al volver al dashboard:
+    // consultar al montar, no esperar al primer intervalo.
+    void poll();
     const timer = setInterval(() => { void poll(); }, POLL_INTERVAL_MS);
     return () => {
       cancelled = true;

@@ -55,58 +55,7 @@ kanban:
   group_default: null       # "phase" | null.
   refresh_interval_s: 10    # HTMX polling cadence for the board.
 
-# Tunnel manager (Sprint E-5). See docs/DASHBOARD-PROFILES.md for the full
-# guide, security caveats, and CLI examples. Default is disabled — flip
-# `enabled: true` to expose `/api/tunnel/*` (three-gate: config → operator
-# profile → loopback host). Requires `autossh` on PATH (macOS: `brew install
-# autossh`; Debian/Ubuntu: `sudo apt install autossh`).
-# tunnel:
-#   enabled: true
-#   provider: bore         # v1 allowlist: autossh, bore.
-#   command: bore          # MUST equal the provider's pinned binary.
-  # `args` forwarded verbatim to the subprocess. The default below fronts
-  # Pinggy's free tier on port 443 → localhost:7420.
-  # args:
-  #   - "-M"
-  #   - "0"
-  #   - "-o"
-  #   - "StrictHostKeyChecking=no"
-  #   - "-o"
-  #   - "ServerAliveInterval=30"
-  #   - "-o"
-  #   - "ExitOnForwardFailure=yes"
-  #   - "-p"
-  #   - "443"
-  #   - "-R"
-  #   - "0:localhost:7420"
-  #   - "bore.pub"
-  # auto_start: false         # true = self-probe + spawn on dashboard boot.
-  # startup_probe_timeout_s: 3   # 1..30 — self-probe timeout for auto_start.
-  # url_parse_timeout_s: 30      # 5..300 — how long we wait for the URL line.
-
-  # ------------------------------------------------------------------
-  # Alternative: bore (https://github.com/ekzhang/bore)
-  # No signup, no interstitial page. TCP raw (URL is http://, not https).
-  # bore.pub is a free public server; assigns a random port on connect.
-  # Install: `cargo install bore-cli` OR download a release binary from
-  #   https://github.com/ekzhang/bore/releases
-  #
-  # NOTE: bore has no supervisor-style reconnect loop — if the tunnel
-  # drops the process exits and the manager transitions to error. Restart
-  # via /api/tunnel/start (or `orch dashboard`) when that happens.
-  #
-  # To switch, replace the block above with:
-  #
+# Tunnel: desde orch v0.15 solo Cloudflare quick tunnel (requiere `cloudflared`
+# en PATH y un token en el dashboard). autossh/bore ya no se admiten.
 tunnel:
   enabled: true
-  provider: bore
-  command: bore
-  args:
-    - "local"
-    - "7420"
-    - "--to"
-    - "bore.pub"
-  auto_start: false
-  startup_probe_timeout_s: 3
-  url_parse_timeout_s: 30
-  # ------------------------------------------------------------------

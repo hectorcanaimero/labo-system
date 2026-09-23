@@ -1,6 +1,7 @@
 # Orquestación local — decidido por el owner: NO versionar
 # (ojo: un clone fresco necesita restaurar scripts/task-*.sh para que orch corra)
 orchestrator/
+.orchestrator/
 scripts/
 
 # orch backups automáticos del atomizer
