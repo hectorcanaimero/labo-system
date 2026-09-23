@@ -24,6 +24,7 @@ function toStatus(error: unknown): { status: number; error: string } {
       error: error.code,
     };
   }
+  console.error("dashboard:", error);
   return { status: 500, error: "ERROR_GENERICO" };
 }
 

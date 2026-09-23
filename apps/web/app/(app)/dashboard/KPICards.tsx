@@ -85,6 +85,7 @@ export function KPICards({ initialKPIs, tasa: initialTasa }: KPICardsProps) {
       }
     }
 
+    void poll();
     void pollTasa();
     const timer = setInterval(() => {
       void poll();
