@@ -252,6 +252,20 @@ export async function listPendingInvitations(
   return (data ?? []) as PendingInvitation[];
 }
 
+/**
+ * Borra invitaciones pendientes (no aceptadas) por id o por email.
+ * Reinvitar a alguien reemplaza la pendiente anterior en vez de acumular.
+ */
+export async function deletePendingInvitations(
+  db: Db,
+  where: { id: string } | { email: string },
+): Promise<void> {
+  let q = db.from("user_invitations").delete().eq("accepted", false);
+  q = "id" in where ? q.eq("id", where.id) : q.ilike("email", where.email);
+  const { error } = await q;
+  if (error) throw new Error(`usuarios.deletePendingInvitations: ${error.message}`);
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Gestión de usuarios (F9)
 // ─────────────────────────────────────────────────────────────────────────────

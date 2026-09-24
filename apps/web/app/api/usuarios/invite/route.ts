@@ -3,6 +3,7 @@ import crypto from "crypto";
 
 import {
   createInvitation,
+  deletePendingInvitations,
   listPendingInvitations,
   type UserRole,
 } from "@labo/db/repos/usuarios";
@@ -72,6 +73,8 @@ export async function POST(req: Request): Promise<NextResponse> {
       Date.now() + INVITE_TTL_DAYS * 24 * 60 * 60 * 1000,
     );
 
+    // Reinvitar reemplaza la pendiente anterior: un solo enlace vigente por email.
+    await deletePendingInvitations(getAdminDb(), { email });
     await createInvitation(getAdminDb(), {
       email,
       role,
