@@ -1,8 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { LAB_TIMEZONE } from "@labo/lib/fecha";
-import { Loader2, Mail, Shield, UserPlus, Clock, AlertCircle } from "lucide-react";
+import { useState } from "react";
+import { Loader2, Mail, Shield, UserPlus, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { notifyError, notifySuccess } from "@labo/ui/feedback/toast";
 import {
@@ -16,62 +15,16 @@ import {
 } from "@/components/ui/dialog";
 
 interface InviteUserDialogProps {
-  onSuccess: (msg: string) => void;
-  onError: (msg: string) => void;
+  /** Se llama tras crear la invitación, para refrescar la lista de pendientes. */
+  onInvited: () => Promise<void> | void;
 }
 
-interface PendingInvitation {
-  id: string;
-  email: string;
-  role: "admin" | "operador";
-  expires_at: string;
-}
-
-export function InviteUserDialog({ onSuccess, onError }: InviteUserDialogProps) {
-  const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
+/** Botón "Invitar usuario" + diálogo. La página ya es solo-admin (server). */
+export function InviteUserDialog({ onInvited }: InviteUserDialogProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [email, setEmail] = useState("");
   const [role, setRole] = useState<"admin" | "operador">("operador");
   const [submitting, setSubmitting] = useState(false);
-  const [pendingInvitations, setPendingInvitations] = useState<PendingInvitation[]>([]);
-  const [loadingPending, setLoadingPending] = useState(false);
-
-  // Determine if current user is admin; fetch pending invitations if so
-  useEffect(() => {
-    let cancelled = false;
-
-    async function init() {
-      try {
-        const meRes = await fetch("/api/me");
-        if (!meRes.ok) { setIsAdmin(false); return; }
-        const me = await meRes.json() as { role?: string };
-        if (cancelled) return;
-        if (me.role !== "admin") { setIsAdmin(false); return; }
-        setIsAdmin(true);
-        await fetchPending();
-      } catch {
-        if (!cancelled) setIsAdmin(false);
-      }
-    }
-
-    init();
-    return () => { cancelled = true; };
-  }, []);
-
-  async function fetchPending() {
-    setLoadingPending(true);
-    try {
-      const res = await fetch("/api/usuarios/invite");
-      if (res.ok) {
-        const data = await res.json() as { invitations?: PendingInvitation[] };
-        setPendingInvitations(data.invitations ?? []);
-      }
-    } catch {
-      // silently ignore — list is best-effort
-    } finally {
-      setLoadingPending(false);
-    }
-  }
 
   const handleOpenChange = (next: boolean) => {
     if (!next && submitting) return;
@@ -80,11 +33,6 @@ export function InviteUserDialog({ onSuccess, onError }: InviteUserDialogProps) 
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email.trim()) {
-      onError("Por favor, ingresa un correo electrónico válido.");
-      return;
-    }
-
     setSubmitting(true);
     try {
       const res = await fetch("/api/usuarios/invite", {
@@ -92,85 +40,34 @@ export function InviteUserDialog({ onSuccess, onError }: InviteUserDialogProps) 
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ email: email.trim(), role }),
       });
-      const data = await res.json() as { error?: string };
+      const data = (await res.json().catch(() => ({}))) as { error?: string };
       if (!res.ok) {
-        onError(data.error ?? "Error al enviar la invitación.");
         notifyError(new Error(data.error ?? "No se pudo enviar la invitación."));
         return;
       }
-      onSuccess(`¡Invitación enviada a ${email} como ${role === "admin" ? "Administrador" : "Operador"}!`);
-      notifySuccess("Invitación enviada.");
+      notifySuccess(`Invitación enviada a ${email.trim()}.`);
       setEmail("");
       setRole("operador");
       setIsOpen(false);
-      await fetchPending();
+      await onInvited();
     } catch {
-      onError("Error de red al enviar la invitación.");
-      notifyError(new Error("No se pudo enviar la invitación."));
+      notifyError(new Error("Error de red al enviar la invitación."));
     } finally {
       setSubmitting(false);
     }
   };
 
-  // Only admins see this component
-  if (isAdmin === null) return null;
-  if (!isAdmin) return null;
-
   return (
-    <div className="space-y-4">
-      {/* Pending invitations list */}
-      <div>
-        <div className="flex items-center justify-between mb-2">
-          <span className="text-sm font-medium text-foreground">Invitaciones pendientes</span>
-          {loadingPending && <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />}
-        </div>
-
-        {pendingInvitations.length === 0 && !loadingPending ? (
-          <p className="text-xs text-muted-foreground py-2">Sin invitaciones pendientes.</p>
-        ) : (
-          <ul className="space-y-1.5">
-            {pendingInvitations.map((inv) => (
-              <li
-                key={inv.id}
-                className="flex items-center justify-between rounded-md border border-border bg-muted/40 px-3 py-2 text-xs"
-              >
-                <div className="flex items-center gap-2 min-w-0">
-                  <Mail className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-                  <span className="truncate font-medium">{inv.email}</span>
-                  <span className="shrink-0 rounded px-1.5 py-0.5 bg-secondary text-secondary-foreground capitalize">
-                    {inv.role}
-                  </span>
-                </div>
-                <div className="flex items-center gap-1 text-muted-foreground ml-2 shrink-0">
-                  <Clock className="h-3 w-3" />
-                  <span>
-                    {new Date(inv.expires_at).toLocaleDateString("es-VE", {
-                      day: "2-digit",
-                      month: "short",
-                      timeZone: LAB_TIMEZONE,
-                    })}
-                  </span>
-                </div>
-              </li>
-            ))}
-          </ul>
-        )}
-      </div>
-
-      <Button
-        type="button"
-        variant="outline"
-        onClick={() => setIsOpen(true)}
-        className="flex items-center gap-2"
-      >
+    <>
+      <Button type="button" size="sm" onClick={() => setIsOpen(true)} className="gap-2">
         <UserPlus className="h-4 w-4" />
-        <span>Invitar usuario</span>
+        Invitar usuario
       </Button>
 
       <Dialog open={isOpen} onOpenChange={handleOpenChange}>
         <DialogContent className="flex max-h-[90vh] w-full max-w-md flex-col gap-0 overflow-hidden p-0 text-card-foreground">
           <DialogHeader className="px-6 pb-4 pr-12 pt-6">
-            <DialogTitle>Invitar Usuario</DialogTitle>
+            <DialogTitle>Invitar usuario</DialogTitle>
             <DialogDescription className="text-xs">
               Envía un enlace de acceso por email. Vence en 7 días.
             </DialogDescription>
@@ -180,7 +77,7 @@ export function InviteUserDialog({ onSuccess, onError }: InviteUserDialogProps) 
             <DialogBody className="space-y-4">
               <div className="flex flex-col gap-2">
                 <label htmlFor="invite-email" className="text-sm font-medium leading-none">
-                  Correo Electrónico
+                  Correo electrónico
                 </label>
                 <div className="relative">
                   <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground/60" />
@@ -188,6 +85,7 @@ export function InviteUserDialog({ onSuccess, onError }: InviteUserDialogProps) 
                     id="invite-email"
                     type="email"
                     required
+                    autoFocus
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder="ejemplo@laboratorio.com"
@@ -199,7 +97,7 @@ export function InviteUserDialog({ onSuccess, onError }: InviteUserDialogProps) 
 
               <div className="flex flex-col gap-2">
                 <label htmlFor="invite-role" className="text-sm font-medium leading-none">
-                  Rol de Acceso
+                  Rol de acceso
                 </label>
                 <div className="relative">
                   <Shield className="absolute left-3 top-3 h-4 w-4 text-muted-foreground/60" />
@@ -208,16 +106,16 @@ export function InviteUserDialog({ onSuccess, onError }: InviteUserDialogProps) 
                     value={role}
                     onChange={(e) => setRole(e.target.value as "admin" | "operador")}
                     disabled={submitting}
-                    className="flex h-10 w-full rounded-md border border-input bg-background py-2 pl-9 pr-3 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                    className="flex h-10 w-full rounded-md border border-input bg-background py-2 pl-9 pr-3 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                   >
-                    <option value="operador">Operador (Ingreso de resultados)</option>
-                    <option value="admin">Administrador (Acceso total)</option>
+                    <option value="operador">Operador (ingreso de resultados)</option>
+                    <option value="admin">Administrador (acceso total)</option>
                   </select>
                 </div>
               </div>
 
-              <div className="flex items-start gap-2 rounded-md bg-amber-50 border border-amber-200 px-3 py-2 text-xs text-amber-800">
-                <AlertCircle className="h-3.5 w-3.5 shrink-0 mt-0.5" />
+              <div className="flex items-start gap-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-300">
+                <AlertCircle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
                 <span>El invitado elegirá su contraseña al activar su cuenta.</span>
               </div>
             </DialogBody>
@@ -238,13 +136,13 @@ export function InviteUserDialog({ onSuccess, onError }: InviteUserDialogProps) 
                     Enviando…
                   </>
                 ) : (
-                  "Enviar Invitación"
+                  "Enviar invitación"
                 )}
               </Button>
             </DialogFooter>
           </form>
         </DialogContent>
       </Dialog>
-    </div>
+    </>
   );
 }

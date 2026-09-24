@@ -1,10 +1,10 @@
 import { redirect } from "next/navigation";
 
-import { listAll } from "@labo/db/repos/usuarios";
+import { listAll, listPendingInvitations } from "@labo/db/repos/usuarios";
 import { AuthError, getCurrentUser } from "@/lib/server/auth";
 import { getAdminDb } from "@/lib/db-server";
 
-import { UsuariosList, type UsuarioItem } from "./UsuariosList";
+import { UsuariosList, type InvitacionItem, type UsuarioItem } from "./UsuariosList";
 import { PageHeader } from "@/components/layout/PageHeader";
 
 export const dynamic = "force-dynamic";
@@ -27,7 +27,11 @@ export default async function UsuariosPage() {
     throw error;
   }
 
-  const usuarios = await listAll(getAdminDb());
+  const db = getAdminDb();
+  const [usuarios, invitaciones] = await Promise.all([
+    listAll(db),
+    listPendingInvitations(db),
+  ]);
   const initialUsuarios: UsuarioItem[] = usuarios.map((u) => ({
     id: u.id,
     email: u.email,
@@ -45,7 +49,11 @@ export default async function UsuariosPage() {
         description="Gestiona accesos: invita operadores o admins, cambia roles y controla actividad."
       />
 
-      <UsuariosList currentUserId={user.userId} initialUsuarios={initialUsuarios} />
+      <UsuariosList
+        currentUserId={user.userId}
+        initialUsuarios={initialUsuarios}
+        initialInvitaciones={invitaciones satisfies InvitacionItem[]}
+      />
     </div>
   );
 }
