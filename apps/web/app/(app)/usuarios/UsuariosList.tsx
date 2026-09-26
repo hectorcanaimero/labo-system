@@ -17,6 +17,7 @@ import {
 import { InviteUserDialog } from "./InviteUserDialog";
 
 import { notifyError, notifySuccess } from "@labo/ui/feedback/toast";
+import { useConfirm } from "@/components/ui/confirm-dialog";
 
 export interface UsuarioItem {
   id: string;
@@ -56,6 +57,7 @@ export function UsuariosList({
   initialUsuarios,
   initialInvitaciones,
 }: UsuariosListProps) {
+  const [confirm, confirmDialog] = useConfirm();
   const [usuarios, setUsuarios] = useState<UsuarioItem[]>(initialUsuarios);
   const [invitaciones, setInvitaciones] = useState<InvitacionItem[]>(initialInvitaciones);
   const [busyId, setBusyId] = useState<string | null>(null);
@@ -94,7 +96,13 @@ export function UsuariosList({
   };
 
   const handleRevocar = async (inv: InvitacionItem) => {
-    if (!window.confirm(`¿Revocar la invitación de ${inv.email}? El enlace dejará de funcionar.`)) return;
+    const confirmed = await confirm({
+      title: `¿Revocar la invitación de ${inv.email}?`,
+      description: "El enlace dejará de funcionar.",
+      confirmLabel: "Revocar",
+      destructive: true,
+    });
+    if (!confirmed) return;
     setBusyId(inv.id);
     try {
       const res = await fetch(`/api/usuarios/invite/${inv.id}`, { method: "DELETE" });
@@ -332,6 +340,7 @@ export function UsuariosList({
           </Card>
         )}
       </section>
+      {confirmDialog}
     </div>
   );
 }

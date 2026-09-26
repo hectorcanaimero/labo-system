@@ -24,6 +24,7 @@ import {
 
 import { apiFetch } from "@/lib/api-client";
 import { notifyError, notifySuccess } from "@labo/ui/feedback/toast";
+import { useConfirm } from "@/components/ui/confirm-dialog";
 /**
  * Máscara visual de cédula venezolana: `V-12.345.678`.
  * El valor enmascarado es aceptado por `normalizeCedula` (que tolera
@@ -173,6 +174,7 @@ export function PacienteFormDialog({
   onSaved,
   onDeleted,
 }: PacienteFormDialogProps) {
+  const [confirm, confirmDialog] = useConfirm();
   const isEdit = Boolean(paciente);
   const [submitting, setSubmitting] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -294,9 +296,11 @@ export function PacienteFormDialog({
   async function handleDelete(): Promise<void> {
     if (!paciente) return;
 
-    const confirmed = window.confirm(
-      `¿Seguro que quieres desactivar a ${paciente.nombre} ${paciente.apellido}?`,
-    );
+    const confirmed = await confirm({
+      title: `¿Desactivar a ${paciente.nombre} ${paciente.apellido}?`,
+      confirmLabel: "Desactivar",
+      destructive: true,
+    });
     if (!confirmed) return;
 
     try {
@@ -569,6 +573,7 @@ export function PacienteFormDialog({
           </DialogFooter>
         </form>
       </DialogContent>
+      {confirmDialog}
     </Dialog>
   );
 }

@@ -43,6 +43,7 @@ import {
 
 import { apiFetch } from "@/lib/api-client";
 import { notifyError, notifySuccess } from "@labo/ui/feedback/toast";
+import { useConfirm } from "@/components/ui/confirm-dialog";
 export interface PaginatedPacientesResponse {
   items: PacienteSerializable[];
   page: number;
@@ -86,6 +87,7 @@ async function readApiError(response: Response): Promise<Error> {
 }
 
 export function PacientesList({ initialData, pageSize }: PacientesListProps) {
+  const [confirm, confirmDialog] = useConfirm();
   const [data, setData] = useState(initialData);
   const [page, setPage] = useState(initialData.page);
   const [searchTerm, setSearchTerm] = useState("");
@@ -241,9 +243,11 @@ export function PacientesList({ initialData, pageSize }: PacientesListProps) {
   }
 
   async function handleDeactivate(paciente: PacienteSerializable): Promise<void> {
-    const confirmed = window.confirm(
-      `¿Seguro que quieres desactivar a ${paciente.nombre} ${paciente.apellido}?`,
-    );
+    const confirmed = await confirm({
+      title: `¿Desactivar a ${paciente.nombre} ${paciente.apellido}?`,
+      confirmLabel: "Desactivar",
+      destructive: true,
+    });
 
     if (!confirmed) return;
 
@@ -509,6 +513,7 @@ export function PacientesList({ initialData, pageSize }: PacientesListProps) {
           await refreshCurrentPage(nextPage);
         }}
       />
+      {confirmDialog}
     </div>
   );
 }

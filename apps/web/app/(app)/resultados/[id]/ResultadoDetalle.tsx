@@ -23,6 +23,7 @@ import { ResultadoForm } from "../nuevo/ResultadoForm";
 import { PageHeader } from "@/components/layout/PageHeader";
 
 import { notifyError, notifySuccess } from "@labo/ui/feedback/toast";
+import { useConfirm } from "@/components/ui/confirm-dialog";
 interface ResultadoDetalleProps {
   role: string;
   initialData: {
@@ -73,6 +74,7 @@ async function requestJson<T>(url: string, init?: RequestInit): Promise<T> {
 }
 
 export function ResultadoDetalle({ role, initialData }: ResultadoDetalleProps) {
+  const [confirm, confirmDialog] = useConfirm();
   const router = useRouter();
   const [isEditing, setIsEditing] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -120,7 +122,12 @@ export function ResultadoDetalle({ role, initialData }: ResultadoDetalleProps) {
   }
 
   async function deleteResultado(): Promise<void> {
-    const confirmed = window.confirm("¿Seguro que quieres eliminar este resultado? Esta acción no se puede deshacer.");
+    const confirmed = await confirm({
+      title: "¿Eliminar este resultado?",
+      description: "Esta acción no se puede deshacer.",
+      confirmLabel: "Eliminar",
+      destructive: true,
+    });
     if (!confirmed) return;
 
     try {
@@ -352,6 +359,7 @@ export function ResultadoDetalle({ role, initialData }: ResultadoDetalleProps) {
           )}
         </div>
       </section>
+      {confirmDialog}
     </div>
   );
 }
