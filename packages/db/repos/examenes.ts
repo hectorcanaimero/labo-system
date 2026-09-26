@@ -147,6 +147,7 @@ export async function titulosList(db: Db): Promise<Titulo[]> {
   const { data, error } = await db
     .from("examenes_titulos")
     .select(TITULO_COLS)
+    .eq("activo", true)
     .order("orden", { ascending: true })
     .order("created_at", { ascending: true });
   if (error) throw new Error(`titulosList: ${error.message}`);
@@ -254,18 +255,16 @@ export async function titulosDelete(
   if (hijosRes.error) throw new Error(`titulosDelete: ${hijosRes.error.message}`);
   if ((hijosRes.count ?? 0) > 0) throw new Error(TITULO_TIENE_EXAMENES);
 
-  const { error: delError } = await db
+  // Archivado lógico: los exámenes archivados siguen referenciando el grupo.
+  const { error: archError } = await db
     .from("examenes_titulos")
-    .delete()
+    .update({ activo: false })
     .eq("id", input.id);
-  if (delError) {
-    if (isForeignKeyViolation(delError)) throw new Error(TITULO_TIENE_EXAMENES);
-    throw new Error(`titulosDelete: ${delError.message}`);
-  }
+  if (archError) throw new Error(`titulosDelete: ${archError.message}`);
 
   await auditBestEffort(db, {
     usuarioId: input.usuarioId,
-    accion: "examenes_titulos.delete",
+    accion: "examenes_titulos.archive",
     entityType: ENTITY_TYPE,
     entityId: titulo.id,
     metadata: { nombre: titulo.nombre, orden: titulo.orden },

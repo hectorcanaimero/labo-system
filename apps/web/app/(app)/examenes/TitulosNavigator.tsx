@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
+  Archive,
   ChevronDown,
   ChevronUp,
   FileSpreadsheet,
@@ -13,7 +14,6 @@ import {
   PencilLine,
   Plus,
   Search,
-  Trash2,
 } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
@@ -47,6 +47,7 @@ import { ExamenFormDialog } from './ExamenFormDialog';
 import { TituloFormDialog } from './TituloFormDialog';
 
 import { apiFetch } from "@/lib/api-client";
+import { useConfirm } from "@/components/ui/confirm-dialog";
 interface TituloListItem {
   id: string;
   nombre: string;
@@ -141,6 +142,7 @@ function nextOrdenFrom(titulos: TituloListItem[]): number {
 }
 
 export function TitulosNavigator({ initialTitulos }: TitulosNavigatorProps) {
+  const [confirm, confirmDialog] = useConfirm();
   const [titulos, setTitulos] = useState<TituloListItem[]>(initialTitulos);
   const [expandedTituloId, setExpandedTituloId] = useState<string | null>(
     initialTitulos[0]?.id ?? null
@@ -327,9 +329,11 @@ export function TitulosNavigator({ initialTitulos }: TitulosNavigatorProps) {
   };
 
   const handleDeleteTitulo = async (titulo: TituloListItem) => {
-    const confirmed = window.confirm(
-      `¿Seguro que quieres eliminar "${titulo.nombre}"? Si tiene exámenes, el sistema lo va a rechazar.`
-    );
+    const confirmed = await confirm({
+      title: `¿Archivar el grupo "${titulo.nombre}"?`,
+      description: 'Dejará de aparecer en el catálogo. Si tiene exámenes activos, archívalos primero.',
+      confirmLabel: 'Archivar',
+    });
     if (!confirmed) {
       return;
     }
@@ -345,7 +349,7 @@ export function TitulosNavigator({ initialTitulos }: TitulosNavigatorProps) {
         return next;
       });
       await refreshTitulos();
-      notifySuccess('Grupo eliminado.');
+      notifySuccess('Grupo archivado.');
     } catch (error) {
       setPageError(toHumanError(error));
       notifyError(error);
@@ -372,7 +376,11 @@ export function TitulosNavigator({ initialTitulos }: TitulosNavigatorProps) {
   };
 
   const handleDeleteExamen = async (examen: ExamenItem) => {
-    const confirmed = window.confirm(`¿Querés desactivar "${examen.nombre}" del catálogo?`);
+    const confirmed = await confirm({
+      title: `¿Archivar "${examen.nombre}"?`,
+      description: 'Dejará de aparecer en el catálogo.',
+      confirmLabel: 'Archivar',
+    });
     if (!confirmed) {
       return;
     }
@@ -389,7 +397,7 @@ export function TitulosNavigator({ initialTitulos }: TitulosNavigatorProps) {
         );
         setSearchState({ status: 'success', items, errorMessage: null });
       }
-      notifySuccess('Examen desactivado.');
+      notifySuccess('Examen archivado.');
     } catch (error) {
       setPageError(toHumanError(error));
       notifyError(error);
@@ -626,8 +634,8 @@ export function TitulosNavigator({ initialTitulos }: TitulosNavigatorProps) {
                       onClick={() => void handleDeleteTitulo(titulo)}
                       disabled={isBusyTitle}
                     >
-                      {isBusyTitle ? <Loader2 className="animate-spin" /> : <Trash2 />}
-                      Eliminar
+                      {isBusyTitle ? <Loader2 className="animate-spin" /> : <Archive />}
+                      Archivar
                     </Button>
                   </div>
                 </div>
@@ -776,8 +784,8 @@ export function TitulosNavigator({ initialTitulos }: TitulosNavigatorProps) {
                                             className="text-destructive focus:text-destructive"
                                             onClick={() => void handleDeleteExamen(examen)}
                                           >
-                                            <Trash2 className="h-4 w-4" />
-                                            Desactivar
+                                            <Archive className="h-4 w-4" />
+                                            Archivar
                                           </DropdownMenuItem>
                                         </DropdownMenuContent>
                                       </DropdownMenu>
@@ -821,6 +829,7 @@ export function TitulosNavigator({ initialTitulos }: TitulosNavigatorProps) {
           tituloNombre={selectedTituloForExamen.nombre}
         />
       ) : null}
+      {confirmDialog}
     </div>
   );
 }

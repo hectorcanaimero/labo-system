@@ -71,9 +71,12 @@ CREATE TABLE IF NOT EXISTS examenes_titulos (
   id          uuid        PRIMARY KEY DEFAULT gen_random_uuid(),
   nombre      text        NOT NULL,
   orden       integer     NOT NULL DEFAULT 0,
-  created_at  timestamptz NOT NULL DEFAULT now(),
-  CONSTRAINT examenes_titulos_nombre_unique UNIQUE (nombre)
+  activo      boolean     NOT NULL DEFAULT true,
+  created_at  timestamptz NOT NULL DEFAULT now()
 );
+
+CREATE UNIQUE INDEX IF NOT EXISTS examenes_titulos_nombre_unique
+  ON examenes_titulos (nombre) WHERE activo;
 
 -- ─────────────────────────────────────────────────────────────────────────────
 -- Catálogo: examenes
