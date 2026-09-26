@@ -1,4 +1,8 @@
-// Adquisición de la tasa USD/VES desde DolarAPI Venezuela.
+// Adquisición de la tasa USD/VES: bcv.org.ve directo, con DolarAPI de respaldo.
+//
+// DolarAPI va atrasada: cuando BCV publica en la tarde la tasa del siguiente
+// día hábil, DolarAPI sigue devolviendo la anterior por horas, y el dashboard
+// mostraba una tasa vieja. Por eso primero se lee bcv.org.ve.
 //
 // Endpoints directos (un objeto por llamada, sin array):
 //   https://ve.dolarapi.com/v1/dolares/oficial
@@ -18,7 +22,52 @@
 //   - La persistencia guarda `fuente: "bcv"` para oficial y `"dolartoday"` para
 //     paralelo (compat con el CHECK del schema).
 
+import https from "node:https";
+import tls from "node:tls";
+
 export const STALE_MS = 24 * 60 * 60 * 1000;
+
+const BCV_URL = "https://www.bcv.org.ve/";
+
+// bcv.org.ve no envía el intermedio de su certificado (manda otro que no lo
+// firma), así que Node rechaza la conexión. Lo agregamos a mano. Vence en 2036;
+// si BCV cambia de CA, el scraper cae a DolarAPI y queda el log `bcv.fallback`.
+const SECTIGO_DV_R36 = `-----BEGIN CERTIFICATE-----
+MIIGTDCCBDSgAwIBAgIQOXpmzCdWNi4NqofKbqvjsTANBgkqhkiG9w0BAQwFADBf
+MQswCQYDVQQGEwJHQjEYMBYGA1UEChMPU2VjdGlnbyBMaW1pdGVkMTYwNAYDVQQD
+Ey1TZWN0aWdvIFB1YmxpYyBTZXJ2ZXIgQXV0aGVudGljYXRpb24gUm9vdCBSNDYw
+HhcNMjEwMzIyMDAwMDAwWhcNMzYwMzIxMjM1OTU5WjBgMQswCQYDVQQGEwJHQjEY
+MBYGA1UEChMPU2VjdGlnbyBMaW1pdGVkMTcwNQYDVQQDEy5TZWN0aWdvIFB1Ymxp
+YyBTZXJ2ZXIgQXV0aGVudGljYXRpb24gQ0EgRFYgUjM2MIIBojANBgkqhkiG9w0B
+AQEFAAOCAY8AMIIBigKCAYEAljZf2HIz7+SPUPQCQObZYcrxLTHYdf1ZtMRe7Yeq
+RPSwygz16qJ9cAWtWNTcuICc++p8Dct7zNGxCpqmEtqifO7NvuB5dEVexXn9RFFH
+12Hm+NtPRQgXIFjx6MSJcNWuVO3XGE57L1mHlcQYj+g4hny90aFh2SCZCDEVkAja
+EMMfYPKuCjHuuF+bzHFb/9gV8P9+ekcHENF2nR1efGWSKwnfG5RawlkaQDpRtZTm
+M64TIsv/r7cyFO4nSjs1jLdXYdz5q3a4L0NoabZfbdxVb+CUEHfB0bpulZQtH1Rv
+38e/lIdP7OTTIlZh6OYL6NhxP8So0/sht/4J9mqIGxRFc0/pC8suja+wcIUna0HB
+pXKfXTKpzgis+zmXDL06ASJf5E4A2/m+Hp6b84sfPAwQ766rI65mh50S0Di9E3Pn
+2WcaJc+PILsBmYpgtmgWTR9eV9otfKRUBfzHUHcVgarub/XluEpRlTtZudU5xbFN
+xx/DgMrXLUAPaI60fZ6wA+PTAgMBAAGjggGBMIIBfTAfBgNVHSMEGDAWgBRWc1hk
+lfmSGrASKgRieaFAFYghSTAdBgNVHQ4EFgQUaMASFhgOr872h6YyV6NGUV3LBycw
+DgYDVR0PAQH/BAQDAgGGMBIGA1UdEwEB/wQIMAYBAf8CAQAwHQYDVR0lBBYwFAYI
+KwYBBQUHAwEGCCsGAQUFBwMCMBsGA1UdIAQUMBIwBgYEVR0gADAIBgZngQwBAgEw
+VAYDVR0fBE0wSzBJoEegRYZDaHR0cDovL2NybC5zZWN0aWdvLmNvbS9TZWN0aWdv
+UHVibGljU2VydmVyQXV0aGVudGljYXRpb25Sb290UjQ2LmNybDCBhAYIKwYBBQUH
+AQEEeDB2ME8GCCsGAQUFBzAChkNodHRwOi8vY3J0LnNlY3RpZ28uY29tL1NlY3Rp
+Z29QdWJsaWNTZXJ2ZXJBdXRoZW50aWNhdGlvblJvb3RSNDYucDdjMCMGCCsGAQUF
+BzABhhdodHRwOi8vb2NzcC5zZWN0aWdvLmNvbTANBgkqhkiG9w0BAQwFAAOCAgEA
+YtOC9Fy+TqECFw40IospI92kLGgoSZGPOSQXMBqmsGWZUQ7rux7cj1du6d9rD6C8
+ze1B2eQjkrGkIL/OF1s7vSmgYVafsRoZd/IHUrkoQvX8FZwUsmPu7amgBfaY3g+d
+q1x0jNGKb6I6Bzdl6LgMD9qxp+3i7GQOnd9J8LFSietY6Z4jUBzVoOoz8iAU84OF
+h2HhAuiPw1ai0VnY38RTI+8kepGWVfGxfBWzwH9uIjeooIeaosVFvE8cmYUB4TSH
+5dUyD0jHct2+8ceKEtIoFU/FfHq/mDaVnvcDCZXtIgitdMFQdMZaVehmObyhRdDD
+4NQCs0gaI9AAgFj4L9QtkARzhQLNyRf87Kln+YU0lgCGr9HLg3rGO8q+Y4ppLsOd
+unQZ6ZxPNGIfOApbPVf5hCe58EZwiWdHIMn9lPP6+F404y8NNugbQixBber+x536
+WrZhFZLjEkhp7fFXf9r32rNPfb74X/U90Bdy4lzp3+X1ukh1BuMxA/EEhDoTOS3l
+7ABvc7BYSQubQ2490OcdkIzUh3ZwDrakMVrbaTxUM2p24N6dB+ns2zptWCva6jzW
+r8IWKIMxzxLPv5Kt3ePKcUdvkBU/smqujSczTzzSjIoR5QqQA6lN1ZRSnuHIWCvh
+JEltkYnTAH41QJ6SAWO66GrrUESwN/cgZzL4JLEqz1Y=
+-----END CERTIFICATE-----`;
 
 const DOLAR_API_BASE = "https://ve.dolarapi.com/v1/dolares";
 const REQUEST_TIMEOUT_MS = 10_000;
@@ -134,8 +183,42 @@ function todayVe(): Date {
   );
 }
 
+function fetchBcvHtml(): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const req = https.get(
+      BCV_URL,
+      { ca: [...tls.rootCertificates, SECTIGO_DV_R36], timeout: REQUEST_TIMEOUT_MS },
+      (res) => {
+        if (res.statusCode !== 200) {
+          res.resume();
+          reject(Object.assign(new Error(`bcv.http_error ${res.statusCode}`), { code: "bcv_http_error" }));
+          return;
+        }
+        let body = "";
+        res.setEncoding("utf8");
+        res.on("data", (chunk: string) => (body += chunk));
+        res.on("end", () => resolve(body));
+      },
+    );
+    req.on("timeout", () => req.destroy(new Error("bcv.timeout")));
+    req.on("error", reject);
+  });
+}
+
+/** Extrae la tasa USD y la fecha valor del HTML de bcv.org.ve. */
+export function parseBcvHtml(html: string): { tasa: number; fecha: Date | null } {
+  const raw = html.match(/id="dolar"[\s\S]*?<strong[^>]*>\s*([\d.,]+)\s*<\/strong>/)?.[1];
+  if (!raw) {
+    throw Object.assign(new Error("bcv.parse_error: no se encontró la tasa USD"), {
+      code: "bcv_parse_error",
+    });
+  }
+  const fecha = parseFecha(html.match(/Fecha Valor:[\s\S]*?content="([^"]+)"/)?.[1]);
+  return { tasa: parseTasa(raw), fecha };
+}
+
 /**
- * Tasa OFICIAL (equivalente a BCV) via DolarAPI. Retries acotados.
+ * Tasa OFICIAL BCV: bcv.org.ve y, si falla, DolarAPI `/oficial`. Retries acotados.
  * Códigos:
  *   - `dolarapi_http_error` → 5xx/429/403/timeout
  *   - `dolarapi_parse_error` → JSON inválido / no es objeto
@@ -144,6 +227,14 @@ function todayVe(): Date {
 export async function scrapeBcv({
   now = () => new Date(),
 }: { now?: () => Date } = {}): Promise<ScrapeResult> {
+  try {
+    const { tasa, fecha } = parseBcvHtml(await withRetry(fetchBcvHtml));
+    logEvent("bcv.parse.ok", { tasa, fecha_valor: fecha?.toISOString() ?? null });
+    return { tasa, fecha: fecha ?? todayVe(), scraped_at: now(), fuente: "bcv" };
+  } catch (err) {
+    logEvent("bcv.fallback", { error: err instanceof Error ? err.message : String(err) });
+  }
+
   const oficial = await withRetry(() => fetchDolarEntry("oficial"));
   const tasa = parseTasa(oficial.promedio);
   const fecha = parseFecha(oficial.fechaActualizacion) ?? todayVe();

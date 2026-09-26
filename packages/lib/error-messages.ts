@@ -28,7 +28,7 @@ export const DOMAIN_ERROR_MESSAGES: Readonly<Record<string, string>> = {
   TITULO_DUPLICADO: "Ya existe un grupo con ese nombre.",
   TITULO_NO_ENCONTRADO: "El grupo que buscas ya no existe.",
   TITULO_TIENE_EXAMENES:
-    "No se puede eliminar el grupo porque tiene exámenes asociados.",
+    "No se puede archivar el grupo porque tiene exámenes activos. Archívalos primero.",
   EXAMEN_DUPLICADO_EN_TITULO:
     "Ya existe un examen con ese nombre en este grupo.",
 

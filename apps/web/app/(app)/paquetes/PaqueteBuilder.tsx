@@ -40,6 +40,7 @@ import { DraggableItem } from "@labo/ui/dnd/DraggableItem";
 import { SortableList } from "@labo/ui/dnd/SortableList";
 
 import { notifyError, notifySuccess } from "@labo/ui/feedback/toast";
+import { useConfirm } from "@/components/ui/confirm-dialog";
 export interface PackageExam {
   id: string;
   titulo_id: string;
@@ -215,6 +216,7 @@ export function PaqueteBuilder({
   initialData: PaqueteBuilderData;
   canEdit: boolean;
 }) {
+  const [confirm, confirmDialog] = useConfirm();
   const router = useRouter();
   const [items, setItems] = useState<PackageExam[]>(initialData.examenes);
   const [precioBase, setPrecioBase] = useState<string>(
@@ -422,9 +424,12 @@ export function PaqueteBuilder({
   }
 
   async function eliminarPaquete(): Promise<void> {
-    const confirmed = window.confirm(
-      `¿Seguro que quieres eliminar el paquete "${initialData.nombre}"? Esta acción no se puede deshacer.`,
-    );
+    const confirmed = await confirm({
+      title: `¿Eliminar el paquete "${initialData.nombre}"?`,
+      description: "Esta acción no se puede deshacer.",
+      confirmLabel: "Eliminar",
+      destructive: true,
+    });
     if (!confirmed) return;
 
     try {
@@ -808,6 +813,7 @@ export function PaqueteBuilder({
           ) : null}
         </DragOverlay>
       </DndContext>
+      {confirmDialog}
     </div>
   );
 }
