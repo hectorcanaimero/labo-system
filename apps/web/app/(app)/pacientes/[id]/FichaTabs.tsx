@@ -27,7 +27,9 @@ import type { EstadoOrden } from "@labo/lib/schemas/orden";
 import type { EstadoPresupuesto } from "@labo/lib/schemas/presupuesto";
 import { calcularEdadDesglosada } from "@labo/lib/edad";
 import { resolverUbicacionMaps } from "@labo/lib/ubicacion";
-import { esFichaIncompleta } from "@labo/lib/schemas/paciente";
+import { esFichaIncompleta, puedeOmitirCedula } from "@labo/lib/schemas/paciente";
+import { cedulaParaMostrar } from "@labo/lib/cedula";
+import { formatTelefonoVeMask } from "@labo/lib/telefono";
 
 import {
   PacienteFormDialog,
@@ -130,10 +132,10 @@ export function FichaTabs({ data }: FichaTabsProps) {
       : null;
     return {
       edad: edadInfo,
-      cedula: data.paciente.cedula ?? "—",
+      cedula: cedulaParaMostrar(data.paciente.cedula),
       nacimiento: formatDate(data.paciente.fecha_nacimiento),
       sexo: sexoLabel(data.paciente.sexo),
-      telefono: data.paciente.telefono,
+      telefono: data.paciente.telefono ? formatTelefonoVeMask(data.paciente.telefono) : null,
       email: data.paciente.email,
       direccion: data.paciente.direccion,
       ubicacionUrl: resolverUbicacionMaps(data.paciente.ubicacion_url ?? ""),
@@ -142,7 +144,7 @@ export function FichaTabs({ data }: FichaTabsProps) {
 
   const camposFaltantes = useMemo(() => {
     const faltantes: string[] = [];
-    if (data.paciente.cedula == null) faltantes.push("cédula");
+    if (data.paciente.cedula == null && !puedeOmitirCedula(data.paciente.fecha_nacimiento)) faltantes.push("cédula");
     if (data.paciente.fecha_nacimiento == null) faltantes.push("fecha de nacimiento");
     if (data.paciente.sexo == null) faltantes.push("sexo");
     return faltantes;

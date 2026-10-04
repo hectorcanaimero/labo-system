@@ -1,6 +1,8 @@
 import { z } from "zod";
 
 import { normalizeCedula } from "../cedula";
+import { normalizarTelefonoWhatsApp } from "../enlace-resultado";
+import { calcularEdad } from "../edad";
 import { esUbicacionValida } from "../ubicacion";
 
 /**
@@ -13,11 +15,13 @@ export const NOMBRE_REQUERIDO = "NOMBRE_REQUERIDO";
 export const APELLIDO_REQUERIDO = "APELLIDO_REQUERIDO";
 export const CEDULA_INVALIDA = "CEDULA_INVALIDA";
 export const CEDULA_PREFIJO_INVALIDO = "CEDULA_PREFIJO_INVALIDO";
+export const CEDULA_REQUERIDA = "CEDULA_REQUERIDA";
 export const FECHA_NACIMIENTO_FUTURA = "FECHA_NACIMIENTO_FUTURA";
 export const SEXO_REQUERIDO = "SEXO_REQUERIDO";
 export const DIRECCION_REQUERIDA = "DIRECCION_REQUERIDA";
 export const UBICACION_INVALIDA = "UBICACION_INVALIDA";
 export const CONTACTO_REQUERIDO = "CONTACTO_REQUERIDO";
+export const TELEFONO_INVALIDO = "TELEFONO_INVALIDO";
 
 /**
  * Sexo biológico admitido para pacientes (ADR-06 / §6 modelo de datos).
@@ -37,7 +41,26 @@ export const sexoSchema = z.enum(["M", "F"], {
  */
 const CEDULA_PACIENTE_RE = /^[VE]-\d{5,9}$/;
 
-const cedulaSchema = z.string().transform((raw, ctx) => {
+/**
+ * Los niños menores de esta edad suelen no tener cédula: se registran sin ella
+ * (NULL) en vez de inventar una (`V-0000000`), que además choca con
+ * `pacientes_cedula_unique`.
+ */
+export const EDAD_MAXIMA_SIN_CEDULA = 10;
+
+export function puedeOmitirCedula(fechaNacimiento: unknown): boolean {
+  if (!(fechaNacimiento instanceof Date) && typeof fechaNacimiento !== "string" && typeof fechaNacimiento !== "number") {
+    return false;
+  }
+  const fecha = new Date(fechaNacimiento);
+  if (Number.isNaN(fecha.getTime())) return false;
+  return calcularEdad(fecha) < EDAD_MAXIMA_SIN_CEDULA;
+}
+
+/** Vacío → `null` (menor sin cédula); si no, normaliza y valida. */
+const cedulaSchema = z.string().nullable().transform((raw, ctx) => {
+  if (raw === null || raw.trim() === "") return null;
+
   const normalized = normalizeCedula(raw);
 
   if (normalized === null) {
@@ -60,6 +83,23 @@ const cedulaSchema = z.string().transform((raw, ctx) => {
 });
 
 /**
+ * El teléfono se guarda solo en dígitos con código de país (`584241234567`),
+ * el mismo formato que usa `wa.me`; la UI lo formatea al mostrarlo.
+ */
+const telefonoSchema = z
+  .string()
+  .optional()
+  .transform((raw, ctx) => {
+    if (raw === undefined || raw.trim() === "") return undefined;
+    const normalizado = normalizarTelefonoWhatsApp(raw);
+    if (normalizado === null) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: TELEFONO_INVALIDO });
+      return z.NEVER;
+    }
+    return normalizado;
+  });
+
+/**
  * `z.date()` en el input, `number` (timestamp ms) en el output.
  * Rechaza fechas futuras.
  */
@@ -72,13 +112,13 @@ const fechaNacimientoSchema = z
  * Schema de creación de paciente. `cedula` y `fecha_nacimiento` se normalizan
  * durante el `parse`: cédula a `V-XXXXXXXX` / `E-XXXXXXXX`, fecha a timestamp.
  */
-export const pacienteCreate = z.object({
+const pacienteBase = z.object({
   nombre: z.string().trim().min(1, { message: NOMBRE_REQUERIDO }),
   apellido: z.string().trim().min(1, { message: APELLIDO_REQUERIDO }),
   cedula: cedulaSchema,
   fecha_nacimiento: fechaNacimientoSchema,
   sexo: sexoSchema,
-  telefono: z.string().optional(),
+  telefono: telefonoSchema,
   email: z.string().optional(),
   direccion: z
     .string({ required_error: DIRECCION_REQUERIDA })
@@ -92,13 +132,24 @@ export const pacienteCreate = z.object({
     }),
 });
 
+function exigirCedulaSalvoMenor(
+  data: { cedula?: string | null; fecha_nacimiento?: number },
+  ctx: z.RefinementCtx,
+): void {
+  if (data.cedula === null && !puedeOmitirCedula(data.fecha_nacimiento)) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, message: CEDULA_REQUERIDA, path: ["cedula"] });
+  }
+}
+
+export const pacienteCreate = pacienteBase.superRefine(exigirCedulaSalvoMenor);
+
 export type PacienteCreateInput = z.infer<typeof pacienteCreate>;
 
 /**
  * Schema de actualización: todos los campos opcionales. Si se envía `cedula` o
  * `fecha_nacimiento` se aplica la misma normalización/validación que en create.
  */
-export const pacienteUpdate = pacienteCreate.partial();
+export const pacienteUpdate = pacienteBase.partial().superRefine(exigirCedulaSalvoMenor);
 
 export type PacienteUpdateInput = z.infer<typeof pacienteUpdate>;
 
@@ -122,7 +173,7 @@ export const pacienteProvisionalSchema = z
   .object({
     nombre: z.string().trim().min(1, { message: NOMBRE_REQUERIDO }),
     apellido: z.string().trim().min(1, { message: APELLIDO_REQUERIDO }),
-    telefono: z.string().trim().optional(),
+    telefono: telefonoSchema,
     email: z.string().trim().optional(),
   })
   .refine((data) => (data.telefono?.length ?? 0) > 0 || (data.email?.length ?? 0) > 0, {
@@ -133,7 +184,8 @@ export const pacienteProvisionalSchema = z
 export type PacienteProvisionalInput = z.infer<typeof pacienteProvisionalSchema>;
 
 /**
- * Una ficha es incompleta cuando le falta cédula, fecha de nacimiento o sexo
+ * Una ficha es incompleta cuando le falta cédula (salvo menores, ver
+ * `puedeOmitirCedula`), fecha de nacimiento o sexo
  * — los tres campos que `0023_pacientes_ficha_incompleta.sql` relajó a NULL
  * para permitir crear la ficha provisional de un presupuesto. No hay columna
  * "incompleta": esta función pura es la única fuente de la regla, para que
@@ -147,6 +199,8 @@ export interface FichaIncompleta {
 
 export function esFichaIncompleta(paciente: FichaIncompleta): boolean {
   return (
-    paciente.cedula == null || paciente.fecha_nacimiento == null || paciente.sexo == null
+    (paciente.cedula == null && !puedeOmitirCedula(paciente.fecha_nacimiento)) ||
+    paciente.fecha_nacimiento == null ||
+    paciente.sexo == null
   );
 }

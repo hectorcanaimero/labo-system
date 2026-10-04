@@ -35,6 +35,7 @@ import { EmptyState, SkeletonTable } from "@labo/ui/feedback";
 import { ExportButton } from "@labo/ui/exports/ExportButton";
 import { calcularEdadDesglosada } from "@labo/lib/edad";
 import { esFichaIncompleta } from "@labo/lib/schemas/paciente";
+import { cedulaParaMostrar } from "@labo/lib/cedula";
 
 import {
   PacienteFormDialog,
@@ -378,7 +379,7 @@ export function PacientesList({ initialData, pageSize }: PacientesListProps) {
                         </Link>
                       </TableCell>
                       <TableCell className="py-1.5 font-mono text-xs tabular-nums text-muted-foreground">
-                        {paciente.cedula ?? "—"}
+                        {cedulaParaMostrar(paciente.cedula)}
                       </TableCell>
                       <TableCell className="py-1.5 font-mono text-xs tabular-nums text-muted-foreground">
                         {paciente.fecha_nacimiento ? formatDate(paciente.fecha_nacimiento) : "—"}

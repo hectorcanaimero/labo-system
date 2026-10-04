@@ -17,6 +17,7 @@ import { formatFechaLab } from "@labo/lib/fecha";
 import { EmptyState } from "@labo/ui/feedback";
 import { RefinarObservacionesButton } from "@labo/ui/resultados/RefinarObservacionesButton";
 import { formatNumeroOrden } from "@labo/lib/numero-orden";
+import { formatTelefonoVeMask } from "@labo/lib/telefono";
 
 import { EnviarResultadoButtons } from "./EnviarResultadoButtons";
 import { ResultadoForm } from "../nuevo/ResultadoForm";
@@ -238,7 +239,7 @@ export function ResultadoDetalle({ role, initialData }: ResultadoDetalleProps) {
         <div className="mt-4 grid gap-4 md:grid-cols-2">
           <div className="rounded-md border border-border bg-background p-3">
             <p className="text-xs uppercase tracking-wide text-muted-foreground">Contacto paciente</p>
-            <p className="mt-1 text-sm text-foreground">{initialData.patient.telefono || "Sin teléfono"}</p>
+            <p className="mt-1 text-sm text-foreground">{initialData.patient.telefono ? formatTelefonoVeMask(initialData.patient.telefono) : "Sin teléfono"}</p>
             <p className="text-sm text-muted-foreground">{initialData.patient.email || "Sin correo"}</p>
           </div>
           <div className="rounded-md border border-border bg-background p-3">

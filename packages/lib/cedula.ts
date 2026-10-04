@@ -27,6 +27,11 @@ export function normalizeCedula(raw: string): string | null {
   return `${prefix}-${digits}`;
 }
 
+/** Texto a mostrar cuando el paciente no tiene cédula (menor o ficha provisional). */
+export function cedulaParaMostrar(cedula: string | null | undefined): string {
+  return cedula || "Sin cédula";
+}
+
 export function normalizeCedulaOrThrow(raw: string): string {
   const result = normalizeCedula(raw);
   if (result === null) throw new InvalidCedulaError(raw);

@@ -2,6 +2,7 @@ import { notFound, redirect } from "next/navigation";
 
 import { getById as getPacienteById } from "@labo/db/repos/pacientes";
 import { getById } from "@labo/db/repos/resultados";
+import { cedulaParaMostrar } from "@labo/lib/cedula";
 import { getAdminDb, getDb } from "@/lib/db-server";
 import { AuthError, getCurrentUser } from "@/lib/server/auth";
 
@@ -51,7 +52,7 @@ export default async function ResultadoDetallePage({ params }: { params: { id: s
             apellido: paciente.apellido,
             // F8.2.T1 — convertToOrden exige ficha completa, así que en la
             // práctica siempre hay cédula; el `?? ""` es solo por el tipo.
-            cedula: paciente.cedula ?? "",
+            cedula: cedulaParaMostrar(paciente.cedula),
             telefono: paciente.telefono,
             email: paciente.email,
           },

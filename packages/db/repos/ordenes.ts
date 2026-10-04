@@ -1,3 +1,4 @@
+import { cedulaParaMostrar } from "@labo/lib/cedula";
 import type { Db } from "../sdk";
 import { ENTREGA_REQUIERE_VALORES, assertPuedeEntregarse } from "@labo/lib/entrega-orden";
 import { limitesDiaLabUTC } from "@labo/lib/fecha";
@@ -393,7 +394,7 @@ async function loadListItems(
       ...r,
       paciente_nombre: p?.nombre ?? "",
       paciente_apellido: p?.apellido ?? "",
-      paciente_cedula: p?.cedula ?? "",
+      paciente_cedula: cedulaParaMostrar(p?.cedula),
       examenes_count: countBy.get(r.id) ?? 0,
     };
   });

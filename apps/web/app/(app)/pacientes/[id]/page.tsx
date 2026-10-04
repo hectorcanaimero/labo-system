@@ -3,6 +3,7 @@ import { notFound, redirect } from "next/navigation";
 import { PageHeader } from "@/components/layout/PageHeader";
 
 import { pacientesGetWithHistorial } from "@labo/db/repos/pacientes";
+import { cedulaParaMostrar } from "@labo/lib/cedula";
 import { getDb } from "@/lib/db-server";
 import { AuthError, getCurrentUser } from "@/lib/server/auth";
 
@@ -55,7 +56,7 @@ export default async function PacienteDetallePage({ params }: PacienteDetallePag
       <div className="mx-auto flex max-w-7xl flex-col gap-4">
         <PageHeader
           title={`${fichaData.paciente.nombre} ${fichaData.paciente.apellido}`}
-          count={fichaData.paciente.cedula}
+          count={cedulaParaMostrar(fichaData.paciente.cedula)}
           back={{ href: "/pacientes", label: "Pacientes" }}
         />
 
