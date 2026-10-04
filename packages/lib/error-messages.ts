@@ -49,12 +49,14 @@ export const DOMAIN_ERROR_MESSAGES: Readonly<Record<string, string>> = {
   // ── Pacientes (F2.pacientes) ──────────────────────────────────────────
   CEDULA_DUPLICADA: "Ya existe un paciente con esa cédula.",
   CEDULA_INVALIDA: "El formato de la cédula no es válido.",
+  CEDULA_REQUERIDA: "La cédula es requerida (solo los menores de 10 años pueden registrarse sin ella).",
   PACIENTE_NO_ENCONTRADO: "El paciente que buscas ya no existe.",
   SEXO_REQUERIDO: "El sexo biológico es requerido (M o F).",
   DIRECCION_REQUERIDA: "La dirección es requerida (mínimo 5 caracteres).",
   UBICACION_INVALIDA:
     "La ubicación debe ser un enlace de mapa o coordenadas \"lat,long\".",
   CONTACTO_REQUERIDO: "Indica un teléfono o un email para poder enviarle el presupuesto.",
+  TELEFONO_INVALIDO: "El teléfono no es válido. Ej.: +58 412-1234567 o 0412-1234567.",
   PACIENTE_FICHA_INCOMPLETA:
     "Completa la cédula, la fecha de nacimiento y el sexo del paciente antes de crear la orden.",
 

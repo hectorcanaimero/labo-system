@@ -8,6 +8,7 @@ import {
   esFichaIncompleta,
   CEDULA_INVALIDA,
   CEDULA_PREFIJO_INVALIDO,
+  CEDULA_REQUERIDA,
   CONTACTO_REQUERIDO,
   DIRECCION_REQUERIDA,
   FECHA_NACIMIENTO_FUTURA,
@@ -327,5 +328,46 @@ describe("esFichaIncompleta", () => {
     expect(
       esFichaIncompleta({ cedula: null, fecha_nacimiento: null, sexo: null }),
     ).toBe(true);
+  });
+});
+
+describe("cédula opcional para menores", () => {
+  const hace = (anos: number) => {
+    const d = new Date();
+    d.setUTCFullYear(d.getUTCFullYear() - anos);
+    return d;
+  };
+
+  it("un menor de 10 años puede registrarse sin cédula", () => {
+    const result = pacienteCreate.parse(pacienteBase({ cedula: "", fecha_nacimiento: hace(4) }));
+    expect(result.cedula).toBeNull();
+  });
+
+  it("un adulto sin cédula se rechaza", () => {
+    const result = pacienteCreate.safeParse(pacienteBase({ cedula: "", fecha_nacimiento: hace(10) }));
+    expect(result.success).toBe(false);
+    if (!result.success) expect(result.error.issues[0].message).toBe(CEDULA_REQUERIDA);
+  });
+
+  it("la ficha de un menor sin cédula está completa; al cumplir 10 vuelve a pedirla", () => {
+    expect(
+      esFichaIncompleta({ cedula: null, fecha_nacimiento: hace(4).toISOString(), sexo: "M" }),
+    ).toBe(false);
+    expect(
+      esFichaIncompleta({ cedula: null, fecha_nacimiento: hace(10).toISOString(), sexo: "M" }),
+    ).toBe(true);
+  });
+});
+
+describe("teléfono normalizado", () => {
+  it("guarda solo dígitos con código de país", () => {
+    for (const telefono of ["+58 424-1234567", "0424-1234567", "4241234567"]) {
+      expect(pacienteCreate.parse(pacienteBase({ telefono })).telefono).toBe("584241234567");
+    }
+  });
+
+  it("vacío queda sin teléfono y basura se rechaza", () => {
+    expect(pacienteCreate.parse(pacienteBase({ telefono: "" })).telefono).toBeUndefined();
+    expect(pacienteCreate.safeParse(pacienteBase({ telefono: "123" })).success).toBe(false);
   });
 });

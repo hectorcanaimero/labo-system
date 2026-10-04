@@ -1,3 +1,4 @@
+import { cedulaParaMostrar } from "@labo/lib/cedula";
 import { calcularEdad } from "@labo/lib/edad";
 import {
   CEDULA_INVALIDA,
@@ -606,7 +607,7 @@ function mapSearchItem(row: Record<string, unknown>): PacienteSearchItem {
     id: row.id as string,
     nombre: row.nombre as string,
     apellido: row.apellido as string,
-    cedula: row.cedula as string,
+    cedula: cedulaParaMostrar(row.cedula as string | null),
     fecha_nacimiento: toDate(row.fecha_nacimiento),
   };
 }

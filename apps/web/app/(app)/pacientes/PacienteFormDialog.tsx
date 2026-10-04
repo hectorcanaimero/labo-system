@@ -16,9 +16,12 @@ import {
 } from "@/components/ui/dialog";
 import { toHumanError } from "@labo/lib/error-messages";
 import { calcularEdadDesglosada } from "@labo/lib/edad";
+import { formatTelefonoVeMask } from "@labo/lib/telefono";
 import { resolverUbicacionMaps } from "@labo/lib/ubicacion";
 import {
+  EDAD_MAXIMA_SIN_CEDULA,
   pacienteCreate,
+  puedeOmitirCedula,
   type PacienteCreateInput,
 } from "@labo/lib/schemas/paciente";
 
@@ -38,28 +41,6 @@ export function formatCedulaMask(raw: string): string {
   const grouped = digits.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
   if (!prefix) return grouped;
   return digits.length > 0 ? `${prefix}-${grouped}` : prefix;
-}
-
-/**
- * Máscara visual de teléfono VE: `+58 412-1234567` (internacional) o
- * `0412-1234567` (nacional). Tolerante a tipeo parcial.
- */
-export function formatTelefonoVeMask(raw: string): string {
-  const plus = raw.trim().startsWith("+");
-  const digits = raw.replace(/\D/g, "");
-  if (plus || digits.startsWith("58")) {
-    const rest = (plus ? digits : digits.replace(/^58/, "")).slice(0, 10);
-    const head = rest.slice(0, 3);
-    const tail = rest.slice(3);
-    return `+58 ${head}${tail ? `-${tail}` : ""}`;
-  }
-  const national = digits.slice(0, 11);
-  if (national.startsWith("0")) {
-    const head = national.slice(0, 4);
-    const tail = national.slice(4);
-    return `${head}${tail ? `-${tail}` : ""}`;
-  }
-  return national;
 }
 
 export interface PacienteSerializable {
@@ -114,7 +95,7 @@ function toSchemaInput(values: PacienteFormValues): Omit<PacienteCreateInput, "f
   return {
     nombre: values.nombre,
     apellido: values.apellido,
-    cedula: values.cedula,
+    cedula: values.cedula.trim() || null,
     fecha_nacimiento: new Date(`${values.fecha_nacimiento}T00:00:00.000Z`),
     sexo: values.sexo as "M" | "F",
     telefono: values.telefono,
@@ -215,6 +196,10 @@ export function PacienteFormDialog({
     return calcularEdadDesglosada(date);
   }, [fechaNacimientoValue]);
 
+  const cedulaOpcional = fechaNacimientoValue
+    ? puedeOmitirCedula(`${fechaNacimientoValue}T00:00:00.000Z`)
+    : false;
+
   const ubicacionMapsUrl = useMemo(
     () => resolverUbicacionMaps(ubicacionValue || ""),
     [ubicacionValue],
@@ -267,7 +252,7 @@ export function PacienteFormDialog({
         body: JSON.stringify({
           nombre: values.nombre,
           apellido: values.apellido,
-          cedula: values.cedula,
+          cedula: values.cedula.trim() || null,
           fecha_nacimiento: `${values.fecha_nacimiento}T00:00:00.000Z`,
           sexo: values.sexo,
           telefono: values.telefono.trim() || undefined,
@@ -382,7 +367,7 @@ export function PacienteFormDialog({
                 type="text"
                 inputMode="numeric"
                 disabled={submitting || deleting}
-                placeholder="V-12.345.678"
+                placeholder={cedulaOpcional ? "Sin cédula (menor)" : "V-12.345.678"}
                 className="flex h-11 w-full rounded-md border border-input bg-background px-3 py-2 text-sm uppercase ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                 {...cedulaField}
                 onChange={(e) => {
@@ -391,7 +376,9 @@ export function PacienteFormDialog({
                 }}
               />
               <p className="text-xs text-muted-foreground">
-                Formato: V-12.345.678 — prefijo V, E, J, G o P + hasta 8 dígitos.
+                {cedulaOpcional
+                  ? `Opcional: menor de ${EDAD_MAXIMA_SIN_CEDULA} años, puede quedar vacía.`
+                  : "Formato: V-12.345.678 — prefijo V, E, J, G o P + hasta 8 dígitos."}
               </p>
               {errors.cedula ? <p className="text-xs text-destructive">{errors.cedula.message}</p> : null}
             </div>
