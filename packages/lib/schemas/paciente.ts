@@ -141,7 +141,24 @@ function exigirCedulaSalvoMenor(
   }
 }
 
-export const pacienteCreate = pacienteBase.superRefine(exigirCedulaSalvoMenor);
+/**
+ * Espejo del CHECK `pacientes_identificable` (0023): una ficha nueva necesita
+ * cédula, teléfono o email. Sólo en create: en update parcial no llegan los
+ * otros campos y no hay forma de saber qué tiene guardado la fila.
+ */
+function exigirIdentificacion(
+  data: { cedula?: string | null; telefono?: string; email?: string },
+  ctx: z.RefinementCtx,
+): void {
+  const tieneContacto = (data.telefono ?? "").length > 0 || (data.email ?? "").trim().length > 0;
+  if (data.cedula == null && !tieneContacto) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, message: CONTACTO_REQUERIDO, path: ["telefono"] });
+  }
+}
+
+export const pacienteCreate = pacienteBase
+  .superRefine(exigirCedulaSalvoMenor)
+  .superRefine(exigirIdentificacion);
 
 export type PacienteCreateInput = z.infer<typeof pacienteCreate>;
 

@@ -111,6 +111,27 @@ describe("pacienteCreate — cedula", () => {
   });
 });
 
+describe("pacienteCreate — contacto sin cédula", () => {
+  const menor = new Date(Date.now() - 1000 * 60 * 60 * 24 * 300);
+
+  it("rechaza menor sin cédula ni teléfono ni email con CONTACTO_REQUERIDO", () => {
+    const res = pacienteCreate.safeParse(
+      pacienteBase({ cedula: null, fecha_nacimiento: menor, telefono: undefined, email: "  " }),
+    );
+    expect(res.success).toBe(false);
+    if (!res.success) {
+      expect(res.error.issues[0].message).toBe(CONTACTO_REQUERIDO);
+    }
+  });
+
+  it("acepta menor sin cédula si tiene teléfono", () => {
+    const res = pacienteCreate.safeParse(
+      pacienteBase({ cedula: null, fecha_nacimiento: menor, telefono: "0414-1234567" }),
+    );
+    expect(res.success).toBe(true);
+  });
+});
+
 describe("pacienteCreate — fecha_nacimiento", () => {
   it("transforma Date a timestamp number", () => {
     const date = new Date("1990-05-15T00:00:00.000Z");
@@ -339,7 +360,9 @@ describe("cédula opcional para menores", () => {
   };
 
   it("un menor de 10 años puede registrarse sin cédula", () => {
-    const result = pacienteCreate.parse(pacienteBase({ cedula: "", fecha_nacimiento: hace(4) }));
+    const result = pacienteCreate.parse(
+      pacienteBase({ cedula: "", fecha_nacimiento: hace(4), telefono: "0414-1234567" }),
+    );
     expect(result.cedula).toBeNull();
   });
 
