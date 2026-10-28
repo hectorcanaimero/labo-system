@@ -22,6 +22,12 @@ function readAdminApiKey(): string {
   return key;
 }
 
+// Next 14 guarda en su Data Cache todo `fetch` GET hecho en el servidor. Sin
+// esto el SDK quedaba cacheado en `.next/cache/fetch-cache` y servía datos
+// viejos para siempre (la tasa del dashboard se quedó en la del 16/9).
+const noStoreFetch: typeof fetch = (input, init) =>
+  fetch(input, { ...init, cache: "no-store" });
+
 export function getSessionAccessToken(): string | null {
   const token = cookies().get(AUTH_COOKIE_NAMES.access)?.value;
   return token && token.length > 0 ? token : null;
@@ -43,6 +49,7 @@ export function getDb(): Db {
   return createClient({
     baseUrl: readBaseUrl(),
     accessToken: token,
+    fetch: noStoreFetch,
   }).database;
 }
 
@@ -56,5 +63,6 @@ export function getAdminDb(): Db {
   return createAdminClient({
     baseUrl: readBaseUrl(),
     apiKey: readAdminApiKey(),
+    fetch: noStoreFetch,
   }).database;
 }
