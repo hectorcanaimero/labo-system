@@ -142,6 +142,19 @@ export function PresupuestoDetalle({
   pacienteEmail,
 }: PresupuestoDetalleProps) {
   const router = useRouter();
+  // Cada línea guarda su propia ganancia; el `ganancia_pct` de cabecera solo
+  // es el default, así que mostrarlo engaña. Promedio ponderado por precio base.
+  const baseTotal = initialData.lineas.reduce((sum, l) => sum + l.precio_base_snap, 0);
+  const gananciaPromedio =
+    baseTotal > 0
+      ? Number(
+          (
+            initialData.lineas.reduce((sum, l) => sum + l.precio_base_snap * l.ganancia_pct, 0) /
+            baseTotal
+          ).toFixed(1),
+        )
+      : initialData.ganancia_pct;
+
   const [isEditing, setIsEditing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [approving, setApproving] = useState(false);
@@ -408,7 +421,7 @@ export function PresupuestoDetalle({
             <MetaCell label="Fecha" mono>{formatDate(initialData.created_at)}</MetaCell>
             <MetaCell label="Tasa Bs" mono>{formatBs(initialData.tasa_bs)}</MetaCell>
             <MetaCell label="Descuento" mono>{initialData.descuento_pct}%</MetaCell>
-            <MetaCell label="Ganancia" mono>{initialData.ganancia_pct}%</MetaCell>
+            <MetaCell label="Ganancia (prom.)" mono>{gananciaPromedio}%</MetaCell>
             <MetaCell label="Toma de muestra" mono>
               {formatUsd(initialData.toma_muestra_usd)}
             </MetaCell>
@@ -452,6 +465,7 @@ export function PresupuestoDetalle({
                   <TableHead className="h-9 w-28 py-1.5 text-right">
                     Precio base
                   </TableHead>
+                  <TableHead className="h-9 w-24 py-1.5 text-right">Ganancia</TableHead>
                   <TableHead className="h-9 w-28 py-1.5 text-right">
                     Precio final
                   </TableHead>
@@ -479,6 +493,9 @@ export function PresupuestoDetalle({
                     </TableCell>
                     <TableCell className="py-1.5 text-right font-mono text-xs tabular-nums text-muted-foreground">
                       {formatUsd(linea.precio_base_snap ?? linea.precio_snap)}
+                    </TableCell>
+                    <TableCell className="py-1.5 text-right font-mono text-xs tabular-nums text-muted-foreground">
+                      {linea.ganancia_pct}%
                     </TableCell>
                     <TableCell className="py-1.5 text-right font-mono text-xs tabular-nums text-foreground">
                       {formatUsd(linea.precio_final_snap ?? linea.precio_snap)}

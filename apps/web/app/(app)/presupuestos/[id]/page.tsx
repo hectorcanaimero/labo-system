@@ -84,6 +84,7 @@ export default async function PresupuestoDetallePage({ params }: { params: { id:
             precio_base_snap: linea.precio_base_snap,
             ganancia_pct: linea.ganancia_pct,
             cerrado: linea.cerrado,
+            precio_final_snap: linea.precio_final_snap,
           })),
         }}
       />
