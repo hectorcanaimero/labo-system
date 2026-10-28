@@ -81,6 +81,8 @@ export interface Presupuesto {
   paciente_nombre_libre: string | null;
   paciente_nombre: string | null;
   paciente_apellido: string | null;
+  /** Ficha provisional (F8.2.T1): el "nombre libre" de hoy crea una ficha sin cédula/nacimiento/sexo. */
+  paciente_ficha_incompleta: boolean;
   descuento_pct: number;
   ganancia_pct: number;
   tasa_bs: number;
@@ -136,7 +138,7 @@ const PRESUPUESTO_COLS =
   "id, numero_correlativo, paciente_id, paciente_nombre_libre, " +
   "descuento_pct, ganancia_pct, tasa_bs, toma_muestra_usd, domicilio_usd, " +
   "total_usd, total_bs, estado, " +
-  "orden_id, created_at, created_by, pacientes ( nombre, apellido )";
+  "orden_id, created_at, created_by, pacientes ( nombre, apellido, cedula, fecha_nacimiento, sexo )";
 
 type PresupuestoRow = {
   id: string;
@@ -154,7 +156,13 @@ type PresupuestoRow = {
   orden_id: string | null;
   created_at: string;
   created_by: string;
-  pacientes?: { nombre?: string; apellido?: string } | null;
+  pacientes?: {
+    nombre?: string;
+    apellido?: string;
+    cedula: string | null;
+    fecha_nacimiento: string | null;
+    sexo: string | null;
+  } | null;
 };
 
 type LineaRow = {
@@ -179,6 +187,7 @@ function mapHeader(row: PresupuestoRow): Omit<Presupuesto, "lineas"> {
     paciente_nombre_libre: row.paciente_nombre_libre,
     paciente_nombre: row.pacientes?.nombre ?? null,
     paciente_apellido: row.pacientes?.apellido ?? null,
+    paciente_ficha_incompleta: row.pacientes ? esFichaIncompleta(row.pacientes) : false,
     descuento_pct: numberOf(row.descuento_pct),
     ganancia_pct: numberOf(row.ganancia_pct),
     tasa_bs: numberOf(row.tasa_bs),

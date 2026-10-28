@@ -333,9 +333,11 @@ export function PresupuestoDetalle({
             </div>
             <p className="mt-0.5 flex items-center gap-1.5 text-xs text-muted-foreground">
               <UserRound className="h-3 w-3" />
-              {initialData.paciente_id
-                ? "Paciente registrado"
-                : "Nombre libre (sin ficha)"}
+              {!initialData.paciente_id
+                ? "Nombre libre (sin ficha)"
+                : pacienteFichaIncompleta
+                  ? "Paciente no registrado"
+                  : "Paciente registrado"}
             </p>
           </div>
 
