@@ -203,12 +203,11 @@ const styles = StyleSheet.create({
   },
 });
 
-function patientDisplay(data: PresupuestoPDFData): { name: string; meta: string } {
+function patientName(data: PresupuestoPDFData): string {
   if (data.paciente_id) {
-    const name = [data.paciente_nombre, data.paciente_apellido].filter(Boolean).join(" ");
-    return { name: name || "Paciente registrado", meta: "Paciente registrado" };
+    return [data.paciente_nombre, data.paciente_apellido].filter(Boolean).join(" ") || "Paciente";
   }
-  return { name: data.paciente_nombre_libre?.trim() || "Paciente", meta: "Paciente no registrado" };
+  return data.paciente_nombre_libre?.trim() || "Paciente";
 }
 
 /**
@@ -219,7 +218,7 @@ function patientDisplay(data: PresupuestoPDFData): { name: string; meta: string 
 export function PresupuestoPDF({ data }: PresupuestoPDFProps) {
   const config = data.config;
   const laboratoryName = config?.nombre.trim() || FALLBACK_LAB_NAME;
-  const patient = patientDisplay(data);
+  const patientNameText = patientName(data);
   const lines = [...data.lineas].sort((left, right) => left.orden - right.orden);
   const subtotalUsd = lines.reduce((sum, line) => sum + line.precio_final_snap, 0);
   const numero = formatNumeroPresupuesto(data.numero_correlativo, data.created_at);
@@ -232,7 +231,7 @@ export function PresupuestoPDF({ data }: PresupuestoPDFProps) {
     <Document
       author={laboratoryName}
       subject="Presupuesto de laboratorio"
-      title={`Presupuesto ${numero} - ${patient.name}`}
+      title={`Presupuesto ${numero} - ${patientNameText}`}
     >
       <Page size="A4" style={styles.page}>
         <Text style={styles.watermark} fixed>
@@ -257,8 +256,7 @@ export function PresupuestoPDF({ data }: PresupuestoPDFProps) {
         <View style={styles.info}>
           <View style={[styles.infoCell, { flex: 2 }]}>
             <Text style={styles.infoLabel}>Solicitante</Text>
-            <Text style={[styles.infoValue, styles.infoValueLarge]}>{patient.name}</Text>
-            <Text style={styles.infoMeta}>{patient.meta}</Text>
+            <Text style={[styles.infoValue, styles.infoValueLarge]}>{patientNameText}</Text>
           </View>
           <View style={[styles.infoCell, styles.infoCellLast, { flex: 1 }]}>
             <Text style={styles.infoLabel}>Tasa BCV</Text>
