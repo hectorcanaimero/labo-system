@@ -32,6 +32,7 @@ function toStatus(error: unknown): { status: number; error: string } {
       return { status: 409, error: code };
     case "CEDULA_INVALIDA":
     case "CEDULA_REQUERIDA":
+    case "CONTACTO_REQUERIDO":
     case "TELEFONO_INVALIDO":
     case "VALIDACION_FALLIDA":
     case "NOMBRE_REQUERIDO":
