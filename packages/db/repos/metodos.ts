@@ -22,7 +22,7 @@ const repo = crearRepoCatalogo("metodos_analisis", "metodos_analisis_nombre_uniq
   duplicado: METODO_DUPLICADO,
   noEncontrado: METODO_NO_ENCONTRADO,
   tablaFaltante: METODOS_TABLA_FALTANTE,
-});
+}, "metodo");
 
 export const list = repo.list;
 export const create = repo.create;

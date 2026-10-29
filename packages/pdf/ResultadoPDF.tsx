@@ -69,10 +69,10 @@ export interface ExamenGrupo {
 /**
  * Agrupación jerárquica y determinista del informe:
  * - Grupos (Título) en orden de primera aparición; el grupo residual queda SIEMPRE último.
- * - Dentro de cada grupo, las filas sin tipo_analisis van directo bajo el título (primero),
- *   luego una sección por Tipo de Análisis en orden de primera aparición.
- * - El orden de las filas dentro de cada sección respeta el orden de entrada
- *   (la SQL entrega orden ASC, id ASC).
+ * - Dentro de cada grupo, una sección por cada tramo consecutivo de filas con el mismo
+ *   Tipo de Análisis (null = filas directas, sin subtítulo). Las filas nunca se reordenan:
+ *   se respeta el orden en que se cargaron (la SQL entrega orden ASC, id ASC), que en
+ *   hematología es clínico. Si un tipo reaparece más abajo, abre otra sección.
  */
 export function agruparExamenes(examenes: readonly ExamenPDFRow[]): ExamenGrupo[] {
   const gruposOrdenados: ExamenGrupo[] = [];
@@ -93,11 +93,10 @@ export function agruparExamenes(examenes: readonly ExamenPDFRow[]): ExamenGrupo[
     }
 
     const tipo = examen.tipo_analisis_snap?.trim() || null;
-    let seccion = grupo.secciones.find((s) => s.tipo === tipo);
-    if (!seccion) {
+    let seccion = grupo.secciones.at(-1);
+    if (!seccion || seccion.tipo !== tipo) {
       seccion = { tipo, examenes: [] };
-      if (tipo === null) grupo.secciones.unshift(seccion);
-      else grupo.secciones.push(seccion);
+      grupo.secciones.push(seccion);
     }
     seccion.examenes.push(examen);
   }

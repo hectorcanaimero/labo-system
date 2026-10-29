@@ -337,3 +337,43 @@ describe("create con fecha de resultado (nace Entregada)", () => {
     expect(ins?.payload).toMatchObject({ estado: "En proceso", fecha_resultado: null });
   });
 });
+
+describe("update — snapshots descriptivos", () => {
+  const catalogo = {
+    id: "ex-a",
+    nombre: "Examen a",
+    precio_usd: "9",
+    unidad: "g/dl",
+    valores_referencia: "11 - 15",
+    tipo_analisis: "Automatizado",
+    metodo: "Automatizado",
+  };
+  const vieja = { ...linea("a", "5.4"), metodo_snap: "Espectofotometría", tipo_analisis_snap: "Fotometría" };
+
+  async function guardar(estado: string) {
+    const { db, llamadas } = fakeDb((table, op) => {
+      if (table === "ordenes") return { data: [{ ...ORDEN, estado }] };
+      if (table === "ordenes_examenes" && op === "select") return { data: [vieja] };
+      if (table === "examenes") return { data: [catalogo] };
+      return {};
+    });
+    await update(db, ORDEN.id, { examenes: [{ examen_id: "ex-a", valor: "5.4" }] }, "u1");
+    const ins = llamadas.find((l) => l.table === "ordenes_examenes" && l.op === "insert");
+    return (ins?.payload as Array<Record<string, unknown>>)[0];
+  }
+
+  it("orden en curso toma método y tipo vigentes del catálogo, conserva el precio", async () => {
+    expect(await guardar("Validando")).toMatchObject({
+      metodo_snap: "Automatizado",
+      tipo_analisis_snap: "Automatizado",
+      precio_snap: 1,
+    });
+  });
+
+  it("orden entregada conserva el snapshot", async () => {
+    expect(await guardar("Entregada")).toMatchObject({
+      metodo_snap: "Espectofotometría",
+      tipo_analisis_snap: "Fotometría",
+    });
+  });
+});

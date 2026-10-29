@@ -13,7 +13,8 @@ import type { Db } from "../sdk";
  *     histórico y tienen que conservar lo que decían el día de la orden.
  *   - Desactivar no borra: el valor sale del selector pero se sigue leyendo en
  *     los exámenes que ya lo tenían.
- *   - Renombrar NO reescribe los exámenes existentes, por la misma razón.
+ *   - Renombrar corrige también los exámenes que usaban el nombre viejo (para
+ *     arreglar un método mal escrito), pero no los snapshots de las órdenes.
  */
 
 const VALIDACION_FALLIDA = "VALIDACION_FALLIDA";
@@ -63,11 +64,13 @@ function validateNombre(nombre: unknown): string {
  * @param constraintUnique nombre del UNIQUE sobre `nombre`, para distinguir el
  *   duplicado de cualquier otro 23505
  * @param codigos códigos de dominio que devuelve este catálogo
+ * @param columnaExamen columna de `examenes` que guarda el nombre elegido
  */
 export function crearRepoCatalogo(
   tabla: string,
   constraintUnique: string,
   codigos: CodigosCatalogo,
+  columnaExamen: string,
 ): RepoCatalogo {
   function isUniqueViolation(err: unknown): boolean {
     if (!isPgError(err)) return false;
@@ -184,6 +187,14 @@ export function crearRepoCatalogo(
       }
       const item = data?.[0] as ItemCatalogo | undefined;
       if (!item) throw new Error(codigos.noEncontrado);
+
+      if (patch.nombre !== undefined && patch.nombre !== anterior.nombre) {
+        const ren = await db
+          .from("examenes")
+          .update({ [columnaExamen]: patch.nombre })
+          .eq(columnaExamen, anterior.nombre);
+        if (ren.error) fallar(`${tabla}.update examenes`, ren.error);
+      }
 
       await auditBestEffort(db, {
         usuarioId: input.usuarioId,
