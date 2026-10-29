@@ -315,6 +315,7 @@ async function insertLineas(
   ordenId: string,
   examenes: Array<{ examen_id: string; valor: string; observacion?: string }>,
   existing: Map<string, OrdenLinea> = new Map(),
+  congelada = false,
 ): Promise<void> {
   if (examenes.length === 0) return;
 
@@ -335,16 +336,29 @@ async function insertLineas(
     const snap = existing.get(linea.examen_id);
     const src = catalog.get(linea.examen_id);
     if (!snap && !src) throw new Error(EXAMEN_NO_ENCONTRADO);
+    // Hasta que la orden se entrega, los datos descriptivos siguen al catálogo:
+    // si el laboratorio corrige el método o el tipo de un examen, la orden en
+    // curso lo toma al guardar. El precio siempre conserva el snapshot.
+    const desc = src && (!snap || !congelada)
+      ? {
+          nombre_snap: src.nombre,
+          unidad_snap: src.unidad,
+          valores_referencia_snap: src.valores_referencia,
+          tipo_analisis_snap: src.tipo_analisis,
+          metodo_snap: src.metodo,
+        }
+      : {
+          nombre_snap: snap!.nombre_snap,
+          unidad_snap: snap!.unidad_snap,
+          valores_referencia_snap: snap!.valores_referencia_snap,
+          tipo_analisis_snap: snap!.tipo_analisis_snap,
+          metodo_snap: snap!.metodo_snap,
+        };
     return {
       orden_id: ordenId,
       examen_id: linea.examen_id,
-      nombre_snap: snap?.nombre_snap ?? src!.nombre,
+      ...desc,
       precio_snap: snap?.precio_snap ?? Number(src!.precio_usd),
-      unidad_snap: snap?.unidad_snap ?? src!.unidad,
-      valores_referencia_snap:
-        snap?.valores_referencia_snap ?? src!.valores_referencia,
-      tipo_analisis_snap: snap?.tipo_analisis_snap ?? src!.tipo_analisis,
-      metodo_snap: snap?.metodo_snap ?? src!.metodo,
       valor: linea.valor,
       observacion: trimOrNull(linea.observacion),
       orden: index + 1,
@@ -683,7 +697,7 @@ export async function update(
     const snapshots = new Map(current.examenes.map((l) => [l.examen_id, l]));
     const del = await db.from("ordenes_examenes").delete().eq("orden_id", id);
     if (del.error) throw new Error(`ordenes.update del: ${del.error.message}`);
-    await insertLineas(db, id, data.examenes, snapshots);
+    await insertLineas(db, id, data.examenes, snapshots, current.estado === "Entregada");
   }
 
   await auditBestEffort(db, {

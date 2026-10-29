@@ -63,7 +63,7 @@ const item = (over: Partial<ItemCatalogo> = {}): ItemCatalogo => ({
   ...over,
 });
 
-const repo = crearRepoCatalogo("tabla_x", "tabla_x_nombre_unique", CODIGOS);
+const repo = crearRepoCatalogo("tabla_x", "tabla_x_nombre_unique", CODIGOS, "col_x");
 
 describe("list", () => {
   it("filtra por activo salvo que se pidan los inactivos", async () => {
@@ -154,6 +154,14 @@ describe("update", () => {
 
     const upd = llamadas.find((l) => l.op === "update" && l.table === "tabla_x");
     expect(upd?.payload).toEqual({ nombre: "ELISA v2" });
+  });
+
+  it("renombrar corrige los exámenes que usaban el nombre viejo", async () => {
+    const { db, llamadas } = fakeDb(() => ({ data: [item()] }));
+    await repo.update(db, { id: "id-1", nombre: "ELISA v2", usuarioId: "u1" });
+
+    const ex = llamadas.find((l) => l.op === "update" && l.table === "examenes");
+    expect(ex).toMatchObject({ payload: { col_x: "ELISA v2" }, filtros: { col_x: "ELISA" } });
   });
 
   it("desactiva sin tocar el nombre", async () => {
