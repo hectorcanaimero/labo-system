@@ -150,7 +150,7 @@ describe("PDF templates render", () => {
   });
 
   describe("agruparExamenes (jerarquía Título -> Tipo de Análisis)", () => {
-    it("agrupa por título con sub-secciones por tipo y filas directas primero", () => {
+    it("agrupa por título con sub-secciones por tipo, sin reordenar filas", () => {
       const grupos = agruparExamenes([
         examenRow({ id: "1", titulo: "HEMATOLOGÍA", tipo_analisis_snap: "Serología" }),
         examenRow({ id: "2", titulo: "ORINA" }),
@@ -161,8 +161,8 @@ describe("PDF templates render", () => {
       expect(grupos.map((g) => g.titulo)).toEqual(["HEMATOLOGÍA", "ORINA"]);
 
       const hematologia = grupos[0]!;
-      expect(hematologia.secciones.map((s) => s.tipo)).toEqual([null, "Serología", "Biológica"]);
-      expect(hematologia.secciones[0]!.examenes.map((e) => e.id)).toEqual(["3"]);
+      expect(hematologia.secciones.map((s) => s.tipo)).toEqual(["Serología", null, "Biológica"]);
+      expect(hematologia.secciones[1]!.examenes.map((e) => e.id)).toEqual(["3"]);
 
       const orina = grupos[1]!;
       expect(orina.secciones).toHaveLength(1);
@@ -190,9 +190,10 @@ describe("PDF templates render", () => {
 
       expect(agruparExamenes(entrada)).toEqual(agruparExamenes([...entrada]));
       expect(agruparExamenes(entrada).map((g) => g.titulo)).toEqual(["G1", "G2"]);
+      // Un tipo que reaparece abre otra sección: el orden de carga manda.
       expect(
-        agruparExamenes(entrada)[0]!.secciones.find((s) => s.tipo === "T2")!.examenes.map((e) => e.id),
-      ).toEqual(["a", "d"]);
+        agruparExamenes(entrada)[0]!.secciones.map((s) => [s.tipo, s.examenes.map((e) => e.id)]),
+      ).toEqual([["T2", ["a"]], ["T1", ["c"]], ["T2", ["d"]]]);
     });
   });
 

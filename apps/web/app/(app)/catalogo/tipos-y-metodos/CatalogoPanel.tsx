@@ -23,9 +23,9 @@ import { notifyError, notifySuccess } from "@labo/ui/feedback/toast";
  * libre en ninguno de los dos, elige de estas listas. Acá el admin las amplía,
  * renombra y desactiva.
  *
- * Renombrar NO reescribe los exámenes que ya usaban el nombre viejo, ni los
- * snapshots de las órdenes, que son registro histórico. Por eso el aviso al
- * renombrar: la lista y lo ya guardado pueden divergir a propósito.
+ * Renombrar corrige también los exámenes que usaban el nombre viejo (así se
+ * arregla un método mal escrito), pero no los resultados ya entregados, que
+ * son registro histórico.
  *
  * F7.4.T4 — búsqueda y paginación son puramente de cliente: el catálogo
  * completo ya viaja en un solo GET (son listas chicas, decenas de filas como
@@ -171,7 +171,7 @@ export function CatalogoPanel({
       reemplazar(actualizado);
       setEditandoId(null);
       notifySuccess(
-        `Renombrado. Los exámenes que ya usaban "${item.nombre}" conservan ese nombre.`,
+        `Renombrado. Los exámenes que usaban "${item.nombre}" ahora dicen "${actualizado.nombre}".`,
       );
     } catch (err) {
       notifyError(err);

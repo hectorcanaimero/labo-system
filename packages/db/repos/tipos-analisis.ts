@@ -21,7 +21,7 @@ const repo = crearRepoCatalogo("tipos_analisis", "tipos_analisis_nombre_unique",
   duplicado: TIPO_DUPLICADO,
   noEncontrado: TIPO_NO_ENCONTRADO,
   tablaFaltante: TIPOS_TABLA_FALTANTE,
-});
+}, "tipo_analisis");
 
 export const list = repo.list;
 export const create = repo.create;
