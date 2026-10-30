@@ -321,6 +321,7 @@ interface ExamenRow {
   metodo: string | null;
   observaciones: string | null;
   activo: boolean;
+  orden: number;
   created_at: string;
   updated_at: string;
 }
@@ -336,6 +337,7 @@ export interface Examen {
   metodo: string | null;
   observaciones: string | null;
   activo: boolean;
+  orden: number;
   created_at: string;
   updated_at: string;
 }
@@ -374,7 +376,7 @@ export interface ExamenUpdateInput {
 }
 
 const EXAMEN_COLS =
-  "id, titulo_id, nombre, precio_usd, unidad, valores_referencia, tipo_analisis, metodo, observaciones, activo, created_at, updated_at";
+  "id, titulo_id, nombre, precio_usd, unidad, valores_referencia, tipo_analisis, metodo, observaciones, activo, orden, created_at, updated_at";
 
 function toExamen(row: ExamenRow): Examen {
   return {
@@ -406,10 +408,50 @@ export async function examenesListByTitulo(
     .select(EXAMEN_COLS)
     .eq("titulo_id", tituloId)
     .eq("activo", true)
-    .order("nombre", { ascending: true })
-    .order("created_at", { ascending: true });
+    .order("orden", { ascending: true })
+    .order("nombre", { ascending: true });
   if (error) throw new Error(`examenesListByTitulo: ${error.message}`);
   return (data ?? []).map((r) => toExamen(r as ExamenRow));
+}
+
+/**
+ * Fija el orden de los exámenes dentro de un grupo (0026): es el orden en que
+ * salen en presupuesto, resultados e informe cuando el grupo viene de un
+ * paquete. Sólo toca exámenes de ese grupo.
+ */
+export async function examenesReorder(
+  db: Db,
+  input: { titulo_id: unknown; orderedIds: unknown; usuarioId: string },
+): Promise<string[]> {
+  const tituloId = validateTituloId(input.titulo_id);
+  const ids = input.orderedIds;
+  if (
+    !Array.isArray(ids) ||
+    ids.length === 0 ||
+    ids.some((id) => typeof id !== "string" || id.length === 0)
+  ) {
+    throw new Error(VALIDACION_FALLIDA);
+  }
+
+  for (let i = 0; i < ids.length; i++) {
+    const { data, error } = await db
+      .from("examenes")
+      .update({ orden: i + 1 })
+      .eq("id", ids[i])
+      .eq("titulo_id", tituloId)
+      .select("id");
+    if (error) throw new Error(`examenesReorder: ${error.message}`);
+    if (!data?.[0]) throw new Error(EXAMEN_NO_ENCONTRADO);
+  }
+
+  await auditBestEffort(db, {
+    usuarioId: input.usuarioId,
+    accion: "examenes.reorder",
+    entityType: EXAMEN_ENTITY_TYPE,
+    metadata: { titulo_id: tituloId, orderedIds: ids },
+  });
+
+  return ids as string[];
 }
 
 export async function examenesSearch(
@@ -465,10 +507,21 @@ export async function examenesCreate(
   if (tituloCheck.error) throw new Error(`examenesCreate: ${tituloCheck.error.message}`);
   if ((tituloCheck.count ?? 0) === 0) throw new Error(TITULO_NO_ENCONTRADO);
 
+  // Entra al final de su grupo.
+  const ultimoRes = await db
+    .from("examenes")
+    .select("orden")
+    .eq("titulo_id", tituloId)
+    .order("orden", { ascending: false })
+    .limit(1);
+  if (ultimoRes.error) throw new Error(`examenesCreate: ${ultimoRes.error.message}`);
+  const orden = ((ultimoRes.data?.[0] as { orden: number } | undefined)?.orden ?? 0) + 1;
+
   const { data, error } = await db
     .from("examenes")
     .insert({
       titulo_id: tituloId,
+      orden,
       nombre,
       precio_usd: precioUsd,
       unidad,

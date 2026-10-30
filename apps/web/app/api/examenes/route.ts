@@ -3,6 +3,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import {
   examenesCreate,
   examenesListByTitulo,
+  examenesReorder,
   examenesSearch,
 } from "@labo/db/repos/examenes";
 import { AuthError, getCurrentUser, requireRole } from "@/lib/server/auth";
@@ -94,6 +95,28 @@ export async function POST(request: NextRequest): Promise<Response> {
       usuarioId: user.userId,
     });
     return NextResponse.json(examen, { status: 201 });
+  } catch (error) {
+    const { status, error: code } = toStatus(error);
+    return bad(status, code);
+  }
+}
+
+/** Orden de los exámenes dentro de un grupo. Body: { titulo_id, orderedIds }. */
+export async function PATCH(request: NextRequest): Promise<Response> {
+  try {
+    const user = await requireRole("admin");
+
+    const body = (await request.json().catch(() => null)) as Record<string, unknown> | null;
+    if (!body || !Array.isArray(body.orderedIds)) {
+      return bad(400, "VALIDACION_FALLIDA");
+    }
+
+    const orderedIds = await examenesReorder(getAdminDb(), {
+      titulo_id: body.titulo_id,
+      orderedIds: body.orderedIds,
+      usuarioId: user.userId,
+    });
+    return NextResponse.json({ orderedIds });
   } catch (error) {
     const { status, error: code } = toStatus(error);
     return bad(status, code);

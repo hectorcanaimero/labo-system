@@ -20,9 +20,9 @@ export interface ExamenesTableProps {
 
 const COL = {
   prueba: "30%",
-  resultado: "16%",
+  resultado: "20%",
   unidad: "12%",
-  referencia: "24%",
+  referencia: "20%",
   metodo: "18%",
 } as const;
 
@@ -96,7 +96,7 @@ export function ExamenesTable({ rows, header = true }: ExamenesTableProps) {
           <Text style={[styles.headerCell, styles.prueba]}>Prueba</Text>
           <Text style={[styles.headerCell, styles.resultado]}>Resultado</Text>
           <Text style={[styles.headerCell, styles.unidad]}>Unidad</Text>
-          <Text style={[styles.headerCell, styles.referencia]}>Valores de referencia</Text>
+          <Text style={[styles.headerCell, styles.referencia]}>Valores de Ref.</Text>
           <Text style={[styles.headerCell, styles.metodo]}>Método</Text>
         </View>
       ) : null}

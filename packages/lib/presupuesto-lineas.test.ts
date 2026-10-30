@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  bloquesPorGrupo,
   esPaqueteCerrado,
   gananciaGlobalGuardada,
   gananciaPctInicial,
@@ -149,5 +150,13 @@ describe("reconstruirLineaGuardada", () => {
       gananciaPctInput: "10",
       cerrado: false,
     });
+  });
+});
+
+describe("bloquesPorGrupo", () => {
+  it("junta líneas consecutivas del mismo grupo y deja las sueltas solas", () => {
+    const l = (id: string, grupo_snap: string | null) => ({ id, grupo_snap });
+    const bloques = bloquesPorGrupo([l("a", null), l("b", "HEMA"), l("c", "HEMA"), l("d", null), l("e", null)]);
+    expect(bloques.map((b) => b.map((x) => x.id))).toEqual([["a"], ["b", "c"], ["d"], ["e"]]);
   });
 });

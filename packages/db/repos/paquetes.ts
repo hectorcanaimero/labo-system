@@ -44,6 +44,8 @@ export interface PaqueteExamen {
   valores_referencia: string | null;
   activo: boolean;
   orden: number;
+  /** Nombre del grupo si el examen entra al paquete por un grupo (0026). */
+  grupo: string | null;
 }
 
 export interface PaqueteTitulo {
@@ -212,6 +214,7 @@ async function loadPaqueteExamenes(
         valores_referencia: e.valores_referencia,
         activo: e.activo,
         orden: l.orden,
+        grupo: null as string | null,
       };
     })
     .filter((x): x is PaqueteExamen => x !== null);
@@ -350,7 +353,39 @@ export async function getExamenes(db: Db, id: string): Promise<PaqueteExamen[]> 
   const paqRes = await db.from("paquetes").select("id").eq("id", id).limit(1);
   if (paqRes.error) throw new Error(`paquetes.getExamenes: ${paqRes.error.message}`);
   if (!paqRes.data?.[0]) throw new Error(PAQUETE_NO_ENCONTRADO);
-  return loadPaqueteExamenes(db, id, true);
+
+  // Presupuesto y resultados cargan exámenes: cada grupo incluido se expande
+  // a sus exámenes activos en el orden del grupo (`examenes.orden`, 0026),
+  // marcados con el nombre del grupo para que el presupuesto lo cotice como
+  // una sola línea. Después, los sueltos. Un examen que está en un grupo y
+  // también suelto aparece una sola vez, dentro del grupo.
+  const [titulos, sueltos] = await Promise.all([
+    loadPaqueteTitulos(db, id),
+    loadPaqueteExamenes(db, id, true),
+  ]);
+
+  let deGrupos: Omit<PaqueteExamen, "orden">[] = [];
+  if (titulos.length > 0) {
+    const res = await db
+      .from("examenes")
+      .select("id, titulo_id, nombre, precio_usd, unidad, valores_referencia, activo")
+      .in("titulo_id", titulos.map((t) => t.id))
+      .eq("activo", true)
+      .order("orden", { ascending: true })
+      .order("nombre", { ascending: true });
+    if (res.error) throw new Error(`paquetes.getExamenes grupos: ${res.error.message}`);
+    const rows = (res.data ?? []) as Array<Omit<PaqueteExamen, "orden" | "grupo">>;
+    deGrupos = titulos.flatMap((t) =>
+      rows
+        .filter((e) => e.titulo_id === t.id)
+        .map((e) => ({ ...e, precio_usd: Number(e.precio_usd), grupo: t.nombre })),
+    );
+  }
+
+  const vistos = new Set<string>();
+  return [...deGrupos, ...sueltos]
+    .filter((e) => !vistos.has(e.id) && vistos.add(e.id))
+    .map((e, idx) => ({ ...e, orden: idx + 1 }));
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

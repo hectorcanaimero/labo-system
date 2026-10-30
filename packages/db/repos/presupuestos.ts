@@ -72,6 +72,8 @@ export interface PresupuestoLinea {
   cerrado: boolean;
   precio_final_snap: number;
   orden: number;
+  /** 0026 — nombre del grupo si la línea es parte de un bloque de grupo. */
+  grupo_snap: string | null;
 }
 
 export interface Presupuesto {
@@ -177,6 +179,7 @@ type LineaRow = {
   cerrado: boolean;
   precio_final_snap: Numeric;
   orden: number;
+  grupo_snap: string | null;
 };
 
 function mapHeader(row: PresupuestoRow): Omit<Presupuesto, "lineas"> {
@@ -215,6 +218,7 @@ function mapLinea(row: LineaRow): PresupuestoLinea {
     cerrado: Boolean(row.cerrado),
     precio_final_snap: numberOf(row.precio_final_snap),
     orden: row.orden,
+    grupo_snap: row.grupo_snap ?? null,
   };
 }
 
@@ -227,7 +231,7 @@ async function hydrate(
   const { data: lineas, error } = await db
     .from("presupuestos_examenes")
     .select(
-      "id, presupuesto_id, examen_id, paquete_id, nombre_snap, precio_snap, precio_base_snap, ganancia_pct, cerrado, precio_final_snap, orden",
+      "id, presupuesto_id, examen_id, paquete_id, nombre_snap, precio_snap, precio_base_snap, ganancia_pct, cerrado, precio_final_snap, orden, grupo_snap",
     )
     .in("presupuesto_id", ids)
     .order("orden", { ascending: true })
@@ -492,6 +496,7 @@ export async function create(
     cerrado: item.cerrado,
     precio_final_snap: totals.lineas![orden]!.precioFinal,
     orden,
+    grupo_snap: item.linea.grupo ?? null,
   }));
   const lineasRes = await db.from("presupuestos_examenes").insert(lineasPayload);
   if (lineasRes.error) throw new Error(`presupuestos.create lineas: ${lineasRes.error.message}`);
@@ -605,6 +610,7 @@ export async function update(
       cerrado: item.cerrado,
       precio_final_snap: totals.lineas![orden]!.precioFinal,
       orden,
+      grupo_snap: item.linea.grupo ?? null,
     }));
     if (payload.length > 0) {
       const insLineas = await db.from("presupuestos_examenes").insert(payload);
