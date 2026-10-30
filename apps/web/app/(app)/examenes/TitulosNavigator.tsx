@@ -328,6 +328,42 @@ export function TitulosNavigator({ initialTitulos }: TitulosNavigatorProps) {
     }
   };
 
+  // El orden dentro del grupo es el que usan presupuesto, resultados e informe
+  // cuando el grupo viene de un paquete (p. ej. la hematología, en orden clínico).
+  const handleMoveExamen = async (tituloId: string, examenId: string, direction: -1 | 1) => {
+    const items = examensByTitulo[tituloId]?.items ?? [];
+    const currentIndex = items.findIndex((examen) => examen.id === examenId);
+    const targetIndex = currentIndex + direction;
+    if (currentIndex < 0 || targetIndex < 0 || targetIndex >= items.length) {
+      return;
+    }
+
+    const reordered = [...items];
+    const [current] = reordered.splice(currentIndex, 1);
+    reordered.splice(targetIndex, 0, current);
+
+    setBusyExamenId(examenId);
+    setPageError(null);
+    try {
+      await requestJson<{ orderedIds: string[] }>('/api/examenes', {
+        method: 'PATCH',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          titulo_id: tituloId,
+          orderedIds: reordered.map((examen) => examen.id),
+        }),
+      });
+      setExamensByTitulo((state) => ({
+        ...state,
+        [tituloId]: { status: 'success', items: reordered, errorMessage: null },
+      }));
+    } catch (error) {
+      setPageError(toHumanError(error));
+    } finally {
+      setBusyExamenId(null);
+    }
+  };
+
   const handleDeleteTitulo = async (titulo: TituloListItem) => {
     const confirmed = await confirm({
       title: `¿Archivar el grupo "${titulo.nombre}"?`,
@@ -698,6 +734,9 @@ export function TitulosNavigator({ initialTitulos }: TitulosNavigatorProps) {
                           <Table>
                             <TableHeader>
                               <TableRow className="bg-muted/40 hover:bg-muted/40">
+                                <TableHead className="h-9 w-16 py-1.5">
+                                  <span className="sr-only">Orden</span>
+                                </TableHead>
                                 <TableHead className="h-9 py-1.5">Nombre</TableHead>
                                 <TableHead className="h-9 py-1.5">Tipo</TableHead>
                                 <TableHead className="h-9 py-1.5">Método</TableHead>
@@ -709,10 +748,39 @@ export function TitulosNavigator({ initialTitulos }: TitulosNavigatorProps) {
                               </TableRow>
                             </TableHeader>
                             <TableBody>
-                              {examenesState.items.map((examen) => {
+                              {examenesState.items.map((examen, examenIndex) => {
                                 const isBusyExamen = busyExamenId === examen.id;
                                 return (
                                   <TableRow key={examen.id} className="h-9">
+                                    <TableCell className="py-1.5">
+                                      <div className="flex items-center">
+                                        <Button
+                                          type="button"
+                                          variant="ghost"
+                                          size="icon"
+                                          className="h-7 w-7"
+                                          onClick={() => void handleMoveExamen(titulo.id, examen.id, -1)}
+                                          disabled={examenIndex === 0 || busyExamenId !== null}
+                                          aria-label={`Subir ${examen.nombre}`}
+                                        >
+                                          <ChevronUp className="h-4 w-4" />
+                                        </Button>
+                                        <Button
+                                          type="button"
+                                          variant="ghost"
+                                          size="icon"
+                                          className="h-7 w-7"
+                                          onClick={() => void handleMoveExamen(titulo.id, examen.id, 1)}
+                                          disabled={
+                                            examenIndex === examenesState.items.length - 1 ||
+                                            busyExamenId !== null
+                                          }
+                                          aria-label={`Bajar ${examen.nombre}`}
+                                        >
+                                          <ChevronDown className="h-4 w-4" />
+                                        </Button>
+                                      </div>
+                                    </TableCell>
                                     <TableCell className="py-1.5 font-medium text-foreground">
                                       <HighlightedText
                                         text={examen.nombre}

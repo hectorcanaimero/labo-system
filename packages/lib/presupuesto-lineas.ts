@@ -97,3 +97,19 @@ export function gananciaGlobalGuardada(
   const cerrada = lineas.find(esPaqueteCerrado);
   return cerrada ? (cerrada.ganancia_pct ?? 0) : null;
 }
+
+/**
+ * 0026 — Bloques de visualización: las líneas consecutivas de un mismo grupo
+ * (`grupo_snap`) forman un bloque que se muestra como una sola fila con la
+ * suma de precios; cada línea sin grupo es un bloque propio. Las líneas
+ * siguen siendo por examen (la orden y los resultados las necesitan así).
+ */
+export function bloquesPorGrupo<T extends { grupo_snap?: string | null }>(lineas: readonly T[]): T[][] {
+  const bloques: T[][] = [];
+  for (const linea of lineas) {
+    const ultimo = bloques.at(-1);
+    if (linea.grupo_snap && ultimo?.[0]?.grupo_snap === linea.grupo_snap) ultimo.push(linea);
+    else bloques.push([linea]);
+  }
+  return bloques;
+}
