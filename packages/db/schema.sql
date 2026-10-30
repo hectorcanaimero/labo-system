@@ -94,6 +94,8 @@ CREATE TABLE IF NOT EXISTS examenes (
   metodo              text,
   observaciones       text,
   activo              boolean        NOT NULL DEFAULT true,
+  -- 0026: posición dentro del grupo (orden clínico del informe).
+  orden               integer        NOT NULL DEFAULT 0,
   created_at          timestamptz    NOT NULL DEFAULT now(),
   updated_at          timestamptz    NOT NULL DEFAULT now(),
   CONSTRAINT examenes_titulo_nombre_unique UNIQUE (titulo_id, nombre)
@@ -251,7 +253,9 @@ CREATE TABLE IF NOT EXISTS presupuestos_examenes (
   precio_base_snap  numeric(12, 2) NOT NULL CHECK (precio_base_snap >= 0),
   ganancia_pct      numeric(5, 2)  NOT NULL DEFAULT 0 CHECK (ganancia_pct >= 0),
   precio_final_snap numeric(12, 2) NOT NULL CHECK (precio_final_snap >= 0),
-  orden             integer        NOT NULL DEFAULT 0
+  orden             integer        NOT NULL DEFAULT 0,
+  -- 0026: nombre del grupo si la línea viene de un grupo del paquete.
+  grupo_snap        text
 );
 
 CREATE INDEX IF NOT EXISTS presupuestos_examenes_by_presupuesto ON presupuestos_examenes (presupuesto_id, orden);

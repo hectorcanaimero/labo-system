@@ -44,6 +44,7 @@ import {
   type PacienteAutocompleteItem,
 } from "@labo/ui/pacientes/PacienteAutocomplete";
 import { formatBs, formatUsd } from "@labo/lib/bs-format";
+import { bloquesPorGrupo } from "@labo/lib/presupuesto-lineas";
 import { toHumanError } from "@labo/lib/error-messages";
 import { formatNumeroPresupuesto } from "@labo/lib/numero-presupuesto";
 import { esFichaIncompleta } from "@labo/lib/schemas/paciente";
@@ -100,6 +101,7 @@ interface PresupuestoDetalleProps {
       ganancia_pct: number;
       cerrado: boolean;
       precio_final_snap?: number;
+      grupo_snap: string | null;
     }>;
   };
 }
@@ -474,13 +476,22 @@ export function PresupuestoDetalle({
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {initialData.lineas.map((linea, index) => (
+                {bloquesPorGrupo(initialData.lineas).map((bloque, index) => {
+                  const linea = bloque[0]!;
+                  const suma = (precio: (l: typeof linea) => number) =>
+                    bloque.reduce((total, l) => total + precio(l), 0);
+                  return (
                   <TableRow key={linea.id} className="h-9">
                     <TableCell className="py-1.5 text-right font-mono text-xs tabular-nums text-muted-foreground">
                       {index + 1}
                     </TableCell>
                     <TableCell className="py-1.5 font-medium text-foreground">
-                      {linea.nombre_snap}
+                      {linea.grupo_snap ?? linea.nombre_snap}
+                      {linea.grupo_snap ? (
+                        <span className="block text-[11px] font-normal text-muted-foreground">
+                          {bloque.map((l) => l.nombre_snap).join(", ")}
+                        </span>
+                      ) : null}
                     </TableCell>
                     <TableCell className="py-1.5">
                       {linea.paquete_id ? (
@@ -494,16 +505,17 @@ export function PresupuestoDetalle({
                       )}
                     </TableCell>
                     <TableCell className="py-1.5 text-right font-mono text-xs tabular-nums text-muted-foreground">
-                      {formatUsd(linea.precio_base_snap ?? linea.precio_snap)}
+                      {formatUsd(suma((l) => l.precio_base_snap ?? l.precio_snap))}
                     </TableCell>
                     <TableCell className="py-1.5 text-right font-mono text-xs tabular-nums text-muted-foreground">
                       {linea.ganancia_pct}%
                     </TableCell>
                     <TableCell className="py-1.5 text-right font-mono text-xs tabular-nums text-foreground">
-                      {formatUsd(linea.precio_final_snap ?? linea.precio_snap)}
+                      {formatUsd(suma((l) => l.precio_final_snap ?? l.precio_snap))}
                     </TableCell>
                   </TableRow>
-                ))}
+                  );
+                })}
               </TableBody>
             </Table>
           )}

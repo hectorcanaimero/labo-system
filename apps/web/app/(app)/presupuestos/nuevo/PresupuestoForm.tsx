@@ -20,6 +20,7 @@ import { formatBs, formatUsd, roundHalfUp } from "@labo/lib/bs-format";
 import { calcularTotales } from "@labo/lib/calcular-totales";
 import {
   gananciaGlobalGuardada,
+  bloquesPorGrupo,
   reconstruirLineaGuardada,
 } from "@labo/lib/presupuesto-lineas";
 import type { EstadoPresupuesto } from "@labo/lib/schemas/presupuesto";
@@ -57,6 +58,7 @@ interface PaqueteExamenItem {
   id: string;
   nombre: string;
   precio_usd: number;
+  grupo: string | null;
 }
 
 interface PresupuestoLineaForm {
@@ -67,6 +69,8 @@ interface PresupuestoLineaForm {
   precio_base_snap: number;
   gananciaPctInput: string;
   cerrado: boolean;
+  /** Nombre del grupo: el bloque se muestra y se cotiza como una sola fila. */
+  grupo_snap: string | null;
 }
 
 interface PresupuestoFormInitialData {
@@ -89,6 +93,7 @@ interface PresupuestoFormInitialData {
     precio_base_snap?: number;
     ganancia_pct?: number;
     cerrado?: boolean;
+    grupo_snap?: string | null;
   }>;
 }
 
@@ -212,6 +217,7 @@ export function PresupuestoForm({
       examen_id: item.examen_id,
       nombre_snap: item.nombre_snap,
       precio_snap: item.precio_snap,
+      grupo_snap: item.grupo_snap ?? null,
       // `cerrado`, el reparto y la ganancia por línea se derivan de lo
       // guardado: fijarlos a mano perdía el precio pactado del paquete.
       ...reconstruirLineaGuardada(item),
@@ -278,6 +284,8 @@ export function PresupuestoForm({
   const hayLineaAbierta = lineas.some((linea) => !linea.cerrado);
   const mostrarGananciaGlobal = hayLineaCerrada;
   const mostrarColumnaGanancia = hayLineaAbierta;
+  // Recorre los bloques de la tabla de líneas: dónde empieza cada uno.
+  let inicioBloque = 0;
 
   const descuentoNum = toNumber(descuentoPct);
   const gananciaNum = toNumber(gananciaPct);
@@ -434,6 +442,7 @@ export function PresupuestoForm({
           nombre_snap: examen.nombre,
           precio_snap: examen.precio_usd,
           paquete_id: null,
+          grupo_snap: null,
           precio_base_snap: examen.precio_usd,
           // F7.2.T6 — modo abierto: arranca con el default de Config,
           // editable por línea de acá en adelante.
@@ -504,6 +513,7 @@ export function PresupuestoForm({
           nombre_snap: examen.nombre,
           precio_snap: precios[index],
           paquete_id: paquete.id,
+          grupo_snap: examen.grupo,
           precio_base_snap: bases[index],
           // F7.2.T6 — cerrado: sin input propio, lo gobierna el % global de
           // arriba. Desglosado: modo abierto, arranca con el default de
@@ -529,6 +539,35 @@ export function PresupuestoForm({
     }
 
     setLineas((current) => current.filter((_, currentIndex) => currentIndex !== index));
+  }
+
+  // Un bloque de grupo son `size` líneas consecutivas desde `start`.
+  function updateBloque(
+    start: number,
+    size: number,
+    patch: (linea: PresupuestoLineaForm, offset: number) => Partial<PresupuestoLineaForm>,
+  ): void {
+    setLineas((current) =>
+      current.map((linea, index) =>
+        index >= start && index < start + size
+          ? { ...linea, ...patch(linea, index - start) }
+          : linea,
+      ),
+    );
+  }
+
+  /** El precio del grupo se reparte entre sus exámenes en proporción al catálogo. */
+  function setPrecioGrupo(start: number, size: number, total: number): void {
+    if (!(total >= 0)) return;
+    const partes = distribuirPrecioBase(
+      total,
+      lineas.slice(start, start + size).map((linea) => linea.precio_snap),
+    );
+    updateBloque(start, size, (_, offset) => ({ precio_base_snap: partes[offset]! }));
+  }
+
+  function removeBloque(start: number, size: number): void {
+    setLineas((current) => current.filter((_, index) => index < start || index >= start + size));
   }
 
   function updateGananciaLinea(index: number, value: string): void {
@@ -578,6 +617,7 @@ export function PresupuestoForm({
         examenes: lineas.map((linea) => ({
           examen_id: linea.examen_id,
           ...(linea.paquete_id ? { paquete_id: linea.paquete_id } : {}),
+          ...(linea.grupo_snap ? { grupo: linea.grupo_snap } : {}),
           precio_base_snap: linea.precio_base_snap,
           // F7.2.T6 — `cerrado` es lo que el backend usa para decidir de
           // dónde sale la ganancia: si es true, ignora lo que venga en
@@ -936,7 +976,91 @@ export function PresupuestoForm({
                   </td>
                 </tr>
               ) : (
-                lineas.map((linea, index) => {
+                bloquesPorGrupo(lineas).map((bloque) => {
+                  const index = inicioBloque;
+                  inicioBloque += bloque.length;
+                  const linea = bloque[0]!;
+                  if (linea.grupo_snap) {
+                    const size = bloque.length;
+                    const precioBase = bloque.reduce((sum, l) => sum + l.precio_base_snap, 0);
+                    const finales = totals?.lineas?.slice(index, index + size);
+                    const precioFinal = finales?.reduce((sum, l) => sum + l.precioFinal, 0);
+                    return (
+                      <tr key={`grupo-${linea.examen_id}-${index}`} className={linea.cerrado ? "bg-muted/20" : ""}>
+                        <td className="px-4 py-3 font-medium text-foreground">
+                          {linea.grupo_snap}
+                          <span className="block text-xs font-normal text-muted-foreground">
+                            {bloque.map((l) => l.nombre_snap).join(", ")}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3">
+                          <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">
+                            <PackageOpen className="h-3 w-3" />
+                            Grupo · {size} {size === 1 ? "examen" : "exámenes"}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3 font-mono text-muted-foreground">
+                          {linea.cerrado ? (
+                            formatUsd(precioBase)
+                          ) : (
+                            <input
+                              // Se confirma al salir del campo: repartir en cada
+                              // tecla pisaría lo que se está escribiendo.
+                              key={precioBase.toFixed(2)}
+                              type="number"
+                              min={0}
+                              step="0.01"
+                              defaultValue={precioBase.toFixed(2)}
+                              onBlur={(event) =>
+                                setPrecioGrupo(index, size, toNumber(event.target.value))
+                              }
+                              aria-label={`Precio del grupo ${linea.grupo_snap}`}
+                              className="h-9 w-28 rounded-md border border-input bg-background px-2 text-sm"
+                            />
+                          )}
+                        </td>
+                        {mostrarColumnaGanancia ? (
+                          <td className="px-4 py-3">
+                            {linea.cerrado ? (
+                              <span className="text-xs text-muted-foreground">— (global)</span>
+                            ) : (
+                              <input
+                                type="number"
+                                min={0}
+                                step="0.01"
+                                value={linea.gananciaPctInput}
+                                onChange={(event) =>
+                                  updateBloque(index, size, () => ({
+                                    gananciaPctInput: event.target.value,
+                                  }))
+                                }
+                                placeholder="0"
+                                aria-label={`Ganancia % del grupo ${linea.grupo_snap}`}
+                                className="h-9 w-24 rounded-md border border-input bg-background px-2 text-sm"
+                              />
+                            )}
+                          </td>
+                        ) : null}
+                        <td className="px-4 py-3 text-right font-mono text-foreground">
+                          {precioFinal === undefined ? "—" : formatUsd(precioFinal)}
+                        </td>
+                        <td className="px-4 py-3 text-right">
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() =>
+                              linea.cerrado ? removeLinea(index) : removeBloque(index, size)
+                            }
+                            title={linea.cerrado ? "Quitar el paquete completo" : `Quitar ${linea.grupo_snap}`}
+                            aria-label={linea.cerrado ? "Quitar el paquete completo" : `Quitar ${linea.grupo_snap}`}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </td>
+                      </tr>
+                    );
+                  }
                   const gananciaInvalida =
                     hasValue(linea.gananciaPctInput) && toNumber(linea.gananciaPctInput) < 0;
                   const precioFinalLinea = totals?.lineas?.[index]?.precioFinal;

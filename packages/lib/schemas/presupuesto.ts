@@ -136,6 +136,8 @@ export const lineaPresupuestoSchema = z.object({
    * explícito) para que el total cuadre si se recalcula.
    */
   cerrado: z.boolean().optional(),
+  /** 0026 — nombre del grupo si la línea es parte de un bloque de grupo. */
+  grupo: z.string().trim().min(1).max(200).optional(),
 });
 export type LineaPresupuestoInput = z.infer<typeof lineaPresupuestoSchema>;
 

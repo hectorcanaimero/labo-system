@@ -2,6 +2,7 @@ import { Document, Page, StyleSheet, Text, View } from "@react-pdf/renderer";
 
 import { formatBs, formatUsd } from "@labo/lib/bs-format";
 import { formatNumeroPresupuesto } from "@labo/lib/numero-presupuesto";
+import { bloquesPorGrupo } from "@labo/lib/presupuesto-lineas";
 
 import { PDFFooter } from "./components/PDFFooter";
 import { PDFHeader } from "./components/PDFHeader";
@@ -21,6 +22,8 @@ export interface PresupuestoPDFLinea {
   nombre_snap: string;
   precio_final_snap: number;
   orden: number;
+  /** Nombre del grupo: sus líneas se imprimen como una sola (0026). */
+  grupo_snap?: string | null;
 }
 
 /** Structural view of presupuestos.getForPDF, independent from the DB package (ADR-08). */
@@ -219,8 +222,14 @@ export function PresupuestoPDF({ data }: PresupuestoPDFProps) {
   const config = data.config;
   const laboratoryName = config?.nombre.trim() || FALLBACK_LAB_NAME;
   const patientNameText = patientName(data);
-  const lines = [...data.lineas].sort((left, right) => left.orden - right.orden);
-  const subtotalUsd = lines.reduce((sum, line) => sum + line.precio_final_snap, 0);
+  const lines = bloquesPorGrupo([...data.lineas].sort((left, right) => left.orden - right.orden)).map(
+    (bloque) => ({
+      id: bloque[0]!.id,
+      nombre: bloque[0]!.grupo_snap ?? bloque[0]!.nombre_snap,
+      precioUsd: bloque.reduce((sum, line) => sum + line.precio_final_snap, 0),
+    }),
+  );
+  const subtotalUsd = lines.reduce((sum, line) => sum + line.precioUsd, 0);
   const numero = formatNumeroPresupuesto(data.numero_correlativo, data.created_at);
   const fecha = formatDateDMY(data.created_at);
   const emision = formatDateTimeDMY(data.created_at);
@@ -280,10 +289,10 @@ export function PresupuestoPDF({ data }: PresupuestoPDFProps) {
               style={[styles.row, index % 2 === 1 ? styles.rowZebra : {}]}
             >
               <Text style={[styles.cell, styles.colNum]}>{index + 1}</Text>
-              <Text style={[styles.cell, styles.colExamen]}>{line.nombre_snap}</Text>
-              <Text style={[styles.cell, styles.colUsd]}>{formatUsd(line.precio_final_snap)}</Text>
+              <Text style={[styles.cell, styles.colExamen]}>{line.nombre}</Text>
+              <Text style={[styles.cell, styles.colUsd]}>{formatUsd(line.precioUsd)}</Text>
               <Text style={[styles.cell, styles.colBs]}>
-                {formatBs(line.precio_final_snap * data.tasa_bs)}
+                {formatBs(line.precioUsd * data.tasa_bs)}
               </Text>
             </View>
           ))}
