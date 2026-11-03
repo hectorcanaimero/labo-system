@@ -24,6 +24,11 @@ export interface PresupuestoPDFLinea {
   orden: number;
   /** Nombre del grupo: sus líneas se imprimen como una sola (0026). */
   grupo_snap?: string | null;
+  /** Uso interno: título a listar dentro de un paquete (el grupo, o el examen). */
+  titulo?: string;
+  /** Líneas del mismo paquete se imprimen como una sola, con el nombre del paquete. */
+  paquete_id?: string | null;
+  paquete_nombre?: string | null;
 }
 
 /** Structural view of presupuestos.getForPDF, independent from the DB package (ADR-08). */
@@ -222,10 +227,24 @@ export function PresupuestoPDF({ data }: PresupuestoPDFProps) {
   const config = data.config;
   const laboratoryName = config?.nombre.trim() || FALLBACK_LAB_NAME;
   const patientNameText = patientName(data);
-  const lines = bloquesPorGrupo([...data.lineas].sort((left, right) => left.orden - right.orden)).map(
+  // Un paquete (cerrado o abierto) se imprime como una sola fila con su nombre y la suma.
+  const ordenadas = [...data.lineas]
+    .sort((left, right) => left.orden - right.orden)
+    .map((l) =>
+      l.paquete_id && l.paquete_nombre
+        ? { ...l, grupo_snap: l.paquete_nombre, titulo: l.grupo_snap ?? l.nombre_snap }
+        : l,
+    );
+  const lines = bloquesPorGrupo(ordenadas).map(
     (bloque) => ({
       id: bloque[0]!.id,
       nombre: bloque[0]!.grupo_snap ?? bloque[0]!.nombre_snap,
+      // Un paquete lista sus exámenes sin precio individual y cierra con su total.
+      incluye:
+        bloque[0]!.paquete_id && bloque[0]!.paquete_nombre
+          ? // De un grupo (p. ej. Hemograma) solo va el título, no sus parámetros.
+            [...new Set(bloque.map((line) => line.titulo ?? line.nombre_snap))]
+          : null,
       precioUsd: bloque.reduce((sum, line) => sum + line.precio_final_snap, 0),
     }),
   );
@@ -282,20 +301,51 @@ export function PresupuestoPDF({ data }: PresupuestoPDFProps) {
             <Text style={[styles.headerCell, styles.colBs]}>Precio Bs.</Text>
           </View>
           {lines.length === 0 ? <Text style={styles.empty}>Sin exámenes registrados</Text> : null}
-          {lines.map((line, index) => (
-            <View
-              key={line.id}
-              wrap={false}
-              style={[styles.row, index % 2 === 1 ? styles.rowZebra : {}]}
-            >
-              <Text style={[styles.cell, styles.colNum]}>{index + 1}</Text>
-              <Text style={[styles.cell, styles.colExamen]}>{line.nombre}</Text>
-              <Text style={[styles.cell, styles.colUsd]}>{formatUsd(line.precioUsd)}</Text>
-              <Text style={[styles.cell, styles.colBs]}>
-                {formatBs(line.precioUsd * data.tasa_bs)}
-              </Text>
-            </View>
-          ))}
+          {lines.map((line, index) => {
+            const precios = (
+              <>
+                <Text style={[styles.cell, styles.colUsd]}>{formatUsd(line.precioUsd)}</Text>
+                <Text style={[styles.cell, styles.colBs]}>
+                  {formatBs(line.precioUsd * data.tasa_bs)}
+                </Text>
+              </>
+            );
+            const zebra = index % 2 === 1 ? styles.rowZebra : {};
+            if (!line.incluye) {
+              return (
+                <View key={line.id} wrap={false} style={[styles.row, zebra]}>
+                  <Text style={[styles.cell, styles.colNum]}>{index + 1}</Text>
+                  <Text style={[styles.cell, styles.colExamen]}>{line.nombre}</Text>
+                  {precios}
+                </View>
+              );
+            }
+            return (
+              <View key={line.id} style={zebra}>
+                <View style={styles.row} wrap={false}>
+                  <Text style={[styles.cell, styles.colNum]}>{index + 1}</Text>
+                  <Text style={[styles.cell, styles.colExamen, { fontFamily: PDF_FONT.bold }]}>
+                    {line.nombre}
+                  </Text>
+                </View>
+                {line.incluye.map((examen) => (
+                  <View key={examen} style={styles.row} wrap={false}>
+                    <Text style={[styles.cell, styles.colNum]} />
+                    <Text style={[styles.cell, styles.colExamen, { color: PDF_COLORS.muted }]}>
+                      {examen}
+                    </Text>
+                  </View>
+                ))}
+                <View style={styles.row} wrap={false}>
+                  <Text style={[styles.cell, styles.colNum]} />
+                  <Text style={[styles.cell, styles.colExamen, { fontFamily: PDF_FONT.bold }]}>
+                    Precio del paquete
+                  </Text>
+                  {precios}
+                </View>
+              </View>
+            );
+          })}
         </View>
 
         <View wrap={false} style={styles.totals}>
