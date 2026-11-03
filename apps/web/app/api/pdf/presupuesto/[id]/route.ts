@@ -114,6 +114,21 @@ export async function renderPresupuestoPdf(
   const config = await resolvePdfConfig();
   assertPdfConfig(config?.nombre);
 
+  const paqueteIds = [
+    ...new Set(data.lineas.filter((l) => l.paquete_id).map((l) => l.paquete_id!)),
+  ];
+  const paquetes = paqueteIds.length
+    ? await getAdminDb().from("paquetes").select("id, nombre").in("id", paqueteIds)
+    : { data: [], error: null };
+  if (paquetes.error) throw new Error(paquetes.error.message);
+  const nombrePaquete = new Map(
+    ((paquetes.data ?? []) as Array<{ id: string; nombre: string }>).map((p) => [p.id, p.nombre]),
+  );
+  data.lineas = data.lineas.map((l) => ({
+    ...l,
+    paquete_nombre: l.paquete_id ? (nombrePaquete.get(l.paquete_id) ?? null) : null,
+  })) as typeof data.lineas;
+
   const stream = await renderToStream(
     createElement(PresupuestoPDF, {
       data: { ...data, config },
