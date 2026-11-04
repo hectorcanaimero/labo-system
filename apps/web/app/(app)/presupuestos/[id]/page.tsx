@@ -1,12 +1,13 @@
 import { notFound, redirect } from "next/navigation";
 
-import { getById } from "@labo/db/repos/presupuestos";
+import { getById, listHistorial } from "@labo/db/repos/presupuestos";
 import { get as getConfig } from "@labo/db/repos/config";
 import { getById as getPacienteById } from "@labo/db/repos/pacientes";
 import { getLatest } from "@labo/db/repos/tasa";
 import { AuthError, getCurrentUser } from "@/lib/server/auth";
 import { getAdminDb } from "@/lib/db-server";
 
+import { HistorialPresupuesto } from "./HistorialPresupuesto";
 import { PresupuestoDetalle } from "./PresupuestoDetalle";
 
 async function requireOperadorOrRedirect(): Promise<{ role: string }> {
@@ -27,10 +28,11 @@ async function requireOperadorOrRedirect(): Promise<{ role: string }> {
 export default async function PresupuestoDetallePage({ params }: { params: { id: string } }) {
   const { role } = await requireOperadorOrRedirect();
   const db = getAdminDb();
-  const [presupuesto, latest, config] = await Promise.all([
+  const [presupuesto, latest, config, historial] = await Promise.all([
     getById(db, params.id),
     getLatest(db),
     getConfig(db),
+    listHistorial(db, params.id),
   ]);
   if (!presupuesto) notFound();
 
@@ -89,6 +91,7 @@ export default async function PresupuestoDetallePage({ params }: { params: { id:
           })),
         }}
       />
+      <HistorialPresupuesto presupuestoId={presupuesto.id} eventos={historial} />
     </div>
   );
 }

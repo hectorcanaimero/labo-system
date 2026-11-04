@@ -5,7 +5,9 @@ import { Readable } from "node:stream";
 import {
   PRESUPUESTO_NO_ENCONTRADO,
   getForPDF,
+  getVersion,
 } from "@labo/db/repos/presupuestos";
+import { aplicarVersion } from "@labo/lib/presupuesto-historial";
 import { get as getLaboratorioConfig } from "@labo/db/repos/config";
 import { AuthError, getCurrentUser } from "@/lib/server/auth";
 import PresupuestoPDF from "@labo/pdf/PresupuestoPDF";
@@ -105,10 +107,19 @@ function toErrorResponse(error: unknown): Response {
  */
 export async function renderPresupuestoPdf(
   presupuestoId: string,
+  /** Evento del historial cuya versión se reimprime; sin él, la vigente. */
+  eventoId?: string,
 ): Promise<{ body: ReadableStream<Uint8Array>; filename: string }> {
-  const data = await getForPDF(getAdminDb(), presupuestoId);
-  if (!data) {
+  const actual = await getForPDF(getAdminDb(), presupuestoId);
+  if (!actual) {
     throw new Error(PRESUPUESTO_NO_ENCONTRADO);
+  }
+
+  let data = actual;
+  if (eventoId) {
+    const version = await getVersion(getAdminDb(), presupuestoId, eventoId);
+    if (!version) throw new Error(PRESUPUESTO_NO_ENCONTRADO);
+    data = aplicarVersion(actual, version) as unknown as typeof actual;
   }
 
   const config = await resolvePdfConfig();
@@ -136,7 +147,10 @@ export async function renderPresupuestoPdf(
   );
   const body = Readable.toWeb(stream as unknown as Readable) as ReadableStream<Uint8Array>;
 
-  return { body, filename: `presupuesto-${presupuestoId}.pdf` };
+  return {
+    body,
+    filename: `presupuesto-${presupuestoId}${eventoId ? `-v${eventoId.slice(0, 8)}` : ""}.pdf`,
+  };
 }
 
 export function pdfResponse(body: ReadableStream<Uint8Array>, filename: string): Response {
@@ -150,7 +164,7 @@ export function pdfResponse(body: ReadableStream<Uint8Array>, filename: string):
   });
 }
 
-export async function GET(_request: NextRequest, { params }: RouteParams): Promise<Response> {
+export async function GET(request: NextRequest, { params }: RouteParams): Promise<Response> {
   const startedAt = performance.now();
 
   try {
@@ -161,7 +175,12 @@ export async function GET(_request: NextRequest, { params }: RouteParams): Promi
       return bad(400, "VALIDACION_FALLIDA");
     }
 
-    const { body, filename } = await renderPresupuestoPdf(params.id);
+    const evento = request.nextUrl.searchParams.get("evento") ?? undefined;
+    if (evento !== undefined && !isUuid(evento)) {
+      return bad(400, "VALIDACION_FALLIDA");
+    }
+
+    const { body, filename } = await renderPresupuestoPdf(params.id, evento);
     return pdfResponse(body, filename);
   } catch (error) {
     return toErrorResponse(error);
