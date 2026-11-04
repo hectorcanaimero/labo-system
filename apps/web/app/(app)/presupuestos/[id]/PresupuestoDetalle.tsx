@@ -267,7 +267,7 @@ export function PresupuestoDetalle({
       <div className="flex flex-col gap-4">
         <PageHeader
           title="Editar presupuesto"
-          description="Actualiza paciente, exámenes, descuento y tasa mientras el presupuesto siga en Borrador."
+          description="Actualiza paciente, exámenes, descuento y tasa mientras el presupuesto no esté aprobado."
           back={{ href: "/presupuestos", label: "Presupuestos" }}
         />
 
@@ -344,18 +344,21 @@ export function PresupuestoDetalle({
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
+            {isBorrador || isEnviado ? (
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                className="h-8"
+                onClick={() => setIsEditing(true)}
+              >
+                <PencilLine className="h-3.5 w-3.5" />
+                Editar
+              </Button>
+            ) : null}
+
             {isBorrador ? (
               <>
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="outline"
-                  className="h-8"
-                  onClick={() => setIsEditing(true)}
-                >
-                  <PencilLine className="h-3.5 w-3.5" />
-                  Editar
-                </Button>
                 <Button
                   type="button"
                   size="sm"
