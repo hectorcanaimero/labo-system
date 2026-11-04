@@ -239,7 +239,9 @@ export function PresupuestoForm({
   // initialData.tasa_bs y nunca cambia por acción del usuario en este form;
   // "vigente" (create, o informativa al editar) sale de la última
   // registrada. tasaNum más abajo es el valor que de verdad se usa.
-  const tasaGuardada = initialData?.tasa_bs ?? null;
+  // El usuario puede cambiarla sólo con "Usar tasa vigente" (edit); se persiste
+  // al guardar el form, igual que el resto de los campos.
+  const [tasaGuardada, setTasaGuardada] = useState<number | null>(initialData?.tasa_bs ?? null);
 
   // Servicios: la toma de muestra siempre se cobra y arranca con el valor de
   // Config; el domicilio es opcional y su monto sólo se pide si está marcado.
@@ -588,6 +590,18 @@ export function PresupuestoForm({
           ? examenesSectionRef.current
           : ajustesSectionRef.current;
       target?.scrollIntoView({ behavior: "smooth", block: "start" });
+      return;
+    }
+
+    // Un presupuesto ya enviado se sirve en vivo: el enlace del paciente
+    // pasa a mostrar la versión nueva. El PDF viejo queda en el historial.
+    if (
+      mode === "edit" &&
+      initialData?.estado === "Enviado" &&
+      !window.confirm(
+        "Este presupuesto ya fue enviado. Si lo guardas, el enlace del paciente mostrará la versión nueva (la anterior queda en el historial). ¿Guardar los cambios?",
+      )
+    ) {
       return;
     }
 
@@ -1249,7 +1263,9 @@ export function PresupuestoForm({
                         {initialTasa.fuente}
                       </span>
                     ) : mode === "edit" ? (
-                      <span className="text-xs text-muted-foreground">guardada</span>
+                      <span className="text-xs text-muted-foreground">
+                        {tasaNum !== initialData?.tasa_bs ? "vigente (sin guardar)" : "guardada"}
+                      </span>
                     ) : null}
                   </div>
                 ) : (
@@ -1265,13 +1281,24 @@ export function PresupuestoForm({
                   </div>
                 )}
                 {mode === "edit" && vigenteTasa && vigenteTasa.tasa !== tasaNum ? (
-                  <p className="flex items-start gap-1.5 text-xs text-amber-700">
-                    <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-                    <span>
-                      La tasa vigente es {vigenteTasa.tasa.toFixed(2)} Bs/USD ({vigenteTasa.fuente}
-                      ). Este presupuesto mantiene la que tenía guardada.
-                    </span>
-                  </p>
+                  <div className="space-y-1.5 text-xs text-amber-700">
+                    <p className="flex items-start gap-1.5">
+                      <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                      <span>
+                        La tasa vigente es {vigenteTasa.tasa.toFixed(2)} Bs/USD ({vigenteTasa.fuente}
+                        ). Este presupuesto mantiene la que tenía guardada.
+                      </span>
+                    </p>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      className="h-7 text-xs"
+                      onClick={() => setTasaGuardada(vigenteTasa.tasa)}
+                    >
+                      Usar tasa vigente
+                    </Button>
+                  </div>
                 ) : null}
               </div>
             </div>

@@ -8,6 +8,7 @@ import {
 import { esFichaIncompleta } from "@labo/lib/schemas/paciente";
 import { calcularTotales } from "@labo/lib/calcular-totales";
 import { parseNumeroPresupuesto } from "@labo/lib/numero-presupuesto";
+import type { SnapshotPresupuesto } from "@labo/lib/presupuesto-historial";
 
 import { createProvisional as createPacienteProvisional } from "./pacientes";
 
@@ -271,6 +272,92 @@ async function auditBestEffort(
   if (error) console.warn(`[audit ${row.accion}]`, error.message);
 }
 
+/** Foto compacta para el historial (`audit_log.metadata`). */
+function snapshot(p: Presupuesto): SnapshotPresupuesto {
+  return {
+    tasa_bs: p.tasa_bs,
+    descuento_pct: p.descuento_pct,
+    ganancia_pct: p.ganancia_pct,
+    toma_muestra_usd: p.toma_muestra_usd,
+    domicilio_usd: p.domicilio_usd,
+    total_usd: p.total_usd,
+    total_bs: p.total_bs,
+    lineas: p.lineas.map((l) => ({
+      nombre: l.nombre_snap,
+      base: l.precio_base_snap,
+      ganancia_pct: l.ganancia_pct,
+      final: l.precio_final_snap,
+      cerrado: l.cerrado,
+      grupo: l.grupo_snap,
+      paquete_id: l.paquete_id,
+    })),
+  };
+}
+
+/** Foto "después" de un evento del historial, para reimprimir esa versión. */
+export async function getVersion(
+  db: Db,
+  presupuestoId: string,
+  eventoId: string,
+): Promise<SnapshotPresupuesto | null> {
+  const res = await db
+    .from("audit_log")
+    .select("metadata")
+    .eq("id", eventoId)
+    .eq("entity_type", ENTITY_TYPE)
+    .eq("entity_id", presupuestoId)
+    .limit(1);
+  if (res.error) throw new Error(`presupuestos.getVersion: ${res.error.message}`);
+  const metadata = (res.data?.[0] as { metadata?: { despues?: SnapshotPresupuesto } } | undefined)
+    ?.metadata;
+  return metadata?.despues ?? null;
+}
+
+export interface HistorialEvento {
+  id: string;
+  accion: string;
+  created_at: string;
+  usuario_nombre: string | null;
+  metadata: Record<string, unknown>;
+}
+
+/** Eventos de auditoría del presupuesto, del más reciente al más viejo. */
+export async function listHistorial(db: Db, id: string): Promise<HistorialEvento[]> {
+  const res = await db
+    .from("audit_log")
+    .select("id, usuario_id, accion, metadata, created_at")
+    .eq("entity_type", ENTITY_TYPE)
+    .eq("entity_id", id)
+    .order("created_at", { ascending: false })
+    .limit(200);
+  if (res.error) throw new Error(`presupuestos.listHistorial: ${res.error.message}`);
+  const rows = (res.data ?? []) as Array<{
+    id: string;
+    usuario_id: string | null;
+    accion: string;
+    metadata: Record<string, unknown> | null;
+    created_at: string;
+  }>;
+
+  const userIds = [...new Set(rows.map((r) => r.usuario_id).filter((u): u is string => !!u))];
+  const nombres = new Map<string, string>();
+  if (userIds.length > 0) {
+    const users = await db.from("usuarios").select("id, nombre").in("id", userIds);
+    if (users.error) throw new Error(`presupuestos.listHistorial: ${users.error.message}`);
+    for (const u of (users.data ?? []) as Array<{ id: string; nombre: string }>) {
+      nombres.set(u.id, u.nombre);
+    }
+  }
+
+  return rows.map((r) => ({
+    id: r.id,
+    accion: r.accion,
+    created_at: r.created_at,
+    usuario_nombre: r.usuario_id ? (nombres.get(r.usuario_id) ?? null) : null,
+    metadata: r.metadata ?? {},
+  }));
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Reads
 // ─────────────────────────────────────────────────────────────────────────────
@@ -501,15 +588,20 @@ export async function create(
   const lineasRes = await db.from("presupuestos_examenes").insert(lineasPayload);
   if (lineasRes.error) throw new Error(`presupuestos.create lineas: ${lineasRes.error.message}`);
 
+  const created = await getById(db, id);
+  if (!created) throw new Error(PRESUPUESTO_NO_ENCONTRADO);
+
   await auditBestEffort(db, {
     usuarioId: actor,
     accion: "presupuestos.create",
     entityId: id,
-    metadata: { total_usd: totals.totalUsd, total_bs: totals.totalBs },
+    metadata: {
+      total_usd: totals.totalUsd,
+      total_bs: totals.totalBs,
+      despues: snapshot(created),
+    },
   });
 
-  const created = await getById(db, id);
-  if (!created) throw new Error(PRESUPUESTO_NO_ENCONTRADO);
   return created;
 }
 
@@ -525,7 +617,11 @@ export async function update(
 
   const existing = await getById(db, id);
   if (!existing) throw new Error(PRESUPUESTO_NO_ENCONTRADO);
-  if (existing.estado !== "Borrador") throw new Error(PRESUPUESTO_NO_BORRADOR);
+  // Enviado también se edita (corregir un presupuesto ya mandado sin reabrirlo);
+  // Aprobado en adelante ya compromete una orden y queda congelado.
+  if (existing.estado !== "Borrador" && existing.estado !== "Enviado") {
+    throw new Error(PRESUPUESTO_NO_BORRADOR);
+  }
   if (data.estado !== undefined) throw new Error("ESTADO_SOLO_UPDATE_ESTADO");
 
   const pacienteId =
@@ -674,15 +770,17 @@ export async function update(
   const upd = await db.from("presupuestos").update(headerPatch).eq("id", id);
   if (upd.error) throw new Error(`presupuestos.update: ${upd.error.message}`);
 
+  const updated = await getById(db, id);
+  if (!updated) throw new Error(PRESUPUESTO_NO_ENCONTRADO);
+
+  // Antes/después en vez del input crudo: es lo que muestra el historial.
   await auditBestEffort(db, {
     usuarioId: updatedBy ?? null,
     accion: "presupuestos.update",
     entityId: id,
-    metadata: data as Record<string, unknown>,
+    metadata: { estado: updated.estado, antes: snapshot(existing), despues: snapshot(updated) },
   });
 
-  const updated = await getById(db, id);
-  if (!updated) throw new Error(PRESUPUESTO_NO_ENCONTRADO);
   return updated;
 }
 
