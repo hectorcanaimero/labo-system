@@ -502,10 +502,8 @@ export async function create(
 
   const lineasInput = parsed.data.examenes.map((linea) => {
     const exam = examById.get(linea.examen_id)!;
-    // F7.2.T6 — una línea cerrada no tiene ganancia propia: la fija SIEMPRE
-    // la global del presupuesto, sin importar qué haya mandado el cliente en
-    // `ganancia_pct` para esa línea (evita guardar un valor inconsistente si
-    // el estado del form quedó desincronizado).
+    // Cada línea trae su %: la cerrada el de su paquete (cada paquete cerrado
+    // puede tener uno distinto); si falta, cae a la global.
     const cerrado = Boolean(linea.cerrado && linea.paquete_id);
     return {
       linea,
@@ -513,9 +511,7 @@ export async function create(
       precioSnap: numberOf(exam.precio_usd),
       precioBase: linea.precio_base_snap ?? numberOf(exam.precio_usd),
       cerrado,
-      gananciaEfectiva: cerrado
-        ? parsed.data.ganancia_pct
-        : (linea.ganancia_pct ?? parsed.data.ganancia_pct),
+      gananciaEfectiva: linea.ganancia_pct ?? parsed.data.ganancia_pct,
     };
   });
 
@@ -671,9 +667,8 @@ export async function update(
         precioSnap: numberOf(exam.precio_usd),
         precioBase: linea.precio_base_snap ?? numberOf(exam.precio_usd),
         cerrado,
-        // F7.2.T6 — igual que en create(): cerrado siempre hereda la global,
-        // nunca lo que haya mandado el cliente para esa línea puntual.
-        gananciaEfectiva: cerrado ? gananciaGlobal : (linea.ganancia_pct ?? gananciaGlobal),
+        // Igual que en create(): el % de la línea (o de su paquete), o la global.
+        gananciaEfectiva: linea.ganancia_pct ?? gananciaGlobal,
       };
     });
     const totals = calcularTotales({
