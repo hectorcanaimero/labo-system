@@ -4,7 +4,6 @@ import {
   bloquesPorGrupo,
   distribuirPrecioBase,
   esPaqueteCerrado,
-  gananciaGlobalGuardada,
   gananciaPctInicial,
   reconstruirLineaGuardada,
 } from "./presupuesto-lineas";
@@ -44,10 +43,10 @@ describe("esPaqueteCerrado", () => {
 });
 
 describe("gananciaPctInicial", () => {
-  it("una línea de paquete cerrado no tiene input propio (vacío)", () => {
+  it("una línea de paquete cerrado trae el % de su paquete", () => {
     expect(
       gananciaPctInicial({ paquete_id: "paq1", precio_snap: 9, ganancia_pct: 10, cerrado: true }),
-    ).toBe("");
+    ).toBe("10");
   });
 
   it("conserva la ganancia propia de una línea abierta", () => {
@@ -59,40 +58,12 @@ describe("gananciaPctInicial", () => {
   });
 });
 
-describe("gananciaGlobalGuardada", () => {
-  it("toma la ganancia de la primera línea cerrada", () => {
-    expect(
-      gananciaGlobalGuardada([
-        { paquete_id: "paq1", precio_snap: 9, ganancia_pct: 10, cerrado: true },
-        { paquete_id: "paq1", precio_snap: 6, ganancia_pct: 10, cerrado: true },
-      ]),
-    ).toBe(10);
-  });
-
-  it("null cuando no hay ninguna línea cerrada (modo abierto puro)", () => {
-    expect(
-      gananciaGlobalGuardada([
-        { paquete_id: null, precio_snap: 10, ganancia_pct: 25, cerrado: false },
-      ]),
-    ).toBeNull();
-  });
-
-  it("mixto: sólo mira las cerradas, ignora las sueltas", () => {
-    expect(
-      gananciaGlobalGuardada([
-        { paquete_id: "paq1", precio_snap: 9, ganancia_pct: 10, cerrado: true },
-        { paquete_id: null, precio_snap: 5, ganancia_pct: 30, cerrado: false },
-      ]),
-    ).toBe(10);
-  });
-});
-
 describe("reconstruirLineaGuardada", () => {
   // El caso que rompía (F7.2.T5): paquete cerrado de precio base 15
   // repartido en 9 + 6, con ganancia global 10. Al reeditar, las líneas
   // volvían como sueltas y con el precio de catálogo, así que al guardar el
   // total cambiaba.
-  it("una línea de paquete cerrado vuelve cerrada, con su reparto y sin input propio", () => {
+  it("una línea de paquete cerrado vuelve cerrada, con su reparto y el % de su paquete", () => {
     expect(
       reconstruirLineaGuardada({
         paquete_id: "paq1",
@@ -104,7 +75,7 @@ describe("reconstruirLineaGuardada", () => {
     ).toEqual({
       paquete_id: "paq1",
       precio_base_snap: 9,
-      gananciaPctInput: "",
+      gananciaPctInput: "10",
       cerrado: true,
     });
   });
