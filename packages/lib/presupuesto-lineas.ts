@@ -28,11 +28,7 @@ export interface LineaPresupuestoGuardada {
 export interface LineaPresupuestoReconstruida {
   paquete_id: string | null;
   precio_base_snap: number;
-  /**
-   * Valor del input de ganancia por línea (modo abierto). Para una línea
-   * cerrada no importa — la gobierna el campo global, no se muestra ni se
-   * edita — pero queda con la ganancia guardada por si algo la lee igual.
-   */
+  /** % de ganancia: el de la línea, o el de su paquete si es cerrada. */
   gananciaPctInput: string;
   cerrado: boolean;
 }
@@ -51,15 +47,10 @@ export function esPaqueteCerrado(linea: LineaPresupuestoGuardada): boolean {
 }
 
 /**
- * Valor inicial del input de ganancia por línea (modo abierto).
- *
- * Una línea cerrada no tiene input propio — se omite en la UI — así que acá
- * sólo importa para líneas abiertas/sueltas: su ganancia siempre viene
- * explícita desde el backend (la columna es NOT NULL), nunca hay que
- * "adivinar" si coincide con alguna global.
+ * Valor inicial del input de ganancia de la línea. La cerrada guarda el % de
+ * su paquete (cada paquete cerrado tiene el suyo); la abierta, el propio.
  */
 export function gananciaPctInicial(linea: LineaPresupuestoGuardada): string {
-  if (esPaqueteCerrado(linea)) return "";
   return String(linea.ganancia_pct ?? 0);
 }
 
@@ -80,22 +71,6 @@ export function reconstruirLineaGuardada(
     gananciaPctInput: gananciaPctInicial(linea),
     cerrado: esPaqueteCerrado(linea),
   };
-}
-
-/**
- * Ganancia global a precargar en el input del cuadro de descuento/tasa al
- * editar un presupuesto que tiene un paquete cerrado.
- *
- * Todas las líneas cerradas de un mismo presupuesto comparten la misma
- * ganancia (una sola es la que gobierna el paquete), así que alcanza con la
- * primera. `null` cuando no hay ninguna línea cerrada — modo abierto puro,
- * el campo global ni se muestra.
- */
-export function gananciaGlobalGuardada(
-  lineas: LineaPresupuestoGuardada[],
-): number | null {
-  const cerrada = lineas.find(esPaqueteCerrado);
-  return cerrada ? (cerrada.ganancia_pct ?? 0) : null;
 }
 
 /**
