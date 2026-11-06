@@ -113,3 +113,30 @@ export function bloquesPorGrupo<T extends { grupo_snap?: string | null }>(lineas
   }
   return bloques;
 }
+
+/**
+ * Reparte el precio de un paquete (o grupo) entre sus exámenes en proporción
+ * al catálogo, en centavos y sumando exacto.
+ *
+ * Método del mayor resto: cada parte se trunca y los centavos sobrantes van a
+ * las de mayor fracción. Antes cada parte se redondeaba por separado y la
+ * última absorbía el residuo: con varios redondeos hacia arriba y una última
+ * línea de precio ~0 (p. ej. Descripción Frotis) quedaba negativa (-0.02) y
+ * el guardado fallaba con PRECIO_INVALIDO.
+ */
+export function distribuirPrecioBase(precioBasePaquete: number, preciosCatalogo: number[]): number[] {
+  const n = preciosCatalogo.length;
+  if (n === 0) return [];
+  const totalCents = Math.round(precioBasePaquete * 100);
+  const pesos = preciosCatalogo.map((precio) => Math.max(0, Math.round(precio * 100)));
+  const sumaPesos = pesos.reduce((sum, c) => sum + c, 0);
+  // Sin precios de catálogo, reparto parejo.
+  const exactas = pesos.map((p) => (sumaPesos > 0 ? (totalCents * p) / sumaPesos : totalCents / n));
+  const partes = exactas.map(Math.floor);
+  let sobrante = totalCents - partes.reduce((sum, c) => sum + c, 0);
+  const porResto = exactas
+    .map((v, i) => ({ i, resto: v - Math.floor(v) }))
+    .sort((a, b) => b.resto - a.resto || a.i - b.i);
+  for (let k = 0; sobrante > 0; k = (k + 1) % n, sobrante--) partes[porResto[k]!.i]! += 1;
+  return partes.map((c) => c / 100);
+}
