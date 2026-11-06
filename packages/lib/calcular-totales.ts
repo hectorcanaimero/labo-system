@@ -51,6 +51,25 @@ function cents(value: number): number {
   return roundHalfUp(value, 2) * 100;
 }
 
+/**
+ * Reparte `totalCents` en enteros proporcionales a `exactas` (en centavos)
+ * por el método del mayor resto: se trunca cada parte y los centavos que
+ * faltan van a las de mayor fracción. Suma exacta y, con `exactas` >= 0,
+ * nunca negativo.
+ */
+export function repartirCentavos(exactas: number[], totalCents: number): number[] {
+  // El epsilon evita que 6.9999999 (error de float) trunque a 6.
+  const partes = exactas.map((v) => Math.max(0, Math.floor(v + 1e-9)));
+  let sobrante = totalCents - partes.reduce((sum, c) => sum + c, 0);
+  const orden = exactas
+    .map((v, i) => ({ i, resto: v - Math.floor(v + 1e-9) }))
+    .sort((a, b) => b.resto - a.resto || a.i - b.i);
+  for (let k = 0; sobrante > 0 && orden.length > 0; k = (k + 1) % orden.length, sobrante--) {
+    partes[orden[k]!.i]! += 1;
+  }
+  return partes;
+}
+
 function linePrice(linea: CalcularTotalesLineaInput): number {
   const precioBase = linea.precioBase ?? linea.precio_base_snap;
   if (precioBase === undefined) {
@@ -79,25 +98,20 @@ function calculateLineTotals(
     };
   });
 
-  const lineasFinales = rawLineTotals.map((linea) => ({
+  // El total se redondea una sola vez sobre la suma exacta y se reparte en
+  // centavos por mayor resto. Antes el centavo de diferencia del redondeo
+  // independiente iba a la última línea, que si valía ~0 (Frotis $0.01)
+  // quedaba negativa y violaba presupuestos_examenes_precio_final_snap_check.
+  const expectedCents = cents(rawLineTotals.reduce((sum, linea) => sum + linea.rawFinal, 0));
+  const finalesCents = repartirCentavos(
+    rawLineTotals.map((linea) => linea.rawFinal * 100),
+    expectedCents,
+  );
+  const lineasFinales = rawLineTotals.map((linea, i) => ({
     precioBase: linea.precioBase,
     gananciaPct: linea.gananciaPct,
-    precioFinal: roundHalfUp(linea.rawFinal, 2),
+    precioFinal: finalesCents[i]! / 100,
   }));
-
-  // El total se redondea una sola vez sobre la suma exacta. El centavo de
-  // diferencia que puede producir el redondeo independiente de cada línea se
-  // asigna a la última línea, evitando que UI/PDF difieran del encabezado.
-  const expectedCents = cents(rawLineTotals.reduce((sum, linea) => sum + linea.rawFinal, 0));
-  const actualCents = lineasFinales.reduce((sum, linea) => sum + cents(linea.precioFinal), 0);
-  const adjustment = expectedCents - actualCents;
-  if (adjustment !== 0 && lineasFinales.length > 0) {
-    const last = lineasFinales.length - 1;
-    lineasFinales[last] = {
-      ...lineasFinales[last],
-      precioFinal: (cents(lineasFinales[last].precioFinal) + adjustment) / 100,
-    };
-  }
 
   return lineasFinales;
 }
