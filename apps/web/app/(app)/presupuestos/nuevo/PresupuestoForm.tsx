@@ -22,6 +22,7 @@ import {
   gananciaGlobalGuardada,
   bloquesPorGrupo,
   reconstruirLineaGuardada,
+  distribuirPrecioBase,
 } from "@labo/lib/presupuesto-lineas";
 import type { EstadoPresupuesto } from "@labo/lib/schemas/presupuesto";
 import { ExamenAutocomplete } from "@labo/ui/examenes/ExamenAutocomplete";
@@ -143,28 +144,6 @@ async function requestJson<T>(url: string, init?: RequestInit): Promise<T> {
   }
 
   return response.json() as Promise<T>;
-}
-
-function distribuirPrecioBase(precioBasePaquete: number, preciosCatalogo: number[]): number[] {
-  const totalCents = Math.round(precioBasePaquete * 100);
-  const catalogoCents = preciosCatalogo.map((precio) => Math.round(precio * 100));
-  const sumaCatalogo = catalogoCents.reduce((sum, cents) => sum + cents, 0);
-  const partes: number[] = [];
-  let asignado = 0;
-
-  for (let index = 0; index < catalogoCents.length; index++) {
-    if (index === catalogoCents.length - 1) {
-      partes.push((totalCents - asignado) / 100);
-      break;
-    }
-    const parte = sumaCatalogo > 0
-      ? Math.round((totalCents * catalogoCents[index]) / sumaCatalogo)
-      : Math.floor(totalCents / catalogoCents.length);
-    partes.push(parte / 100);
-    asignado += parte;
-  }
-
-  return partes;
 }
 
 export function PresupuestoForm({
