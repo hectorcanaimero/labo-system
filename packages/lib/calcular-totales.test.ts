@@ -160,7 +160,7 @@ describe('calcularTotales', () => {
 
     const sumaLineas = result.lineas!.reduce((sum, linea) => sum + linea.precioFinal, 0);
     expect(sumaLineas).toBe(result.totalUsd);
-    expect(result.lineas?.map((linea) => linea.precioFinal)).toEqual([0.01, 0.01, 0.02]);
+    expect(result.lineas?.map((linea) => linea.precioFinal)).toEqual([0.02, 0.01, 0.01]);
   });
 
   it('incluye el descuento en los precios finales visibles y mantiene la suma', () => {
@@ -278,4 +278,20 @@ describe('calcularTotales', () => {
       ).toThrow('SERVICIO_INVALIDO');
     }
   );
+});
+
+describe("precio final por línea nunca negativo", () => {
+  it("caso real: Hemograma Completo cerrado a 82% — el Frotis no queda en -0.03", async () => {
+    const { distribuirPrecioBase } = await import("./presupuesto-lineas");
+    const bases = distribuirPrecioBase(2.75, [...Array(20).fill(0.1), 2, 0.02]);
+    const r = calcularTotales({
+      descuentoPct: 0,
+      gananciaPct: 0,
+      tasa: 1,
+      lineas: bases.map((precioBase) => ({ precioBase, gananciaPct: 82 })),
+    });
+    expect(r.lineas!.every((l) => l.precioFinal >= 0)).toBe(true);
+    const sumaCents = r.lineas!.reduce((s, l) => s + Math.round(l.precioFinal * 100), 0);
+    expect(sumaCents).toBe(Math.round(r.totalUsd * 100));
+  });
 });

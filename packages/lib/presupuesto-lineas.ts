@@ -13,6 +13,8 @@
  * runner de tests.
  */
 
+import { repartirCentavos } from "./calcular-totales";
+
 /** Línea tal como vuelve del backend (`presupuestos_examenes`). */
 export interface LineaPresupuestoGuardada {
   paquete_id?: string | null;
@@ -107,11 +109,6 @@ export function distribuirPrecioBase(precioBasePaquete: number, preciosCatalogo:
   const sumaPesos = pesos.reduce((sum, c) => sum + c, 0);
   // Sin precios de catálogo, reparto parejo.
   const exactas = pesos.map((p) => (sumaPesos > 0 ? (totalCents * p) / sumaPesos : totalCents / n));
-  const partes = exactas.map(Math.floor);
-  let sobrante = totalCents - partes.reduce((sum, c) => sum + c, 0);
-  const porResto = exactas
-    .map((v, i) => ({ i, resto: v - Math.floor(v) }))
-    .sort((a, b) => b.resto - a.resto || a.i - b.i);
-  for (let k = 0; sobrante > 0; k = (k + 1) % n, sobrante--) partes[porResto[k]!.i]! += 1;
+  const partes = repartirCentavos(exactas, totalCents);
   return partes.map((c) => c / 100);
 }
