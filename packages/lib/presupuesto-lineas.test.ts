@@ -2,8 +2,8 @@ import { describe, expect, it } from "vitest";
 
 import {
   bloquesPorGrupo,
+  distribuirPrecioBase,
   esPaqueteCerrado,
-  gananciaGlobalGuardada,
   gananciaPctInicial,
   reconstruirLineaGuardada,
 } from "./presupuesto-lineas";
@@ -43,10 +43,10 @@ describe("esPaqueteCerrado", () => {
 });
 
 describe("gananciaPctInicial", () => {
-  it("una línea de paquete cerrado no tiene input propio (vacío)", () => {
+  it("una línea de paquete cerrado trae el % de su paquete", () => {
     expect(
       gananciaPctInicial({ paquete_id: "paq1", precio_snap: 9, ganancia_pct: 10, cerrado: true }),
-    ).toBe("");
+    ).toBe("10");
   });
 
   it("conserva la ganancia propia de una línea abierta", () => {
@@ -58,40 +58,12 @@ describe("gananciaPctInicial", () => {
   });
 });
 
-describe("gananciaGlobalGuardada", () => {
-  it("toma la ganancia de la primera línea cerrada", () => {
-    expect(
-      gananciaGlobalGuardada([
-        { paquete_id: "paq1", precio_snap: 9, ganancia_pct: 10, cerrado: true },
-        { paquete_id: "paq1", precio_snap: 6, ganancia_pct: 10, cerrado: true },
-      ]),
-    ).toBe(10);
-  });
-
-  it("null cuando no hay ninguna línea cerrada (modo abierto puro)", () => {
-    expect(
-      gananciaGlobalGuardada([
-        { paquete_id: null, precio_snap: 10, ganancia_pct: 25, cerrado: false },
-      ]),
-    ).toBeNull();
-  });
-
-  it("mixto: sólo mira las cerradas, ignora las sueltas", () => {
-    expect(
-      gananciaGlobalGuardada([
-        { paquete_id: "paq1", precio_snap: 9, ganancia_pct: 10, cerrado: true },
-        { paquete_id: null, precio_snap: 5, ganancia_pct: 30, cerrado: false },
-      ]),
-    ).toBe(10);
-  });
-});
-
 describe("reconstruirLineaGuardada", () => {
   // El caso que rompía (F7.2.T5): paquete cerrado de precio base 15
   // repartido en 9 + 6, con ganancia global 10. Al reeditar, las líneas
   // volvían como sueltas y con el precio de catálogo, así que al guardar el
   // total cambiaba.
-  it("una línea de paquete cerrado vuelve cerrada, con su reparto y sin input propio", () => {
+  it("una línea de paquete cerrado vuelve cerrada, con su reparto y el % de su paquete", () => {
     expect(
       reconstruirLineaGuardada({
         paquete_id: "paq1",
@@ -103,7 +75,7 @@ describe("reconstruirLineaGuardada", () => {
     ).toEqual({
       paquete_id: "paq1",
       precio_base_snap: 9,
-      gananciaPctInput: "",
+      gananciaPctInput: "10",
       cerrado: true,
     });
   });
@@ -158,5 +130,29 @@ describe("bloquesPorGrupo", () => {
     const l = (id: string, grupo_snap: string | null) => ({ id, grupo_snap });
     const bloques = bloquesPorGrupo([l("a", null), l("b", "HEMA"), l("c", "HEMA"), l("d", null), l("e", null)]);
     expect(bloques.map((b) => b.map((x) => x.id))).toEqual([["a"], ["b", "c"], ["d"], ["e"]]);
+  });
+});
+
+describe("distribuirPrecioBase", () => {
+  const cents = (xs: number[]) => xs.reduce((s, x) => s + Math.round(x * 100), 0);
+
+  it("caso real Hemograma Completo: el Frotis ya no queda en -0.02", () => {
+    // 20 exámenes a 0.10 + VSG 2.00 + Frotis 0.02, paquete a 2.75. El
+    // algoritmo viejo redondeaba 20×0.0684→0.07 y 1.368→1.37 (2.77 > 2.75)
+    // y al Frotis le tocaba 2.75 - 2.77 = -0.02.
+    const partes = distribuirPrecioBase(2.75, [...Array(20).fill(0.1), 2, 0.02]);
+    expect(partes.every((p) => p >= 0)).toBe(true);
+    expect(cents(partes)).toBe(275);
+    expect(partes.slice(-2)).toEqual([1.36, 0.01]);
+  });
+
+  it("la suma cuadra exacta y respeta la proporción", () => {
+    const partes = distribuirPrecioBase(10, [3, 3, 3]);
+    expect(cents(partes)).toBe(1000);
+    expect(partes).toEqual([3.34, 3.33, 3.33]);
+  });
+
+  it("reparte parejo si el catálogo suma 0", () => {
+    expect(distribuirPrecioBase(1, [0, 0, 0])).toEqual([0.34, 0.33, 0.33]);
   });
 });

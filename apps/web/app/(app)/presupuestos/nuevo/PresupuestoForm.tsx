@@ -19,9 +19,9 @@ import { toHumanError } from "@labo/lib/error-messages";
 import { formatBs, formatUsd, roundHalfUp } from "@labo/lib/bs-format";
 import { calcularTotales } from "@labo/lib/calcular-totales";
 import {
-  gananciaGlobalGuardada,
   bloquesPorGrupo,
   reconstruirLineaGuardada,
+  distribuirPrecioBase,
 } from "@labo/lib/presupuesto-lineas";
 import type { EstadoPresupuesto } from "@labo/lib/schemas/presupuesto";
 import { ExamenAutocomplete } from "@labo/ui/examenes/ExamenAutocomplete";
@@ -145,28 +145,6 @@ async function requestJson<T>(url: string, init?: RequestInit): Promise<T> {
   return response.json() as Promise<T>;
 }
 
-function distribuirPrecioBase(precioBasePaquete: number, preciosCatalogo: number[]): number[] {
-  const totalCents = Math.round(precioBasePaquete * 100);
-  const catalogoCents = preciosCatalogo.map((precio) => Math.round(precio * 100));
-  const sumaCatalogo = catalogoCents.reduce((sum, cents) => sum + cents, 0);
-  const partes: number[] = [];
-  let asignado = 0;
-
-  for (let index = 0; index < catalogoCents.length; index++) {
-    if (index === catalogoCents.length - 1) {
-      partes.push((totalCents - asignado) / 100);
-      break;
-    }
-    const parte = sumaCatalogo > 0
-      ? Math.round((totalCents * catalogoCents[index]) / sumaCatalogo)
-      : Math.floor(totalCents / catalogoCents.length);
-    partes.push(parte / 100);
-    asignado += parte;
-  }
-
-  return partes;
-}
-
 export function PresupuestoForm({
   mode,
   initialData,
@@ -226,15 +204,9 @@ export function PresupuestoForm({
   const [descuentoPct, setDescuentoPct] = useState(
     initialData ? String(initialData.descuento_pct) : "",
   );
-  // F7.2.T6 — ganancia GLOBAL, sólo relevante (y sólo se muestra) si hay un
-  // paquete cerrado. Al editar, se prioriza la que de verdad gobierna las
-  // líneas cerradas guardadas sobre el header (deberían coincidir siempre,
-  // pero las líneas son la fuente de la verdad de lo que se cobró).
-  const [gananciaPct, setGananciaPct] = useState(
-    initialData
-      ? String(gananciaGlobalGuardada(initialData.lineas) ?? initialData.ganancia_pct)
-      : "",
-  );
+  // Nombre de cada paquete cerrado, para rotular su % de ganancia. Al editar
+  // se completa con /api/paquetes; al cargar uno nuevo, con el elegido.
+  const [nombresPaquete, setNombresPaquete] = useState<Record<string, string>>({});
   // F7.2.T6 — la tasa deja de ser editable: "guardada" (edit) sale de
   // initialData.tasa_bs y nunca cambia por acción del usuario en este form;
   // "vigente" (create, o informativa al editar) sale de la última
@@ -284,24 +256,32 @@ export function PresupuestoForm({
   // haya tocado.
   const hayLineaCerrada = lineas.some((linea) => linea.cerrado);
   const hayLineaAbierta = lineas.some((linea) => !linea.cerrado);
-  const mostrarGananciaGlobal = hayLineaCerrada;
+  // Cada paquete cerrado tiene su propio % (todas sus líneas comparten el
+  // valor); se edita en el cuadro de ajustes, uno por paquete.
+  const paquetesCerrados = [
+    ...new Map(
+      lineas
+        .filter((linea) => linea.cerrado && linea.paquete_id)
+        .map((linea) => [linea.paquete_id!, linea.gananciaPctInput] as const),
+    ),
+  ].map(([id, pct]) => ({ id, pct }));
   const mostrarColumnaGanancia = hayLineaAbierta;
   // Recorre los bloques de la tabla de líneas: dónde empieza cada uno.
   let inicioBloque = 0;
 
   const descuentoNum = toNumber(descuentoPct);
-  const gananciaNum = toNumber(gananciaPct);
   // F7.2.T6 — tasa de solo lectura: "guardada" al editar (nunca cambia acá),
   // la vigente al crear (no hay guardada todavía).
   const tasaNum = mode === "edit" ? (tasaGuardada ?? 0) : (initialTasa?.tasa ?? 0);
   const tasaValida = tasaNum > 0;
   const descuentoValido =
     !hasValue(descuentoPct) || (descuentoNum >= 0 && descuentoNum <= 100);
-  const gananciaValida = !mostrarGananciaGlobal || !hasValue(gananciaPct) || gananciaNum >= 0;
   const gananciaPorLineaValida = lineas.every(
-    (linea) =>
-      linea.cerrado || !hasValue(linea.gananciaPctInput) || toNumber(linea.gananciaPctInput) >= 0,
+    (linea) => !hasValue(linea.gananciaPctInput) || toNumber(linea.gananciaPctInput) >= 0,
   );
+  // Cabecera: el % del primer paquete cerrado (sólo informativo, cada línea
+  // guarda el suyo).
+  const gananciaCabecera = toNumber(paquetesCerrados[0]?.pct ?? "0");
 
   const tomaMuestraNum = toNumber(tomaMuestraUsd);
   const domicilioNum = domicilioActivo ? toNumber(domicilioUsd) : 0;
@@ -313,49 +293,39 @@ export function PresupuestoForm({
     if (!tasaValida || lineas.length === 0) return null;
     return calcularTotales({
       descuentoPct: descuentoNum,
-      gananciaPct: gananciaNum,
+      gananciaPct: 0,
       tasa: tasaNum,
       serviciosUsd,
+      // Toda línea manda su %: la cerrada el de su paquete, la abierta el suyo.
       lineas: lineas.map((linea) => ({
         precioBase: linea.precio_base_snap,
-        // Cerrada: no manda ganancia propia, cae a la global (gananciaPct de
-        // arriba). Abierta: SIEMPRE manda la suya, nunca hereda la global —
-        // aunque esté vacía (0), porque el campo global puede ni mostrarse.
-        ...(linea.cerrado ? {} : { gananciaPct: toNumber(linea.gananciaPctInput) }),
+        gananciaPct: toNumber(linea.gananciaPctInput),
       })),
     });
-  }, [lineas, descuentoNum, gananciaNum, tasaNum, tasaValida, serviciosUsd]);
+  }, [lineas, descuentoNum, tasaNum, tasaValida, serviciosUsd]);
 
   // Fila "Ganancia" del resumen, ANTES del descuento (que se muestra aparte):
-  // paquete cerrado → precio base repartido × % global; líneas abiertas → cada
-  // una con su %. Se muestra siempre, así Subtotal + Ganancia + servicios
-  // cierra con el total y el operador ve de dónde sale cada centavo.
-  const gananciaMontoPaquete = useMemo(() => {
-    const baseCerrado = lineas
-      .filter((linea) => linea.cerrado)
-      .reduce((sum, linea) => sum + linea.precio_base_snap, 0);
-    return roundHalfUp((baseCerrado * gananciaNum) / 100, 2);
-  }, [lineas, gananciaNum]);
-  const gananciaMontoLineas = useMemo(
+  // cada línea aporta precio base × su % (el del paquete si es cerrada). Así
+  // Subtotal + Ganancia + servicios cierra con el total.
+  const gananciaMontoTotal = useMemo(
     () =>
       roundHalfUp(
-        lineas
-          .filter((linea) => !linea.cerrado)
-          .reduce(
-            (sum, linea) =>
-              sum + (linea.precio_base_snap * toNumber(linea.gananciaPctInput)) / 100,
-            0,
-          ),
+        lineas.reduce(
+          (sum, linea) => sum + (linea.precio_base_snap * toNumber(linea.gananciaPctInput)) / 100,
+          0,
+        ),
         2,
       ),
     [lineas],
   );
-  const gananciaMontoTotal = roundHalfUp(gananciaMontoPaquete + gananciaMontoLineas, 2);
+  const pctsPaquete = [...new Set(paquetesCerrados.map((p) => toNumber(p.pct)))];
+  const etiquetaPaquete =
+    pctsPaquete.length === 1 ? `${pctsPaquete[0]}% del paquete` : "% por paquete";
   const gananciaEtiqueta =
     hayLineaCerrada && hayLineaAbierta
-      ? `Ganancia (${hasValue(gananciaPct) ? gananciaNum : 0}% del paquete + por línea)`
+      ? `Ganancia (${etiquetaPaquete} + por línea)`
       : hayLineaCerrada
-        ? `Ganancia (${hasValue(gananciaPct) ? gananciaNum : 0}% del paquete)`
+        ? `Ganancia (${etiquetaPaquete})`
         : "Ganancia (por línea)";
 
   const libreNombreOk =
@@ -370,7 +340,6 @@ export function PresupuestoForm({
     pacienteOk &&
     lineas.length > 0 &&
     descuentoValido &&
-    gananciaValida &&
     gananciaPorLineaValida &&
     tomaMuestraValida &&
     domicilioValido &&
@@ -386,7 +355,6 @@ export function PresupuestoForm({
     }
     if (lineas.length === 0) items.push("Agrega al menos un examen");
     if (!descuentoValido) items.push("El descuento debe estar entre 0 y 100");
-    if (!gananciaValida) items.push("La ganancia global no puede ser negativa");
     if (!gananciaPorLineaValida) items.push("La ganancia por línea no puede ser negativa");
     if (!tomaMuestraValida) items.push("La toma de muestra no puede ser negativa");
     if (!domicilioValido) items.push("El servicio a domicilio no puede ser negativo");
@@ -399,7 +367,6 @@ export function PresupuestoForm({
     libreContactoOk,
     lineas.length,
     descuentoValido,
-    gananciaValida,
     gananciaPorLineaValida,
     tomaMuestraValida,
     domicilioValido,
@@ -508,6 +475,7 @@ export function PresupuestoForm({
           ? distribuirPrecioBase(Number(paquete.precio_base), precios)
           : precios;
 
+      setNombresPaquete((current) => ({ ...current, [paquete.id]: paquete.nombre }));
       incorporarPaquete(
         paquete,
         examenes.map((examen, index) => ({
@@ -517,10 +485,9 @@ export function PresupuestoForm({
           paquete_id: paquete.id,
           grupo_snap: examen.grupo,
           precio_base_snap: bases[index],
-          // F7.2.T6 — cerrado: sin input propio, lo gobierna el % global de
-          // arriba. Desglosado: modo abierto, arranca con el default de
-          // Config como cualquier línea suelta.
-          gananciaPctInput: modo === "cerrado" ? "" : String(gananciaDefault),
+          // Cerrado: el % es del paquete (se edita en ajustes); desglosado:
+          // por línea. Ambos arrancan con el default de Config.
+          gananciaPctInput: String(gananciaDefault),
           cerrado: modo === "cerrado",
         })),
       );
@@ -571,6 +538,29 @@ export function PresupuestoForm({
   function removeBloque(start: number, size: number): void {
     setLineas((current) => current.filter((_, index) => index < start || index >= start + size));
   }
+
+  function setGananciaPaquete(paqueteId: string, value: string): void {
+    setLineas((current) =>
+      current.map((linea) =>
+        linea.cerrado && linea.paquete_id === paqueteId
+          ? { ...linea, gananciaPctInput: value }
+          : linea,
+      ),
+    );
+  }
+
+  // Al editar, los nombres de los paquetes cerrados guardados.
+  useEffect(() => {
+    if (!initialData?.lineas.some((linea) => linea.cerrado)) return;
+    void requestJson<PaqueteResumenItem[]>("/api/paquetes")
+      .then((items) =>
+        setNombresPaquete((current) => ({
+          ...Object.fromEntries(items.map((p) => [p.id, p.nombre])),
+          ...current,
+        })),
+      )
+      .catch(() => {});
+  }, [initialData]);
 
   function updateGananciaLinea(index: number, value: string): void {
     setLineas((current) =>
@@ -623,7 +613,7 @@ export function PresupuestoForm({
               }
             : undefined,
         descuento_pct: descuentoNum,
-        ganancia_pct: gananciaNum,
+        ganancia_pct: gananciaCabecera,
         tasa_bs: tasaNum,
         toma_muestra_usd: tomaMuestraNum,
         // Desmarcar el check manda 0: es lo que lo saca del PDF y del total.
@@ -633,13 +623,9 @@ export function PresupuestoForm({
           ...(linea.paquete_id ? { paquete_id: linea.paquete_id } : {}),
           ...(linea.grupo_snap ? { grupo: linea.grupo_snap } : {}),
           precio_base_snap: linea.precio_base_snap,
-          // F7.2.T6 — `cerrado` es lo que el backend usa para decidir de
-          // dónde sale la ganancia: si es true, ignora lo que venga en
-          // `ganancia_pct` para esa línea y usa SIEMPRE la global del
-          // payload (`ganancia_pct` de arriba). Una línea abierta manda
-          // siempre la suya, explícita.
           cerrado: linea.cerrado,
-          ...(linea.cerrado ? {} : { ganancia_pct: toNumber(linea.gananciaPctInput) }),
+          // Cerrada: el % de su paquete; abierta: el suyo.
+          ganancia_pct: toNumber(linea.gananciaPctInput),
         })),
       };
 
@@ -1036,7 +1022,7 @@ export function PresupuestoForm({
                         {mostrarColumnaGanancia ? (
                           <td className="px-4 py-3">
                             {linea.cerrado ? (
-                              <span className="text-xs text-muted-foreground">— (global)</span>
+                              <span className="text-xs text-muted-foreground">{toNumber(linea.gananciaPctInput)}% (paquete)</span>
                             ) : (
                               <input
                                 type="number"
@@ -1100,7 +1086,7 @@ export function PresupuestoForm({
                       {mostrarColumnaGanancia ? (
                         <td className="px-4 py-3">
                           {linea.cerrado ? (
-                            <span className="text-xs text-muted-foreground">— (global)</span>
+                            <span className="text-xs text-muted-foreground">{toNumber(linea.gananciaPctInput)}% (paquete)</span>
                           ) : (
                             <input
                               type="number"
@@ -1303,31 +1289,38 @@ export function PresupuestoForm({
               </div>
             </div>
 
-            {mostrarGananciaGlobal ? (
-              <label className="block max-w-xs space-y-2 text-sm font-medium">
-                <span className="inline-flex items-center gap-1.5">
-                  <BadgePercent className="h-4 w-4 text-muted-foreground" />
-                  Ganancia % (paquete cerrado)
-                </span>
-                <input
-                  type="number"
-                  min={0}
-                  step="0.01"
-                  value={gananciaPct}
-                  onChange={(event) => setGananciaPct(event.target.value)}
-                  placeholder="0"
-                  aria-label="Ganancia % del paquete cerrado"
-                  className="h-11 w-full rounded-md border border-input bg-background px-3 text-sm"
-                />
-                {!gananciaValida ? (
-                  <span className="text-xs text-destructive">No puede ser negativa.</span>
-                ) : (
-                  <span className="block text-xs text-muted-foreground">
-                    Se aplica sobre el precio base del paquete cerrado. Los exámenes sueltos usan
-                    su propia columna.
+            {paquetesCerrados.map((paquete, i) => {
+              const invalida = hasValue(paquete.pct) && toNumber(paquete.pct) < 0;
+              const nombre = nombresPaquete[paquete.id] ?? `Paquete ${i + 1}`;
+              return (
+                <label key={paquete.id} className="block max-w-xs space-y-2 text-sm font-medium">
+                  <span className="inline-flex items-center gap-1.5">
+                    <BadgePercent className="h-4 w-4 text-muted-foreground" />
+                    Ganancia % — {nombre}
                   </span>
-                )}
-              </label>
+                  <input
+                    type="number"
+                    min={0}
+                    step="0.01"
+                    value={paquete.pct}
+                    onChange={(event) => setGananciaPaquete(paquete.id, event.target.value)}
+                    placeholder="0"
+                    aria-label={`Ganancia % del paquete ${nombre}`}
+                    className={`h-11 w-full rounded-md border bg-background px-3 text-sm ${
+                      invalida ? "border-destructive text-destructive" : "border-input"
+                    }`}
+                  />
+                  {invalida ? (
+                    <span className="text-xs text-destructive">No puede ser negativa.</span>
+                  ) : null}
+                </label>
+              );
+            })}
+            {paquetesCerrados.length > 0 ? (
+              <p className="max-w-xs text-xs text-muted-foreground">
+                Cada paquete cerrado lleva su propio % sobre su precio base. Los exámenes sueltos
+                usan su propia columna.
+              </p>
             ) : null}
           </div>
 

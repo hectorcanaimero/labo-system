@@ -28,11 +28,7 @@ export interface LineaPresupuestoGuardada {
 export interface LineaPresupuestoReconstruida {
   paquete_id: string | null;
   precio_base_snap: number;
-  /**
-   * Valor del input de ganancia por línea (modo abierto). Para una línea
-   * cerrada no importa — la gobierna el campo global, no se muestra ni se
-   * edita — pero queda con la ganancia guardada por si algo la lee igual.
-   */
+  /** % de ganancia: el de la línea, o el de su paquete si es cerrada. */
   gananciaPctInput: string;
   cerrado: boolean;
 }
@@ -51,15 +47,10 @@ export function esPaqueteCerrado(linea: LineaPresupuestoGuardada): boolean {
 }
 
 /**
- * Valor inicial del input de ganancia por línea (modo abierto).
- *
- * Una línea cerrada no tiene input propio — se omite en la UI — así que acá
- * sólo importa para líneas abiertas/sueltas: su ganancia siempre viene
- * explícita desde el backend (la columna es NOT NULL), nunca hay que
- * "adivinar" si coincide con alguna global.
+ * Valor inicial del input de ganancia de la línea. La cerrada guarda el % de
+ * su paquete (cada paquete cerrado tiene el suyo); la abierta, el propio.
  */
 export function gananciaPctInicial(linea: LineaPresupuestoGuardada): string {
-  if (esPaqueteCerrado(linea)) return "";
   return String(linea.ganancia_pct ?? 0);
 }
 
@@ -83,22 +74,6 @@ export function reconstruirLineaGuardada(
 }
 
 /**
- * Ganancia global a precargar en el input del cuadro de descuento/tasa al
- * editar un presupuesto que tiene un paquete cerrado.
- *
- * Todas las líneas cerradas de un mismo presupuesto comparten la misma
- * ganancia (una sola es la que gobierna el paquete), así que alcanza con la
- * primera. `null` cuando no hay ninguna línea cerrada — modo abierto puro,
- * el campo global ni se muestra.
- */
-export function gananciaGlobalGuardada(
-  lineas: LineaPresupuestoGuardada[],
-): number | null {
-  const cerrada = lineas.find(esPaqueteCerrado);
-  return cerrada ? (cerrada.ganancia_pct ?? 0) : null;
-}
-
-/**
  * 0026 — Bloques de visualización: las líneas consecutivas de un mismo grupo
  * (`grupo_snap`) forman un bloque que se muestra como una sola fila con la
  * suma de precios; cada línea sin grupo es un bloque propio. Las líneas
@@ -112,4 +87,31 @@ export function bloquesPorGrupo<T extends { grupo_snap?: string | null }>(lineas
     else bloques.push([linea]);
   }
   return bloques;
+}
+
+/**
+ * Reparte el precio de un paquete (o grupo) entre sus exámenes en proporción
+ * al catálogo, en centavos y sumando exacto.
+ *
+ * Método del mayor resto: cada parte se trunca y los centavos sobrantes van a
+ * las de mayor fracción. Antes cada parte se redondeaba por separado y la
+ * última absorbía el residuo: con varios redondeos hacia arriba y una última
+ * línea de precio ~0 (p. ej. Descripción Frotis) quedaba negativa (-0.02) y
+ * el guardado fallaba con PRECIO_INVALIDO.
+ */
+export function distribuirPrecioBase(precioBasePaquete: number, preciosCatalogo: number[]): number[] {
+  const n = preciosCatalogo.length;
+  if (n === 0) return [];
+  const totalCents = Math.round(precioBasePaquete * 100);
+  const pesos = preciosCatalogo.map((precio) => Math.max(0, Math.round(precio * 100)));
+  const sumaPesos = pesos.reduce((sum, c) => sum + c, 0);
+  // Sin precios de catálogo, reparto parejo.
+  const exactas = pesos.map((p) => (sumaPesos > 0 ? (totalCents * p) / sumaPesos : totalCents / n));
+  const partes = exactas.map(Math.floor);
+  let sobrante = totalCents - partes.reduce((sum, c) => sum + c, 0);
+  const porResto = exactas
+    .map((v, i) => ({ i, resto: v - Math.floor(v) }))
+    .sort((a, b) => b.resto - a.resto || a.i - b.i);
+  for (let k = 0; sobrante > 0; k = (k + 1) % n, sobrante--) partes[porResto[k]!.i]! += 1;
+  return partes.map((c) => c / 100);
 }
