@@ -424,12 +424,10 @@ describe("PDF templates render", () => {
     };
 
     const stream = await renderToStream(<ResultadoPDF data={data} />);
-    expect(stream).toBeDefined();
-
-    const chunks = [];
-    for await (const chunk of stream) {
-      chunks.push(chunk);
-    }
-    expect(chunks.length).toBeGreaterThan(0);
+    const chunks: Buffer[] = [];
+    for await (const chunk of stream) chunks.push(chunk as Buffer);
+    // Una hoja por grupo: HEMATOLOGÍA, ORINA y el residual → 3 páginas.
+    const pdf = Buffer.concat(chunks).toString("latin1");
+    expect(pdf.match(/\/Type \/Page\b/g)?.length).toBe(3);
   });
 });
