@@ -75,6 +75,8 @@ interface ResultadoLineaForm {
   valor: string;
   observacion: string;
   unidad_snap: string | null;
+  /** Grupo del catálogo; null si el examen ya no existe. */
+  titulo_id: string | null;
 }
 
 interface ResultadoInitialData {
@@ -91,12 +93,15 @@ interface ResultadoInitialData {
   medico_solicitante: string | null;
   estado?: EstadoOrden;
   observaciones: string | null;
+  /** Observación de cada grupo, por `titulo_id`. */
+  observaciones_grupos?: Record<string, string>;
   examenes: Array<{
     examen_id: string;
     nombre_snap: string;
     valor: string;
     observacion: string | null;
     unidad_snap: string | null;
+    titulo_id?: string | null;
   }>;
 }
 
@@ -132,7 +137,7 @@ async function requestJson<T>(url: string, init?: RequestInit): Promise<T> {
 
 function upsertLineas(
   current: ResultadoLineaForm[],
-  additions: Array<Pick<ResultadoLineaForm, "examen_id" | "nombre_snap" | "unidad_snap">>,
+  additions: Array<Pick<ResultadoLineaForm, "examen_id" | "nombre_snap" | "unidad_snap" | "titulo_id">>,
 ): ResultadoLineaForm[] {
   const seen = new Set(current.map((item) => item.examen_id));
   const next = [...current];
@@ -144,6 +149,7 @@ function upsertLineas(
       examen_id: item.examen_id,
       nombre_snap: item.nombre_snap,
       unidad_snap: item.unidad_snap,
+      titulo_id: item.titulo_id,
       valor: "",
       observacion: "",
     });
@@ -185,8 +191,13 @@ export function ResultadoForm({ mode, initialData, onSaved, onCancelEdit }: Resu
       valor: item.valor,
       observacion: item.observacion ?? "",
       unidad_snap: item.unidad_snap,
+      titulo_id: item.titulo_id ?? null,
     })) ?? [],
   );
+  const [obsGrupos, setObsGrupos] = useState<Record<string, string>>(
+    initialData?.observaciones_grupos ?? {},
+  );
+  const [titulos, setTitulos] = useState<Map<string, string>>(new Map());
   const [examSearch, setExamSearch] = useState("");
   const [examItems, setExamItems] = useState<ExamenCatalogoItem[]>([]);
   const [examLoading, setExamLoading] = useState(false);
@@ -224,6 +235,20 @@ export function ResultadoForm({ mode, initialData, onSaved, onCancelEdit }: Resu
   }
   const sinValor = useMemo(() => indicesSinValor(lineas), [lineas]);
   const bloqueaEntrega = entregando && sinValor.length > 0;
+
+  // Nombres de los grupos para rotular su observación (el catálogo ya lo
+  // sirve ordenado; sólo hace falta id → nombre).
+  useEffect(() => {
+    requestJson<Array<{ id: string; nombre: string }>>("/api/examenes/titulos")
+      .then((items) => setTitulos(new Map(items.map((t) => [t.id, t.nombre]))))
+      .catch(() => undefined);
+  }, []);
+
+  // Grupos presentes en la orden, en orden de primera aparición.
+  const gruposEnOrden = useMemo(
+    () => Array.from(new Set(lineas.map((l) => l.titulo_id).filter((id): id is string => Boolean(id)))),
+    [lineas],
+  );
 
   useEffect(() => {
     if (examSearch.trim().length < 2) {
@@ -279,6 +304,7 @@ export function ResultadoForm({ mode, initialData, onSaved, onCancelEdit }: Resu
           examen_id: examen.id,
           nombre_snap: examen.nombre,
           unidad_snap: examen.unidad ?? null,
+          titulo_id: examen.titulo_id,
         },
       ]),
     );
@@ -299,6 +325,7 @@ export function ResultadoForm({ mode, initialData, onSaved, onCancelEdit }: Resu
             examen_id: item.id,
             nombre_snap: item.nombre,
             unidad_snap: item.unidad,
+            titulo_id: item.titulo_id,
           })),
         ),
       );
@@ -346,6 +373,11 @@ export function ResultadoForm({ mode, initialData, onSaved, onCancelEdit }: Resu
         medico_solicitante: medicoSolicitante,
         estado,
         observaciones,
+        // Sólo los grupos que siguen en la orden: si se quitaron todos sus
+        // exámenes, su observación no tiene a qué colgarse.
+        observaciones_grupos: Object.fromEntries(
+          gruposEnOrden.map((id) => [id, obsGrupos[id] ?? ""]),
+        ),
         examenes: lineas.map((linea) => ({
           examen_id: linea.examen_id,
           valor: linea.valor,
@@ -647,6 +679,29 @@ export function ResultadoForm({ mode, initialData, onSaved, onCancelEdit }: Resu
           </table>
         </div>
       </section>
+
+      {gruposEnOrden.length > 0 ? (
+        <section className="space-y-4 rounded-lg border border-border bg-card p-6">
+          <div>
+            <h2 className="text-lg font-semibold">Observaciones por grupo</h2>
+            <p className="text-sm text-muted-foreground">
+              Cada grupo sale en su hoja del informe con su propia observación.
+            </p>
+          </div>
+          {gruposEnOrden.map((id) => (
+            <label key={id} className="block space-y-2 text-sm font-medium">
+              {titulos.get(id) ?? "Grupo"}
+              <textarea
+                rows={3}
+                value={obsGrupos[id] ?? ""}
+                onChange={(event) => setObsGrupos((cur) => ({ ...cur, [id]: event.target.value }))}
+                placeholder="Comentarios sobre los resultados de este grupo."
+                className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm font-normal"
+              />
+            </label>
+          ))}
+        </section>
+      ) : null}
 
       <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
         {mode === "edit" && onCancelEdit ? (

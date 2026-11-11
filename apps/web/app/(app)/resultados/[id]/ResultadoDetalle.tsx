@@ -20,6 +20,7 @@ import { formatNumeroOrden } from "@labo/lib/numero-orden";
 import { formatTelefonoVeMask } from "@labo/lib/telefono";
 
 import { EnviarResultadoButtons } from "./EnviarResultadoButtons";
+import { ObservacionesPorGrupo } from "./ObservacionesPorGrupo";
 import { ResultadoForm } from "../nuevo/ResultadoForm";
 import { PageHeader } from "@/components/layout/PageHeader";
 
@@ -36,6 +37,7 @@ interface ResultadoDetalleProps {
     medico_solicitante: string | null;
     estado: "Registrada" | "Muestra tomada" | "En proceso" | "Validando" | "Entregada" | "Anulada";
     observaciones: string | null;
+    observaciones_grupos: Record<string, string>;
     origen_presupuesto_id: string | null;
     created_at: string;
     patient: {
@@ -53,6 +55,8 @@ interface ResultadoDetalleProps {
       observacion: string | null;
       unidad_snap: string | null;
       valores_referencia_snap: string | null;
+      titulo_id: string | null;
+      titulo: string | null;
     }>;
   };
 }
@@ -166,6 +170,7 @@ export function ResultadoDetalle({ role, initialData }: ResultadoDetalleProps) {
             medico_solicitante: initialData.medico_solicitante,
             estado: initialData.estado,
             observaciones,
+            observaciones_grupos: initialData.observaciones_grupos,
             examenes: initialData.examenes,
           }}
           onCancelEdit={() => setIsEditing(false)}
@@ -360,6 +365,13 @@ export function ResultadoDetalle({ role, initialData }: ResultadoDetalleProps) {
           )}
         </div>
       </section>
+      <ObservacionesPorGrupo
+        ordenId={initialData.id}
+        estado={initialData.estado}
+        examenes={initialData.examenes}
+        observaciones={initialData.observaciones_grupos}
+        puedeEditar={puedeEditarObservaciones}
+      />
       {confirmDialog}
     </div>
   );

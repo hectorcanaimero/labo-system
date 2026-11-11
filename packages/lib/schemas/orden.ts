@@ -96,6 +96,8 @@ export const ordenCreateSchema = z
     estado: estadoOrdenCreacionSchema.optional(),
     medico_solicitante: z.string().optional(),
     observaciones: z.string().optional(),
+    /** Observación por grupo: `titulo_id` → texto. */
+    observaciones_grupos: z.record(z.string()).optional(),
     examenes: z.array(lineaOrdenSchema).min(1, { message: EXAMENES_REQUERIDOS }),
   })
   .refine(
@@ -120,6 +122,8 @@ export const ordenUpdateSchema = z
     medico_solicitante: z.string().optional(),
     estado: estadoOrdenSchema.optional(),
     observaciones: z.string().optional(),
+    /** Observación por grupo: `titulo_id` → texto. */
+    observaciones_grupos: z.record(z.string()).optional(),
     examenes: z
       .array(lineaOrdenSchema)
       .min(1, { message: EXAMENES_REQUERIDOS })

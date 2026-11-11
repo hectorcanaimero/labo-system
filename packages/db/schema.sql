@@ -240,6 +240,14 @@ CREATE TABLE IF NOT EXISTS ordenes_examenes (
 
 CREATE INDEX IF NOT EXISTS ordenes_examenes_by_orden ON ordenes_examenes (orden_id, orden);
 
+-- 0027: observación por grupo (examenes_titulos) de la orden.
+CREATE TABLE IF NOT EXISTS ordenes_grupos_observaciones (
+  orden_id    uuid NOT NULL REFERENCES ordenes (id) ON DELETE CASCADE,
+  titulo_id   uuid NOT NULL REFERENCES examenes_titulos (id) ON DELETE CASCADE,
+  observacion text NOT NULL CHECK (length(btrim(observacion)) > 0),
+  PRIMARY KEY (orden_id, titulo_id)
+);
+
 -- ─────────────────────────────────────────────────────────────────────────────
 -- presupuestos_examenes (líneas con snapshot — ADR-04)
 -- ─────────────────────────────────────────────────────────────────────────────

@@ -11,6 +11,12 @@ import { PDF_COLORS, PDF_FONT, PDF_PAGE, formatDateDMY, type LaboratorioPDFConfi
 
 export interface ResultadoPDFProps {
   data: ResultadoPDFData;
+  /**
+   * `titulo_id` de un grupo: el informe sale sólo con ese grupo y su
+   * observación (para enviárselo al médico que lo lee), sin la observación
+   * general. Si el grupo no existe en la orden, sale el informe completo.
+   */
+  soloGrupo?: string | null;
 }
 
 /** Structural view of ordenes.getForPDF, kept independent from the DB package (ADR-08). */
@@ -25,6 +31,7 @@ export interface ExamenPDFRow {
   observacion: string | null;
   /** Grupo (examenes_titulos) del catálogo; null → cae en el grupo residual. */
   titulo: string | null;
+  titulo_id?: string | null;
 }
 
 export interface ResultadoPDFData {
@@ -35,6 +42,8 @@ export interface ResultadoPDFData {
   fecha_resultado: Date | string | null;
   medico_solicitante: string | null;
   observaciones: string | null;
+  /** Observación de cada grupo, por `titulo_id`. */
+  observaciones_grupos?: Record<string, string> | null;
   paciente: {
     nombre: string;
     apellido: string;
@@ -63,6 +72,8 @@ export interface ExamenSeccion {
 
 export interface ExamenGrupo {
   titulo: string;
+  /** null en el grupo residual (sin título): no admite observación propia. */
+  titulo_id: string | null;
   secciones: ExamenSeccion[];
 }
 
@@ -86,7 +97,7 @@ export function agruparExamenes(examenes: readonly ExamenPDFRow[]): ExamenGrupo[
 
     let grupo = grupoPorTitulo.get(claveTitulo);
     if (!grupo) {
-      grupo = { titulo: claveTitulo, secciones: [] };
+      grupo = { titulo: claveTitulo, titulo_id: esResidual ? null : (examen.titulo_id ?? null), secciones: [] };
       grupoPorTitulo.set(claveTitulo, grupo);
       if (esResidual) residual = grupo;
       else gruposOrdenados.push(grupo);
@@ -220,10 +231,13 @@ function ageAt(birthDate: Date | string, referenceDate: Date | string): number {
  * todas las páginas. QR y firma/sello sólo en la última hoja; las demás
  * llevan una línea para firma manual.
  */
-export function ResultadoPDF({ data }: ResultadoPDFProps) {
+export function ResultadoPDF({ data, soloGrupo }: ResultadoPDFProps) {
   const config = data.config;
   const laboratoryName = config?.nombre.trim() || FALLBACK_LAB_NAME;
-  const grupos = agruparExamenes(data.examenes);
+  const todos = agruparExamenes(data.examenes);
+  const elegido = soloGrupo ? todos.filter((g) => g.titulo_id === soloGrupo) : [];
+  const grupos = elegido.length > 0 ? elegido : todos;
+  const esInformeDeGrupo = elegido.length > 0;
   const numero = formatNumeroOrden(data.numero_correlativo, data.created_at);
   const fechaEmision = formatDateDMY(data.fecha_resultado ?? new Date());
 
@@ -282,9 +296,18 @@ export function ResultadoPDF({ data }: ResultadoPDFProps) {
             </View>
           ) : null}
 
-          {index === hojas.length - 1 && data.observaciones?.trim() ? (
+          {grupo?.titulo_id && data.observaciones_grupos?.[grupo.titulo_id]?.trim() ? (
             <View wrap={false} style={styles.notes}>
-              <Text style={styles.notesLabel}>Observaciones</Text>
+              <Text style={styles.notesLabel}>Observaciones de {grupo.titulo}</Text>
+              <Text style={styles.notesText}>
+                {data.observaciones_grupos[grupo.titulo_id]!.trim()}
+              </Text>
+            </View>
+          ) : null}
+
+          {!esInformeDeGrupo && index === hojas.length - 1 && data.observaciones?.trim() ? (
+            <View wrap={false} style={styles.notes}>
+              <Text style={styles.notesLabel}>Observaciones generales</Text>
               <Text style={styles.notesText}>{data.observaciones.trim()}</Text>
             </View>
           ) : null}
