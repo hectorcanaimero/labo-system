@@ -344,12 +344,12 @@ export function ResultadoDetalle({ role, initialData }: ResultadoDetalleProps) {
                     <tr key={`${examen.examen_id}-${index}`} className="align-top">
                       <td className="px-4 py-3 text-center text-xs text-muted-foreground">{index + 1}</td>
                       <td className="px-4 py-3 font-medium text-foreground">{examen.nombre_snap}</td>
-                      <td className="px-4 py-3 font-medium text-foreground">{examen.valor || "—"}</td>
+                      <td className="whitespace-pre-line px-4 py-3 font-medium text-foreground">{examen.valor || "—"}</td>
                       <td className="px-4 py-3 text-muted-foreground">{examen.unidad_snap || "—"}</td>
                       <td className="px-4 py-3 text-xs text-muted-foreground">
                         {examen.valores_referencia_snap || "—"}
                       </td>
-                      <td className="px-4 py-3 text-muted-foreground">
+                      <td className="whitespace-pre-line px-4 py-3 text-muted-foreground">
                         {examen.observacion || "—"}
                       </td>
                     </tr>

@@ -607,16 +607,17 @@ export function ResultadoForm({ mode, initialData, onSaved, onCancelEdit }: Resu
                 </tr>
               ) : (
                 lineas.map((linea, index) => (
-                  <tr key={`${linea.examen_id}-${index}`}>
+                  <tr key={`${linea.examen_id}-${index}`} className="align-top">
                     <td className="px-4 py-3 font-medium text-foreground">{linea.nombre_snap}</td>
                     <td className="px-4 py-3">
-                      <input
+                      <textarea
+                        rows={1}
                         value={linea.valor}
                         onChange={(event) => updateLinea(index, { valor: event.target.value })}
                         placeholder="Ej: 5.4"
                         aria-invalid={entregando && !tieneValor(linea.valor) ? true : undefined}
                         aria-label={`Valor de ${linea.nombre_snap}`}
-                        className={`h-10 w-full min-w-28 rounded-md border bg-background px-3 text-sm ${
+                        className={`block min-h-10 w-full min-w-28 resize-y rounded-md border bg-background px-3 py-2 text-sm [field-sizing:content] ${
                           entregando && !tieneValor(linea.valor)
                             ? "border-destructive ring-1 ring-destructive/40"
                             : "border-input"
@@ -624,11 +625,13 @@ export function ResultadoForm({ mode, initialData, onSaved, onCancelEdit }: Resu
                       />
                     </td>
                     <td className="px-4 py-3">
-                      <input
+                      <textarea
+                        rows={1}
                         value={linea.observacion}
                         onChange={(event) => updateLinea(index, { observacion: event.target.value })}
                         placeholder="Opcional"
-                        className="h-10 w-full min-w-48 rounded-md border border-input bg-background px-3 text-sm"
+                        aria-label={`Observación de ${linea.nombre_snap}`}
+                        className="block min-h-10 w-full min-w-48 resize-y rounded-md border border-input bg-background px-3 py-2 text-sm [field-sizing:content]"
                       />
                     </td>
                     <td className="px-4 py-3 text-muted-foreground">{linea.unidad_snap || "—"}</td>
