@@ -18,21 +18,18 @@ describe("mensajes", () => {
     paciente: "María",
     laboratorio: "Lab RV",
     numero: "PR-2026-000127",
-    totalUsd: 16.5,
-    totalBs: 990,
-    tasa: 60,
     url: "https://labo.test/p/aB3xY9kQ2m",
     vence: "4 de octubre de 2026",
   };
 
-  it("el texto de WhatsApp incluye paciente, laboratorio, número, montos, tasa, vigencia de 24h y url", () => {
+  it("el texto de WhatsApp incluye paciente, laboratorio, número, vigencia de 24h y url, sin monto ni tasa", () => {
     const texto = mensajeWhatsApp(input);
     expect(texto).toContain("María");
     expect(texto).toContain("Lab RV");
     expect(texto).toContain("PR-2026-000127");
-    expect(texto).toContain("16.50");
-    expect(texto).toContain("990,00");
-    expect(texto).toContain("60.00");
+    expect(texto).not.toContain("16.50");
+    expect(texto).not.toContain("990,00");
+    expect(texto).not.toContain("tasa");
     expect(texto).toContain("24 horas");
     expect(texto).toContain(input.url);
     expect(texto).toContain("4 de octubre de 2026");
@@ -72,9 +69,10 @@ describe("mensajes", () => {
     expect(html).toContain("PR-2026-000127");
   });
 
-  it("el html incluye el monto formateado en USD y Bs", () => {
+  it("el html no incluye monto ni tasa", () => {
     const html = htmlEmail(input);
-    expect(html).toContain("16.50");
-    expect(html).toContain("990,00");
+    expect(html).not.toContain("16.50");
+    expect(html).not.toContain("990,00");
+    expect(html).not.toContain("tasa");
   });
 });

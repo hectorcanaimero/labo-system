@@ -6,12 +6,10 @@
  * teléfono/email (se reusan de ahí, no se duplican acá), mismo patrón de
  * `mensajeWhatsApp` / `asuntoEmail` / `htmlEmail` / `mailtoPresupuesto`. Lo
  * que cambia es el contenido: un presupuesto no tiene datos clínicos, así
- * que el mensaje SÍ lleva el total (USD y Bs) y la tasa usada, y aclara que
- * la cotización vale 24 horas (el enlace en sí dura más: 7 días, ver
+ * que no lleva monto ni tasa (pedido del laboratorio): el detalle va en el
+ * enlace. Aclara que la cotización vale 24 horas (el enlace en sí dura más: 7 días, ver
  * `crearOReutilizarPresupuesto`).
  */
-
-import { formatBs, formatUsd } from "./bs-format";
 
 export interface MensajePresupuestoInput {
   /** Nombre de pila del paciente, para el saludo. */
@@ -20,21 +18,13 @@ export interface MensajePresupuestoInput {
   laboratorio: string;
   /** Número correlativo formateado (`formatNumeroPresupuesto`), ej. "PR-2026-000127". */
   numero: string;
-  totalUsd: number;
-  totalBs: number;
-  /** Tasa Bs/USD usada para cotizar. */
-  tasa: number;
   /** URL corta pública del presupuesto. */
   url: string;
   /** Fecha de vencimiento del ENLACE (7 días), ya formateada para mostrar. */
   vence?: string | null;
 }
 
-function resumenMonto(input: MensajePresupuestoInput): string {
-  return `USD ${formatUsd(input.totalUsd)} (Bs. ${formatBs(input.totalBs)} a una tasa de ${input.tasa.toFixed(2)} Bs/USD)`;
-}
-
-/** Texto plano del mensaje de WhatsApp. Mismo tono formal que resultados. */
+/** Texto plano del mensaje de WhatsApp. Sin monto ni tasa: el detalle va en el enlace. */
 export function mensajeWhatsApp(input: MensajePresupuestoInput): string {
   const vigenciaEnlace = input.vence
     ? `\n\nPor su seguridad, el enlace es personal y estará disponible hasta el ${input.vence}.`
@@ -42,7 +32,7 @@ export function mensajeWhatsApp(input: MensajePresupuestoInput): string {
 
   return (
     `Estimado/a ${input.paciente}, le saluda ${input.laboratorio}.\n\n` +
-    `Le enviamos el presupuesto ${input.numero} por un total de ${resumenMonto(input)}. ` +
+    `Le enviamos el presupuesto ${input.numero}. ` +
     `Esta cotización tiene una validez de 24 horas desde su emisión. ` +
     `Puede consultar el detalle en el siguiente enlace:\n${input.url}` +
     vigenciaEnlace +
@@ -87,7 +77,6 @@ export function htmlEmail(input: MensajePresupuestoInput): string {
   const laboratorio = escapeHtml(input.laboratorio);
   const numero = escapeHtml(input.numero);
   const url = escapeHtml(input.url);
-  const monto = escapeHtml(resumenMonto(input));
   const vigenciaEnlace = input.vence
     ? `El enlace es personal y estará disponible hasta el ${escapeHtml(input.vence)}.`
     : "El enlace es personal y tiene una vigencia limitada.";
@@ -96,8 +85,8 @@ export function htmlEmail(input: MensajePresupuestoInput): string {
     <div style="font-family: Arial, Helvetica, sans-serif; font-size: 14px; line-height: 1.6; color: #1e293b;">
       <p style="margin: 0 0 12px;">Estimado/a ${paciente},</p>
       <p style="margin: 0 0 12px;">
-        Le saluda <strong>${laboratorio}</strong>. Le enviamos el presupuesto <strong>${numero}</strong>
-        por un total de <strong>${monto}</strong>. Esta cotización tiene una validez de 24 horas desde su emisión.
+        Le saluda <strong>${laboratorio}</strong>. Le enviamos el presupuesto <strong>${numero}</strong>.
+        Esta cotización tiene una validez de 24 horas desde su emisión.
       </p>
       <p style="margin: 0 0 20px;">
         <a href="${url}" style="display: inline-block; background: #0f766e; color: #ffffff; text-decoration: none; padding: 10px 18px; border-radius: 6px; font-weight: 600;">
