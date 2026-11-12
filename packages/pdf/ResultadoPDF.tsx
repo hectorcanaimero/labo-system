@@ -11,6 +11,12 @@ import { PDF_COLORS, PDF_FONT, PDF_PAGE, formatDateDMY, type LaboratorioPDFConfi
 
 export interface ResultadoPDFProps {
   data: ResultadoPDFData;
+  /**
+   * `titulo_id` de un grupo: el informe sale sólo con ese grupo y su
+   * observación (para enviárselo al médico que lo lee), sin la observación
+   * general. Si el grupo no existe en la orden, sale el informe completo.
+   */
+  soloGrupo?: string | null;
 }
 
 /** Structural view of ordenes.getForPDF, kept independent from the DB package (ADR-08). */
@@ -25,6 +31,7 @@ export interface ExamenPDFRow {
   observacion: string | null;
   /** Grupo (examenes_titulos) del catálogo; null → cae en el grupo residual. */
   titulo: string | null;
+  titulo_id?: string | null;
 }
 
 export interface ResultadoPDFData {
@@ -35,6 +42,8 @@ export interface ResultadoPDFData {
   fecha_resultado: Date | string | null;
   medico_solicitante: string | null;
   observaciones: string | null;
+  /** Observación de cada grupo, por `titulo_id`. */
+  observaciones_grupos?: Record<string, string> | null;
   paciente: {
     nombre: string;
     apellido: string;
@@ -63,6 +72,8 @@ export interface ExamenSeccion {
 
 export interface ExamenGrupo {
   titulo: string;
+  /** null en el grupo residual (sin título): no admite observación propia. */
+  titulo_id: string | null;
   secciones: ExamenSeccion[];
 }
 
@@ -86,7 +97,7 @@ export function agruparExamenes(examenes: readonly ExamenPDFRow[]): ExamenGrupo[
 
     let grupo = grupoPorTitulo.get(claveTitulo);
     if (!grupo) {
-      grupo = { titulo: claveTitulo, secciones: [] };
+      grupo = { titulo: claveTitulo, titulo_id: esResidual ? null : (examen.titulo_id ?? null), secciones: [] };
       grupoPorTitulo.set(claveTitulo, grupo);
       if (esResidual) residual = grupo;
       else gruposOrdenados.push(grupo);
@@ -186,6 +197,22 @@ const styles = StyleSheet.create({
     fontSize: 8.5,
     lineHeight: 1.35,
   },
+  firmaRapida: {
+    alignSelf: "flex-end",
+    alignItems: "center",
+    marginTop: 28,
+    width: 140,
+  },
+  firmaRapidaLinea: {
+    borderTopColor: PDF_COLORS.text,
+    borderTopWidth: 0.75,
+    width: "100%",
+  },
+  firmaRapidaLabel: {
+    color: PDF_COLORS.muted,
+    fontSize: 7.5,
+    marginTop: 3,
+  },
 });
 
 function ageAt(birthDate: Date | string, referenceDate: Date | string): number {
@@ -200,13 +227,17 @@ function ageAt(birthDate: Date | string, referenceDate: Date | string): number {
 }
 
 /**
- * Informe de resultados. Cabecera y pie fijos en todas las páginas; el bloque
- * de firma y sello (de la configuración) cierra el documento en la última.
+ * Informe de resultados. Una hoja (Page) por grupo; cabecera y pie fijos en
+ * todas las páginas. QR y firma/sello sólo en la última hoja; las demás
+ * llevan una línea para firma manual.
  */
-export function ResultadoPDF({ data }: ResultadoPDFProps) {
+export function ResultadoPDF({ data, soloGrupo }: ResultadoPDFProps) {
   const config = data.config;
   const laboratoryName = config?.nombre.trim() || FALLBACK_LAB_NAME;
-  const grupos = agruparExamenes(data.examenes);
+  const todos = agruparExamenes(data.examenes);
+  const elegido = soloGrupo ? todos.filter((g) => g.titulo_id === soloGrupo) : [];
+  const grupos = elegido.length > 0 ? elegido : todos;
+  const esInformeDeGrupo = elegido.length > 0;
   const numero = formatNumeroOrden(data.numero_correlativo, data.created_at);
   const fechaEmision = formatDateDMY(data.fecha_resultado ?? new Date());
 
@@ -221,76 +252,98 @@ export function ResultadoPDF({ data }: ResultadoPDFProps) {
       subject="Informe de resultados de laboratorio"
       title={`Resultados - ${data.paciente.nombre} ${data.paciente.apellido}`}
     >
-      <Page size="A4" style={styles.page}>
-        <PDFHeader
-          direccion={config?.direccion ?? ""}
-          logo={config?.logo_url ?? null}
-          nombre={laboratoryName}
-          rif={config?.rif ?? null}
-          colegioBioanalistas={config?.colegio_bioanalistas ?? null}
-          mpps={config?.mpps ?? null}
-          telefono={config?.telefono ?? null}
-          email={config?.email ?? null}
-          titulo="Informe de resultados"
-          meta={meta}
-        />
+      {/* Una hoja por grupo (Hematología, Orina, Química…) con su cabecera y
+          datos del paciente. Observaciones, QR y firma digital sólo en la
+          última. */}
+      {(grupos.length > 0 ? grupos : [null]).map((grupo, index, hojas) => (
+        <Page key={grupo?.titulo ?? "__vacio__"} size="A4" style={styles.page}>
+          <PDFHeader
+            direccion={config?.direccion ?? ""}
+            logo={config?.logo_url ?? null}
+            nombre={laboratoryName}
+            rif={config?.rif ?? null}
+            colegioBioanalistas={config?.colegio_bioanalistas ?? null}
+            mpps={config?.mpps ?? null}
+            telefono={config?.telefono ?? null}
+            email={config?.email ?? null}
+            titulo="Informe de resultados"
+            meta={meta}
+          />
 
-        <PacienteInfo
-          edad={ageAt(data.paciente.fecha_nacimiento, data.fecha_muestra)}
-          fecha={formatDateDMY(data.fecha_muestra)}
-          fechaResultado={data.fecha_resultado ? formatDateDMY(data.fecha_resultado) : null}
-          medico={data.medico_solicitante}
-          paciente={data.paciente}
-        />
+          <PacienteInfo
+            edad={ageAt(data.paciente.fecha_nacimiento, data.fecha_muestra)}
+            fecha={formatDateDMY(data.fecha_muestra)}
+            fechaResultado={data.fecha_resultado ? formatDateDMY(data.fecha_resultado) : null}
+            medico={data.medico_solicitante}
+            paciente={data.paciente}
+          />
 
-        {grupos.map((grupo) => (
-          <View key={grupo.titulo}>
-            <Text minPresenceAhead={60} style={styles.groupTitle}>
-              {grupo.titulo}
-            </Text>
-            {grupo.secciones.map((seccion) => (
-              <View key={seccion.tipo ?? "__directas__"}>
-                {seccion.tipo ? (
-                  <Text minPresenceAhead={40} style={styles.tipoSubtitle}>
-                    {seccion.tipo}
-                  </Text>
-                ) : null}
-                <ExamenesTable rows={seccion.examenes.map(toExamenesTableRow)} />
+          {grupo ? (
+            <View>
+              <Text minPresenceAhead={60} style={styles.groupTitle}>
+                {grupo.titulo}
+              </Text>
+              {grupo.secciones.map((seccion, i) => (
+                <View key={`${seccion.tipo ?? "__directas__"}-${i}`}>
+                  {seccion.tipo ? (
+                    <Text minPresenceAhead={40} style={styles.tipoSubtitle}>
+                      {seccion.tipo}
+                    </Text>
+                  ) : null}
+                  <ExamenesTable rows={seccion.examenes.map(toExamenesTableRow)} />
+                </View>
+              ))}
+            </View>
+          ) : null}
+
+          {grupo?.titulo_id && data.observaciones_grupos?.[grupo.titulo_id]?.trim() ? (
+            <View wrap={false} style={styles.notes}>
+              <Text style={styles.notesLabel}>Observaciones de {grupo.titulo}</Text>
+              <Text style={styles.notesText}>
+                {data.observaciones_grupos[grupo.titulo_id]!.trim()}
+              </Text>
+            </View>
+          ) : null}
+
+          {!esInformeDeGrupo && index === hojas.length - 1 && data.observaciones?.trim() ? (
+            <View wrap={false} style={styles.notes}>
+              <Text style={styles.notesLabel}>Observaciones generales</Text>
+              <Text style={styles.notesText}>{data.observaciones.trim()}</Text>
+            </View>
+          ) : null}
+
+          {/* Cierre sólo en la última hoja: QR de verificación a la izquierda,
+              firma y sello a la derecha. En las demás, una línea para que la
+              bioanalista firme a mano. */}
+          {index < hojas.length - 1 ? (
+            <View wrap={false} style={styles.firmaRapida}>
+              <View style={styles.firmaRapidaLinea} />
+              <Text style={styles.firmaRapidaLabel}>Firma</Text>
+            </View>
+          ) : (
+            <View wrap={false} style={styles.cierre}>
+              <View style={styles.cierreQr}>
+                {data.verificacion_url ? <PDFQr url={data.verificacion_url} /> : null}
               </View>
-            ))}
-          </View>
-        ))}
+              <View style={styles.cierreFirma}>
+                <PDFFirma
+                  firma={config?.firma_url ?? null}
+                  sello={config?.sello_url ?? null}
+                  nombre={laboratoryName}
+                  colegioBioanalistas={config?.colegio_bioanalistas ?? null}
+                  mpps={config?.mpps ?? null}
+                />
+              </View>
+            </View>
+          )}
 
-        {data.observaciones?.trim() ? (
-          <View wrap={false} style={styles.notes}>
-            <Text style={styles.notesLabel}>Observaciones</Text>
-            <Text style={styles.notesText}>{data.observaciones.trim()}</Text>
-          </View>
-        ) : null}
-
-        {/* Cierre: el QR de verificación a la izquierda, firma y sello a la
-            derecha. Van en la misma fila y sin cortar entre páginas. */}
-        <View wrap={false} style={styles.cierre}>
-          <View style={styles.cierreQr}>
-            {data.verificacion_url ? <PDFQr url={data.verificacion_url} /> : null}
-          </View>
-          <View style={styles.cierreFirma}>
-            <PDFFirma
-              firma={config?.firma_url ?? null}
-              sello={config?.sello_url ?? null}
-              nombre={laboratoryName}
-              colegioBioanalistas={config?.colegio_bioanalistas ?? null}
-              mpps={config?.mpps ?? null}
-            />
-          </View>
-        </View>
-
-        <PDFFooter
-          aviso={AVISO_RESULTADO}
-          emision={`Emitido el ${fechaEmision}`}
-          pieDePagina={config?.pdf_pie_pagina ?? null}
-        />
-      </Page>
+          <PDFFooter
+            aviso={AVISO_RESULTADO}
+            emision={`Emitido el ${fechaEmision}`}
+            pieDePagina={config?.pdf_pie_pagina ?? null}
+          />
+        </Page>
+      ))}
     </Document>
   );
 }

@@ -112,6 +112,9 @@ export interface OrdenListInput {
 
 export interface OrdenLinea extends Omit<LineaRow, "precio_snap"> {
   precio_snap: number;
+  /** Grupo vigente del catálogo (`examenes_titulos`); null si el examen fue eliminado. */
+  titulo_id: string | null;
+  titulo: string | null;
 }
 
 export interface Orden extends OrdenRow {}
@@ -125,6 +128,8 @@ export interface OrdenListItem extends OrdenRow {
 
 export interface OrdenDetail extends Orden {
   examenes: OrdenLinea[];
+  /** Observación de cada grupo, por `titulo_id`. Sólo los grupos que tienen texto. */
+  observaciones_grupos: Record<string, string>;
 }
 
 export interface OrdenListResult {
@@ -164,13 +169,7 @@ export interface OrdenConfig {
   pdf_pie_pagina: string | null;
 }
 
-export interface OrdenLineaPDF extends OrdenLinea {
-  /** Grupo (`examenes_titulos.nombre`) vigente en el catálogo; null si el examen fue eliminado. */
-  titulo: string | null;
-}
-
-export interface OrdenForPDF extends Omit<OrdenDetail, "examenes"> {
-  examenes: OrdenLineaPDF[];
+export interface OrdenForPDF extends OrdenDetail {
   paciente: OrdenPaciente;
   config: OrdenConfig | null;
 }
@@ -186,7 +185,7 @@ export type ResultadoListResult = OrdenListResult;
 export type ResultadoListInput = OrdenListInput;
 export type ResultadoFilters = OrdenFilters;
 export type ResultadoForPDF = OrdenForPDF;
-export type ResultadoLineaPDF = OrdenLineaPDF;
+export type ResultadoLineaPDF = OrdenLinea;
 export type ResultadoPaciente = OrdenPaciente;
 export type ResultadoConfig = OrdenConfig;
 
@@ -233,8 +232,22 @@ function trimOrNull(value: string | null | undefined): string | null {
   return trimmed.length > 0 ? trimmed : null;
 }
 
-function mapLinea<T extends LineaRow>(row: T): OrdenLinea {
-  return { ...row, precio_snap: Number(row.precio_snap) };
+/** Fila de línea con el grupo del examen embebido (`examenes ( titulo_id, examenes_titulos ( nombre ) )`). */
+type LineaConGrupoRow = LineaRow & {
+  examenes?: {
+    titulo_id?: string | null;
+    examenes_titulos?: { nombre?: string } | null;
+  } | null;
+};
+
+function mapLinea(row: LineaConGrupoRow): OrdenLinea {
+  const { examenes, ...linea } = row;
+  return {
+    ...linea,
+    precio_snap: Number(row.precio_snap),
+    titulo_id: examenes?.titulo_id ?? null,
+    titulo: examenes?.examenes_titulos?.nombre ?? null,
+  };
 }
 
 async function auditBestEffort(
@@ -268,46 +281,57 @@ const ORDEN_COLS =
 // Lectura de líneas
 // ─────────────────────────────────────────────────────────────────────────────
 
+/**
+ * Líneas de la orden con el grupo vigente del catálogo (`examenes_titulos`).
+ * Si el examen fue eliminado, `titulo` queda null y la línea cae en un bucket
+ * residual del informe.
+ */
 async function fetchLineas(db: Db, ordenId: string): Promise<OrdenLinea[]> {
   const { data, error } = await db
     .from("ordenes_examenes")
-    .select(LINEA_COLS)
+    .select(`${LINEA_COLS}, examenes ( titulo_id, examenes_titulos ( nombre ) )`)
     .eq("orden_id", ordenId)
     .order("orden", { ascending: true })
     .order("id", { ascending: true });
   if (error) throw new Error(`ordenes.fetchLineas: ${error.message}`);
-  return (((data ?? []) as unknown) as LineaRow[]).map(mapLinea);
+  return ((data ?? []) as unknown as LineaConGrupoRow[]).map(mapLinea);
 }
 
-/**
- * Líneas para PDF: además de los snapshots, resuelve el grupo vigente
- * (`examenes_titulos.nombre`) del catálogo. Si el examen fue eliminado, el
- * titulo queda null y la línea cae en un bucket residual del informe.
- */
-async function fetchLineasForPDF(
+async function fetchGruposObs(
   db: Db,
   ordenId: string,
-): Promise<OrdenLineaPDF[]> {
+): Promise<Record<string, string>> {
   const { data, error } = await db
-    .from("ordenes_examenes")
-    .select(
-      `${LINEA_COLS}, examenes ( titulo_id, examenes_titulos ( nombre ) )`,
-    )
-    .eq("orden_id", ordenId)
-    .order("orden", { ascending: true })
-    .order("id", { ascending: true });
-  if (error) throw new Error(`ordenes.fetchLineasForPDF: ${error.message}`);
+    .from("ordenes_grupos_observaciones")
+    .select("titulo_id, observacion")
+    .eq("orden_id", ordenId);
+  if (error) throw new Error(`ordenes.fetchGruposObs: ${error.message}`);
+  return Object.fromEntries(
+    ((data ?? []) as Array<{ titulo_id: string; observacion: string }>).map((r) => [
+      r.titulo_id,
+      r.observacion,
+    ]),
+  );
+}
 
-  type Nested = LineaRow & {
-    examenes?: {
-      titulo_id?: string;
-      examenes_titulos?: { nombre?: string } | null;
-    } | null;
-  };
-  return ((data ?? []) as Nested[]).map((row) => ({
-    ...mapLinea(row),
-    titulo: row.examenes?.examenes_titulos?.nombre ?? null,
-  }));
+/** Reemplaza las observaciones por grupo. Las vacías no se guardan. */
+async function replaceGruposObs(
+  db: Db,
+  ordenId: string,
+  obs: Record<string, string>,
+): Promise<void> {
+  const del = await db.from("ordenes_grupos_observaciones").delete().eq("orden_id", ordenId);
+  if (del.error) throw new Error(`ordenes.replaceGruposObs del: ${del.error.message}`);
+  const rows = Object.entries(obs)
+    .map(([titulo_id, observacion]) => ({
+      orden_id: ordenId,
+      titulo_id,
+      observacion: trimOrNull(observacion),
+    }))
+    .filter((r): r is typeof r & { observacion: string } => r.observacion !== null);
+  if (rows.length === 0) return;
+  const ins = await db.from("ordenes_grupos_observaciones").insert(rows);
+  if (ins.error) throw new Error(`ordenes.replaceGruposObs ins: ${ins.error.message}`);
 }
 
 async function insertLineas(
@@ -500,7 +524,11 @@ export async function getById(db: Db, id: string): Promise<OrdenDetail | null> {
   if (error) throw new Error(`ordenes.getById: ${error.message}`);
   const row = ((data?.[0] as unknown) as OrdenRow | undefined) ?? null;
   if (!row) return null;
-  return { ...row, examenes: await fetchLineas(db, id) };
+  const [examenes, observaciones_grupos] = await Promise.all([
+    fetchLineas(db, id),
+    fetchGruposObs(db, id),
+  ]);
+  return { ...row, examenes, observaciones_grupos };
 }
 
 export async function getForPDF(
@@ -511,8 +539,7 @@ export async function getForPDF(
   const orden = await getById(db, id);
   if (!orden) return null;
 
-  const [examenes, pacRes, configRes] = await Promise.all([
-    fetchLineasForPDF(db, id),
+  const [pacRes, configRes] = await Promise.all([
     db
       .from("pacientes")
       .select(
@@ -551,7 +578,7 @@ export async function getForPDF(
     config = { ...configRow, logo_url, firma_url, sello_url };
   }
 
-  return { ...orden, examenes, paciente, config };
+  return { ...orden, paciente, config };
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -604,6 +631,9 @@ export async function create(
   if (!orden) throw new Error("ordenes.create: sin fila retornada");
 
   await insertLineas(db, orden.id, data.examenes);
+  if (data.observaciones_grupos) {
+    await replaceGruposObs(db, orden.id, data.observaciones_grupos);
+  }
   await auditBestEffort(db, {
     usuarioId,
     accion: "ordenes.create",
@@ -611,7 +641,11 @@ export async function create(
     metadata: { paciente_id: data.paciente_id, examenes: data.examenes.length },
   });
 
-  return { ...orden, examenes: await fetchLineas(db, orden.id) };
+  const [examenes, observaciones_grupos] = await Promise.all([
+    fetchLineas(db, orden.id),
+    fetchGruposObs(db, orden.id),
+  ]);
+  return { ...orden, examenes, observaciones_grupos };
 }
 
 export async function update(
@@ -698,6 +732,9 @@ export async function update(
     const del = await db.from("ordenes_examenes").delete().eq("orden_id", id);
     if (del.error) throw new Error(`ordenes.update del: ${del.error.message}`);
     await insertLineas(db, id, data.examenes, snapshots, current.estado === "Entregada");
+  }
+  if (data.observaciones_grupos) {
+    await replaceGruposObs(db, id, data.observaciones_grupos);
   }
 
   await auditBestEffort(db, {

@@ -338,6 +338,57 @@ describe("create con fecha de resultado (nace Entregada)", () => {
   });
 });
 
+describe("observaciones por grupo", () => {
+  const T1 = "33333333-3333-4333-8333-333333333333";
+  const T2 = "44444444-4444-4444-8444-444444444444";
+
+  it("create guarda sólo las observaciones con texto, recortadas", async () => {
+    const { db, llamadas } = fakeDb((table, op) => {
+      if (table === "pacientes") return { data: [{ id: ORDEN.paciente_id }] };
+      if (table === "ordenes" && op === "insert") return { data: [{ ...ORDEN, estado: "En proceso" }] };
+      if (table === "examenes") return { data: [{ id: "ex-a", nombre: "A", precio_usd: 1, unidad: null, valores_referencia: null, tipo_analisis: null, metodo: null }] };
+      return {};
+    });
+    await create(
+      db,
+      {
+        paciente_id: ORDEN.paciente_id,
+        fecha_muestra: "2026-08-31T12:00:00.000Z",
+        estado: "En proceso",
+        examenes: [{ examen_id: "ex-a", valor: "" }],
+        observaciones_grupos: { [T1]: "  Revisar con el internista  ", [T2]: "   " },
+      },
+      "u1",
+    );
+    const ins = llamadas.find((l) => l.table === "ordenes_grupos_observaciones" && l.op === "insert");
+    expect(ins?.payload).toEqual([
+      { orden_id: ORDEN.id, titulo_id: T1, observacion: "Revisar con el internista" },
+    ]);
+  });
+
+  it("update sin observaciones_grupos no toca la tabla", async () => {
+    const { db, llamadas } = fakeDb((table, op) => {
+      if (table === "ordenes" && op === "select") return { data: [ORDEN] };
+      if (table === "ordenes_examenes") return { data: [linea("a", "5")] };
+      return {};
+    });
+    await update(db, ORDEN.id, { observaciones: "x", estado: "Validando" }, "u1");
+    expect(llamadas.some((l) => l.table === "ordenes_grupos_observaciones" && l.op !== "select")).toBe(false);
+  });
+
+  it("update con observaciones_grupos las reemplaza (borra y vuelve a insertar)", async () => {
+    const { db, llamadas } = fakeDb((table, op) => {
+      if (table === "ordenes" && op === "select") return { data: [ORDEN] };
+      if (table === "ordenes_examenes") return { data: [linea("a", "5")] };
+      return {};
+    });
+    await update(db, ORDEN.id, { observaciones_grupos: { [T1]: "Nuevo" }, estado: "Validando" }, "u1");
+    const ops = llamadas.filter((l) => l.table === "ordenes_grupos_observaciones").map((l) => l.op);
+    expect(ops).toContain("delete");
+    expect(ops).toContain("insert");
+  });
+});
+
 describe("update — snapshots descriptivos", () => {
   const catalogo = {
     id: "ex-a",
