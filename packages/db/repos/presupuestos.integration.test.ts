@@ -442,7 +442,7 @@ describe("presupuestos.create — paciente_provisional (F8.2.T1)", () => {
     expect(fichaInsert?.payload).toMatchObject({
       nombre: "Juan",
       apellido: "Pérez",
-      telefono: "0414-1234567",
+      telefono: "584141234567",
       cedula: null,
       fecha_nacimiento: null,
       sexo: null,
