@@ -126,11 +126,13 @@ async function resolverVerificacionUrl(
  * duplicar la carga de assets ni el armado del documento.
  *
  * `origin` es el origen público con el que se arma la URL del QR; sin él el
- * informe sale sin QR.
+ * informe sale sin QR. `soloGrupo` (`titulo_id`) genera el informe de un solo
+ * grupo, con su observación.
  */
 export async function renderResultadoPdf(
   ordenId: string,
   origin?: string,
+  soloGrupo?: string | null,
 ): Promise<{ body: ReadableStream<Uint8Array>; filename: string }> {
   const db = getAdminDb();
   const data = await getForPDF(db, ordenId, resolvePdfAsset);
@@ -153,11 +155,13 @@ export async function renderResultadoPdf(
   // por createElement(ResultadoPDF, { data }) contra ResultadoPDFProps.
   const element = createElement(ResultadoPDF, {
     data: { ...data, verificacion_url: verificacionUrl },
+    soloGrupo,
   }) as ReactElement<DocumentProps>;
   const stream = await renderToStream(element);
   const body = Readable.toWeb(stream as unknown as Readable) as ReadableStream<Uint8Array>;
 
-  return { body, filename: `resultado-${ordenId}.pdf` };
+  const sufijo = soloGrupo ? `-${soloGrupo.slice(0, 8)}` : "";
+  return { body, filename: `resultado-${ordenId}${sufijo}.pdf` };
 }
 
 export function pdfResponse(body: ReadableStream<Uint8Array>, filename: string): Response {
@@ -182,7 +186,12 @@ export async function GET(request: NextRequest, { params }: RouteParams): Promis
       return bad(400, "VALIDACION_FALLIDA");
     }
 
-    const { body, filename } = await renderResultadoPdf(params.id, publicOrigin(request));
+    const grupo = request.nextUrl.searchParams.get("grupo");
+    if (grupo !== null && !isUuid(grupo)) {
+      return bad(400, "VALIDACION_FALLIDA");
+    }
+
+    const { body, filename } = await renderResultadoPdf(params.id, publicOrigin(request), grupo);
     return pdfResponse(body, filename);
   } catch (error) {
     return toErrorResponse(error);

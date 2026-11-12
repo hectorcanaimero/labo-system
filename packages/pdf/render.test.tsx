@@ -180,6 +180,15 @@ describe("PDF templates render", () => {
       expect(grupos[1]!.secciones[0]!.examenes.map((e) => e.id)).toEqual(["1", "3"]);
     });
 
+    it("cada grupo lleva su titulo_id; el residual no tiene", () => {
+      const grupos = agruparExamenes([
+        examenRow({ id: "1", titulo: "ORINA", titulo_id: "t-orina" }),
+        examenRow({ id: "2", titulo: null, titulo_id: null }),
+      ]);
+
+      expect(grupos.map((g) => g.titulo_id)).toEqual(["t-orina", null]);
+    });
+
     it("es determinista ante entradas intercaladas (orden estable entre renders)", () => {
       const entrada = [
         examenRow({ id: "a", titulo: "G1", tipo_analisis_snap: "T2" }),
@@ -424,12 +433,54 @@ describe("PDF templates render", () => {
     };
 
     const stream = await renderToStream(<ResultadoPDF data={data} />);
-    expect(stream).toBeDefined();
+    const chunks: Buffer[] = [];
+    for await (const chunk of stream) chunks.push(chunk as Buffer);
+    // Una hoja por grupo: HEMATOLOGÍA, ORINA y el residual → 3 páginas.
+    const pdf = Buffer.concat(chunks).toString("latin1");
+    expect(pdf.match(/\/Type \/Page\b/g)?.length).toBe(3);
+  });
 
-    const chunks = [];
-    for await (const chunk of stream) {
-      chunks.push(chunk);
+  describe("observaciones y PDF por grupo", () => {
+    const data = {
+      numero_correlativo: 9,
+      created_at: new Date(),
+      estado: "Entregada",
+      fecha_muestra: new Date(),
+      fecha_resultado: new Date(),
+      medico_solicitante: null,
+      observaciones: "Observación general",
+      observaciones_grupos: { "t-orina": "Comentario de orina" },
+      paciente: {
+        nombre: "John",
+        apellido: "Doe",
+        cedula: "V-12345678",
+        fecha_nacimiento: new Date("1990-01-01"),
+        sexo: "M" as const,
+      },
+      examenes: [
+        examenRow({ id: "1", titulo: "HEMATOLOGÍA", titulo_id: "t-hema" }),
+        examenRow({ id: "2", titulo: "ORINA", titulo_id: "t-orina" }),
+      ],
+      config: null,
+    };
+
+    async function paginas(element: React.ReactElement): Promise<number> {
+      const stream = await renderToStream(element as never);
+      const chunks: Buffer[] = [];
+      for await (const chunk of stream) chunks.push(chunk as Buffer);
+      return Buffer.concat(chunks).toString("latin1").match(/\/Type \/Page\b/g)?.length ?? 0;
     }
-    expect(chunks.length).toBeGreaterThan(0);
+
+    it("el informe completo sale con una hoja por grupo", async () => {
+      expect(await paginas(<ResultadoPDF data={data} />)).toBe(2);
+    });
+
+    it("soloGrupo deja únicamente la hoja de ese grupo", async () => {
+      expect(await paginas(<ResultadoPDF data={data} soloGrupo="t-orina" />)).toBe(1);
+    });
+
+    it("un soloGrupo que no existe en la orden cae al informe completo", async () => {
+      expect(await paginas(<ResultadoPDF data={data} soloGrupo="t-inexistente" />)).toBe(2);
+    });
   });
 });

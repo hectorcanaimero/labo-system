@@ -115,9 +115,6 @@ export async function POST(
       paciente: paciente.nombre,
       laboratorio,
       numero: formatNumeroPresupuesto(presupuesto.numero_correlativo, presupuesto.created_at),
-      totalUsd: presupuesto.total_usd,
-      totalBs: presupuesto.total_bs,
-      tasa: presupuesto.tasa_bs,
       url,
       vence: formatVencimiento(enlace.expira_en),
     };
