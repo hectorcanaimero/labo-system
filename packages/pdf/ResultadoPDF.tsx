@@ -320,13 +320,17 @@ export function ResultadoPDF({ data, soloGrupo }: ResultadoPDFProps) {
               const texto = grupo?.titulo_id
                 ? data.observaciones_grupos?.[grupo.titulo_id]?.trim()
                 : undefined;
+              const ultimaHoja = index === hojas.length - 1;
+              // `notesEnFila` (flexBasis 0) sólo sirve dentro de la fila con la
+              // firma: en columna aplasta el recuadro a 0 de alto y el texto se
+              // sale por encima de la observación siguiente.
               const nota = texto ? (
-                <View style={[styles.notes, styles.notesEnFila]}>
+                <View style={ultimaHoja ? styles.notes : [styles.notes, styles.notesEnFila]}>
                   <Text style={styles.notesLabel}>Observaciones de {grupo!.titulo}</Text>
                   <Text style={styles.notesText}>{texto}</Text>
                 </View>
               ) : null;
-              if (index === hojas.length - 1) return nota;
+              if (ultimaHoja) return nota;
               // Hojas intermedias: firma digital y sello (versión compacta) al
               // lado de la observación, no debajo, para no gastar una franja
               // entera de la hoja (era lo que empujaba la firma a una hoja nueva).
