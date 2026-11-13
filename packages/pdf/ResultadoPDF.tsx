@@ -197,10 +197,19 @@ const styles = StyleSheet.create({
     fontSize: 8.5,
     lineHeight: 1.35,
   },
+  filaFirma: {
+    flexDirection: "row",
+    alignItems: "flex-end",
+  },
+  notesEnFila: {
+    flexBasis: 0,
+    flexGrow: 1,
+    flexShrink: 1,
+  },
   firmaRapida: {
-    alignSelf: "flex-end",
     alignItems: "center",
-    marginTop: 28,
+    marginLeft: 16,
+    marginTop: 30,
     width: 140,
   },
   firmaRapidaLinea: {
@@ -320,14 +329,30 @@ export function ResultadoPDF({ data, soloGrupo }: ResultadoPDFProps) {
               );
             })()}
 
-            {grupo?.titulo_id && data.observaciones_grupos?.[grupo.titulo_id]?.trim() ? (
-              <View style={styles.notes}>
-                <Text style={styles.notesLabel}>Observaciones de {grupo.titulo}</Text>
-                <Text style={styles.notesText}>
-                  {data.observaciones_grupos[grupo.titulo_id]!.trim()}
-                </Text>
-              </View>
-            ) : null}
+            {(() => {
+              const texto = grupo?.titulo_id
+                ? data.observaciones_grupos?.[grupo.titulo_id]?.trim()
+                : undefined;
+              const nota = texto ? (
+                <View style={[styles.notes, styles.notesEnFila]}>
+                  <Text style={styles.notesLabel}>Observaciones de {grupo!.titulo}</Text>
+                  <Text style={styles.notesText}>{texto}</Text>
+                </View>
+              ) : null;
+              if (index === hojas.length - 1) return nota;
+              // Hojas intermedias: la línea de firma va al lado de la
+              // observación, no debajo, para no gastar una franja entera de la
+              // hoja (era lo que empujaba la firma a una hoja nueva).
+              return (
+                <View style={styles.filaFirma}>
+                  {nota ?? <View style={styles.notesEnFila} />}
+                  <View style={styles.firmaRapida}>
+                    <View style={styles.firmaRapidaLinea} />
+                    <Text style={styles.firmaRapidaLabel}>Firma</Text>
+                  </View>
+                </View>
+              );
+            })()}
 
             {!esInformeDeGrupo && index === hojas.length - 1 && data.observaciones?.trim() ? (
               <View style={styles.notes}>
@@ -337,14 +362,8 @@ export function ResultadoPDF({ data, soloGrupo }: ResultadoPDFProps) {
             ) : null}
 
             {/* Cierre sólo en la última hoja: QR de verificación a la izquierda,
-                firma y sello a la derecha. En las demás, una línea para que la
-                bioanalista firme a mano. */}
-            {index < hojas.length - 1 ? (
-              <View style={styles.firmaRapida}>
-                <View style={styles.firmaRapidaLinea} />
-                <Text style={styles.firmaRapidaLabel}>Firma</Text>
-              </View>
-            ) : (
+                firma y sello a la derecha. */}
+            {index < hojas.length - 1 ? null : (
               <View style={styles.cierre}>
                 <View style={styles.cierreQr}>
                   {data.verificacion_url ? <PDFQr url={data.verificacion_url} /> : null}
