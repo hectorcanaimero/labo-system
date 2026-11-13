@@ -283,59 +283,84 @@ export function ResultadoPDF({ data, soloGrupo }: ResultadoPDFProps) {
               <Text minPresenceAhead={60} style={styles.groupTitle}>
                 {grupo.titulo}
               </Text>
-              {grupo.secciones.map((seccion, i) => (
-                <View key={`${seccion.tipo ?? "__directas__"}-${i}`}>
-                  {seccion.tipo ? (
-                    <Text minPresenceAhead={40} style={styles.tipoSubtitle}>
-                      {seccion.tipo}
-                    </Text>
-                  ) : null}
-                  <ExamenesTable rows={seccion.examenes.map(toExamenesTableRow)} />
+              {grupo.secciones.map((seccion, i) => {
+                const filas = seccion.examenes.map(toExamenesTableRow);
+                const esUltima = i === grupo.secciones.length - 1;
+                // La última fila del grupo viaja con el cierre (abajo); así la
+                // firma nunca queda sola en una hoja.
+                const cuerpo = esUltima ? filas.slice(0, -1) : filas;
+                return (
+                  <View key={`${seccion.tipo ?? "__directas__"}-${i}`}>
+                    {seccion.tipo ? (
+                      <Text minPresenceAhead={40} style={styles.tipoSubtitle}>
+                        {seccion.tipo}
+                      </Text>
+                    ) : null}
+                    {cuerpo.length > 0 || !esUltima ? (
+                      <ExamenesTable continua={esUltima} rows={cuerpo} />
+                    ) : null}
+                  </View>
+                );
+              })}
+            </View>
+          ) : null}
+
+          {/* Bloque indivisible: última fila del grupo + observaciones + firma.
+              Si no cabe al final de la hoja, pasa entero a la siguiente, para
+              que la firma nunca quede sola en una página. */}
+          <View wrap={false}>
+            {(() => {
+              const ultima = grupo?.secciones[grupo.secciones.length - 1];
+              if (!ultima) return null;
+              const filas = ultima.examenes.map(toExamenesTableRow);
+              if (filas.length === 0) return null;
+              const resto = filas.length - 1;
+              return (
+                <ExamenesTable header={resto === 0} rows={filas.slice(-1)} startIndex={resto} />
+              );
+            })()}
+
+            {grupo?.titulo_id && data.observaciones_grupos?.[grupo.titulo_id]?.trim() ? (
+              <View style={styles.notes}>
+                <Text style={styles.notesLabel}>Observaciones de {grupo.titulo}</Text>
+                <Text style={styles.notesText}>
+                  {data.observaciones_grupos[grupo.titulo_id]!.trim()}
+                </Text>
+              </View>
+            ) : null}
+
+            {!esInformeDeGrupo && index === hojas.length - 1 && data.observaciones?.trim() ? (
+              <View style={styles.notes}>
+                <Text style={styles.notesLabel}>Observaciones generales</Text>
+                <Text style={styles.notesText}>{data.observaciones.trim()}</Text>
+              </View>
+            ) : null}
+
+            {/* Cierre sólo en la última hoja: QR de verificación a la izquierda,
+                firma y sello a la derecha. En las demás, una línea para que la
+                bioanalista firme a mano. */}
+            {index < hojas.length - 1 ? (
+              <View style={styles.firmaRapida}>
+                <View style={styles.firmaRapidaLinea} />
+                <Text style={styles.firmaRapidaLabel}>Firma</Text>
+              </View>
+            ) : (
+              <View style={styles.cierre}>
+                <View style={styles.cierreQr}>
+                  {data.verificacion_url ? <PDFQr url={data.verificacion_url} /> : null}
                 </View>
-              ))}
-            </View>
-          ) : null}
-
-          {grupo?.titulo_id && data.observaciones_grupos?.[grupo.titulo_id]?.trim() ? (
-            <View wrap={false} style={styles.notes}>
-              <Text style={styles.notesLabel}>Observaciones de {grupo.titulo}</Text>
-              <Text style={styles.notesText}>
-                {data.observaciones_grupos[grupo.titulo_id]!.trim()}
-              </Text>
-            </View>
-          ) : null}
-
-          {!esInformeDeGrupo && index === hojas.length - 1 && data.observaciones?.trim() ? (
-            <View wrap={false} style={styles.notes}>
-              <Text style={styles.notesLabel}>Observaciones generales</Text>
-              <Text style={styles.notesText}>{data.observaciones.trim()}</Text>
-            </View>
-          ) : null}
-
-          {/* Cierre sólo en la última hoja: QR de verificación a la izquierda,
-              firma y sello a la derecha. En las demás, una línea para que la
-              bioanalista firme a mano. */}
-          {index < hojas.length - 1 ? (
-            <View wrap={false} style={styles.firmaRapida}>
-              <View style={styles.firmaRapidaLinea} />
-              <Text style={styles.firmaRapidaLabel}>Firma</Text>
-            </View>
-          ) : (
-            <View wrap={false} style={styles.cierre}>
-              <View style={styles.cierreQr}>
-                {data.verificacion_url ? <PDFQr url={data.verificacion_url} /> : null}
+                <View style={styles.cierreFirma}>
+                  <PDFFirma
+                    firma={config?.firma_url ?? null}
+                    sello={config?.sello_url ?? null}
+                    nombre={laboratoryName}
+                    colegioBioanalistas={config?.colegio_bioanalistas ?? null}
+                    mpps={config?.mpps ?? null}
+                  />
+                </View>
               </View>
-              <View style={styles.cierreFirma}>
-                <PDFFirma
-                  firma={config?.firma_url ?? null}
-                  sello={config?.sello_url ?? null}
-                  nombre={laboratoryName}
-                  colegioBioanalistas={config?.colegio_bioanalistas ?? null}
-                  mpps={config?.mpps ?? null}
-                />
-              </View>
-            </View>
-          )}
+            )}
+          </View>
 
           <PDFFooter
             aviso={AVISO_RESULTADO}
