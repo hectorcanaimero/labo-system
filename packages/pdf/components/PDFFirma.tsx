@@ -13,6 +13,13 @@ export interface PDFFirmaProps {
   mpps?: string | null;
   /** Texto bajo el nombre. Default: "Bioanalista". */
   cargo?: string;
+  /**
+   * Versión baja para el cierre de cada grupo (hojas intermedias): firma y
+   * sello más chicos y sólo el nombre bajo la línea, para que quepa al lado
+   * de la observación sin empujar el bloque a una hoja nueva. Las
+   * credenciales ya van en la cabecera de cada hoja.
+   */
+  compacto?: boolean;
 }
 
 const styles = StyleSheet.create({
@@ -52,6 +59,30 @@ const styles = StyleSheet.create({
   },
   firmaVacia: {
     height: 40,
+  },
+  wrapperCompacto: {
+    marginTop: 4,
+    paddingTop: 0,
+  },
+  selloCompacto: {
+    width: 56,
+    height: 56,
+    marginRight: 6,
+    marginBottom: 2,
+  },
+  blockCompacto: {
+    width: 150,
+  },
+  firmaCompacta: {
+    width: 140,
+    height: 36,
+  },
+  firmaVaciaCompacta: {
+    height: 24,
+  },
+  lineCompacta: {
+    width: 140,
+    paddingTop: 3,
   },
   line: {
     borderTopColor: PDF_COLORS.ink,
@@ -95,6 +126,7 @@ export function PDFFirma({
   colegioBioanalistas,
   mpps,
   cargo = "Bioanalista",
+  compacto = false,
 }: PDFFirmaProps) {
   const firmaSrc = assetOrNull(firma);
   const selloSrc = assetOrNull(sello);
@@ -106,18 +138,22 @@ export function PDFFirma({
     .join("  ·  ");
 
   return (
-    <View wrap={false} style={styles.wrapper}>
-      {selloSrc ? <Image src={selloSrc} style={styles.sello} /> : null}
-      <View style={styles.block}>
+    <View wrap={false} style={[styles.wrapper, compacto ? styles.wrapperCompacto : {}]}>
+      {selloSrc ? (
+        <Image src={selloSrc} style={[styles.sello, compacto ? styles.selloCompacto : {}]} />
+      ) : null}
+      <View style={[styles.block, compacto ? styles.blockCompacto : {}]}>
         {firmaSrc ? (
-          <Image src={firmaSrc} style={styles.firma} />
+          <Image src={firmaSrc} style={[styles.firma, compacto ? styles.firmaCompacta : {}]} />
         ) : (
-          <View style={styles.firmaVacia} />
+          <View style={compacto ? styles.firmaVaciaCompacta : styles.firmaVacia} />
         )}
-        <View style={styles.line}>
+        <View style={[styles.line, compacto ? styles.lineCompacta : {}]}>
           <Text style={styles.nombre}>{nombre}</Text>
-          <Text style={styles.cargo}>{cargo}</Text>
-          {credenciales ? <Text style={styles.credenciales}>{credenciales}</Text> : null}
+          {compacto ? null : <Text style={styles.cargo}>{cargo}</Text>}
+          {!compacto && credenciales ? (
+            <Text style={styles.credenciales}>{credenciales}</Text>
+          ) : null}
         </View>
       </View>
     </View>
