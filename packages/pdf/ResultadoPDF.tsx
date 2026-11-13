@@ -206,21 +206,8 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     flexShrink: 1,
   },
-  firmaRapida: {
-    alignItems: "center",
-    marginLeft: 16,
-    marginTop: 30,
-    width: 140,
-  },
-  firmaRapidaLinea: {
-    borderTopColor: PDF_COLORS.text,
-    borderTopWidth: 0.75,
-    width: "100%",
-  },
-  firmaRapidaLabel: {
-    color: PDF_COLORS.muted,
-    fontSize: 7.5,
-    marginTop: 3,
+  firmaGrupo: {
+    marginLeft: 12,
   },
 });
 
@@ -340,15 +327,19 @@ export function ResultadoPDF({ data, soloGrupo }: ResultadoPDFProps) {
                 </View>
               ) : null;
               if (index === hojas.length - 1) return nota;
-              // Hojas intermedias: la línea de firma va al lado de la
-              // observación, no debajo, para no gastar una franja entera de la
-              // hoja (era lo que empujaba la firma a una hoja nueva).
+              // Hojas intermedias: firma digital y sello (versión compacta) al
+              // lado de la observación, no debajo, para no gastar una franja
+              // entera de la hoja (era lo que empujaba la firma a una hoja nueva).
               return (
                 <View style={styles.filaFirma}>
                   {nota ?? <View style={styles.notesEnFila} />}
-                  <View style={styles.firmaRapida}>
-                    <View style={styles.firmaRapidaLinea} />
-                    <Text style={styles.firmaRapidaLabel}>Firma</Text>
+                  <View style={styles.firmaGrupo}>
+                    <PDFFirma
+                      compacto
+                      firma={config?.firma_url ?? null}
+                      sello={config?.sello_url ?? null}
+                      nombre={laboratoryName}
+                    />
                   </View>
                 </View>
               );
