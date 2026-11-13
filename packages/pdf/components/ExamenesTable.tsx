@@ -16,6 +16,13 @@ export interface ExamenesTableProps {
   rows: readonly ExamenTableRow[];
   /** Si es false, se omite la fila de cabecera (para tablas encadenadas). */
   header?: boolean;
+  /**
+   * Índice de la primera fila dentro de la tabla lógica. Sirve para que el
+   * zebra siga alternando cuando una tabla se parte en dos trozos.
+   */
+  startIndex?: number;
+  /** Quita el margen inferior (cuando la tabla sigue en otro trozo). */
+  continua?: boolean;
 }
 
 const COL = {
@@ -88,9 +95,14 @@ const styles = StyleSheet.create({
  * sí puede partirse entre páginas. La observación de la línea, si existe, va
  * en cursiva debajo del nombre de la prueba.
  */
-export function ExamenesTable({ rows, header = true }: ExamenesTableProps) {
+export function ExamenesTable({
+  rows,
+  header = true,
+  startIndex = 0,
+  continua = false,
+}: ExamenesTableProps) {
   return (
-    <View style={styles.table}>
+    <View style={continua ? {} : styles.table}>
       {header ? (
         <View style={styles.headerRow}>
           <Text style={[styles.headerCell, styles.prueba]}>Prueba</Text>
@@ -100,12 +112,12 @@ export function ExamenesTable({ rows, header = true }: ExamenesTableProps) {
           <Text style={[styles.headerCell, styles.metodo]}>Método</Text>
         </View>
       ) : null}
-      {rows.length === 0 ? <Text style={styles.empty}>Sin exámenes registrados</Text> : null}
+      {rows.length === 0 && startIndex === 0 ? <Text style={styles.empty}>Sin exámenes registrados</Text> : null}
       {rows.map((row, index) => (
         <View
           key={row.id}
           wrap={false}
-          style={[styles.row, index % 2 === 1 ? styles.rowZebra : {}]}
+          style={[styles.row, (startIndex + index) % 2 === 1 ? styles.rowZebra : {}]}
         >
           <View style={[styles.cell, styles.prueba]}>
             <Text>{row.nombre}</Text>
