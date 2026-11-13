@@ -357,7 +357,9 @@ export function PresupuestoDetalle({
               </Button>
             ) : null}
 
-            {isBorrador ? (
+            {/* Enviado → Aprobado: el paciente aceptó el presupuesto que se le
+                mandó. El backend ya admite la transición (repos/presupuestos). */}
+            {isBorrador || isEnviado ? (
               <>
                 <Button
                   type="button"
