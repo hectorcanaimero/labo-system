@@ -331,18 +331,18 @@ export function ResultadoPDF({ data, soloGrupo }: ResultadoPDFProps) {
                 </View>
               ) : null;
               if (ultimaHoja) return nota;
-              // Hojas intermedias: firma digital y sello (versión compacta) al
-              // lado de la observación, no debajo, para no gastar una franja
-              // entera de la hoja (era lo que empujaba la firma a una hoja nueva).
+              // Hojas intermedias: la misma firma y sello que la última hoja
+              // (mismo tamaño, con C.B. y MPPS), al lado de la observación.
               return (
                 <View style={styles.filaFirma}>
                   {nota ?? <View style={styles.notesEnFila} />}
                   <View style={styles.firmaGrupo}>
                     <PDFFirma
-                      compacto
                       firma={config?.firma_url ?? null}
                       sello={config?.sello_url ?? null}
                       nombre={laboratoryName}
+                      colegioBioanalistas={config?.colegio_bioanalistas ?? null}
+                      mpps={config?.mpps ?? null}
                     />
                   </View>
                 </View>
