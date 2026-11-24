@@ -5,6 +5,7 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import {
   ClipboardList,
+  FileCheck,
   FileText,
   FlaskConical,
   History,
@@ -46,6 +47,7 @@ const OPERACION: NavItem[] = [
   { label: "Dashboard", href: "/dashboard", icon: <LayoutDashboard className="h-4 w-4" /> },
   { label: "Pacientes", href: "/pacientes", icon: <Users className="h-4 w-4" /> },
   { label: "Órdenes", href: "/resultados", icon: <FileText className="h-4 w-4" /> },
+  { label: "Resultados", href: "/resultados/entregadas", icon: <FileCheck className="h-4 w-4" /> },
   { label: "Presupuestos", href: "/presupuestos", icon: <ClipboardList className="h-4 w-4" /> },
 ];
 

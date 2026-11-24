@@ -52,18 +52,20 @@ export interface PaginatedResultadosResponse {
 interface ResultadosListProps {
   initialData: PaginatedResultadosResponse;
   pageSize: number;
+  /** Filtra siempre por este estado y oculta el selector (menú Resultados). */
+  estadoFijo?: string;
 }
 
 const SEARCH_DEBOUNCE_MS = 250;
 
-export function ResultadosList({ initialData, pageSize }: ResultadosListProps) {
+export function ResultadosList({ initialData, pageSize, estadoFijo }: ResultadosListProps) {
   const [data, setData] = useState(initialData);
   const [page, setPage] = useState(initialData.page);
   const [searchTerm, setSearchTerm] = useState("");
   const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("");
   const [desde, setDesde] = useState("");
   const [hasta, setHasta] = useState("");
-  const [estado, setEstado] = useState("");
+  const [estado, setEstado] = useState(estadoFijo ?? "");
   const [loadingList, setLoadingList] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
@@ -168,6 +170,7 @@ export function ResultadosList({ initialData, pageSize }: ResultadosListProps) {
           className="h-8 rounded-md border border-input bg-background px-2 text-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         />
 
+        {estadoFijo ? null : (
         <select
           value={estado}
           onChange={(e) => setEstado(e.target.value)}
@@ -181,6 +184,7 @@ export function ResultadosList({ initialData, pageSize }: ResultadosListProps) {
             </option>
           ))}
         </select>
+        )}
 
         <div className="ml-auto flex items-center gap-2">
           <ExportButton actionName="resultados" filters={{ desde, hasta, estado }} />
