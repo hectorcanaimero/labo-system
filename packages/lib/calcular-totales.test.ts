@@ -160,7 +160,67 @@ describe('calcularTotales', () => {
 
     const sumaLineas = result.lineas!.reduce((sum, linea) => sum + linea.precioFinal, 0);
     expect(sumaLineas).toBe(result.totalUsd);
+    expect(result.lineas?.map((linea) => linea.precioFinal)).toEqual([0.01, 0.01, 0.01]);
+  });
+
+  it('misma base y mismo % → mismo precio final (Urea vs Creatinina)', () => {
+    const result = calcularTotales({
+      lineas: [
+        { precioBase: 2.7, gananciaPct: 15 },
+        { precioBase: 2.7, gananciaPct: 15 },
+      ],
+      descuentoPct: 0,
+      gananciaPct: 0,
+      tasa: 1,
+    });
+
+    expect(result.lineas?.map((linea) => linea.precioFinal)).toEqual([3.11, 3.11]);
+    expect(result.totalUsd).toBe(6.22);
+  });
+
+  it('caso real del laboratorio: Urea y Creatinina a 1.65 con 30% → 2.15 las dos', () => {
+    const result = calcularTotales({
+      lineas: [
+        { precioBase: 1.65, gananciaPct: 30 },
+        { precioBase: 1.65, gananciaPct: 30 },
+      ],
+      descuentoPct: 0,
+      gananciaPct: 0,
+      tasa: 1,
+    });
+
+    expect(result.lineas?.map((linea) => linea.precioFinal)).toEqual([2.15, 2.15]);
+    expect(result.totalUsd).toBe(4.3);
+  });
+
+  it('dentro de un bloque reparte centavos para que el bloque sume exacto', () => {
+    const result = calcularTotales({
+      lineas: [
+        { precioBase: 0.01, gananciaPct: 33.33, bloque: 'g' },
+        { precioBase: 0.01, gananciaPct: 33.33, bloque: 'g' },
+        { precioBase: 0.01, gananciaPct: 33.33, bloque: 'g' },
+      ],
+      descuentoPct: 0,
+      gananciaPct: 0,
+      tasa: 1,
+    });
+
     expect(result.lineas?.map((linea) => linea.precioFinal)).toEqual([0.02, 0.01, 0.01]);
+    expect(result.totalUsd).toBe(0.04);
+  });
+
+  it('cantidad multiplica el precio unitario ya redondeado', () => {
+    const result = calcularTotales({
+      lineas: [{ precioBase: 2.7, gananciaPct: 15, cantidad: 25 }, { precioBase: 10 }],
+      descuentoPct: 0,
+      gananciaPct: 0,
+      tasa: 2,
+      serviciosUsd: 5,
+    });
+
+    expect(result.lineas?.map((linea) => linea.precioFinal)).toEqual([77.75, 10]);
+    expect(result.totalUsd).toBe(92.75);
+    expect(result.totalBs).toBe(185.5);
   });
 
   it('incluye el descuento en los precios finales visibles y mantiene la suma', () => {
@@ -288,7 +348,7 @@ describe("precio final por línea nunca negativo", () => {
       descuentoPct: 0,
       gananciaPct: 0,
       tasa: 1,
-      lineas: bases.map((precioBase) => ({ precioBase, gananciaPct: 82 })),
+      lineas: bases.map((precioBase) => ({ precioBase, gananciaPct: 82, bloque: 'p:hemograma' })),
     });
     expect(r.lineas!.every((l) => l.precioFinal >= 0)).toBe(true);
     const sumaCents = r.lineas!.reduce((s, l) => s + Math.round(l.precioFinal * 100), 0);

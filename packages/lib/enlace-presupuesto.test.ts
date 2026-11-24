@@ -20,26 +20,18 @@ describe("mensajes", () => {
     numero: "PR-2026-000127",
     url: "https://labo.test/p/aB3xY9kQ2m",
     vence: "4 de octubre de 2026",
+    examenes: ["Hemograma completo", "Urea"],
+    totalUsd: 46.18,
   };
 
-  it("el texto de WhatsApp incluye paciente, laboratorio, número, vigencia de 24h y url, sin monto ni tasa", () => {
-    const texto = mensajeWhatsApp(input);
-    expect(texto).toContain("María");
-    expect(texto).toContain("Lab RV");
-    expect(texto).toContain("PR-2026-000127");
-    expect(texto).not.toContain("16.50");
-    expect(texto).not.toContain("990,00");
-    expect(texto).not.toContain("tasa");
-    expect(texto).toContain("24 horas");
-    expect(texto).toContain(input.url);
-    expect(texto).toContain("4 de octubre de 2026");
-    expect(texto).not.toContain("undefined");
-  });
-
-  it("sin vencimiento del enlace, avisa vigencia limitada en vez de una fecha", () => {
-    const texto = mensajeWhatsApp({ ...input, vence: null });
-    expect(texto).toContain("vigencia limitada");
-    expect(texto).not.toContain("undefined");
+  it("el texto de WhatsApp es el del laboratorio: exámenes por nombre, servicios, total y enlace", () => {
+    expect(mensajeWhatsApp(input)).toBe(
+      "¡Listo!. 👋✨\n\n" +
+        "Por esta vía le hacemos llegar el presupuesto detallado para sus exámenes de laboratorio 📄🔬:\n\n" +
+        "El presupuesto incluye: Hemograma completo, Urea, Toma de Muestra y Servicio 100% a Domicilio.\n\n" +
+        "💳 Total General: $46.18 (o Bs. a la tasa oficial del BCV del día).\n\n" +
+        "Detalle del presupuesto: https://labo.test/p/aB3xY9kQ2m",
+    );
   });
 
   it("el link wa.me codifica el mensaje", () => {

@@ -263,7 +263,9 @@ CREATE TABLE IF NOT EXISTS presupuestos_examenes (
   precio_final_snap numeric(12, 2) NOT NULL CHECK (precio_final_snap >= 0),
   orden             integer        NOT NULL DEFAULT 0,
   -- 0026: nombre del grupo si la línea viene de un grupo del paquete.
-  grupo_snap        text
+  grupo_snap        text,
+  -- 0028: veces que se cotiza la línea; precio_final_snap ya la incluye.
+  cantidad          integer        NOT NULL DEFAULT 1 CHECK (cantidad BETWEEN 1 AND 10000)
 );
 
 CREATE INDEX IF NOT EXISTS presupuestos_examenes_by_presupuesto ON presupuestos_examenes (presupuesto_id, orden);

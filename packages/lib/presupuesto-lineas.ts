@@ -75,20 +75,61 @@ export function reconstruirLineaGuardada(
   };
 }
 
+interface LineaBloque {
+  paquete_id?: string | null;
+  grupo_snap?: string | null;
+  cerrado?: boolean | null;
+}
+
 /**
- * 0026 — Bloques de visualización: las líneas consecutivas de un mismo grupo
- * (`grupo_snap`) forman un bloque que se muestra como una sola fila con la
- * suma de precios; cada línea sin grupo es un bloque propio. Las líneas
- * siguen siendo por examen (la orden y los resultados las necesitan así).
+ * Bloque de edición y de precio: un paquete cerrado entero o un grupo (0026)
+ * se cotizan como una sola fila; `null` = examen suelto. Es también la clave
+ * `bloque` de `calcularTotales`: dentro del bloque se reparten los centavos.
  */
-export function bloquesPorGrupo<T extends { grupo_snap?: string | null }>(lineas: readonly T[]): T[][] {
+export function claveBloque(linea: LineaBloque): string | null {
+  if (linea.cerrado && linea.paquete_id) return `p:${linea.paquete_id}`;
+  if (linea.grupo_snap) return `g:${linea.paquete_id ?? ""}:${linea.grupo_snap}`;
+  return null;
+}
+
+/** Bloque que ve el paciente (PDF, WhatsApp, detalle): todo paquete es una fila. */
+export function claveVisible(linea: LineaBloque): string | null {
+  return linea.paquete_id ? `p:${linea.paquete_id}` : claveBloque(linea);
+}
+
+/**
+ * Agrupa líneas CONSECUTIVAS con la misma clave no nula; cada línea sin clave
+ * es un bloque propio. Las líneas siguen siendo por examen (la orden y los
+ * resultados las necesitan así); esto es sólo cómo se muestran.
+ */
+export function agruparBloques<T>(lineas: readonly T[], clave: (linea: T) => string | null): T[][] {
   const bloques: T[][] = [];
+  let anterior: string | null = null;
   for (const linea of lineas) {
+    const actual = clave(linea);
     const ultimo = bloques.at(-1);
-    if (linea.grupo_snap && ultimo?.[0]?.grupo_snap === linea.grupo_snap) ultimo.push(linea);
+    if (actual !== null && actual === anterior && ultimo) ultimo.push(linea);
     else bloques.push([linea]);
+    anterior = actual;
   }
   return bloques;
+}
+
+/**
+ * Nombres que ve el paciente, uno por bloque visible: el del paquete, el del
+ * grupo o el del examen, nunca la lista interna. Con cantidad > 1, "(x N)".
+ */
+export function nombresVisibles(
+  lineas: ReadonlyArray<LineaBloque & { nombre_snap: string; cantidad?: number | null }>,
+  nombrePaquete: (paqueteId: string) => string | null | undefined,
+): string[] {
+  return agruparBloques(lineas, claveVisible).map((bloque) => {
+    const l = bloque[0]!;
+    const nombre =
+      (l.paquete_id ? nombrePaquete(l.paquete_id) : null) ?? l.grupo_snap ?? l.nombre_snap;
+    const cantidad = l.cantidad ?? 1;
+    return cantidad > 1 ? `${nombre} (x${cantidad})` : nombre;
+  });
 }
 
 /**

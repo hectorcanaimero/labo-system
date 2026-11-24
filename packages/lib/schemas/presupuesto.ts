@@ -138,6 +138,8 @@ export const lineaPresupuestoSchema = z.object({
   cerrado: z.boolean().optional(),
   /** 0026 — nombre del grupo si la línea es parte de un bloque de grupo. */
   grupo: z.string().trim().min(1).max(200).optional(),
+  /** 0028 — veces que se cotiza (presupuestos para empresas). */
+  cantidad: z.number().int().min(1).max(10000).optional(),
 });
 export type LineaPresupuestoInput = z.infer<typeof lineaPresupuestoSchema>;
 

@@ -9,11 +9,20 @@ export interface CalcularTotalesLineaInput {
   gananciaPct?: number;
   /** Alias de payload persistido para facilitar el uso con filas SQL/Zod. */
   ganancia_pct?: number;
+  /**
+   * Bloque de precio: las líneas con la misma clave (un paquete cerrado, un
+   * grupo) reparten sus centavos entre sí para que el bloque sume exacto.
+   * Sin clave, la línea se redondea sola: misma base y mismo % → mismo precio.
+   */
+  bloque?: string | null;
+  /** Veces que se cotiza la línea (presupuestos para empresas). Default 1. */
+  cantidad?: number;
 }
 
 export interface CalcularTotalesLineaResult {
   precioBase: number;
   gananciaPct: number;
+  /** Precio final de la línea: unitario × cantidad. */
   precioFinal: number;
 }
 
@@ -48,7 +57,7 @@ export interface CalcularTotalesResult {
 }
 
 function cents(value: number): number {
-  return roundHalfUp(value, 2) * 100;
+  return Math.round(roundHalfUp(value, 2) * 100);
 }
 
 /**
@@ -88,32 +97,36 @@ function calculateLineTotals(
   gananciaPct: number
 ): CalcularTotalesLineaResult[] {
   const discountFactor = 1 - descuentoPct / 100;
-  const rawLineTotals = lineas.map((linea) => {
+  const raw = lineas.map((linea) => {
     const precioBase = linePrice(linea);
     const gain = lineGain(linea, gananciaPct);
-    return {
-      precioBase,
-      gananciaPct: gain,
-      rawFinal: precioBase * (1 + gain / 100) * discountFactor,
-    };
+    return { precioBase, gananciaPct: gain, unitario: precioBase * (1 + gain / 100) * discountFactor };
   });
 
-  // El total se redondea una sola vez sobre la suma exacta y se reparte en
-  // centavos por mayor resto. Antes el centavo de diferencia del redondeo
-  // independiente iba a la última línea, que si valía ~0 (Frotis $0.01)
-  // quedaba negativa y violaba presupuestos_examenes_precio_final_snap_check.
-  const expectedCents = cents(rawLineTotals.reduce((sum, linea) => sum + linea.rawFinal, 0));
-  const finalesCents = repartirCentavos(
-    rawLineTotals.map((linea) => linea.rawFinal * 100),
-    expectedCents,
-  );
-  const lineasFinales = rawLineTotals.map((linea, i) => ({
+  // Cada línea suelta se redondea sola (half-up): antes se redondeaba el total
+  // y el centavo sobrante caía en UNA línea, así que dos exámenes con la misma
+  // base y el mismo % salían distintos (Urea 3.11 vs Creatinina 3.10). Sólo
+  // dentro de un bloque (paquete cerrado, grupo) se reparten los centavos por
+  // mayor resto, para que el bloque sume exacto sin dejar líneas negativas.
+  const bloques = new Map<string, number[]>();
+  lineas.forEach((linea, i) => {
+    const clave = linea.bloque ?? `#${i}`;
+    bloques.set(clave, [...(bloques.get(clave) ?? []), i]);
+  });
+  const unitCents: number[] = [];
+  for (const indices of bloques.values()) {
+    const partes = repartirCentavos(
+      indices.map((i) => raw[i]!.unitario * 100),
+      cents(indices.reduce((sum, i) => sum + raw[i]!.unitario, 0)),
+    );
+    indices.forEach((i, k) => (unitCents[i] = partes[k]!));
+  }
+
+  return raw.map((linea, i) => ({
     precioBase: linea.precioBase,
     gananciaPct: linea.gananciaPct,
-    precioFinal: finalesCents[i]! / 100,
+    precioFinal: (unitCents[i]! * (lineas[i]!.cantidad ?? 1)) / 100,
   }));
-
-  return lineasFinales;
 }
 
 export function calcularTotales({
