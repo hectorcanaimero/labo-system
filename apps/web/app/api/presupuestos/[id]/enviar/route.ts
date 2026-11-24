@@ -22,6 +22,7 @@ import {
 } from "@labo/lib/enlace-presupuesto";
 import { normalizarEmail, normalizarTelefonoWhatsApp } from "@labo/lib/enlace-resultado";
 import { formatNumeroPresupuesto } from "@labo/lib/numero-presupuesto";
+import { nombresVisibles } from "@labo/lib/presupuesto-lineas";
 import { EMAIL_NO_DISPONIBLE, resolveEmailProvider, sendEmail } from "@labo/lib/server/email";
 import { AuthError, getCurrentUser } from "@/lib/server/auth";
 import { getAdminDb } from "@/lib/db-server";
@@ -117,6 +118,11 @@ export async function POST(
       numero: formatNumeroPresupuesto(presupuesto.numero_correlativo, presupuesto.created_at),
       url,
       vence: formatVencimiento(enlace.expira_en),
+      examenes: nombresVisibles(
+        presupuesto.lineas,
+        (paqueteId) => presupuesto.lineas.find((l) => l.paquete_id === paqueteId)?.paquete_nombre,
+      ),
+      totalUsd: presupuesto.total_usd,
     };
 
     const avanzarSiCorresponde = async (): Promise<void> => {

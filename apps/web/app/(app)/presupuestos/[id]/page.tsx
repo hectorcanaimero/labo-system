@@ -88,6 +88,8 @@ export default async function PresupuestoDetallePage({ params }: { params: { id:
             cerrado: linea.cerrado,
             precio_final_snap: linea.precio_final_snap,
             grupo_snap: linea.grupo_snap,
+            cantidad: linea.cantidad,
+            paquete_nombre: linea.paquete_nombre,
           })),
         }}
       />
