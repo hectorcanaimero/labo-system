@@ -89,9 +89,9 @@ describe("mensajes", () => {
     expect(texto).not.toContain("undefined");
   });
 
-  it("el link wa.me codifica el mensaje", () => {
+  it("el link de WhatsApp Web codifica el mensaje", () => {
     const link = enlaceWhatsApp("584141234567", mensajeWhatsApp(input));
-    expect(link.startsWith("https://wa.me/584141234567?text=")).toBe(true);
+    expect(link.startsWith("https://web.whatsapp.com/send?phone=584141234567&text=")).toBe(true);
     expect(link).not.toContain(" ");
   });
 
