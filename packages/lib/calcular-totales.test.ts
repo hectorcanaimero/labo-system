@@ -178,6 +178,21 @@ describe('calcularTotales', () => {
     expect(result.totalUsd).toBe(6.22);
   });
 
+  it('caso real del laboratorio: Urea y Creatinina a 1.65 con 30% → 2.15 las dos', () => {
+    const result = calcularTotales({
+      lineas: [
+        { precioBase: 1.65, gananciaPct: 30 },
+        { precioBase: 1.65, gananciaPct: 30 },
+      ],
+      descuentoPct: 0,
+      gananciaPct: 0,
+      tasa: 1,
+    });
+
+    expect(result.lineas?.map((linea) => linea.precioFinal)).toEqual([2.15, 2.15]);
+    expect(result.totalUsd).toBe(4.3);
+  });
+
   it('dentro de un bloque reparte centavos para que el bloque sume exacto', () => {
     const result = calcularTotales({
       lineas: [
