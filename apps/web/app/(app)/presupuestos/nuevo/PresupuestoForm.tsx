@@ -19,7 +19,8 @@ import { toHumanError } from "@labo/lib/error-messages";
 import { formatBs, formatUsd, roundHalfUp } from "@labo/lib/bs-format";
 import { calcularTotales } from "@labo/lib/calcular-totales";
 import {
-  bloquesPorGrupo,
+  agruparBloques,
+  claveBloque,
   reconstruirLineaGuardada,
   distribuirPrecioBase,
 } from "@labo/lib/presupuesto-lineas";
@@ -71,6 +72,8 @@ interface PresupuestoLineaForm {
   cerrado: boolean;
   /** Nombre del grupo: el bloque se muestra y se cotiza como una sola fila. */
   grupo_snap: string | null;
+  /** 0028 — veces que se cotiza (presupuestos para empresas). */
+  cantidad: number;
 }
 
 interface PresupuestoFormInitialData {
@@ -94,6 +97,7 @@ interface PresupuestoFormInitialData {
     ganancia_pct?: number;
     cerrado?: boolean;
     grupo_snap?: string | null;
+    cantidad?: number;
   }>;
 }
 
@@ -196,6 +200,7 @@ export function PresupuestoForm({
       nombre_snap: item.nombre_snap,
       precio_snap: item.precio_snap,
       grupo_snap: item.grupo_snap ?? null,
+      cantidad: item.cantidad ?? 1,
       // `cerrado`, el reparto y la ganancia por línea se derivan de lo
       // guardado: fijarlos a mano perdía el precio pactado del paquete.
       ...reconstruirLineaGuardada(item),
@@ -234,6 +239,13 @@ export function PresupuestoForm({
   const [paqueteElegido, setPaqueteElegido] = useState<PaqueteResumenItem | null>(null);
   const [cargandoPaqueteId, setCargandoPaqueteId] = useState<string | null>(null);
 
+  const [titulos, setTitulos] = useState<Array<{ id: string; nombre: string }>>([]);
+  useEffect(() => {
+    void requestJson<Array<{ id: string; nombre: string }>>("/api/examenes/titulos")
+      .then(setTitulos)
+      .catch(() => {});
+  }, []);
+
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [intentoGuardar, setIntentoGuardar] = useState(false);
@@ -245,7 +257,7 @@ export function PresupuestoForm({
   const selectedExamIds = useMemo(() => lineas.map((linea) => linea.examen_id), [lineas]);
 
   const subtotal = useMemo(
-    () => lineas.reduce((sum, linea) => sum + linea.precio_base_snap, 0),
+    () => lineas.reduce((sum, linea) => sum + linea.precio_base_snap * linea.cantidad, 0),
     [lineas],
   );
 
@@ -300,6 +312,8 @@ export function PresupuestoForm({
       lineas: lineas.map((linea) => ({
         precioBase: linea.precio_base_snap,
         gananciaPct: toNumber(linea.gananciaPctInput),
+        bloque: claveBloque(linea),
+        cantidad: linea.cantidad,
       })),
     });
   }, [lineas, descuentoNum, tasaNum, tasaValida, serviciosUsd]);
@@ -311,7 +325,8 @@ export function PresupuestoForm({
     () =>
       roundHalfUp(
         lineas.reduce(
-          (sum, linea) => sum + (linea.precio_base_snap * toNumber(linea.gananciaPctInput)) / 100,
+          (sum, linea) =>
+            sum + (linea.precio_base_snap * toNumber(linea.gananciaPctInput) * linea.cantidad) / 100,
           0,
         ),
         2,
@@ -417,9 +432,48 @@ export function PresupuestoForm({
           // editable por línea de acá en adelante.
           gananciaPctInput: String(gananciaDefault),
           cerrado: false,
+          cantidad: 1,
         },
       ];
     });
+  }
+
+  /**
+   * Agrega un grupo completo (p. ej. Hemograma) como una sola fila: el
+   * presupuesto muestra el nombre y el precio, y la orden recibe cada examen
+   * para cargar sus resultados. Los exámenes que ya están no se duplican.
+   */
+  async function addGrupo(tituloId: string): Promise<void> {
+    const titulo = titulos.find((t) => t.id === tituloId);
+    if (!titulo) return;
+    try {
+      setMessage(null);
+      const examenes = await requestJson<ExamenCatalogoItem[]>(
+        `/api/examenes?titulo_id=${encodeURIComponent(titulo.id)}`,
+      );
+      const presentes = new Set(lineas.map((linea) => linea.examen_id));
+      const nuevos = examenes.filter((examen) => !presentes.has(examen.id));
+      if (nuevos.length === 0) {
+        setMessage(`Los exámenes de "${titulo.nombre}" ya están en el presupuesto.`);
+        return;
+      }
+      setLineas((current) => [
+        ...current,
+        ...nuevos.map((examen) => ({
+          examen_id: examen.id,
+          nombre_snap: examen.nombre,
+          precio_snap: Number(examen.precio_usd),
+          paquete_id: null,
+          grupo_snap: titulo.nombre,
+          precio_base_snap: Number(examen.precio_usd),
+          gananciaPctInput: String(gananciaDefault),
+          cerrado: false,
+          cantidad: 1,
+        })),
+      ]);
+    } catch (error) {
+      setMessage(toHumanError(error));
+    }
   }
 
   function incorporarPaquete(
@@ -489,6 +543,7 @@ export function PresupuestoForm({
           // por línea. Ambos arrancan con el default de Config.
           gananciaPctInput: String(gananciaDefault),
           cerrado: modo === "cerrado",
+          cantidad: 1,
         })),
       );
     } catch (error) {
@@ -626,6 +681,7 @@ export function PresupuestoForm({
           cerrado: linea.cerrado,
           // Cerrada: el % de su paquete; abierta: el suyo.
           ganancia_pct: toNumber(linea.gananciaPctInput),
+          cantidad: linea.cantidad,
         })),
       };
 
@@ -951,12 +1007,35 @@ export function PresupuestoForm({
           </p>
         </div>
 
+        <div className="mt-4 space-y-2">
+          <label htmlFor="agregar-grupo" className="text-sm font-medium">
+            Agregar grupo completo
+          </label>
+          <select
+            id="agregar-grupo"
+            value=""
+            onChange={(event) => void addGrupo(event.target.value)}
+            className="h-11 w-full rounded-md border border-input bg-background px-3 text-sm"
+          >
+            <option value="">Elige un grupo (p. ej. Hemograma)…</option>
+            {titulos.map((titulo) => (
+              <option key={titulo.id} value={titulo.id}>
+                {titulo.nombre}
+              </option>
+            ))}
+          </select>
+          <p className="text-xs text-muted-foreground">
+            Se cotiza como una sola fila; al cargar resultados aparecen todos sus exámenes.
+          </p>
+        </div>
+
         <div className="mt-6 overflow-x-auto rounded-xl border border-border">
           <table className="min-w-full divide-y divide-border text-sm">
             <thead className="bg-muted/40 text-left text-muted-foreground">
               <tr>
                 <th className="px-4 py-3 font-medium">Examen</th>
                 <th className="px-4 py-3 font-medium">Origen</th>
+                <th className="px-4 py-3 font-medium">Cant.</th>
                 <th className="px-4 py-3 font-medium">Precio base USD</th>
                 {mostrarColumnaGanancia ? (
                   <th className="px-4 py-3 font-medium">Ganancia %</th>
@@ -969,36 +1048,67 @@ export function PresupuestoForm({
               {lineas.length === 0 ? (
                 <tr>
                   <td
-                    colSpan={mostrarColumnaGanancia ? 6 : 5}
+                    colSpan={mostrarColumnaGanancia ? 7 : 6}
                     className="px-4 py-8 text-center text-sm text-muted-foreground"
                   >
                     Todavía no agregaste exámenes. Usa el buscador o carga un paquete.
                   </td>
                 </tr>
               ) : (
-                bloquesPorGrupo(lineas).map((bloque) => {
+                agruparBloques(lineas, claveBloque).map((bloque) => {
                   const index = inicioBloque;
                   inicioBloque += bloque.length;
                   const linea = bloque[0]!;
-                  if (linea.grupo_snap) {
-                    const size = bloque.length;
+                  const size = bloque.length;
+                  const celdaCantidad = (
+                    <td className="px-4 py-3">
+                      <input
+                        type="number"
+                        min={1}
+                        step={1}
+                        defaultValue={linea.cantidad}
+                        onChange={(event) => {
+                          const cantidad = Math.trunc(Number(event.target.value));
+                          if (cantidad >= 1 && cantidad <= 10000) {
+                            updateBloque(index, size, () => ({ cantidad }));
+                          }
+                        }}
+                        onBlur={(event) => {
+                          event.target.value = String(linea.cantidad);
+                        }}
+                        aria-label={`Cantidad de ${linea.grupo_snap ?? linea.nombre_snap}`}
+                        className="h-9 w-20 rounded-md border border-input bg-background px-2 text-sm"
+                      />
+                    </td>
+                  );
+                  // Un paquete cerrado es una sola fila (nombre y precio); un
+                  // grupo también. Las líneas por examen siguen debajo para la orden.
+                  const paqueteCerrado = linea.cerrado && linea.paquete_id;
+                  if (paqueteCerrado || linea.grupo_snap) {
+                    const titulo = paqueteCerrado
+                      ? (nombresPaquete[linea.paquete_id!] ?? "Paquete")
+                      : linea.grupo_snap;
                     const precioBase = bloque.reduce((sum, l) => sum + l.precio_base_snap, 0);
                     const finales = totals?.lineas?.slice(index, index + size);
                     const precioFinal = finales?.reduce((sum, l) => sum + l.precioFinal, 0);
                     return (
                       <tr key={`grupo-${linea.examen_id}-${index}`} className={linea.cerrado ? "bg-muted/20" : ""}>
                         <td className="px-4 py-3 font-medium text-foreground">
-                          {linea.grupo_snap}
-                          <span className="block text-xs font-normal text-muted-foreground">
-                            {bloque.map((l) => l.nombre_snap).join(", ")}
-                          </span>
+                          {titulo}
+                          {paqueteCerrado ? null : (
+                            <span className="block text-xs font-normal text-muted-foreground">
+                              {bloque.map((l) => l.nombre_snap).join(", ")}
+                            </span>
+                          )}
                         </td>
                         <td className="px-4 py-3">
                           <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">
                             <PackageOpen className="h-3 w-3" />
-                            Grupo · {size} {size === 1 ? "examen" : "exámenes"}
+                            {paqueteCerrado ? "Paquete cerrado" : "Grupo"} · {size}{" "}
+                            {size === 1 ? "examen" : "exámenes"}
                           </span>
                         </td>
+                        {celdaCantidad}
                         <td className="px-4 py-3 font-mono text-muted-foreground">
                           {linea.cerrado ? (
                             formatUsd(precioBase)
@@ -1014,7 +1124,7 @@ export function PresupuestoForm({
                               onBlur={(event) =>
                                 setPrecioGrupo(index, size, toNumber(event.target.value))
                               }
-                              aria-label={`Precio del grupo ${linea.grupo_snap}`}
+                              aria-label={`Precio del grupo ${titulo}`}
                               className="h-9 w-28 rounded-md border border-input bg-background px-2 text-sm"
                             />
                           )}
@@ -1035,7 +1145,7 @@ export function PresupuestoForm({
                                   }))
                                 }
                                 placeholder="0"
-                                aria-label={`Ganancia % del grupo ${linea.grupo_snap}`}
+                                aria-label={`Ganancia % del grupo ${titulo}`}
                                 className="h-9 w-24 rounded-md border border-input bg-background px-2 text-sm"
                               />
                             )}
@@ -1052,8 +1162,8 @@ export function PresupuestoForm({
                             onClick={() =>
                               linea.cerrado ? removeLinea(index) : removeBloque(index, size)
                             }
-                            title={linea.cerrado ? "Quitar el paquete completo" : `Quitar ${linea.grupo_snap}`}
-                            aria-label={linea.cerrado ? "Quitar el paquete completo" : `Quitar ${linea.grupo_snap}`}
+                            title={linea.cerrado ? "Quitar el paquete completo" : `Quitar ${titulo}`}
+                            aria-label={linea.cerrado ? "Quitar el paquete completo" : `Quitar ${titulo}`}
                           >
                             <Trash2 className="h-4 w-4" />
                           </Button>
@@ -1080,6 +1190,7 @@ export function PresupuestoForm({
                           <span className="text-xs text-muted-foreground">Individual</span>
                         )}
                       </td>
+                      {celdaCantidad}
                       <td className="px-4 py-3 font-mono text-muted-foreground">
                         {formatUsd(linea.precio_base_snap)}
                       </td>

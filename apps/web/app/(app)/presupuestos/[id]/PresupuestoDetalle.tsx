@@ -44,7 +44,7 @@ import {
   type PacienteAutocompleteItem,
 } from "@labo/ui/pacientes/PacienteAutocomplete";
 import { formatBs, formatUsd } from "@labo/lib/bs-format";
-import { bloquesPorGrupo } from "@labo/lib/presupuesto-lineas";
+import { agruparBloques, claveVisible } from "@labo/lib/presupuesto-lineas";
 import { toHumanError } from "@labo/lib/error-messages";
 import { formatNumeroPresupuesto } from "@labo/lib/numero-presupuesto";
 import { esFichaIncompleta } from "@labo/lib/schemas/paciente";
@@ -102,6 +102,8 @@ interface PresupuestoDetalleProps {
       cerrado: boolean;
       precio_final_snap?: number;
       grupo_snap: string | null;
+      cantidad: number;
+      paquete_nombre: string | null;
     }>;
   };
 }
@@ -471,6 +473,7 @@ export function PresupuestoDetalle({
                   <TableHead className="h-9 w-10 py-1.5 text-right">#</TableHead>
                   <TableHead className="h-9 py-1.5">Examen</TableHead>
                   <TableHead className="h-9 w-24 py-1.5">Origen</TableHead>
+                  <TableHead className="h-9 w-16 py-1.5 text-right">Cant.</TableHead>
                   <TableHead className="h-9 w-28 py-1.5 text-right">
                     Precio base
                   </TableHead>
@@ -481,20 +484,21 @@ export function PresupuestoDetalle({
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {bloquesPorGrupo(initialData.lineas).map((bloque, index) => {
+                {agruparBloques(initialData.lineas, claveVisible).map((bloque, index) => {
                   const linea = bloque[0]!;
                   const suma = (precio: (l: typeof linea) => number) =>
                     bloque.reduce((total, l) => total + precio(l), 0);
+                  const pcts = new Set(bloque.map((l) => l.ganancia_pct));
                   return (
                   <TableRow key={linea.id} className="h-9">
                     <TableCell className="py-1.5 text-right font-mono text-xs tabular-nums text-muted-foreground">
                       {index + 1}
                     </TableCell>
                     <TableCell className="py-1.5 font-medium text-foreground">
-                      {linea.grupo_snap ?? linea.nombre_snap}
-                      {linea.grupo_snap ? (
+                      {(linea.paquete_id ? linea.paquete_nombre : null) ?? linea.grupo_snap ?? linea.nombre_snap}
+                      {bloque.length > 1 ? (
                         <span className="block text-[11px] font-normal text-muted-foreground">
-                          {bloque.map((l) => l.nombre_snap).join(", ")}
+                          {bloque.length} exámenes
                         </span>
                       ) : null}
                     </TableCell>
@@ -510,10 +514,13 @@ export function PresupuestoDetalle({
                       )}
                     </TableCell>
                     <TableCell className="py-1.5 text-right font-mono text-xs tabular-nums text-muted-foreground">
+                      {linea.cantidad}
+                    </TableCell>
+                    <TableCell className="py-1.5 text-right font-mono text-xs tabular-nums text-muted-foreground">
                       {formatUsd(suma((l) => l.precio_base_snap ?? l.precio_snap))}
                     </TableCell>
                     <TableCell className="py-1.5 text-right font-mono text-xs tabular-nums text-muted-foreground">
-                      {linea.ganancia_pct}%
+                      {pcts.size === 1 ? `${linea.ganancia_pct}%` : "varios"}
                     </TableCell>
                     <TableCell className="py-1.5 text-right font-mono text-xs tabular-nums text-foreground">
                       {formatUsd(suma((l) => l.precio_final_snap ?? l.precio_snap))}

@@ -1,7 +1,9 @@
 import { describe, expect, it } from "vitest";
 
 import {
-  bloquesPorGrupo,
+  agruparBloques,
+  claveBloque,
+  nombresVisibles,
   distribuirPrecioBase,
   esPaqueteCerrado,
   gananciaPctInicial,
@@ -125,11 +127,41 @@ describe("reconstruirLineaGuardada", () => {
   });
 });
 
-describe("bloquesPorGrupo", () => {
+describe("bloques", () => {
+  const l = (id: string, grupo_snap: string | null, paquete_id: string | null = null, cerrado = false) => ({
+    id,
+    nombre_snap: id,
+    grupo_snap,
+    paquete_id,
+    cerrado,
+  });
+
   it("junta líneas consecutivas del mismo grupo y deja las sueltas solas", () => {
-    const l = (id: string, grupo_snap: string | null) => ({ id, grupo_snap });
-    const bloques = bloquesPorGrupo([l("a", null), l("b", "HEMA"), l("c", "HEMA"), l("d", null), l("e", null)]);
+    const bloques = agruparBloques(
+      [l("a", null), l("b", "HEMA"), l("c", "HEMA"), l("d", null), l("e", null)],
+      claveBloque,
+    );
     expect(bloques.map((b) => b.map((x) => x.id))).toEqual([["a"], ["b", "c"], ["d"], ["e"]]);
+  });
+
+  it("un paquete cerrado es un solo bloque aunque tenga grupos y sueltos", () => {
+    const lineas = [l("x", null), l("a", "HEMA", "p1", true), l("b", "HEMA", "p1", true), l("c", null, "p1", true)];
+    expect(agruparBloques(lineas, claveBloque).map((b) => b.length)).toEqual([1, 3]);
+  });
+
+  it("el paciente ve un nombre por paquete, grupo o examen, con la cantidad", () => {
+    const lineas = [
+      { ...l("Hemograma: Hb", "Hemograma completo"), cantidad: 25 },
+      { ...l("Hemograma: Hto", "Hemograma completo"), cantidad: 25 },
+      l("Urea", null),
+      l("Glicemia", null, "p9"),
+      l("Colesterol", "Perfil lipídico", "p9"),
+    ];
+    expect(nombresVisibles(lineas, (id) => (id === "p9" ? "Pre-empleo" : null))).toEqual([
+      "Hemograma completo (x25)",
+      "Urea",
+      "Pre-empleo",
+    ]);
   });
 });
 

@@ -7,6 +7,7 @@ import {
 } from "@labo/lib/schemas/presupuesto";
 import { esFichaIncompleta } from "@labo/lib/schemas/paciente";
 import { calcularTotales } from "@labo/lib/calcular-totales";
+import { claveBloque } from "@labo/lib/presupuesto-lineas";
 import { parseNumeroPresupuesto } from "@labo/lib/numero-presupuesto";
 import type { SnapshotPresupuesto } from "@labo/lib/presupuesto-historial";
 
@@ -75,6 +76,10 @@ export interface PresupuestoLinea {
   orden: number;
   /** 0026 — nombre del grupo si la línea es parte de un bloque de grupo. */
   grupo_snap: string | null;
+  /** 0028 — veces que se cotiza; `precio_final_snap` ya la incluye. */
+  cantidad: number;
+  /** Nombre del paquete de origen (para mostrarlo como una sola fila). */
+  paquete_nombre: string | null;
 }
 
 export interface Presupuesto {
@@ -181,6 +186,8 @@ type LineaRow = {
   precio_final_snap: Numeric;
   orden: number;
   grupo_snap: string | null;
+  cantidad: number | null;
+  paquetes?: { nombre: string } | null;
 };
 
 function mapHeader(row: PresupuestoRow): Omit<Presupuesto, "lineas"> {
@@ -220,6 +227,8 @@ function mapLinea(row: LineaRow): PresupuestoLinea {
     precio_final_snap: numberOf(row.precio_final_snap),
     orden: row.orden,
     grupo_snap: row.grupo_snap ?? null,
+    cantidad: row.cantidad ?? 1,
+    paquete_nombre: row.paquetes?.nombre ?? null,
   };
 }
 
@@ -232,7 +241,7 @@ async function hydrate(
   const { data: lineas, error } = await db
     .from("presupuestos_examenes")
     .select(
-      "id, presupuesto_id, examen_id, paquete_id, nombre_snap, precio_snap, precio_base_snap, ganancia_pct, cerrado, precio_final_snap, orden, grupo_snap",
+      "id, presupuesto_id, examen_id, paquete_id, nombre_snap, precio_snap, precio_base_snap, ganancia_pct, cerrado, precio_final_snap, orden, grupo_snap, cantidad, paquetes(nombre)",
     )
     .in("presupuesto_id", ids)
     .order("orden", { ascending: true })
@@ -240,7 +249,7 @@ async function hydrate(
   if (error) throw new Error(`presupuestos.hydrate: ${error.message}`);
 
   const byId = new Map<string, PresupuestoLinea[]>();
-  for (const raw of (lineas ?? []) as LineaRow[]) {
+  for (const raw of (lineas ?? []) as unknown as LineaRow[]) {
     const list = byId.get(raw.presupuesto_id) ?? [];
     list.push(mapLinea(raw));
     byId.set(raw.presupuesto_id, list);
@@ -290,6 +299,7 @@ function snapshot(p: Presupuesto): SnapshotPresupuesto {
       cerrado: l.cerrado,
       grupo: l.grupo_snap,
       paquete_id: l.paquete_id,
+      cantidad: l.cantidad,
     })),
   };
 }
@@ -526,6 +536,8 @@ export async function create(
     lineas: lineasInput.map((item) => ({
       precioBase: item.precioBase,
       gananciaPct: item.gananciaEfectiva,
+      bloque: claveBloque({ ...item.linea, cerrado: item.cerrado, grupo_snap: item.linea.grupo }),
+      cantidad: item.linea.cantidad,
     })),
   });
 
@@ -580,6 +592,7 @@ export async function create(
     precio_final_snap: totals.lineas![orden]!.precioFinal,
     orden,
     grupo_snap: item.linea.grupo ?? null,
+    cantidad: item.linea.cantidad ?? 1,
   }));
   const lineasRes = await db.from("presupuestos_examenes").insert(lineasPayload);
   if (lineasRes.error) throw new Error(`presupuestos.create lineas: ${lineasRes.error.message}`);
@@ -679,6 +692,8 @@ export async function update(
       lineas: lineasInput.map((item) => ({
         precioBase: item.precioBase,
         gananciaPct: item.gananciaEfectiva,
+        bloque: claveBloque({ ...item.linea, cerrado: item.cerrado, grupo_snap: item.linea.grupo }),
+        cantidad: item.linea.cantidad,
       })),
     });
     totalUsd = totals.totalUsd;
@@ -702,6 +717,7 @@ export async function update(
       precio_final_snap: totals.lineas![orden]!.precioFinal,
       orden,
       grupo_snap: item.linea.grupo ?? null,
+      cantidad: item.linea.cantidad ?? 1,
     }));
     if (payload.length > 0) {
       const insLineas = await db.from("presupuestos_examenes").insert(payload);
@@ -733,6 +749,8 @@ export async function update(
       lineas: existing.lineas.map((line) => ({
         precioBase: line.precio_base_snap,
         gananciaPct: gananciaLinea(line),
+        bloque: claveBloque(line),
+        cantidad: line.cantidad,
       })),
     });
     totalUsd = totals.totalUsd;

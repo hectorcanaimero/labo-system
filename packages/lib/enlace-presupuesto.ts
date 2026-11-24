@@ -6,9 +6,10 @@
  * teléfono/email (se reusan de ahí, no se duplican acá), mismo patrón de
  * `mensajeWhatsApp` / `asuntoEmail` / `htmlEmail` / `mailtoPresupuesto`. Lo
  * que cambia es el contenido: un presupuesto no tiene datos clínicos, así
- * que no lleva monto ni tasa (pedido del laboratorio): el detalle va en el
- * enlace. Aclara que la cotización vale 24 horas (el enlace en sí dura más: 7 días, ver
- * `crearOReutilizarPresupuesto`).
+ * que el email no lleva monto ni tasa: el detalle va en el enlace. Aclara
+ * que la cotización vale 24 horas (el enlace en sí dura más: 7 días, ver
+ * `crearOReutilizarPresupuesto`). WhatsApp usa el texto del laboratorio con
+ * exámenes y total.
  */
 
 export interface MensajePresupuestoInput {
@@ -22,21 +23,25 @@ export interface MensajePresupuestoInput {
   url: string;
   /** Fecha de vencimiento del ENLACE (7 días), ya formateada para mostrar. */
   vence?: string | null;
+  /** Un nombre por paquete, grupo o examen (`nombresVisibles`), sin la lista interna. */
+  examenes: string[];
+  /** Total general en USD, servicios incluidos. */
+  totalUsd: number;
 }
 
-/** Texto plano del mensaje de WhatsApp. Sin monto ni tasa: el detalle va en el enlace. */
+/**
+ * Texto plano del mensaje de WhatsApp, con el texto que pidió el laboratorio
+ * (2026-11-23): exámenes por nombre y total en USD. El enlace va al final
+ * para que el paciente pueda abrir el detalle.
+ */
 export function mensajeWhatsApp(input: MensajePresupuestoInput): string {
-  const vigenciaEnlace = input.vence
-    ? `\n\nPor su seguridad, el enlace es personal y estará disponible hasta el ${input.vence}.`
-    : "\n\nPor su seguridad, el enlace es personal y tiene una vigencia limitada.";
-
+  const incluye = [...input.examenes, "Toma de Muestra y Servicio 100% a Domicilio"].join(", ");
   return (
-    `Estimado/a ${input.paciente}, le saluda ${input.laboratorio}.\n\n` +
-    `Le enviamos el presupuesto ${input.numero}. ` +
-    `Esta cotización tiene una validez de 24 horas desde su emisión. ` +
-    `Puede consultar el detalle en el siguiente enlace:\n${input.url}` +
-    vigenciaEnlace +
-    `\n\nAnte cualquier consulta, quedamos a su disposición.`
+    `¡Listo!. 👋✨\n\n` +
+    `Por esta vía le hacemos llegar el presupuesto detallado para sus exámenes de laboratorio 📄🔬:\n\n` +
+    `El presupuesto incluye: ${incluye}.\n\n` +
+    `💳 Total General: $${input.totalUsd.toFixed(2)} (o Bs. a la tasa oficial del BCV del día).\n\n` +
+    `Detalle del presupuesto: ${input.url}`
   );
 }
 

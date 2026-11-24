@@ -16,6 +16,8 @@ export interface SnapshotLinea {
   grupo: string | null;
   /** Sin esto el PDF no puede agrupar un paquete. Ausente en fotos viejas. */
   paquete_id?: string | null;
+  /** 0028. Ausente en fotos viejas (= 1). */
+  cantidad?: number;
 }
 
 export interface SnapshotPresupuesto {
@@ -110,6 +112,7 @@ export function aplicarVersion<
     orden: number;
     grupo_snap: string | null;
     paquete_id: string | null;
+    cantidad: number;
   }>;
 } {
   return {
@@ -127,6 +130,7 @@ export function aplicarVersion<
       orden,
       grupo_snap: l.grupo,
       paquete_id: l.paquete_id ?? null,
+      cantidad: l.cantidad ?? 1,
     })),
   };
 }
