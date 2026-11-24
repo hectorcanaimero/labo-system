@@ -28,15 +28,15 @@ describe("mensajes", () => {
     expect(mensajeWhatsApp(input)).toBe(
       "¡Listo!. 👋✨\n\n" +
         "Por esta vía le hacemos llegar el presupuesto detallado para sus exámenes de laboratorio 📄🔬:\n\n" +
-        "El presupuesto incluye: Hemograma completo, Urea, Toma de Muestra y Servicio 100% a Domicilio.\n\n" +
-        "💳 Total General: $46.18 (o Bs. a la tasa oficial del BCV del día).\n\n" +
+        "El presupuesto incluye: *Hemograma completo, Urea*, Toma de Muestra y Servicio 100% a Domicilio.\n\n" +
+        "💳 Total General: *$46.18* (o Bs. a la tasa oficial del BCV del día).\n\n" +
         "Detalle del presupuesto: https://labo.test/p/aB3xY9kQ2m",
     );
   });
 
-  it("el link wa.me codifica el mensaje", () => {
+  it("el link de WhatsApp Web codifica el mensaje", () => {
     const link = enlaceWhatsApp("584141234567", mensajeWhatsApp(input));
-    expect(link.startsWith("https://wa.me/584141234567?text=")).toBe(true);
+    expect(link.startsWith("https://web.whatsapp.com/send?phone=584141234567&text=")).toBe(true);
     expect(link).not.toContain(" ");
   });
 

@@ -115,9 +115,9 @@ export function mensajeWhatsApp(input: MensajeResultadoInput): string {
   );
 }
 
-/** Link `wa.me` listo para abrir con el mensaje precargado. */
+/** Link a WhatsApp Web (no `wa.me`: la app de escritorio rompe los emojis) listo para abrir con el mensaje precargado. */
 export function enlaceWhatsApp(telefonoNormalizado: string, mensaje: string): string {
-  return `https://wa.me/${telefonoNormalizado}?text=${encodeURIComponent(mensaje)}`;
+  return `https://web.whatsapp.com/send?phone=${telefonoNormalizado}&text=${encodeURIComponent(mensaje)}`;
 }
 
 /**

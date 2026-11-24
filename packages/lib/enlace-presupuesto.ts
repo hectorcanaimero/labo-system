@@ -35,19 +35,19 @@ export interface MensajePresupuestoInput {
  * para que el paciente pueda abrir el detalle.
  */
 export function mensajeWhatsApp(input: MensajePresupuestoInput): string {
-  const incluye = [...input.examenes, "Toma de Muestra y Servicio 100% a Domicilio"].join(", ");
+  const nombres = input.examenes.join(", ");
   return (
     `¡Listo!. 👋✨\n\n` +
     `Por esta vía le hacemos llegar el presupuesto detallado para sus exámenes de laboratorio 📄🔬:\n\n` +
-    `El presupuesto incluye: ${incluye}.\n\n` +
-    `💳 Total General: $${input.totalUsd.toFixed(2)} (o Bs. a la tasa oficial del BCV del día).\n\n` +
+    `El presupuesto incluye: *${nombres}*, Toma de Muestra y Servicio 100% a Domicilio.\n\n` +
+    `💳 Total General: *$${input.totalUsd.toFixed(2)}* (o Bs. a la tasa oficial del BCV del día).\n\n` +
     `Detalle del presupuesto: ${input.url}`
   );
 }
 
-/** Link `wa.me` listo para abrir con el mensaje precargado. */
+/** Link a WhatsApp Web (no `wa.me`: la app de escritorio rompe los emojis) listo para abrir con el mensaje precargado. */
 export function enlaceWhatsApp(telefonoNormalizado: string, mensaje: string): string {
-  return `https://wa.me/${telefonoNormalizado}?text=${encodeURIComponent(mensaje)}`;
+  return `https://web.whatsapp.com/send?phone=${telefonoNormalizado}&text=${encodeURIComponent(mensaje)}`;
 }
 
 export function asuntoEmail(laboratorio: string, numero: string): string {
